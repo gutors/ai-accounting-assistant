@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Env and secrets
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+
+# Logs and OS
+*.log
+.DS_Store
+
+# Test and build
+coverage/
+dist/
+build/
+*.tsbuildinfo
+
+# Vercel
+.vercel
+
+# Local editor / agent clutter
+.agent/
+.agents/
+.scratch/
