@@ -1,0 +1,40 @@
+# .cursorignore
+node_modules/
+.env*
+dist/
+build/
+.next/
+*.log
+
+# Ignore settings and rules for other AI editors
+.claude/
+.cline/
+.agent/
+.agents/
+.trae/
+
+# Ignore temporary state tracking except the formal specs
+.cursor/canvas/ 
+
+# Ignore sensitive data (credentials, secrets, etc.)
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.sample
+!**/.env.template
+**/credentials.json
+**/credentials.*.json
+**/secrets.json
+**/secret.json
+**/*service-account*.json
+**/*.key
+**/*.pem
+**/*.p12
+**/*.pfx
+**/*.crt
+**/id_rsa
+**/id_ed25519
+**/.ssh/id_*
+**/*.keystore
+**/*.jks
+

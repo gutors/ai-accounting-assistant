@@ -67,3 +67,5 @@ Travada. Detalhe e alternativas rejeitadas: [ADR-0001](docs/adr/0001-rails-8-hot
 | [Issue #1](https://github.com/gutors/ai-accounting-assistant/issues/1) | Mapa de produto |
 | [`docs/adr/`](docs/adr/) | Decisões de plataforma |
 | [`AGENTS.md`](AGENTS.md) | Como agentes trabalham neste repo |
+
+O código neste repositório é só para visualização. Todos os direitos reservados — ver [`LICENSE`](LICENSE).

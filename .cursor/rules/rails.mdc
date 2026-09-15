@@ -1,0 +1,53 @@
+---
+description: Rails 8 + Hotwire + RSpec conventions for monthly close.
+globs: app/**,config/**,db/**,lib/**,spec/**,*.rb,*.erb,Gemfile*
+alwaysApply: false
+---
+
+# Rails (Hotwire)
+
+Coordinator and submitter UI for monthly close. Server-rendered HTML with Turbo. Add a Stimulus controller only for events, browser APIs, or client-only libraries.
+
+Drive writer tokens, A1 unwrap, and SEFAZ mTLS stay on the server — never in views, Stimulus controllers, or frontend bundles.
+
+## Files and names
+
+- Directories and files: snake_case (`app/models/bank_account.rb`)
+- Classes and modules: PascalCase; methods and symbols: snake_case
+- Predicates end with `?` (`closed?`, `missing_document?`)
+- Stimulus controllers: kebab-case filenames (`match_form_controller.js`)
+
+## Ruby / Rails
+
+- Rails 8 on MRI. Puma is the app server — not Node, not a separate API process
+- Money: integer cents (`bigint` columns, Ruby `Integer`), never `Float` or `BigDecimal` for domain amounts
+- Active Record for persistence. Keep queries out of views and Stimulus controllers
+- Working files (photos, XML, statements) go through the blob/object-store interface, not durable writes under `Rails.root` or the container disk. Drive is only the **package archive** at **close-for-send**
+- Tailwind for styling. Turbo/Stimulus for interactivity. No React, no shadcn/ui
+- Semantic HTML, keyboard access, visible labels. Prefer buttons/links over clickable `div`s
+- User-facing copy: Portuguese (Brazil), default locale `pt-BR`. Glossary: `CONTEXT.md`
+
+```ruby
+# BAD
+Payment.all
+amount.to_f
+
+# GOOD
+Current.organization.payments
+amount_cents # Integer
+```
+
+## Access
+
+- Operator session is Google OIDC (`openid email` only), not Drive
+- Every query is scoped to the **Organization** of the current **Access**; never leak another organization’s rows
+- A **Submitter** must not receive bank **Payment** or **Bank statement** data
+
+## Tests (RSpec)
+
+- Specs live in `spec/`. Do not skip, pending, or weaken examples to make a gate pass
+- **Decision** (branch table, guard, state transition): prove at its own layer (model/job spec), one asserted case per enumerated member
+- Code reached over HTTP: also a request spec at the boundary (status, who may call)
+- Instrumentation / pass-through: no spec of its own — covered by the consumer
+- System specs only when a check names a user-visible flow a request spec cannot settle
+- Proofs name a specific example (`bin/rspec … -e "…"`), never the whole suite
