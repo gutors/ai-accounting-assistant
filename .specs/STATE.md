@@ -3,9 +3,9 @@
 ## Handoff
 
 **Feature**: coordinator-access
-**Where**: C1-C40 closed — Rails 8 app, Google OIDC, Account/Access/Organization/Invite, bootstrap, focus
+**Where**: C1–C40 verified PASS — independent Verifier over `3950cf4..c48e19f`, report at `.specs/features/coordinator-access/verification.md`
 **In progress**: none
-**Next step**: orchestrator dispatches a Verifier over the feature base..HEAD with every check
+**Next step**: none for this feature
 **Blockers**: none
-**Uncommitted**: none after the feature commit
+**Uncommitted**: none
 **Branch**: coordinator-access
