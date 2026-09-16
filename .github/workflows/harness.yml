@@ -1,0 +1,30 @@
+name: Harness Score
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  harness:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Prepare badge output
+        run: mkdir -p badge-out
+
+      - name: Scan harness and write badge
+        uses: paladini/harness-score@v1
+        with:
+          badge: badge-out/harness-badge.svg
+
+      - name: Publish badge
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: badges
+          folder: badge-out
+          clean: false

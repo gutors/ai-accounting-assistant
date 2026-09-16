@@ -16,6 +16,10 @@ _Avoid_: role, permission, membership, authorization (when SEFAZ autorização i
 A person with coordinator access on an organization: runs monthly close and validates matches. An organization has one or more. Not the only person who can put documents in.
 _Avoid_: accountant (as the operator), business owner, bookkeeper
 
+**Invite**:
+A pending grant of coordinator access by email on one organization. It exists only while pending and is deleted when accepted or cancelled. User-facing copy is convite.
+_Avoid_: access (standing), membership, signup
+
 **Submitter**:
 A person with submitter access on an organization who inserts supporting documents, sees only their own, and does not see bank payments. May insert more than one document toward justifying a single amount they were given. A person may hold this access on more than one organization.
 _Avoid_: accountant, coordinator (when the narrower close role is meant), system user

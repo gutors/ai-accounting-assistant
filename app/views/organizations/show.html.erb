@@ -1,0 +1,54 @@
+<% content_for :title, @organization.name %>
+
+<div class="flex items-start justify-between gap-4 mb-8">
+  <h1 class="text-2xl font-semibold"><%= @organization.name %></h1>
+  <%= button_to "Sair", "/session", method: :delete, class: "text-sm underline" %>
+</div>
+
+<% if @focusable_organizations.size > 1 %>
+  <nav aria-label="Organizações" class="mb-8">
+    <p class="text-sm font-medium mb-2">Organizações</p>
+    <ul class="flex flex-wrap gap-2">
+      <% @focusable_organizations.each do |organization| %>
+        <li>
+          <%= button_to organization.name, "/focus", params: { organization_id: organization.id }, class: "rounded border px-3 py-1" %>
+        </li>
+      <% end %>
+    </ul>
+  </nav>
+<% end %>
+
+<section class="mb-8">
+  <h2 class="text-lg font-medium mb-3">Coordenadores</h2>
+  <ul>
+    <% @coordinator_accesses.each do |access| %>
+      <li class="flex items-center gap-3 mb-2">
+        <span><%= access.account.email %></span>
+        <%= button_to "Revogar", "/accesses/#{access.id}", method: :delete, form: { data: { turbo_confirm: "Revogar o acesso deste coordenador?" } }, class: "text-sm underline" %>
+      </li>
+    <% end %>
+  </ul>
+</section>
+
+<section class="mb-8">
+  <h2 class="text-lg font-medium mb-3">Convites pendentes</h2>
+  <% if @invites.any? %>
+    <ul>
+      <% @invites.each do |invite| %>
+        <li class="flex items-center gap-3 mb-2">
+          <span><%= invite.email %></span>
+          <%= button_to "Cancelar", "/coordinator_invites/#{invite.id}", method: :delete, class: "text-sm underline" %>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+</section>
+
+<section>
+  <h2 class="text-lg font-medium mb-3">Convidar coordenador</h2>
+  <%= form_with url: "/coordinator_invites", method: :post do %>
+    <label for="email" class="block mb-1">E-mail</label>
+    <%= email_field_tag :email, nil, id: "email", class: "border rounded px-2 py-1 mb-3", autocomplete: "email" %>
+    <%= submit_tag "Convidar", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+  <% end %>
+</section>

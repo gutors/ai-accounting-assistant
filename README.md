@@ -1,5 +1,9 @@
 # Fechamento mensal para coordenadores de ONG
 
+<a href="https://paladini.github.io/harness-score/">
+  <img alt="Harness Score" src="https://raw.githubusercontent.com/gutors/ai-accounting-assistant/badges/harness-badge.svg" height="20" width="112">
+</a>
+
 Sistema para fechar o mês de uma ou mais **organizações** (ONG ou similar): importar extratos, guardar documentos de suporte, casar cada pagamento com documento ou exceção, apontar documentos faltantes, gerar a planilha-resumo e montar o **pacote mensal** para o contador.
 
 O coordenador entrega o pacote. O sistema não substitui o contador.
@@ -31,7 +35,7 @@ Vocabulário canônico: [`CONTEXT.md`](CONTEXT.md).
 ## Estado
 
 > [!NOTE]
-> Ainda não há aplicativo nem `Gemfile`. Não há o que instalar ou rodar neste repositório.
+> App Rails 8 neste repositório. Local: PostgreSQL, `bundle install`, `bin/rails db:setup`, `bin/rails server`. O primeiro coordenador entra com `bin/rails coordinator:bootstrap` (`ORGANIZATION_NAME`, `COORDINATOR_EMAIL`) e Google (`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`).
 
 As decisões de produto estão no [mapa do fechamento mensal](https://github.com/gutors/ai-accounting-assistant/issues/1). Código de produto começa na primeira feature com plano e checks aprovados (`tlc-spec-lean`), não a partir do mapa.
 

@@ -1,0 +1,34 @@
+---
+# Default glob is **/*.html{+*,}.erb and misses mailer.text.erb / manifest.json.erb.
+# **/ on excludes: erb_lint matches absolute paths.
+glob: "**/*.erb"
+exclude:
+  - "**/vendor/**/*"
+  - "**/node_modules/**/*"
+linters:
+  ClosingErbTagIndent:
+    enabled: true
+  ExtraNewline:
+    enabled: true
+  FinalNewline:
+    enabled: true
+  RightTrim:
+    enabled: true
+  SpaceAroundErbTag:
+    enabled: true
+  SpaceIndentation:
+    enabled: true
+  TrailingWhitespace:
+    enabled: true
+  Rubocop:
+    enabled: true
+    rubocop_config:
+      inherit_from:
+        - .rubocop.yml
+      # These layout cops assume a whole file, but the Rubocop linter here
+      # runs against small Ruby fragments extracted from each <% %> tag —
+      # applying them per-fragment is noise, not a real finding. Whole-file
+      # newline/whitespace concerns are already covered by the FinalNewline
+      # and TrailingWhitespace linters above.
+      Layout/TrailingEmptyLines:
+        Enabled: false

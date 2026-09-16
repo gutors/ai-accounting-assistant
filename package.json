@@ -1,0 +1,8 @@
+{
+  "name": "ai-accounting-assistant",
+  "private": true,
+  "description": "Harness entry only: npm test runs bin/rspec. This is not a Node app.",
+  "scripts": {
+    "test": "bin/rspec"
+  }
+}

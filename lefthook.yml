@@ -1,0 +1,17 @@
+# CI-04. afterFileEdit (format-ruby.js) is fail-open and .rb-only;
+# this hook is fail-closed and also covers staged .erb.
+lefthook: bin/lefthook
+
+pre-commit:
+  parallel: true
+  commands:
+    rubocop:
+      glob: "*.rb"
+      env:
+        RUBOCOP_CACHE_ROOT: tmp/rubocop
+      run: bin/rubocop -a --force-exclusion -- {staged_files}
+      stage_fixed: true
+    erb_lint:
+      glob: "*.erb"
+      run: bin/erb_lint --autocorrect -- {staged_files}
+      stage_fixed: true
