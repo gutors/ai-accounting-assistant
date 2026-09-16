@@ -55,6 +55,9 @@ group :development, :test do
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
 
+  # Lint and autocorrect ERB templates (rubocop only covers .rb files)
+  gem "erb_lint", require: false
+
   gem "rspec-rails"
 end
 

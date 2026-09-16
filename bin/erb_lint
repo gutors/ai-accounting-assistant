@@ -1,0 +1,9 @@
+#!/usr/bin/env ruby
+require "rubygems"
+require "bundler/setup"
+
+# Explicit config, same rationale as bin/rubocop: avoids config-file lookup
+# ambiguity and keeps this wrapper's behavior identical in CI and locally.
+ARGV.unshift("--config", File.expand_path("../.erb_lint.yml", __dir__))
+
+load Gem.bin_path("erb_lint", "erb_lint")

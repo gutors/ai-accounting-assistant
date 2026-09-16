@@ -39,6 +39,38 @@ jobs:
       - name: Scan for security vulnerabilities in JavaScript dependencies
         run: bin/importmap audit
 
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        ports: [ "5432:5432" ]
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      RAILS_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/ai_accounting_assistant_test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Prepare database
+        run: bin/rails db:prepare
+
+      - name: Run test suite
+        run: bin/rspec
+
   lint:
     runs-on: ubuntu-latest
     env:
@@ -64,4 +96,7 @@ jobs:
 
       - name: Lint code for consistent style
         run: bin/rubocop -f github
+
+      - name: Lint and format-check ERB templates
+        run: bin/erb_lint --lint-all
 

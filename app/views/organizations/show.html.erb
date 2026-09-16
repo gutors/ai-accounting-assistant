@@ -48,7 +48,7 @@
   <h2 class="text-lg font-medium mb-3">Convidar coordenador</h2>
   <%= form_with url: "/coordinator_invites", method: :post do %>
     <label for="email" class="block mb-1">E-mail</label>
-    <%= email_field_tag :email, nil, id: "email", class: "border rounded px-2 py-1 mb-3" %>
+    <%= email_field_tag :email, nil, id: "email", class: "border rounded px-2 py-1 mb-3", autocomplete: "email" %>
     <%= submit_tag "Convidar", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
   <% end %>
 </section>
