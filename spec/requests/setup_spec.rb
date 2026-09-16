@@ -83,10 +83,25 @@ RSpec.describe "Setup", type: :request do
 
     get "/setup"
 
-    names = Bank.ordered_catalog.map(&:presentation_name)
-    indexes = names.map { |name| response.body.index(name) }
-    expect(indexes).to all(be_present)
-    expect(indexes).to eq(indexes.sort)
+    picker = response.body[%r{<select[^>]*\bid="compe"[^>]*>.*?</select>}m]
+    expect(picker).to be_present
+
+    expected = [
+      [ "001", "Banco do Brasil" ],
+      [ "033", "Santander" ],
+      [ "041", "Banrisul" ],
+      [ "077", "Inter" ],
+      [ "104", "Caixa" ],
+      [ "136", "Unicred" ],
+      [ "237", "Bradesco" ],
+      [ "260", "Nubank" ],
+      [ "290", "PagBank/PagSeguro" ],
+      [ "341", "Itaú" ],
+      [ "748", "Sicredi" ],
+      [ "756", "Sicoob" ]
+    ]
+    options = picker.scan(%r{<option value="([^"]+)">([^<]+)</option>})
+    expect(options).to eq(expected)
     expect(response.body).not_to include("Outro")
   end
 
