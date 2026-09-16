@@ -31,7 +31,7 @@ Vocabulário canônico: [`CONTEXT.md`](CONTEXT.md).
 ## Estado
 
 > [!NOTE]
-> Ainda não há aplicativo nem `Gemfile`. Não há o que instalar ou rodar neste repositório.
+> App Rails 8 neste repositório. Local: PostgreSQL, `bundle install`, `bin/rails db:setup`, `bin/rails server`. O primeiro coordenador entra com `bin/rails coordinator:bootstrap` (`ORGANIZATION_NAME`, `COORDINATOR_EMAIL`) e Google (`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`).
 
 As decisões de produto estão no [mapa do fechamento mensal](https://github.com/gutors/ai-accounting-assistant/issues/1). Código de produto começa na primeira feature com plano e checks aprovados (`tlc-spec-lean`), não a partir do mapa.
 

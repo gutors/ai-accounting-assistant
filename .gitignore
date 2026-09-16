@@ -1,29 +1,40 @@
-# Dependencies
+# Ignore bundler config.
+/.bundle
+
+# Ignore all environment files (secrets). Keep example templates.
+/.env
+/.env.*
+!/.env.example
+!/.env.sample
+!/.env.template
+
+# Ignore all logfiles and tempfiles.
+/log/*
+/tmp/*
+!/log/.keep
+!/tmp/.keep
+
+/tmp/pids/*
+!/tmp/pids/
+!/tmp/pids/.keep
+
+/storage/*
+!/storage/.keep
+/tmp/storage/*
+!/tmp/storage/.keep
+
+# Ignore key files for decrypting credentials and more.
+/config/*.key
+
+/app/assets/builds/*
+!/app/assets/builds/.keep
+
+# OS and editor
+.DS_Store
 node_modules/
 
-# Next.js
-.next/
-out/
-
-# Env and secrets
-.env
-.env.*
-!.env.example
-!.env.sample
-!.env.template
-
-# Logs and OS
-*.log
-.DS_Store
-
 # Test and build
-coverage/
-dist/
-build/
-*.tsbuildinfo
-
-# Vercel
-.vercel
+/coverage/
 
 # Local editor / agent clutter
 .agent/
