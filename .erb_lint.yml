@@ -1,4 +1,10 @@
 ---
+# Default glob is **/*.html{+*,}.erb and misses mailer.text.erb / manifest.json.erb.
+# **/ on excludes: erb_lint matches absolute paths.
+glob: "**/*.erb"
+exclude:
+  - "**/vendor/**/*"
+  - "**/node_modules/**/*"
 linters:
   ClosingErbTagIndent:
     enabled: true

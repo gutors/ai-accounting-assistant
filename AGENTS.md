@@ -32,7 +32,7 @@ Platform v1 (locked — do not reopen inside a feature plan. A live architecture
 - **Tests:** RSpec (`spec/`). Decision tables and guards are proven at their own layer, one asserted case per enumerated member; HTTP boundaries also get a request spec. See `.cursor/rules/rails.mdc`.
 - Conventions: `.cursor/rules/rails.mdc` (loads when Ruby/ERB/Gemfile is in play).
 
-Parallel local agents: one git worktree per agent; distinct `PORT` and `DATABASE_URL` per checkout. On this M2 8GB machine, plan for 2 concurrent `bin/rails server` processes (3 is the hard ceiling). Do not share Spring/tmp between worktrees.
+Parallel local agents: one git worktree per agent; distinct `PORT` and `DATABASE_URL` per checkout. On this M2 8GB machine, plan for 2 concurrent `bin/rails server` processes (3 is the hard ceiling). Do not share Spring/tmp between worktrees. Use `/worktree`.
 
 ## Layout
 
@@ -45,6 +45,7 @@ Parallel local agents: one git worktree per agent; distinct `PORT` and `DATABASE
 | `.specs/` | Handoff (`STATE.md`) and `features/<name>/` (plan, checks, verification) |
 | `.cursor/rules/` | Stack conventions (glob-scoped) |
 | `.cursor/skills/tlc-spec-lean/` | Feature planning/execution skill |
+| `.cursor/commands/` | Human-triggered slash commands (`/open-pr`, `/worktree`) |
 | `.cursor/agents/` | Project subagents (`tlc-verifier`) |
 
 If a folder is missing, create it as part of the planned feature — do not scaffold empty trees “just in case.”
@@ -62,11 +63,11 @@ If a folder is missing, create it as part of the planned feature — do not scaf
 
 ## Commands
 
-When `Gemfile` exists, use `bin/rails`, `bin/rspec`, and other `bin/` wrappers. Prefer existing scripts over inventing new ones. `npm test` is the same `bin/rspec` entry (harness-score looks for a `package.json` test script; this is not a Node app). A check’s proof names a **specific example** (selector), never a whole suite; if no command exists yet, ask.
+When `Gemfile` exists, use `bin/rails`, `bin/rspec`, and other `bin/` wrappers. Prefer existing scripts over inventing new ones. `npm test` is the same `bin/rspec` entry (harness-score looks for a `package.json` test script; this is not a Node app). After clone or a new worktree, run `bin/lefthook install` so pre-commit runs RuboCop and erb_lint on staged files. A check’s proof names a **specific example** (selector), never a whole suite; if no command exists yet, ask.
 
 ## Pull requests
 
-- Every PR to `main` references a GitHub issue (`Closes #N` / `Fixes #N`) — see `docs/agents/issue-tracker.md`. No issue, no PR, unless a human explicitly waives it.
+- Every PR to `main` references a GitHub issue (`Closes #N` / `Fixes #N`) — see `docs/agents/issue-tracker.md`. No issue, no PR, unless a human explicitly waives it. Use `/open-pr`.
 - Run the `the-judge` skill against the open PR before merging to `main` — it reviews a PR that already exists (posts a GitHub review via `gh`), so it runs after creation, not before.
 - `.cursor/hooks.json` gates `gh pr create` (issue reference) and `gh pr merge` (the-judge checkpoint) mechanically. These bullets are why those gates exist, not a substitute for them — a hook failing open (e.g. `gh` unreachable) doesn’t waive the rule.
 

@@ -98,5 +98,6 @@ jobs:
         run: bin/rubocop -f github
 
       - name: Lint and format-check ERB templates
+        # --lint-all honors .erb_lint.yml exclude (vendor/bundle from bundler-cache)
         run: bin/erb_lint --lint-all
 

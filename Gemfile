@@ -64,4 +64,7 @@ end
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem "web-console"
+
+  # Pre-commit (CI-04): RuboCop + erb_lint on staged files. Install hooks with bin/lefthook install.
+  gem "lefthook", require: false
 end

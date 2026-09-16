@@ -5,7 +5,7 @@ CI.run do
 
   step "Style: Ruby", "bin/rubocop"
 
-  step "Style: ERB", "bin/erb_lint --lint-all"
+  step "Style: ERB", "bin/erb_lint --lint-all" # exclude vendor/ in .erb_lint.yml
 
   step "Test: RSpec", "bin/rspec"
 

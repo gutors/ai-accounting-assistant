@@ -40,3 +40,6 @@ node_modules/
 .agent/
 .agents/
 .scratch/
+
+# Lefthook machine-local overrides (lefthook.yml is committed)
+.lefthook-local.yml
