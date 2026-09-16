@@ -2,10 +2,10 @@
 
 ## Handoff
 
-**Feature**: coordinator-access
-**Where**: C1–C40 verified PASS — independent Verifier over `3950cf4..c48e19f`, report at `.specs/features/coordinator-access/verification.md`
+**Feature**: organization-close-setup
+**Where**: C1–C50 proofs green; builder stopped. Independent Verifier not yet dispatched.
 **In progress**: none
-**Next step**: none for this feature
+**Next step**: orchestrator dispatches tlc-verifier over feature base..HEAD with every check
 **Blockers**: none
-**Uncommitted**: none
+**Uncommitted**: (included in this commit)
 **Branch**: coordinator-access

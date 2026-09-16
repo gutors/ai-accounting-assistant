@@ -15,5 +15,11 @@ Rails.application.routes.draw do
 
   post "/focus", to: "focus#create"
 
+  get "/setup", to: "setup#show"
+  patch "/accountant", to: "accountants#update"
+  patch "/package_archive", to: "package_archives#update"
+  post "/bank_accounts", to: "bank_accounts#create"
+  patch "/bank_accounts/:id", to: "bank_accounts#update"
+
   root "organizations#show"
 end

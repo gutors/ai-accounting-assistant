@@ -7,6 +7,7 @@ module RecordHelpers
   end
 
   def truncate_product_tables
+    BankAccount.delete_all
     Invite.delete_all
     Access.delete_all
     Account.delete_all
