@@ -250,3 +250,6 @@ Cost: dual proofs on Month write (C5, C6, C12), statement import accepts (C17–
 
 - S1–S4 share `Month`, `BankStatement`, and `/months/:year_month`. Estimated ~22 product/spec files (month + statement models, Active Storage install, two readers, fixtures, request specs) ≪ 150k tokens. One builder, no split.
 - S1-S4 = one builder
+- **Boundary:** C1-C50 closed at `b483091`
+- **Settled mid-build:** none
+- **Abandoned:** string-appending an April row onto the BB CSV made `CSV.parse` fail, so the date-outside-month path looked like an unreadable file; the extra row is written with the csv library instead.
