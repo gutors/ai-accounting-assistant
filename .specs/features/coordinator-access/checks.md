@@ -214,6 +214,6 @@ Cost: dual proofs on callback accept (C19), invite create/reject (C16, C20), las
 
 - S1 includes `rails new` (door 1). The generated tree is expected to exceed 150k tokens by character count; one builder still, because splitting S1 mid-scaffold is not a slice boundary. S2–S6 are additive on that tree.
 - S1-S6 = one builder
-- **Boundary:** C1-C40 closed
+- **Boundary:** C1-C40 closed at `d881e56`
 - **Settled mid-build:** none
 - **Abandoned:** JSON 3.0 broke encrypted session cookies (`JSON.parse` no longer takes a positional options hash); pinned `json ~> 2.13`. Concurrent last-two DELETE as cross-revoke 404'd the loser after their Access was gone; each coordinator revokes self so the lock's 422 is observable.
