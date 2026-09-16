@@ -5,6 +5,22 @@
       {
         "command": "node .cursor/hooks/guard-shell.js",
         "timeout": 10
+      },
+      {
+        "command": "node .cursor/hooks/guard-pr-issue.js",
+        "matcher": "gh\\s+pr\\s+create",
+        "timeout": 10
+      },
+      {
+        "command": "node .cursor/hooks/guard-pr-judge.js",
+        "matcher": "gh\\s+pr\\s+merge",
+        "timeout": 10
+      }
+    ],
+    "afterFileEdit": [
+      {
+        "command": "node .cursor/hooks/format-ruby.js",
+        "timeout": 30
       }
     ],
     "beforeReadFile": [

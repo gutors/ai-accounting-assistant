@@ -6,7 +6,7 @@ Web app for a financial **Coordinator** to close a month for one or more **Organ
 
 1. Feature work uses **tlc-spec-lean** (Plan → Checks → Build → Verify). Open that skill, then the named reference. Do not implement from GitHub issue #1.
 2. A human confirms `plan.md` before any check exists. Under roughly three files with no one-way door, skip `plan.md` and write `## Intent` in `checks.md`. Do not start product code without approved checks.
-3. A builder reports and stops. The orchestrator — never the builder — dispatches a fresh Verifier over `<feature base>..HEAD` with every check. Author is not verifier.
+3. A builder reports and stops. The orchestrator — never the builder — dispatches a fresh Verifier (`.cursor/agents/tlc-verifier.md`) over `<feature base>..HEAD` with every check. Author is not verifier.
 4. Project memory: `.specs/STATE.md` is the **handoff** snapshot only. Decisions that constrain later features live in `docs/adr/` (start from ADR-0001). Do not start a second log in STATE.md. Load only the current feature under `.specs/features/<name>/`.
 5. Do not paste tlc-spec-lean `references/` into this file.
 
@@ -45,8 +45,9 @@ Parallel local agents: one git worktree per agent; distinct `PORT` and `DATABASE
 | `.specs/` | Handoff (`STATE.md`) and `features/<name>/` (plan, checks, verification) |
 | `.cursor/rules/` | Stack conventions (glob-scoped) |
 | `.cursor/skills/tlc-spec-lean/` | Feature planning/execution skill |
+| `.cursor/agents/` | Project subagents (`tlc-verifier`) |
 
-If a folder is missing, create it as part of the first planned feature — do not scaffold empty trees “just in case.” There is no `Gemfile` until that feature.
+If a folder is missing, create it as part of the planned feature — do not scaffold empty trees “just in case.”
 
 ## Language
 
@@ -61,7 +62,13 @@ If a folder is missing, create it as part of the first planned feature — do no
 
 ## Commands
 
-When `Gemfile` exists, use `bin/rails`, `bin/rspec`, and other `bin/` wrappers. Prefer existing scripts over inventing new ones. A check’s proof names a **specific example** (selector), never a whole suite; if no command exists yet, ask.
+When `Gemfile` exists, use `bin/rails`, `bin/rspec`, and other `bin/` wrappers. Prefer existing scripts over inventing new ones. `npm test` is the same `bin/rspec` entry (harness-score looks for a `package.json` test script; this is not a Node app). A check’s proof names a **specific example** (selector), never a whole suite; if no command exists yet, ask.
+
+## Pull requests
+
+- Every PR to `main` references a GitHub issue (`Closes #N` / `Fixes #N`) — see `docs/agents/issue-tracker.md`. No issue, no PR, unless a human explicitly waives it.
+- Run the `the-judge` skill against the open PR before merging to `main` — it reviews a PR that already exists (posts a GitHub review via `gh`), so it runs after creation, not before.
+- `.cursor/hooks.json` gates `gh pr create` (issue reference) and `gh pr merge` (the-judge checkpoint) mechanically. These bullets are why those gates exist, not a substitute for them — a hook failing open (e.g. `gh` unreachable) doesn’t waive the rule.
 
 ## Do not
 
