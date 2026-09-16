@@ -2,6 +2,7 @@ class Organization < ApplicationRecord
   has_many :accesses, dependent: :restrict_with_exception
   has_many :invites, dependent: :destroy
   has_many :bank_accounts, dependent: :restrict_with_exception
+  has_many :months, dependent: :restrict_with_exception
 
   validates :name, presence: true
   validate :accountant_shape, on: :accountant

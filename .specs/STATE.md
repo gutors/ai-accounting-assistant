@@ -2,10 +2,10 @@
 
 ## Handoff
 
-**Feature**: organization-close-setup
-**Where**: Round 2 verification PASS at `b63adc8`. C1–C50 proven on `1b5180c..HEAD`. Independent Verifier != author.
+**Feature**: bank-statement-upload
+**Where**: build complete; waiting for independent Verifier
 **In progress**: none
-**Next step**: none for this feature — issue #30 close-setup is verified
+**Next step**: orchestrator dispatches tlc-verifier over feature base..HEAD with every check
 **Blockers**: none
-**Uncommitted**: none
+**Uncommitted**: (after feat commit)
 **Branch**: coordinator-access

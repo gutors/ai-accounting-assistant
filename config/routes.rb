@@ -21,5 +21,9 @@ Rails.application.routes.draw do
   post "/bank_accounts", to: "bank_accounts#create"
   patch "/bank_accounts/:id", to: "bank_accounts#update"
 
+  post "/months", to: "months#create"
+  get "/months/:year_month", to: "months#show"
+  post "/months/:year_month/bank_statements", to: "bank_statements#create"
+
   root "organizations#show"
 end

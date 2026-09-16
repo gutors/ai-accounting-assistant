@@ -2,6 +2,8 @@ class BankAccount < ApplicationRecord
   belongs_to :organization
   belongs_to :bank
 
+  has_many :bank_statements, dependent: :restrict_with_exception
+
   before_validation :assign_slug
   before_validation :normalize_coordinates
 

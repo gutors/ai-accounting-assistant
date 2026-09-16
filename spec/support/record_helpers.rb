@@ -7,6 +7,13 @@ module RecordHelpers
   end
 
   def truncate_product_tables
+    ActiveStorage::VariantRecord.delete_all
+    ActiveStorage::Attachment.delete_all
+    ActiveStorage::Blob.delete_all
+    Payment.delete_all
+    Inflow.delete_all
+    BankStatement.delete_all
+    Month.delete_all
     BankAccount.delete_all
     Invite.delete_all
     Access.delete_all
