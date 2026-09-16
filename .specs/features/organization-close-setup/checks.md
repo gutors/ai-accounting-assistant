@@ -261,6 +261,6 @@ Cost: dual proofs on accountant PATCH (C6–C16), archive PATCH (C20–C24), Ban
 
 - S1–S4 share `/setup` and the focused organization. Estimated ~20 product/spec files, well under 150k tokens. One builder, no split.
 - S1-S4 = one builder
-- **Boundary:** C1-C50 proofs green
+- **Boundary:** C1-C50 closed at `1cf517e`
 - **Settled mid-build:** none
 - **Abandoned:** `rack.session` env hash cannot stand in for Rails 8 encrypted session in a request spec; C2 uses a signed-in Account whose Access rows were deleted so `focused_organization` is nil.
