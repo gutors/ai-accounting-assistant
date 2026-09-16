@@ -34,6 +34,13 @@ class ApplicationController < ActionController::Base
     @focusable_organizations = current_account.coordinator_organizations.order(:name)
   end
 
+  def load_setup
+    @organization = focused_organization
+    @banks = Bank.ordered_catalog
+    @bank_accounts = @organization.bank_accounts.includes(:bank).order(:name)
+    @focusable_organizations = current_account.coordinator_organizations.order(:name)
+  end
+
   def sign_in(account, organization:)
     reset_session
     session[:account_id] = account.id

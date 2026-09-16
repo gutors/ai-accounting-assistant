@@ -1,0 +1,90 @@
+<% content_for :title, "#{@organization.name} — Configuração" %>
+
+<div class="flex items-start justify-between gap-4 mb-8">
+  <h1 class="text-2xl font-semibold"><%= @organization.name %></h1>
+  <div class="flex items-center gap-4">
+    <%= link_to "Coordenadores", "/", class: "text-sm underline" %>
+    <%= button_to "Sair", "/session", method: :delete, class: "text-sm underline" %>
+  </div>
+</div>
+
+<section class="mb-10">
+  <h2 class="text-lg font-medium mb-3">Contador</h2>
+  <% if @organization.accountant_presentation_name.blank? %>
+    <p class="mb-3">Cadastre o contador</p>
+  <% end %>
+  <%= form_with url: "/accountant", method: :patch do %>
+    <label for="presentation_name" class="block mb-1">Nome de apresentação</label>
+    <%= text_field_tag :presentation_name, @organization.accountant_presentation_name, id: "presentation_name", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "off" %>
+
+    <label for="tax_id" class="block mb-1">Id fiscal</label>
+    <%= text_field_tag :tax_id, @organization.accountant_tax_id, id: "tax_id", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "off" %>
+
+    <label for="legal_name" class="block mb-1">Razão social</label>
+    <%= text_field_tag :legal_name, @organization.accountant_legal_name, id: "legal_name", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "organization" %>
+
+    <label for="pix_key" class="block mb-1">PIX</label>
+    <%= text_field_tag :pix_key, @organization.accountant_pix_key, id: "pix_key", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "off" %>
+
+    <label for="destination_email" class="block mb-1">Destino do pacote</label>
+    <%= email_field_tag :destination_email, @organization.package_destination_email, id: "destination_email", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "email" %>
+
+    <%= submit_tag "Salvar contador", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+  <% end %>
+</section>
+
+<section class="mb-10">
+  <h2 class="text-lg font-medium mb-3">Arquivo do pacote</h2>
+  <% if @organization.package_archive_url.blank? %>
+    <p class="mb-3">Cole a URL da pasta do Drive</p>
+  <% end %>
+  <%= form_with url: "/package_archive", method: :patch do %>
+    <label for="url" class="block mb-1">URL da pasta do Drive</label>
+    <%= url_field_tag :url, @organization.package_archive_url, id: "url", class: "border rounded px-2 py-1 mb-3 w-full max-w-xl", autocomplete: "off" %>
+    <%= submit_tag "Salvar arquivo", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+  <% end %>
+</section>
+
+<section>
+  <h2 class="text-lg font-medium mb-3">Contas bancárias</h2>
+  <% if @bank_accounts.empty? %>
+    <p class="mb-3">Nenhuma conta bancária</p>
+  <% else %>
+    <ul class="mb-6">
+      <% @bank_accounts.each do |bank_account| %>
+        <li class="border rounded p-3 mb-3">
+          <p class="font-medium"><%= bank_account.name %></p>
+          <p class="text-sm mb-2">extrato-<%= bank_account.slug %></p>
+          <% if bank_account.coordinates.present? %>
+            <p class="text-sm mb-2"><%= bank_account.coordinates %></p>
+          <% end %>
+          <% if bank_account.active? %>
+            <%= button_to "Desativar", "/bank_accounts/#{bank_account.id}", method: :patch, params: { active: false }, class: "text-sm underline mb-3" %>
+          <% else %>
+            <p class="mb-2">Inativa</p>
+            <%= button_to "Reativar", "/bank_accounts/#{bank_account.id}", method: :patch, params: { active: true }, class: "text-sm underline mb-3" %>
+          <% end %>
+          <%= form_with url: "/bank_accounts/#{bank_account.id}", method: :patch do %>
+            <label for="name_<%= bank_account.id %>" class="block mb-1">Nome</label>
+            <%= text_field_tag :name, bank_account.name, id: "name_#{bank_account.id}", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "off" %>
+            <label for="compe_<%= bank_account.id %>" class="block mb-1">Banco</label>
+            <%= select_tag :compe, options_from_collection_for_select(@banks, :compe, :presentation_name, bank_account.bank.compe), id: "compe_#{bank_account.id}", class: "border rounded px-2 py-1 mb-3" %>
+            <label for="coordinates_<%= bank_account.id %>" class="block mb-1">Coordenadas</label>
+            <%= text_field_tag :coordinates, bank_account.coordinates, id: "coordinates_#{bank_account.id}", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "off" %>
+            <%= submit_tag "Salvar conta", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+
+  <%= form_with url: "/bank_accounts", method: :post do %>
+    <label for="name" class="block mb-1">Nome</label>
+    <%= text_field_tag :name, nil, id: "name", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "off" %>
+    <label for="compe" class="block mb-1">Banco</label>
+    <%= select_tag :compe, options_from_collection_for_select(@banks, :compe, :presentation_name), id: "compe", class: "border rounded px-2 py-1 mb-3" %>
+    <label for="coordinates" class="block mb-1">Coordenadas</label>
+    <%= text_field_tag :coordinates, nil, id: "coordinates", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "off" %>
+    <%= submit_tag "Adicionar conta", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+  <% end %>
+</section>

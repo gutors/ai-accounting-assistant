@@ -70,6 +70,10 @@ RSpec.configure do |config|
   config.include EnvHelpers
   config.include Concurrency
 
+  config.before(:suite) do
+    Bank.seed_catalog!
+  end
+
   config.before do
     OmniAuth.config.test_mode = true
     OmniAuth.config.mock_auth[:google_oauth2] = nil
