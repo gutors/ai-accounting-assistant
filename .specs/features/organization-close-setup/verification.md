@@ -1,24 +1,28 @@
 # Organization close setup verification
 
-**Verdict**: FAIL
+**Verdict**: PASS
 **Profile**: standard
 **Diff range**: 1b5180c..HEAD
-**Round**: 1 - full
+**Round**: 2 - scoped
 **Verifier**: independent sub-agent (author != verifier)
 
 User walk skipped: HTML request-spec feature; no human UI walk required.
 
-Proofs at HEAD `31a187422406b3ba170ec7dfa7a24a28554b9d00`: one `bin/rspec` invocation over the nine proof files plus every named `-e` selector — 76 examples, 0 failures. Every named example existed (`rg -n`) and appeared as passed in that run.
+Proofs always re-run in full at HEAD `b63adc89a5ce62b4b60b7539a092b27412d4a51f`: one `bin/rspec` invocation over the nine proof files plus every named `-e` selector — 76 examples, 0 failures. Every named example existed (`rg -n` / `it "..."` hit, 76/76) and appeared as passed in that run.
+
+Fix scoped against `spec/requests/setup_spec.rb` only (C28). Citations for that file are verified at `b63adc8`. Other files’ assertion citations are carried from `31a1874`.
 
 ## Binding sources
 
-Step 1 is `ui` only. Plan: "No design source for the screens. Verification stays on project profile `standard` (no binding screen, so not `ui`)."
+carried from `31a1874`. Step 1 is `ui` only. Plan: "No design source for the screens. Verification stays on project profile `standard` (no binding screen, so not `ui`)." Fix did not touch the interface. Did not drop to light.
 
 | Source | Opened | Contradiction | Uncovered |
 | --- | --- | --- | --- |
 | n/a — no binding screen | n/a | none | - |
 
 ## Checks
+
+Proofs verified at `b63adc8`. `spec/requests/setup_spec.rb` citations verified at `b63adc8`. Other evidence carried from `31a1874`.
 
 | Check | Claim | Proof run | Evidence | Result |
 | --- | --- | --- | --- | --- |
@@ -49,13 +53,13 @@ Step 1 is `ui` only. Plan: "No design source for the screens. Verification stays
 | C25 | unauthenticated PATCH /package_archive persists no URL, 302 /login | batch exit 0; `-e "unauthenticated PATCH /package_archive responds 302 to /login"` passed | `spec/requests/package_archives_spec.rb:78-80` - `:found`, `redirect_to("/login")`, `Organization.where.not(package_archive_url: nil).count` `eq(0)` | PASS |
 | C26 | setup omits other org archive URL | batch exit 0; `-e "setup does not include another organization archive URL"` passed | `spec/requests/setup_spec.rb:77` - `expect(response.body).not_to include(url)` | PASS |
 | C27 | catalog is exactly the 12 name/COMPE/ISPB rows | batch exit 0; `-e "catalog is the twelve institutions from COMPE 001 through 756"` passed | `spec/models/bank_spec.rb:20` - `expect(Bank.count).to eq(12)` ; `spec/models/bank_spec.rb:21-24` - each of the 12 tuples `presentation_name`/`ispb` `eq` | PASS |
-| C28 | picker lists the 12 names in COMPE order `001`…`756`, no Outro | batch exit 0; `-e "bank picker lists twelve names in COMPE order without Outro"` passed | `spec/requests/setup_spec.rb:86-90` - `names = Bank.ordered_catalog.map(&:presentation_name)` then `indexes` present/sorted and `not_to include("Outro")`. Check-defined names and COMPE codes `001`,`033`,`041`,`077`,`104`,`136`,`237`,`260`,`290`,`341`,`748`,`756` are not at the assertion. | FAIL |
-| C29 | zero bank accounts includes Nenhuma conta bancária | batch exit 0; `-e "GET /setup with zero bank accounts includes Nenhuma conta bancaria"` passed | `spec/requests/setup_spec.rb:99` - `expect(response.body).to include("Nenhuma conta bancária")` | PASS |
+| C28 | picker lists the 12 names in COMPE order `001`…`756`, no Outro | batch exit 0; `-e "bank picker lists twelve names in COMPE order without Outro"` passed | `spec/requests/setup_spec.rb:89-102` - literal expected pairs `[COMPE, name]` for `001` Banco do Brasil, `033` Santander, `041` Banrisul, `077` Inter, `104` Caixa, `136` Unicred, `237` Bradesco, `260` Nubank, `290` PagBank/PagSeguro, `341` Itaú, `748` Sicredi, `756` Sicoob ; `spec/requests/setup_spec.rb:104` - `expect(options).to eq(expected)` on `select#compe` ; `spec/requests/setup_spec.rb:105` - `expect(response.body).not_to include("Outro")` | PASS |
+| C29 | zero bank accounts includes Nenhuma conta bancária | batch exit 0; `-e "GET /setup with zero bank accounts includes Nenhuma conta bancaria"` passed | `spec/requests/setup_spec.rb:114` - `expect(response.body).to include("Nenhuma conta bancária")` | PASS |
 | C30 | POST COMPE `001` persists active Banco do Brasil, parameterized slug, 302, extrato-{slug} | batch exit 0; both `-e` passed | `spec/requests/bank_accounts_spec.rb:10-19` - `:found`, `redirect_to("/setup")`, `be_active`, `eq("Banco do Brasil")`, `eq(ActiveSupport::Inflector.parameterize("Conta Principal"))`, includes name and `extrato-#{slug}` ; `spec/models/bank_account_spec.rb:11-15` - persisted, active, BB, parameterized slug | PASS |
 | C31 | `BB agência 1234` slug `bb-agencia-1234`, setup shows extrato-bb-agencia-1234 | batch exit 0; both `-e` passed | `spec/requests/bank_accounts_spec.rb:28-30` - `eq("bb-agencia-1234")`, `include("extrato-bb-agencia-1234")` ; `spec/models/bank_account_spec.rb:21` - `eq("bb-agencia-1234")` | PASS |
 | C32 | second account same COMPE persists | batch exit 0; both `-e` passed | `spec/requests/bank_accounts_spec.rb:40` - `eq(2)` ; `spec/models/bank_account_spec.rb:28-30` - both persisted, count `eq(2)` | PASS |
 | C33 | trimmed coordinates persist and appear | batch exit 0; both `-e` passed | `spec/requests/bank_accounts_spec.rb:49-51` - `eq("ag 1234")`, `include("ag 1234")` ; `spec/models/bank_account_spec.rb:36` - `eq("ag 1234")` | PASS |
-| C34 | GET /setup lists bank account names ascending | batch exit 0; `-e "GET /setup lists bank account names in ascending order"` passed | `spec/requests/setup_spec.rb:110` - `expect(response.body.index("Alfa")).to be < response.body.index("Zeta")` | PASS |
+| C34 | GET /setup lists bank account names ascending | batch exit 0; `-e "GET /setup lists bank account names in ascending order"` passed | `spec/requests/setup_spec.rb:125` - `expect(response.body.index("Alfa")).to be < response.body.index("Zeta")` | PASS |
 | C35 | PATCH name persists new name and slug, 302 /setup | batch exit 0; both `-e` passed | `spec/requests/bank_accounts_spec.rb:61-65` - `:found`, `redirect_to("/setup")`, `eq("Nova Conta")`, `eq("nova-conta")` ; `spec/models/bank_account_spec.rb:42-44` - `be(true)`, same name/slug | PASS |
 | C36 | POST and PATCH colliding slug persist no extra row, 422 | batch exit 0; both `-e` passed | `spec/requests/bank_accounts_spec.rb:73-80` - POST `:unprocessable_content` count `eq(1)` ; PATCH `:unprocessable_content` name still `"Outra"` ; `spec/models/bank_account_spec.rb:51-55` - colliding `not_to be_persisted` ; `apply_from` `be(false)` including inactive | PASS |
 | C37 | empty slug POST persists no BankAccount, 422 | batch exit 0; both `-e` passed | `spec/requests/bank_accounts_spec.rb:89-90` - `:unprocessable_content`, count `eq(0)` ; `spec/models/bank_account_spec.rb:61` - `not_to be_persisted` | PASS |
@@ -67,15 +71,15 @@ Step 1 is `ui` only. Plan: "No design source for the screens. Verification stays
 | C49 | BankAccount rejects duplicate name when other is inactive | batch exit 0; `-e "rejects duplicate name when the other account is inactive"` passed | `spec/models/bank_account_spec.rb:75` - `expect(duplicate).not_to be_persisted` | PASS |
 | C41 | PATCH inactive keeps row, 302, shows name and Inativa | batch exit 0; both `-e` passed | `spec/requests/bank_accounts_spec.rb:119-125` - `:found`, `redirect_to("/setup")`, `not_to be_active`, include `"Principal"` and `"Inativa"` ; `spec/models/bank_account_spec.rb:81-82` - `be(true)`, `not_to be_active` | PASS |
 | C42 | PATCH active omits Inativa on that account | batch exit 0; both `-e` passed | `spec/requests/bank_accounts_spec.rb:137-138` - include `"Principal"`, `not_to include("Inativa")` ; `spec/models/bank_account_spec.rb:89-90` - `be(true)`, `be_active` | PASS |
-| C43 | Desativar or Reativar, no delete control | batch exit 0; `-e "setup shows Desativar or Reativar and no delete control"` passed | `spec/requests/setup_spec.rb:123-125` - include `"Desativar"`, `"Reativar"` ; `not_to include("Excluir")` | PASS |
+| C43 | Desativar or Reativar, no delete control | batch exit 0; `-e "setup shows Desativar or Reativar and no delete control"` passed | `spec/requests/setup_spec.rb:138-140` - include `"Desativar"`, `"Reativar"` ; `not_to include("Excluir")` | PASS |
 | C44 | DELETE /bank_accounts/:id is 404 and keeps the row | batch exit 0; `-e "DELETE /bank_accounts/:id returns 404 and keeps the row"` passed | `spec/requests/bank_accounts_spec.rb:148-149` - `:not_found` ; `BankAccount.find(...)` `eq(bank_account)` | PASS |
 | C45 | PATCH other-org bank account unchanged, 404 | batch exit 0; `-e "PATCH /bank_accounts/:id of another organization returns 404"` passed | `spec/requests/bank_accounts_spec.rb:160-161` - `:not_found` ; `eq("Alheia")` | PASS |
-| C46 | setup omits other org bank account names | batch exit 0; `-e "setup does not list another organization bank account names"` passed | `spec/requests/setup_spec.rb:137` - `expect(response.body).not_to include("Conta Só B")` | PASS |
+| C46 | setup omits other org bank account names | batch exit 0; `-e "setup does not list another organization bank account names"` passed | `spec/requests/setup_spec.rb:152` - `expect(response.body).not_to include("Conta Só B")` | PASS |
 | C50 | unauthenticated GET / is 302 to /login | batch exit 0; `-e "unauthenticated GET / responds 302 to /login"` passed | `spec/requests/sessions_spec.rb:7` - `expect(response).to have_http_status(:found)` ; `spec/requests/sessions_spec.rb:8` - `expect(response).to redirect_to("/login")` (example not in `1b5180c..HEAD`; existing Surface status, ran at HEAD) | PASS |
 
 ## Coverage
 
-Recomputed from plan Surface / Relations / Landing / AC enumerations, not copied from checks.md. C28 does not assert the picker members, so that set is unproven.
+bank picker COMPE order (12) recomputed at `b63adc8` from plan AC 28. Other rows carried from `31a1874` (fix could not change their authority).
 
 | Set (size) | Recomputed from | Member -> proof | Unproven |
 | --- | --- | --- | --- |
@@ -93,7 +97,7 @@ Recomputed from plan Surface / Relations / Landing / AC enumerations, not copied
 | PATCH /bank_accounts/:id statuses (3) | plan Surface | 302 C35 · 422 C36 · 404 C45 | - |
 | DELETE /bank_accounts/:id statuses (1) | plan Surface | 404 C44 | - |
 | bank catalog (12) | plan AC 27 | C27 table of all 12 name/COMPE/ISPB tuples | - |
-| bank picker COMPE order (12) | plan AC 28 COMPE `001`,`033`,`041`,`077`,`104`,`136`,`237`,`260`,`290`,`341`,`748`,`756` | C28 ran but asserted `Bank.ordered_catalog` order, not those members | all 12 names and that COMPE sequence |
+| bank picker COMPE order (12) | plan AC 28 COMPE `001`,`033`,`041`,`077`,`104`,`136`,`237`,`260`,`290`,`341`,`748`,`756` and names Banco do Brasil, Santander, Banrisul, Inter, Caixa, Unicred, Bradesco, Nubank, PagBank/PagSeguro, Itaú, Sicredi, Sicoob | C28 `expect(options).to eq(expected)` on those 12 `[COMPE, name]` pairs in that order; `not_to include("Outro")` | - |
 | BankAccount create rejects (3) | plan AC 36-38 | colliding slug C36 · empty slug C37 · unknown COMPE `999` C38 | - |
 | Bank uniqueness (2) | plan Relations / door 3 | COMPE C47 · ISPB C48 | - |
 | BankAccount uniqueness (2) | plan Relations / door 4 | name including inactive C49 · slug including inactive C36 | - |
@@ -105,33 +109,33 @@ Recomputed from plan Surface / Relations / Landing / AC enumerations, not copied
 
 ## Test policy rows
 
+Bank catalog / picker-boundary row re-judged at `b63adc8` (classifies the C28 surface the fix touched). Other rows carried from `31a1874`. No unmet row from round 1 besides C28, which was an assertion-target miss rather than a dual-proof miss.
+
 | Row | Files it classifies | Required proof | Expectation met |
 | --- | --- | --- | --- |
 | Decides, reached across a boundary | `app/models/organization.rb` accountant and archive; `app/models/bank_account.rb`; `app/controllers/accountants_controller.rb`; `app/controllers/package_archives_controller.rb`; `app/controllers/bank_accounts_controller.rb` | boundary + own layer: C6-C16, C20-C24, C30-C38, C41-C42 | yes |
-| Decides, not reached across a boundary | `app/models/bank.rb` catalog uniqueness | own layer C27, C47, C48 (one row per catalog member at C27) | yes |
+| Decides, not reached across a boundary | `app/models/bank.rb` catalog uniqueness | own layer C27, C47, C48 (one row per catalog member at C27); picker read boundary C28 now asserts the 12 check-defined `[COMPE, name]` pairs | yes |
 | Entry point that decides nothing | `app/controllers/setup_controller.rb` | boundary C1, C2, C4 | yes |
 | Instrumentation, pass-throughs | `app/models/brazilian_tax_id.rb`; `app/models/drive_folder_url.rb`; `ApplicationController#load_setup` | none of their own; consumer C13/C23/C20/C28 | yes |
 
-C28 is a failed picker assertion, not a missing dual-proof file on `Bank`. Catalog members are proven at own layer by C27.
-
 ## Faults injected
 
-Real-tree `git status --porcelain` was empty before and after. Mutations ran in scratch worktree `/tmp/ocs-lean-verify` at HEAD; scratch discarded.
+verified at `b63adc8`. Real-tree `git status --porcelain` was empty before and after. Mutations ran in scratch worktree `/tmp/ocs-lean-verify-r2` at HEAD; scratch discarded. Scoped to the new C28 pair-equality surface (the only surface the fix created). Cap 5.
 
 | Mutation | Location | Killed |
 | --- | --- | --- |
-| `Bank.ordered_catalog` `order(:compe)` -> `order(:presentation_name)` | `app/models/bank.rb:31` | no |
-| CATALOG `Banco do Brasil` -> `Banco X` | `app/models/bank.rb:3` | yes |
-| skipped HTTPS/host guard in `DriveFolderUrl.parse` | `app/models/drive_folder_url.rb:18` | yes |
-| `require_account` redirect `/login` -> `/` | `app/controllers/application_controller.rb:27` | yes |
-| POST `/bank_accounts` always 302 | `app/controllers/bank_accounts_controller.rb:15` | yes |
+| `Bank.ordered_catalog` `order(:compe)` -> `order(:presentation_name)` | `app/models/bank.rb:31` | yes |
+| picker option value `:compe` -> `:presentation_name` | `app/views/setup/show.html.erb:85` | yes |
+| append `<option value="999">Outro</option>` on `select#compe` | `app/views/setup/show.html.erb:85` | yes |
+| `ordered_catalog` drops COMPE `756` | `app/models/bank.rb:31` | yes |
+| `ordered_catalog` `order(compe: :desc)` | `app/models/bank.rb:31` | yes |
 
-C28 still passed after the catalog was ordered by presentation name, so the picker COMPE-order claim would pass under that wrong implementation.
+The round-1 surviving sort-key mutant now fails C28 at `spec/requests/setup_spec.rb:104` (`expect(options).to eq(expected)`).
 
 ## Swept existing
 
-checks.md Swept has no `existing` rows (only check ids and `n/a`). Plan Observable `existing` for `/`: unauthenticated `/` is still 302 `/login` (`spec/requests/sessions_spec.rb:7-8`); revoke still confirms (`app/views/organizations/show.html.erb:30` `data-turbo-confirm`).
+carried from `31a1874`. checks.md Swept has no `existing` rows (only check ids and `n/a`). Plan Observable `existing` for `/`: unauthenticated `/` is still 302 `/login` (`spec/requests/sessions_spec.rb:7-8`); revoke still confirms (`app/views/organizations/show.html.erb:30` `data-turbo-confirm`).
 
 ## Gate
 
-`python3 .cursor/skills/tlc-spec-lean/scripts/validate_verification.py organization-close-setup` — exit 1: 1 error (verdict is FAIL), 0 warnings. Report format held; do not treat this exit as a prompt to weaken C28 / Coverage / the surviving mutant.
+`python3 .cursor/skills/tlc-spec-lean/scripts/validate_verification.py organization-close-setup` — exit 0: 0 errors, 0 warnings.
