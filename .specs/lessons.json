@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "promote_threshold": 2,
+  "window_days": 45,
+  "quarantine_threshold": 2,
+  "next_id": 3,
+  "lessons": [
+    {
+      "id": "L-001",
+      "key": "ac_gap::assert enumerated picker members by the check defined names in the claimed order not by mirroring the model s ordered collection",
+      "text": "Assert enumerated picker members by the check-defined names in the claimed order, not by mirroring the model's ordered collection.",
+      "signal": "ac_gap",
+      "scope": "request-specs",
+      "status": "candidate",
+      "features": [
+        "organization-close-setup"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "C28 spec/requests/setup_spec.rb:86-90 (request-specs)"
+      ],
+      "created": "2026-09-16T22:04:46Z",
+      "last_seen": "2026-09-16T22:04:46Z"
+    },
+    {
+      "id": "L-002",
+      "key": "surviving_mutant::a catalog order proof must fail when the collection is sorted by a different key than the check names",
+      "text": "A catalog-order proof must fail when the collection is sorted by a different key than the check names.",
+      "signal": "surviving_mutant",
+      "scope": "request-specs",
+      "status": "candidate",
+      "features": [
+        "organization-close-setup"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "verification.md Faults injected Bank.ordered_catalog order(:compe) -> order(:presentation_name) (request-specs)"
+      ],
+      "created": "2026-09-16T22:04:46Z",
+      "last_seen": "2026-09-16T22:04:46Z"
+    }
+  ]
+}
