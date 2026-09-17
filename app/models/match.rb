@@ -19,6 +19,11 @@ class Match < ApplicationRecord
 
   def submit(payments:, supporting_documents:, observation: nil)
     errors.clear
+    if month.closed?
+      errors.add(:base, Month::CLOSED)
+      return self
+    end
+
     payments = Array(payments)
     documents = Array(supporting_documents)
     trimmed = observation.to_s.strip.presence
@@ -49,6 +54,11 @@ class Match < ApplicationRecord
   end
 
   def dissolve
+    if month.closed?
+      errors.add(:base, Month::CLOSED)
+      return self
+    end
+
     transaction do
       SupportingDocument.where(match_id: id).update_all(month_id: nil, match_id: nil)
       Payment.where(match_id: id).update_all(match_id: nil)

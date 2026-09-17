@@ -8,8 +8,8 @@ module MatchHelpers
     [ month, statement ]
   end
 
-  def plant_payment(statement, amount_cents, history: "Pix")
-    statement.payments.create!(occurred_on: Date.new(2026, 5, 20), amount_cents: amount_cents, history: history)
+  def plant_payment(statement, amount_cents, history: "Pix", occurred_on: Date.new(2026, 5, 20))
+    statement.payments.create!(occurred_on: occurred_on, amount_cents: amount_cents, history: history)
   end
 
   def plant_inflow(statement, amount_cents, history: "Pix - Recebido")

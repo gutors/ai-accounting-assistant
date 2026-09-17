@@ -17,6 +17,15 @@ module BrazilianTaxId
       numbers[10] == check_digit(numbers[0, 10], (2..11).to_a.reverse)
   end
 
+  def format(digits)
+    numbers = digits.to_s
+    if cnpj?(numbers)
+      "#{numbers[0, 2]}.#{numbers[2, 3]}.#{numbers[5, 3]}/#{numbers[8, 4]}-#{numbers[12, 2]}"
+    elsif cpf?(numbers)
+      "#{numbers[0, 3]}.#{numbers[3, 3]}.#{numbers[6, 3]}-#{numbers[9, 2]}"
+    end
+  end
+
   def cnpj?(digits)
     numbers = digits.to_s.chars.map(&:to_i)
     return false if numbers.size != 14 || numbers.uniq.size == 1

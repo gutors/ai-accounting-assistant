@@ -38,6 +38,11 @@ class SupportingDocument < ApplicationRecord
 
   def submit(**attrs)
     errors.clear
+    if month&.closed?
+      errors.add(:base, Month::CLOSED)
+      return self
+    end
+
     attrs = attrs.symbolize_keys
 
     next_kind = attrs.key?(:kind) ? attrs[:kind].to_s : kind.to_s

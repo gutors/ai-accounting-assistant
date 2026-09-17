@@ -1,10 +1,18 @@
 class Month < ApplicationRecord
   YEAR_MONTH = /\A\d{4}-(0[1-9]|1[0-2])\z/
+  CLOSED = "Mês fechado"
+  OPEN = "Mês aberto"
+  MISSING_DOCUMENT = "Há documento faltante"
+  MISSING_STATEMENT = "Importe o extrato de cada conta ativa"
+  MISSING_ARCHIVE = "Informe a pasta do arquivo do pacote"
+  MISSING_ACCOUNTANT = "Cadastre o contador"
+  WRITE_FAILED = "Não foi possível gravar no arquivo do pacote"
 
   belongs_to :organization
 
   has_many :bank_statements, dependent: :restrict_with_exception
   has_many :matches, dependent: :destroy
+  has_many :supporting_documents, dependent: :nullify
 
   validates :year_month, format: { with: YEAR_MONTH }
   validates :year_month, uniqueness: { scope: :organization_id }
@@ -23,5 +31,62 @@ class Month < ApplicationRecord
 
   def self.valid_year_month?(value)
     value.to_s.match?(YEAR_MONTH)
+  end
+
+  def close_for_send(writer: PackageArchiveWriter.current)
+    errors.clear
+    with_lock do
+      if (message = close_blocker)
+        errors.add(:base, message)
+        next
+      end
+
+      persist_closed_package(writer)
+    end
+    self
+  end
+
+  def reopen
+    errors.clear
+    with_lock do
+      unless closed?
+        errors.add(:base, OPEN)
+        next
+      end
+
+      update!(closed: false)
+    end
+    self
+  end
+
+  private
+
+  def close_blocker
+    return CLOSED if closed?
+    return MISSING_DOCUMENT if Payment.for_month(self).missing_document.exists?
+    return MISSING_STATEMENT if missing_active_statement?
+    return MISSING_ARCHIVE if organization.package_archive_folder_id.blank?
+    return MISSING_ACCOUNTANT if organization.accountant_presentation_name.blank?
+
+    nil
+  end
+
+  def missing_active_statement?
+    active_ids = organization.bank_accounts.where(active: true).pluck(:id)
+    present_ids = bank_statements.where(bank_account_id: active_ids).pluck(:bank_account_id)
+    (active_ids - present_ids).any?
+  end
+
+  def persist_closed_package(writer)
+    files = MonthPackage.files(self)
+    folder_id = writer.replace_month_folder(
+      parent_id: organization.package_archive_folder_id,
+      name: year_month,
+      folder_id: month_folder_id,
+      files: files
+    )
+    update!(closed: true, month_folder_id: folder_id)
+  rescue PackageArchiveWriter::Error
+    errors.add(:base, WRITE_FAILED)
   end
 end

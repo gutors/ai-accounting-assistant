@@ -2,10 +2,10 @@
 
 ## Handoff
 
-**Feature**: match-and-exception
-**Where**: round 2 verification PASS at `ce6362e..884d9d7`; C1–C53 proven
+**Feature**: close-for-send
+**Where**: C1–C74 implemented; `bin/rspec` 430 examples, 0 failures; awaiting independent Verifier
 **In progress**: none
-**Next step**: none — feature verified; PR when asked (`Closes #33`)
+**Next step**: orchestrator dispatches Verifier over the feature base..HEAD with every check
 **Blockers**: none
 **Uncommitted**: none
 **Branch**: coordinator-access
