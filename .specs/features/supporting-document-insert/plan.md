@@ -140,10 +140,10 @@ Grouped by slice. Numbering runs across the whole plan.
 
 | ID | Slice | Criteria | Status |
 | --- | --- | --- | --- |
-| DOC-01 | S1 | 1, 2, 3, 4, 5, 6, 7 | In checks |
-| DOC-02 | S2 | 8, 9, 10, 11, 12, 13, 14 | In checks |
-| DOC-03 | S3 | 15, 16, 17, 18, 19 | In checks |
-| DOC-04 | S4 | 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40 | In checks |
+| DOC-01 | S1 | 1, 2, 3, 4, 5, 6, 7 | Implementing |
+| DOC-02 | S2 | 8, 9, 10, 11, 12, 13, 14 | Implementing |
+| DOC-03 | S3 | 15, 16, 17, 18, 19 | Implementing |
+| DOC-04 | S4 | 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40 | Implementing |
 
 ## Observable
 
