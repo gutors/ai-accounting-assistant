@@ -359,6 +359,6 @@ Cost: dual proofs on close gates (C1–C5, C8–C10), spreadsheet cells (C11–C
 
 - S1–S5 share `Month`, the package-archive writer, the summary workbook, and `/months/:year_month`. Estimated ~22 product/spec files (Month close/reopen + migration, PackageArchiveWriter + memory/Drive adapters, SummarySpreadsheet, MonthPackage filenames, close/reopen controllers, closed guards on existing mutations, month show, request specs, model specs, puma timeout) ≪ 150k tokens. One builder, no split.
 - S1-S5 = one builder
-- **Boundary:** C1–C74 closed; proofs green on `bin/rspec`
+- **Boundary:** C1–C74 closed at `e6cada5`
 - **Settled mid-build:** none
 - **Abandoned:** none
