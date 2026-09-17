@@ -3,9 +3,9 @@
 ## Handoff
 
 **Feature**: match-and-exception
-**Where**: C1-C53 closed at `2abbd85`; builder stopped
+**Where**: round 2 verification PASS at `ce6362e..884d9d7`; C1–C53 proven
 **In progress**: none
-**Next step**: orchestrator dispatches Verifier over `ce6362e..HEAD` with every check
+**Next step**: none — feature verified; PR when asked (`Closes #33`)
 **Blockers**: none
 **Uncommitted**: none
 **Branch**: coordinator-access
