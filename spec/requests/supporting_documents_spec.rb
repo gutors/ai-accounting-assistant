@@ -453,6 +453,7 @@ RSpec.describe "Supporting documents", type: :request do
 
     patch "/supporting_documents/#{document.id}", params: { payee: "Mercado Silva" }
 
+    expect(response).to have_http_status(:found)
     expect(Match.count).to eq(1)
     get "/months/2026-05"
     expect(response.body).to include("Casado")

@@ -55,7 +55,7 @@ RSpec.describe "Document exceptions", type: :request do
     post "/months/2026-05/payments/#{payment.id}/document_exception", params: { kind: "doacao" }
 
     expect(response).to have_http_status(:unprocessable_content)
-    expect(response.body).to include("Informe se é tarifa bancária ou honorário do contador")
+    expect(response.body).to include('<p class="mb-6">Informe se é tarifa bancária ou honorário do contador</p>')
     expect(payment.reload.document_exception_kind).to be_nil
   end
 
