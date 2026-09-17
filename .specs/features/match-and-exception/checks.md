@@ -275,3 +275,6 @@ Cost: dual proofs on confirm accepts (C9, C12, C14, C15, C23, C24, C32) and reje
 
 - S1–S5 share `Match`, `Payment`, `SupportingDocument`, and `/months/:year_month`. Estimated ~18 product/spec files (Match model + migration, Payment/SupportingDocument associations, MatchesController, DocumentExceptionsController, month show + documents index, request specs, model specs, replace dissolve) ≪ 150k tokens. One builder, no split.
 - S1-S5 = one builder
+- **Boundary:** C1-C53 closed at `2abbd85`
+- **Settled mid-build:** none
+- **Abandoned:** unique index on `payments.match_id` / `supporting_documents.match_id` as a 1:1 constraint — that would forbid 1:N and N:1 (door 2). Membership is the nullable FK; concurrent confirms lock member rows in id order.

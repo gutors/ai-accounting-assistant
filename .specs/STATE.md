@@ -2,10 +2,10 @@
 
 ## Handoff
 
-**Feature**: supporting-document-insert
-**Where**: verification round 3 PASS on `4d884cb..HEAD` (`8297520`)
+**Feature**: match-and-exception
+**Where**: C1-C53 closed at `2abbd85`; builder stopped
 **In progress**: none
-**Next step**: none for this feature
+**Next step**: orchestrator dispatches Verifier over `ce6362e..HEAD` with every check
 **Blockers**: none
 **Uncommitted**: none
 **Branch**: coordinator-access
