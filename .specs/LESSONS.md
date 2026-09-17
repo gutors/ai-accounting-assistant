@@ -26,6 +26,18 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: verification.md Faults injected Bank.ordered_catalog order(:compe) -> order(:presentation_name) (request-specs)
 - last seen: 2026-09-16T22:04:46Z
 
+### L-003 - Skip-row proofs must fail when the skip list is emptied: assert a persisted statement (or in-month skip rows), not only that skip histories are absent.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `import-specs` · harmful: 0
+- features: bank-statement-upload
+- evidence: verification.md F5 SKIP [] banco_do_brasil_spreadsheet.rb:6 / C21 bank_statement_spec.rb:60-62 (import-specs)
+- last seen: 2026-09-17T00:19:39Z
+
+### L-004 - A skip-row check that does not require persist is satisfied by any reject path that leaves movements empty.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `import-specs` · harmful: 0
+- features: bank-statement-upload
+- evidence: C21 spec/models/bank_statement_spec.rb:60-62 (import-specs)
+- last seen: 2026-09-17T00:19:39Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

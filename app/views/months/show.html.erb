@@ -1,0 +1,75 @@
+<% content_for :title, "#{@organization.name} — #{@month.year_month}" %>
+
+<div class="flex items-start justify-between gap-4 mb-8">
+  <h1 class="text-2xl font-semibold"><%= @month.year_month %></h1>
+  <div class="flex items-center gap-4">
+    <%= link_to "Início", "/", class: "text-sm underline" %>
+    <%= button_to "Sair", "/session", method: :delete, class: "text-sm underline" %>
+  </div>
+</div>
+
+<% if @import_error.present? %>
+  <p class="mb-6"><%= @import_error %></p>
+<% end %>
+
+<section class="mb-10">
+  <h2 class="text-lg font-medium mb-3">Contas bancárias</h2>
+  <% if @active_bank_accounts.empty? %>
+    <p class="mb-3">Nenhuma conta bancária ativa</p>
+  <% else %>
+    <ul>
+      <% @active_bank_accounts.each do |bank_account| %>
+        <% statement = @statements_by_account_id[bank_account.id] %>
+        <li class="border rounded p-3 mb-3">
+          <p class="font-medium"><%= bank_account.name %></p>
+          <% if bank_account.coordinates.present? %>
+            <p class="text-sm mb-2"><%= bank_account.coordinates %></p>
+          <% end %>
+          <% if statement %>
+            <p>Presente</p>
+            <p class="text-sm"><%= statement.pdf.filename %></p>
+            <p class="text-sm mb-3"><%= statement.spreadsheet.filename %></p>
+          <% else %>
+            <p class="mb-3">Falta</p>
+          <% end %>
+          <%= form_with url: "/months/#{@month.year_month}/bank_statements", method: :post, multipart: true do %>
+            <%= hidden_field_tag :bank_account_id, bank_account.id %>
+            <label for="pdf_<%= bank_account.id %>" class="block mb-1">PDF</label>
+            <%= file_field_tag :pdf, id: "pdf_#{bank_account.id}", class: "mb-3" %>
+            <label for="spreadsheet_<%= bank_account.id %>" class="block mb-1">Planilha</label>
+            <%= file_field_tag :spreadsheet, id: "spreadsheet_#{bank_account.id}", class: "mb-3" %>
+            <%= submit_tag "Enviar extrato", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+</section>
+
+<section class="mb-10">
+  <h2 class="text-lg font-medium mb-3">Recebimentos</h2>
+  <ul>
+    <% @inflows.each do |inflow| %>
+      <li class="mb-2">
+        <time datetime="<%= inflow.occurred_on.iso8601 %>"><%= l(inflow.occurred_on) %></time>
+        <%= format_reais(inflow.amount_cents) %>
+        <%= inflow.bank_statement.bank_account.name %>
+        <%= inflow.history %>
+      </li>
+    <% end %>
+  </ul>
+</section>
+
+<section class="mb-10">
+  <h2 class="text-lg font-medium mb-3">Pagamentos</h2>
+  <ul>
+    <% @payments.each do |payment| %>
+      <li class="mb-2">
+        <time datetime="<%= payment.occurred_on.iso8601 %>"><%= l(payment.occurred_on) %></time>
+        <%= format_reais(payment.amount_cents) %>
+        <%= payment.bank_statement.bank_account.name %>
+        <%= payment.history %>
+      </li>
+    <% end %>
+  </ul>
+</section>

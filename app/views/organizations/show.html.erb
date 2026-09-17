@@ -22,6 +22,26 @@
 <% end %>
 
 <section class="mb-8">
+  <h2 class="text-lg font-medium mb-3">Meses</h2>
+  <% if @months.empty? %>
+    <p class="mb-3">Nenhum mês aberto</p>
+  <% else %>
+    <ul class="mb-3">
+      <% @months.each do |month| %>
+        <li class="mb-2">
+          <%= link_to month.year_month, "/months/#{month.year_month}" %>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+  <%= form_with url: "/months", method: :post do %>
+    <label for="year_month" class="block mb-1">Mês</label>
+    <%= month_field_tag :year_month, nil, id: "year_month", class: "border rounded px-2 py-1 mb-3", autocomplete: "off" %>
+    <%= submit_tag "Abrir mês", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+  <% end %>
+</section>
+
+<section class="mb-8">
   <h2 class="text-lg font-medium mb-3">Coordenadores</h2>
   <ul>
     <% @coordinator_accesses.each do |access| %>

@@ -69,6 +69,7 @@ RSpec.configure do |config|
   config.include RecordHelpers
   config.include EnvHelpers
   config.include Concurrency
+  config.include StatementHelpers
 
   config.before(:suite) do
     Bank.seed_catalog!

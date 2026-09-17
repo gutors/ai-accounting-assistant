@@ -1,3 +1,6 @@
 pt-BR:
+  date:
+    formats:
+      default: "%d/%m/%Y"
   accesses:
     last_coordinator: "A organização precisa de pelo menos um coordenador."

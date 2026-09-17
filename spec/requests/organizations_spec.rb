@@ -72,4 +72,36 @@ RSpec.describe "Organization home", type: :request do
     expect(response.body).to include("Configuração")
     expect(response.body).to include('href="/setup"')
   end
+
+  it "organization home includes Meses form posting year_month to /months" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    get "/"
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Meses")
+    expect(response.body).to include('action="/months"')
+    expect(response.body).to include('name="year_month"')
+  end
+
+  it "GET / with no Month includes Nenhum mes aberto" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    get "/"
+
+    expect(response.body).to include("Nenhum mês aberto")
+  end
+
+  it "GET / links 2026-05 to /months/2026-05" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    post "/months", params: { year_month: "2026-05" }
+
+    get "/"
+
+    expect(response.body).to include("2026-05")
+    expect(response.body).to include('href="/months/2026-05"')
+  end
 end

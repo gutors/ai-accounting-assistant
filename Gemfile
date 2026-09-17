@@ -25,6 +25,10 @@ gem "jbuilder"
 gem "omniauth-google-oauth2"
 gem "omniauth-rails_csrf_protection"
 
+# Bank-statement XLSX (CSV uses the csv gem).
+gem "rubyXL"
+gem "csv"
+
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 # gem "bcrypt", "~> 3.1.7"
 

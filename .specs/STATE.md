@@ -2,10 +2,10 @@
 
 ## Handoff
 
-**Feature**: organization-close-setup
-**Where**: Round 2 verification PASS at `b63adc8`. C1–C50 proven on `1b5180c..HEAD`. Independent Verifier != author.
+**Feature**: bank-statement-upload
+**Where**: verification round 2 PASS on `68771ba..HEAD` (`0dd963f`)
 **In progress**: none
-**Next step**: none for this feature — issue #30 close-setup is verified
+**Next step**: none for this feature
 **Blockers**: none
 **Uncommitted**: none
 **Branch**: coordinator-access
