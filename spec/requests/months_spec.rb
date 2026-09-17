@@ -152,4 +152,99 @@ RSpec.describe "Months", type: :request do
     expect(response).to have_http_status(:not_found)
     expect(organization.months.where(year_month: "2026-05").count).to eq(1)
   end
+
+  it "GET /months/2026-05 unmatched payment includes Documento faltante" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    _month, statement = plant_month(organization)
+    plant_payment(statement, 22000)
+
+    get "/months/2026-05"
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Documento faltante")
+    expect(response.body).to include("R$ 220,00")
+  end
+
+  it "GET /months/2026-05 with zero Payments does not include Documento faltante" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    post "/months", params: { year_month: "2026-05" }
+
+    get "/months/2026-05"
+
+    expect(response.body).not_to include("Documento faltante")
+  end
+
+  it "GET /months/2026-05 includes Documentos sem casamento" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    post "/months", params: { year_month: "2026-05" }
+
+    get "/months/2026-05"
+
+    expect(response.body).to include("Documentos sem casamento")
+  end
+
+  it "GET /months/2026-05 with no unmatched documents includes Nenhum documento sem casamento" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    post "/months", params: { year_month: "2026-05" }
+
+    get "/months/2026-05"
+
+    expect(response.body).to include("Nenhum documento sem casamento")
+  end
+
+  it "GET /months/2026-05 pool includes unmatched Padaria Central" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    plant_month(organization)
+    plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+
+    get "/months/2026-05"
+
+    expect(pool_html(response.body)).to include("Padaria Central")
+  end
+
+  it "month unmatched pool does not include another organization payee" do
+    account, org_a = plant_coordinator(email: "a@example.com", organization_name: "A")
+    org_b = Organization.create!(name: "B")
+    Access.create!(account: account, organization: org_b, kind: :coordinator)
+    plant_recibo(org_b, account, payee: "Only Org B", amount: "155,00")
+    sign_in_as(account, organization: org_a)
+    plant_month(org_a)
+
+    get "/months/2026-05"
+
+    expect(response.body).not_to include("Only Org B")
+  end
+
+  it "GET /months/2026-05 Recebimentos does not include Documento faltante" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    _month, statement = plant_month(organization)
+    plant_inflow(statement, 6300)
+    plant_payment(statement, 22000)
+
+    get "/months/2026-05"
+
+    expect(recebimentos_html(response.body)).not_to include("Documento faltante")
+    expect(recebimentos_html(response.body)).to include("R$ 63,00")
+  end
+
+  it "GET /months/2026-05 with every payment resolved omits Documento faltante" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    month, statement = plant_month(organization)
+    matched = plant_payment(statement, 22000)
+    excepted = plant_payment(statement, 10000)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    Match.confirm(month: month, payments: [ matched ], supporting_documents: [ document ])
+    excepted.mark_document_exception("bank_fee")
+
+    get "/months/2026-05"
+
+    expect(response.body).not_to include("Documento faltante")
+  end
 end

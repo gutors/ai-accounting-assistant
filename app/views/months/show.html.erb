@@ -12,6 +12,10 @@
   <p class="mb-6"><%= @import_error %></p>
 <% end %>
 
+<% if @month_error.present? %>
+  <p class="mb-6"><%= @month_error %></p>
+<% end %>
+
 <section class="mb-10">
   <h2 class="text-lg font-medium mb-3">Contas bancárias</h2>
   <% if @active_bank_accounts.empty? %>
@@ -69,7 +73,74 @@
         <%= format_reais(payment.amount_cents) %>
         <%= payment.bank_statement.bank_account.name %>
         <%= payment.history %>
+        <% if payment.missing_document? %>
+          Documento faltante
+          <%= form_with url: "/months/#{@month.year_month}/matches", method: :post do %>
+            <%= hidden_field_tag "payment_ids[]", payment.id, id: "payment_ids_#{payment.id}" %>
+            <% @unmatched_documents.each do |document| %>
+              <%= check_box_tag "supporting_document_ids[]", document.id, false, id: "doc_#{payment.id}_#{document.id}" %>
+              <label for="doc_<%= payment.id %>_<%= document.id %>"><%= document.payee %></label>
+            <% end %>
+            <label for="observation_<%= payment.id %>" class="block mb-1">Observação do casamento</label>
+            <%= text_area_tag :observation, nil, id: "observation_#{payment.id}", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", rows: 2 %>
+            <%= submit_tag "Confirmar casamento", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+          <% end %>
+          <%= form_with url: "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :post do %>
+            <%= hidden_field_tag :kind, "bank_fee", id: "kind_bank_#{payment.id}" %>
+            <%= submit_tag "Marcar tarifa", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+          <% end %>
+          <%= form_with url: "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :post do %>
+            <%= hidden_field_tag :kind, "accountant_fee", id: "kind_accountant_#{payment.id}" %>
+            <%= submit_tag "Marcar honorário", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+          <% end %>
+        <% elsif payment.match_id.present? %>
+          Casado
+          <% payment.match.supporting_documents.each do |document| %>
+            <%= document.payee %>
+          <% end %>
+          <% if payment.match.observation.present? %>
+            <%= payment.match.observation %>
+          <% end %>
+          <%= button_to "Desfazer casamento", "/months/#{@month.year_month}/matches/#{payment.match_id}", method: :delete, class: "text-sm underline" %>
+        <% elsif payment.bank_fee? %>
+          Tarifa bancária
+          <%= button_to "Desmarcar exceção", "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :delete, class: "text-sm underline" %>
+        <% else %>
+          Honorário do contador
+          <%= button_to "Desmarcar exceção", "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :delete, class: "text-sm underline" %>
+        <% end %>
       </li>
     <% end %>
   </ul>
+  <% if @missing_document_payments.size >= 2 && @unmatched_documents.any? %>
+    <%= form_with url: "/months/#{@month.year_month}/matches", method: :post do %>
+      <% @missing_document_payments.each do |payment| %>
+        <%= check_box_tag "payment_ids[]", payment.id, false, id: "n1_pay_#{payment.id}" %>
+        <label for="n1_pay_<%= payment.id %>"><%= format_reais(payment.amount_cents) %></label>
+      <% end %>
+      <% @unmatched_documents.each do |document| %>
+        <%= radio_button_tag "supporting_document_ids[]", document.id, false, id: "n1_doc_#{document.id}" %>
+        <label for="n1_doc_<%= document.id %>"><%= document.payee %></label>
+      <% end %>
+      <label for="observation_n1" class="block mb-1">Observação do casamento</label>
+      <%= text_area_tag :observation, nil, id: "observation_n1", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", rows: 2 %>
+      <%= submit_tag "Confirmar casamento N:1", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+    <% end %>
+  <% end %>
+</section>
+
+<section class="mb-10">
+  <h2 class="text-lg font-medium mb-3">Documentos sem casamento</h2>
+  <% if @unmatched_documents.empty? %>
+    <p>Nenhum documento sem casamento</p>
+  <% else %>
+    <ul>
+      <% @unmatched_documents.each do |document| %>
+        <li class="mb-2">
+          <%= document.payee %>
+          <%= format_reais(document.amount_cents) %>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
 </section>

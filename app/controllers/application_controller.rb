@@ -40,7 +40,9 @@ class ApplicationController < ActionController::Base
     @active_bank_accounts = @organization.bank_accounts.where(active: true).includes(:bank).order(:name)
     @statements_by_account_id = @month.bank_statements.with_attached_pdf.with_attached_spreadsheet.index_by(&:bank_account_id)
     @inflows = Inflow.joins(:bank_statement).where(bank_statements: { month_id: @month.id }).includes(bank_statement: :bank_account).order(:occurred_on, :id)
-    @payments = Payment.joins(:bank_statement).where(bank_statements: { month_id: @month.id }).includes(bank_statement: :bank_account).order(:occurred_on, :id)
+    @payments = Payment.joins(:bank_statement).where(bank_statements: { month_id: @month.id }).includes(match: :supporting_documents, bank_statement: :bank_account).order(:occurred_on, :id)
+    @unmatched_documents = @organization.supporting_documents.unmatched.listed
+    @missing_document_payments = @payments.select(&:missing_document?)
     @focusable_organizations = current_account.coordinator_organizations.order(:name)
   end
 

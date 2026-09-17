@@ -215,4 +215,18 @@ RSpec.describe BankStatement, type: :model do
       truncate_product_tables
     end
   end
+
+  it "replace destroys Payments and their Match" do
+    BankStatement.import(month: month, bank_account: bb_account, pdf: statement_pdf, spreadsheet: bb_xlsx)
+    payment = Payment.find_by!(amount_cents: 15500)
+    account = Account.create!(email: "coord@example.com", google_uid: "uid-coord")
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    Match.confirm(month: month, payments: [ payment ], supporting_documents: [ document ])
+
+    BankStatement.import(month: month, bank_account: bb_account, pdf: statement_pdf, spreadsheet: one_row_csv)
+
+    expect(Match.count).to eq(0)
+    expect(document.reload.match_id).to be_nil
+    expect(document.month_id).to be_nil
+  end
 end

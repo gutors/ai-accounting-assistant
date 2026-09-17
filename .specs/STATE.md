@@ -2,10 +2,10 @@
 
 ## Handoff
 
-**Feature**: supporting-document-insert
-**Where**: verification round 3 PASS on `4d884cb..HEAD` (`8297520`)
+**Feature**: match-and-exception
+**Where**: round 2 verification PASS at `ce6362e..884d9d7`; C1–C53 proven
 **In progress**: none
-**Next step**: none for this feature
+**Next step**: none — feature verified; PR when asked (`Closes #33`)
 **Blockers**: none
 **Uncommitted**: none
 **Branch**: coordinator-access

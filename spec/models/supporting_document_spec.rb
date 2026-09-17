@@ -52,8 +52,7 @@ RSpec.describe SupportingDocument, type: :model do
     doc = insert_doc
 
     expect(doc.account).to eq(account)
-    expect(SupportingDocument.reflect_on_association(:month)).to be_nil
-    expect(SupportingDocument.column_names).not_to include("month_id")
+    expect(doc.month).to be_nil
   end
 
   it "rejects recibo without photo" do
@@ -281,5 +280,48 @@ RSpec.describe SupportingDocument, type: :model do
     ensure
       truncate_product_tables
     end
+  end
+
+  it "unmatched documents of the organization include Padaria Central" do
+    insert_doc
+
+    expect(organization.supporting_documents.unmatched.map(&:payee)).to include("Padaria Central")
+  end
+
+  it "confirm assigns Month 2026-05 on both documents" do
+    month, statement = plant_month(organization)
+    payment = plant_payment(statement, 22000)
+    doc_a = insert_doc(payee: "Padaria A", amount: "100,00", photo: photo_named("a.jpg"))
+    doc_b = insert_doc(payee: "Padaria B", amount: "120,00", photo: photo_named("b.jpg"))
+
+    Match.confirm(month: month, payments: [ payment ], supporting_documents: [ doc_a, doc_b ])
+
+    expect(doc_a.reload.month.year_month).to eq("2026-05")
+    expect(doc_b.reload.month.year_month).to eq("2026-05")
+  end
+
+  it "matched documents are absent from unmatched list" do
+    month, statement = plant_month(organization)
+    payment = plant_payment(statement, 22000)
+    doc_a = insert_doc(payee: "Padaria A", amount: "100,00", photo: photo_named("a.jpg"))
+    doc_b = insert_doc(payee: "Padaria B", amount: "120,00", photo: photo_named("b.jpg"))
+    Match.confirm(month: month, payments: [ payment ], supporting_documents: [ doc_a, doc_b ])
+
+    expect(organization.supporting_documents.unmatched).to be_empty
+    expect(organization.supporting_documents.unmatched).not_to include(doc_a, doc_b)
+  end
+
+  it "update payee on matched document keeps the Match" do
+    month, statement = plant_month(organization)
+    payment = plant_payment(statement, 22000)
+    document = insert_doc(amount: "220,00")
+    match = Match.confirm(month: month, payments: [ payment ], supporting_documents: [ document ])
+
+    document.reload.apply(payee: "Mercado Silva")
+
+    expect(document.errors).to be_empty
+    expect(document.reload.payee).to eq("Mercado Silva")
+    expect(Match.exists?(match.id)).to be true
+    expect(payment.reload.match_id).to eq(match.id)
   end
 end
