@@ -55,8 +55,10 @@ RSpec.describe BankStatement, type: :model do
 
   it "BB fixture skips Saldo Anterior and S A L D O" do
     statement = BankStatement.import(month: month, bank_account: bb_account, pdf: statement_pdf, spreadsheet: bb_xlsx)
-    histories = statement.inflows.pluck(:history) + statement.payments.pluck(:history)
+    expect(statement).to be_persisted
 
+    histories = statement.inflows.pluck(:history) + statement.payments.pluck(:history)
+    expect(histories).not_to be_empty
     expect(histories).not_to include("Saldo Anterior")
     expect(histories).not_to include("S A L D O")
     expect(histories.none? { |history| history.strip == "Saldo Anterior" || history.strip == "S A L D O" }).to be(true)
