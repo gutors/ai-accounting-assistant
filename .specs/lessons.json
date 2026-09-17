@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 3,
+  "next_id": 5,
   "lessons": [
     {
       "id": "L-001",
@@ -40,6 +40,42 @@
       ],
       "created": "2026-09-16T22:04:46Z",
       "last_seen": "2026-09-16T22:04:46Z"
+    },
+    {
+      "id": "L-003",
+      "key": "surviving_mutant::skip row proofs must fail when the skip list is emptied assert a persisted statement or in month skip rows not only that skip histories are absent",
+      "text": "Skip-row proofs must fail when the skip list is emptied: assert a persisted statement (or in-month skip rows), not only that skip histories are absent.",
+      "signal": "surviving_mutant",
+      "scope": "import-specs",
+      "status": "candidate",
+      "features": [
+        "bank-statement-upload"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "verification.md F5 SKIP [] banco_do_brasil_spreadsheet.rb:6 / C21 bank_statement_spec.rb:60-62 (import-specs)"
+      ],
+      "created": "2026-09-17T00:19:39Z",
+      "last_seen": "2026-09-17T00:19:39Z"
+    },
+    {
+      "id": "L-004",
+      "key": "spec_precision_gap::a skip row check that does not require persist is satisfied by any reject path that leaves movements empty",
+      "text": "A skip-row check that does not require persist is satisfied by any reject path that leaves movements empty.",
+      "signal": "spec_precision_gap",
+      "scope": "import-specs",
+      "status": "candidate",
+      "features": [
+        "bank-statement-upload"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "C21 spec/models/bank_statement_spec.rb:60-62 (import-specs)"
+      ],
+      "created": "2026-09-17T00:19:39Z",
+      "last_seen": "2026-09-17T00:19:39Z"
     }
   ]
 }
