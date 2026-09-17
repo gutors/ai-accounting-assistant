@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 5,
+  "next_id": 7,
   "lessons": [
     {
       "id": "L-001",
@@ -76,6 +76,42 @@
       ],
       "created": "2026-09-17T00:19:39Z",
       "last_seen": "2026-09-17T00:19:39Z"
+    },
+    {
+      "id": "L-005",
+      "key": "surviving_mutant::when a collection label also appears in the same page s form assert it inside the collection html not the whole body",
+      "text": "When a collection label also appears in the same page's form, assert it inside the collection HTML, not the whole body",
+      "signal": "surviving_mutant",
+      "scope": "request-specs",
+      "status": "candidate",
+      "features": [
+        "supporting-document-insert"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "verification.md Faults: list kind interpolation; C8 (request-specs)"
+      ],
+      "created": "2026-09-17T01:55:56Z",
+      "last_seen": "2026-09-17T01:55:56Z"
+    },
+    {
+      "id": "L-006",
+      "key": "ac_gap::a page include of a string the form always renders does not prove the list showed that string",
+      "text": "A page-include of a string the form always renders does not prove the list showed that string",
+      "signal": "ac_gap",
+      "scope": "request-specs",
+      "status": "candidate",
+      "features": [
+        "supporting-document-insert"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "C8 C15 verification.md (request-specs)"
+      ],
+      "created": "2026-09-17T01:55:56Z",
+      "last_seen": "2026-09-17T01:55:56Z"
     }
   ]
 }

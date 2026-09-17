@@ -38,6 +38,18 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: C21 spec/models/bank_statement_spec.rb:60-62 (import-specs)
 - last seen: 2026-09-17T00:19:39Z
 
+### L-005 - When a collection label also appears in the same page's form, assert it inside the collection HTML, not the whole body
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `request-specs` · harmful: 0
+- features: supporting-document-insert
+- evidence: verification.md Faults: list kind interpolation; C8 (request-specs)
+- last seen: 2026-09-17T01:55:56Z
+
+### L-006 - A page-include of a string the form always renders does not prove the list showed that string
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `request-specs` · harmful: 0
+- features: supporting-document-insert
+- evidence: C8 C15 verification.md (request-specs)
+- last seen: 2026-09-17T01:55:56Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.
