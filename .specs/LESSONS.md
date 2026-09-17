@@ -68,6 +68,18 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: verification.md round 2 Faults: PATCH options_for_select; C8 (request-specs)
 - last seen: 2026-09-17T02:00:43Z
 
+### L-010 - When a 422 request spec asserts error copy, match it on the rendered page body so a RecordInvalid debug page that quotes the rejected value cannot satisfy the assertion.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `request-specs` · harmful: 0
+- features: match-and-exception
+- evidence: C30 HTTP / spec/requests/document_exceptions_spec.rb:57-58 (request-specs)
+- last seen: 2026-09-17T03:33:09Z
+
+### L-011 - Every Surface status member needs a check whose HTTP assertion is that status, not a related success path that only asserts persistence or labels.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `coverage` · harmful: 0
+- features: match-and-exception
+- evidence: Coverage PATCH /supporting_documents/:id 302; C22 (coverage)
+- last seen: 2026-09-17T03:33:10Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

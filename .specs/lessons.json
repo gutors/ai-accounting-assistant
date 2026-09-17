@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 10,
+  "next_id": 12,
   "lessons": [
     {
       "id": "L-001",
@@ -166,6 +166,42 @@
       ],
       "created": "2026-09-17T02:00:43Z",
       "last_seen": "2026-09-17T02:00:43Z"
+    },
+    {
+      "id": "L-010",
+      "key": "surviving_mutant::when a 422 request spec asserts error copy match it on the rendered page body so a recordinvalid debug page that quotes the rejected value cannot satisfy the assertion",
+      "text": "When a 422 request spec asserts error copy, match it on the rendered page body so a RecordInvalid debug page that quotes the rejected value cannot satisfy the assertion.",
+      "signal": "surviving_mutant",
+      "scope": "request-specs",
+      "status": "candidate",
+      "features": [
+        "match-and-exception"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "C30 HTTP / spec/requests/document_exceptions_spec.rb:57-58 (request-specs)"
+      ],
+      "created": "2026-09-17T03:33:09Z",
+      "last_seen": "2026-09-17T03:33:09Z"
+    },
+    {
+      "id": "L-011",
+      "key": "ac_gap::every surface status member needs a check whose http assertion is that status not a related success path that only asserts persistence or labels",
+      "text": "Every Surface status member needs a check whose HTTP assertion is that status, not a related success path that only asserts persistence or labels.",
+      "signal": "ac_gap",
+      "scope": "coverage",
+      "status": "candidate",
+      "features": [
+        "match-and-exception"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "Coverage PATCH /supporting_documents/:id 302; C22 (coverage)"
+      ],
+      "created": "2026-09-17T03:33:10Z",
+      "last_seen": "2026-09-17T03:33:10Z"
     }
   ]
 }
