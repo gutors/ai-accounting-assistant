@@ -49,12 +49,16 @@ module CloseHelpers
     end
   end
 
-  def sheet_formulas(workbook)
-    workbook[0].sheet_data.rows.flat_map do |row|
-      next [] unless row
+  def formula_beside_label(workbook, label)
+    workbook[0].sheet_data.rows.each do |row|
+      next unless row
 
-      row.cells.filter_map { |cell| cell&.formula&.expression }
+      index = row.cells.index { |cell| cell&.value == label }
+      next if index.nil?
+
+      return row.cells[index + 1]&.formula&.expression
     end
+    nil
   end
 
   def sheet_text(workbook)

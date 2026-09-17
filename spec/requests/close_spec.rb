@@ -270,12 +270,40 @@ RSpec.describe "Close for send", type: :request do
     _account, _organization, _month, _statement = signed_ready
     post_close
     book = parse_resumo
-    formulas = sheet_formulas(book)
     text = sheet_text(book)
 
     expect(text).to include("Receita total", "Despesas total", "Resultado mês")
-    expect(formulas.count { |expression| expression.include?("SUM") }).to be >= 2
-    expect(formulas.any? { |expression| expression.include?("-") }).to eq(true)
+    expect(formula_beside_label(book, "Receita total")).to include("SUM")
+    expect(formula_beside_label(book, "Despesas total")).to include("SUM")
+    expect(formula_beside_label(book, "Resultado mês")).to include("-")
+  end
+
+  it "xlsx includes Recebimentos section title" do
+    _account, _organization, _month, _statement = signed_ready
+    post_close
+
+    expect(sheet_cell_values(parse_resumo).flatten).to include("Recebimentos")
+  end
+
+  it "xlsx includes Custos/Despesas section title" do
+    _account, _organization, _month, _statement = signed_ready
+    post_close
+
+    expect(sheet_cell_values(parse_resumo).flatten).to include("Custos/Despesas")
+  end
+
+  it "xlsx includes Detalhe column header" do
+    _account, _organization, _month, _statement = signed_ready
+    post_close
+
+    expect(sheet_cell_values(parse_resumo).flatten).to include("Detalhe")
+  end
+
+  it "xlsx includes Detalhes column header" do
+    _account, _organization, _month, _statement = signed_ready
+    post_close
+
+    expect(sheet_cell_values(parse_resumo).flatten).to include("Detalhes")
   end
 
   it "xlsx omits sem casamento" do

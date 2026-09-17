@@ -120,12 +120,28 @@ RSpec.describe SummarySpreadsheet, type: :model do
 
   it "Receita and Despesas formulas include SUM and Resultado includes minus" do
     parsed = book
-    formulas = sheet_formulas(parsed)
     text = sheet_text(parsed)
 
     expect(text).to include("Receita total", "Despesas total", "Resultado mês")
-    expect(formulas.count { |expression| expression.include?("SUM") }).to be >= 2
-    expect(formulas.any? { |expression| expression.include?("-") }).to eq(true)
+    expect(formula_beside_label(parsed, "Receita total")).to include("SUM")
+    expect(formula_beside_label(parsed, "Despesas total")).to include("SUM")
+    expect(formula_beside_label(parsed, "Resultado mês")).to include("-")
+  end
+
+  it "sheet includes Recebimentos section title" do
+    expect(sheet_cell_values(book).flatten).to include("Recebimentos")
+  end
+
+  it "sheet includes Custos/Despesas section title" do
+    expect(sheet_cell_values(book).flatten).to include("Custos/Despesas")
+  end
+
+  it "sheet includes Detalhe column header" do
+    expect(sheet_cell_values(book).flatten).to include("Detalhe")
+  end
+
+  it "sheet includes Detalhes column header" do
+    expect(sheet_cell_values(book).flatten).to include("Detalhes")
   end
 
   it "workbook text does not include sem casamento" do
