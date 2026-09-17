@@ -244,6 +244,6 @@ Cost: dual proofs on insert accepts (C8, C11, C15–C17, C19, C21, C25, C26) and
 
 - S1–S4 share `SupportingDocument` and `/supporting_documents`. Estimated ~12 product/spec files (model, migration, controller, index, home link, request spec, model spec, upload helper) ≪ 150k tokens. One builder, no split.
 - S1-S4 = one builder
-- **Boundary:** C1-C45 closed at `29de132`
+- **Boundary:** C1-C45 closed at `29de132`; verification round 3 PASS on `4d884cb..HEAD` (`8297520`)
 - **Settled mid-build:** none
 - **Abandoned:** none

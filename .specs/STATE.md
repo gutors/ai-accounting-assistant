@@ -3,9 +3,9 @@
 ## Handoff
 
 **Feature**: supporting-document-insert
-**Where**: C1-C45 closed at `29de132`
+**Where**: verification round 3 PASS on `4d884cb..HEAD` (`8297520`)
 **In progress**: none
-**Next step**: dispatch Verifier over `4d884cb..HEAD`
+**Next step**: none for this feature
 **Blockers**: none
 **Uncommitted**: none
 **Branch**: coordinator-access
