@@ -25,5 +25,9 @@ Rails.application.routes.draw do
   get "/months/:year_month", to: "months#show"
   post "/months/:year_month/bank_statements", to: "bank_statements#create"
 
+  get "/supporting_documents", to: "supporting_documents#index"
+  post "/supporting_documents", to: "supporting_documents#create"
+  patch "/supporting_documents/:id", to: "supporting_documents#update"
+
   root "organizations#show"
 end
