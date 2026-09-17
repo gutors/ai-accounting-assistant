@@ -3,7 +3,7 @@
 Profile: standard
 Plan: `.specs/features/close-for-send/plan.md`
 
-74 checks in 5 slices · 5 one-way doors · 0 open
+78 checks in 5 slices · 5 one-way doors · 4 open
 
 Proofs use `bin/rspec` and `-e` as `.cursor/rules/rails.mdc` names. CI runs `bin/rspec`.
 
@@ -102,6 +102,22 @@ Proof: `bin/rspec spec/models/summary_spreadsheet_spec.rb -e "expense rows are o
 **C50** - When a Payment of `15500` cents is marked `accountant_fee`, the Custos/Despesas section includes `Honorário do contador` (SHEET-01, door 3)
 Proof: `bin/rspec spec/requests/close_spec.rb -e "xlsx accountant_fee row includes Honorario do contador"`
 Proof: `bin/rspec spec/models/summary_spreadsheet_spec.rb -e "accountant_fee expense is Honorario do contador"`
+
+**C75** - After close succeeds, the sheet includes a cell whose value is exactly `Recebimentos` (SHEET-01, door 3)
+Proof: `bin/rspec spec/requests/close_spec.rb -e "xlsx includes Recebimentos section title"`
+Proof: `bin/rspec spec/models/summary_spreadsheet_spec.rb -e "sheet includes Recebimentos section title"`
+
+**C76** - After close succeeds, the sheet includes a cell whose value is exactly `Custos/Despesas` (SHEET-01, door 3)
+Proof: `bin/rspec spec/requests/close_spec.rb -e "xlsx includes Custos/Despesas section title"`
+Proof: `bin/rspec spec/models/summary_spreadsheet_spec.rb -e "sheet includes Custos/Despesas section title"`
+
+**C77** - After close succeeds, the sheet includes a cell whose value is exactly `Detalhe` (SHEET-01, door 3)
+Proof: `bin/rspec spec/requests/close_spec.rb -e "xlsx includes Detalhe column header"`
+Proof: `bin/rspec spec/models/summary_spreadsheet_spec.rb -e "sheet includes Detalhe column header"`
+
+**C78** - After close succeeds, the sheet includes a cell whose value is exactly `Detalhes` (SHEET-01, door 3)
+Proof: `bin/rspec spec/requests/close_spec.rb -e "xlsx includes Detalhes column header"`
+Proof: `bin/rspec spec/models/summary_spreadsheet_spec.rb -e "sheet includes Detalhes column header"`
 
 ### S3 - Month folder on the archive · door 2 · door 5
 
@@ -312,6 +328,8 @@ Proof: `bin/rspec spec/requests/supporting_documents_spec.rb -e "POST recibo wit
 | Writer adapter factory (2) | in-memory C52 · Drive API v3 C53 | - |
 | Relations entities (6) | Organization C49 · Month C5 · BankStatement C10 · Match C43 · SupportingDocument C40 · BankAccount C10 | - |
 | Landing doors (5) | closed + folder id C5 · PackageArchiveWriter C23 · summary xlsx C11 · in-request lock C54 · stable stems C26 | - |
+| Spreadsheet door-3 section titles (2) | `Recebimentos` C75 · `Custos/Despesas` C76 | - |
+| Spreadsheet door-3 empty-cut headers (2) | `Detalhe` C77 · `Detalhes` C78 | - |
 
 - Claims naming a status code, route or response shape: C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C32, C34, C35, C36, C37, C38, C39, C40, C41, C44, C45, C46, C47, C51, C54, C56, C57, C59, C61, C62, C63, C64, C65, C66, C67, C68, C69, C70, C71, C72, C73, C74 - each has a proof that crosses the HTTP boundary
 - No other check claims more than the single case its proof exercises
@@ -332,7 +350,7 @@ Proof: `bin/rspec spec/requests/supporting_documents_spec.rb -e "POST recibo wit
 Evidence (classified from the approved plan):
 
 - Month close gates: missing document / missing statement / missing archive / missing accountant / ready / writer raised / already closed / inactive without statement -> decides, reached across `POST /months/:year_month/close`
-- Summary spreadsheet: sheet name, accountant header (CNPJ/CPF/PIX), Recebimentos, exception rows, 1:N / N:1 `Arquivo(s)`, observation, SUM/minus, no unmatched section, date order -> decides, reached across close (writer receives the xlsx) and at `SummarySpreadsheet` own layer
+- Summary spreadsheet: sheet name, accountant header (CNPJ/CPF/PIX), Recebimentos / Custos/Despesas titles, Detalhe / Detalhes headers, exception rows, 1:N / N:1 `Arquivo(s)`, observation, SUM/minus, no unmatched section, date order -> decides, reached across close (writer receives the xlsx) and at `SummarySpreadsheet` own layer
 - Month package filenames: `resumo-`, `extrato-{slug}.{ext}`, `{nota|recibo}-{date}-{slug}-{id}` -> decides, reached across close and at `MonthPackage` own layer
 - PackageArchiveWriter: in-memory vs Drive adapter; 0 / 1 / many folders named `{YYYY-MM}` -> decides; HTTP close is the consumer; factory and Drive-list table at own layer
 - Closed-month mutations: statement / match / exception / matched-document PATCH refused; insert without month allowed -> decides, reached across those routes
@@ -341,7 +359,7 @@ Evidence (classified from the approved plan):
 - GET unauth / no-focus / never-opened and existing open-month 302/404 on mutation routes -> entry / guard, boundary
 - closest analogue in the repo: `spec/models/match_spec.rb` + `spec/requests/matches_spec.rb` — persist and 422 at the HTTP boundary, concurrent unique write at own layer; `spec/config/omniauth_spec.rb` for operator scopes
 
-Cost: dual proofs on close gates (C1–C5, C8–C10), spreadsheet cells (C11–C22, C50), package files (C23–C30), writer many-folders (C51), closed mutations (C34–C40), reopen (C41, C43, C44). Without those own-layer proofs the close table, the workbook, and the filename stems would be proven only by a path that happens to traverse them.
+Cost: dual proofs on close gates (C1–C5, C8–C10), spreadsheet cells (C11–C22, C50, C75–C78), package files (C23–C30), writer many-folders (C51), closed mutations (C34–C40), reopen (C41, C43, C44). Without those own-layer proofs the close table, the workbook, and the filename stems would be proven only by a path that happens to traverse them.
 
 ## Swept
 
@@ -359,6 +377,6 @@ Cost: dual proofs on close gates (C1–C5, C8–C10), spreadsheet cells (C11–C
 
 - S1–S5 share `Month`, the package-archive writer, the summary workbook, and `/months/:year_month`. Estimated ~22 product/spec files (Month close/reopen + migration, PackageArchiveWriter + memory/Drive adapters, SummarySpreadsheet, MonthPackage filenames, close/reopen controllers, closed guards on existing mutations, month show, request specs, model specs, puma timeout) ≪ 150k tokens. One builder, no split.
 - S1-S5 = one builder
-- **Boundary:** C1–C74 closed at `e6cada5`
-- **Settled mid-build:** none
+- **Boundary:** C1–C74 closed at `e6cada5`; C75–C78 and C20 re-proof open
+- **Settled mid-build:** human approved additive C75–C78 for door-3 strings `Recebimentos`, `Custos/Despesas`, `Detalhe`, `Detalhes` after round-1 verification FAIL
 - **Abandoned:** none
