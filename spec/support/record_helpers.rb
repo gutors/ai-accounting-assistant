@@ -13,6 +13,7 @@ module RecordHelpers
     Payment.delete_all
     Inflow.delete_all
     BankStatement.delete_all
+    SupportingDocument.delete_all
     Month.delete_all
     BankAccount.delete_all
     Invite.delete_all

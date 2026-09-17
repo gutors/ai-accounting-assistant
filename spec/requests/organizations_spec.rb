@@ -62,6 +62,17 @@ RSpec.describe "Organization home", type: :request do
     expect(response.body).not_to include("invite-b@example.com")
   end
 
+  it "organization home links Documentos to /supporting_documents" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    get "/"
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Documentos")
+    expect(response.body).to include('href="/supporting_documents"')
+  end
+
   it "organization home links Configuracao to /setup" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)

@@ -1,0 +1,92 @@
+<% content_for :title, "Documentos de suporte" %>
+
+<div class="flex items-start justify-between gap-4 mb-8">
+  <h1 class="text-2xl font-semibold">Documentos de suporte</h1>
+  <div class="flex items-center gap-4">
+    <%= link_to "Início", "/", class: "text-sm underline" %>
+    <%= button_to "Sair", "/session", method: :delete, class: "text-sm underline" %>
+  </div>
+</div>
+
+<% if @document_error.present? %>
+  <p class="mb-6"><%= @document_error %></p>
+<% end %>
+
+<section class="mb-10">
+  <h2 class="text-lg font-medium mb-3">Incluir documento</h2>
+  <%= form_with url: "/supporting_documents", method: :post, multipart: true do %>
+    <label for="kind" class="block mb-1">Tipo</label>
+    <%= select_tag :kind, options_for_select([ [ "Nota fiscal", "nota_fiscal" ], [ "Recibo", "recibo" ] ]), id: "kind", class: "border rounded px-2 py-1 mb-3" %>
+
+    <label for="amount" class="block mb-1">Valor</label>
+    <%= text_field_tag :amount, nil, id: "amount", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "off" %>
+
+    <label for="date" class="block mb-1">Data</label>
+    <%= date_field_tag :date, nil, id: "date", class: "border rounded px-2 py-1 mb-3", autocomplete: "off" %>
+
+    <label for="payee" class="block mb-1">Favorecido</label>
+    <%= text_field_tag :payee, nil, id: "payee", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "off" %>
+
+    <label for="observation" class="block mb-1">Observação</label>
+    <%= text_area_tag :observation, nil, id: "observation", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", rows: 3 %>
+
+    <label for="photo" class="block mb-1">Foto</label>
+    <%= file_field_tag :photo, id: "photo", class: "mb-3" %>
+
+    <label for="xml" class="block mb-1">XML</label>
+    <%= file_field_tag :xml, id: "xml", class: "mb-3" %>
+
+    <%= submit_tag "Incluir documento", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+  <% end %>
+</section>
+
+<section>
+  <h2 class="text-lg font-medium mb-3">Sem mês</h2>
+  <% if @documents.empty? %>
+    <p>Nenhum documento</p>
+  <% else %>
+    <ul>
+      <% @documents.each do |document| %>
+        <li class="border rounded p-3 mb-3">
+          <time datetime="<%= document.document_on.iso8601 %>"><%= l(document.document_on) %></time>
+          <%= format_reais(document.amount_cents) %>
+          <%= document.recibo? ? "Recibo" : "Nota fiscal" %>
+          <%= document.payee %>
+          <% if document.photo.attached? %>
+            <p class="text-sm"><%= document.photo.filename %></p>
+          <% end %>
+          <% if document.xml.attached? %>
+            <p class="text-sm"><%= document.xml.filename %></p>
+          <% end %>
+          <% if document.observation.present? %>
+            <p class="text-sm mb-3"><%= document.observation %></p>
+          <% end %>
+          <%= form_with url: "/supporting_documents/#{document.id}", method: :patch, multipart: true do %>
+            <label for="kind_<%= document.id %>" class="block mb-1">Tipo</label>
+            <%= select_tag :kind, options_for_select([ [ "Nota fiscal", "nota_fiscal" ], [ "Recibo", "recibo" ] ], document.kind), id: "kind_#{document.id}", class: "border rounded px-2 py-1 mb-3" %>
+
+            <label for="amount_<%= document.id %>" class="block mb-1">Valor</label>
+            <%= text_field_tag :amount, format_reais(document.amount_cents).delete_prefix("R$ ").strip, id: "amount_#{document.id}", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "off" %>
+
+            <label for="date_<%= document.id %>" class="block mb-1">Data</label>
+            <%= date_field_tag :date, document.document_on.iso8601, id: "date_#{document.id}", class: "border rounded px-2 py-1 mb-3", autocomplete: "off" %>
+
+            <label for="payee_<%= document.id %>" class="block mb-1">Favorecido</label>
+            <%= text_field_tag :payee, document.payee, id: "payee_#{document.id}", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "off" %>
+
+            <label for="observation_<%= document.id %>" class="block mb-1">Observação</label>
+            <%= text_area_tag :observation, document.observation, id: "observation_#{document.id}", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", rows: 3 %>
+
+            <label for="photo_<%= document.id %>" class="block mb-1">Foto</label>
+            <%= file_field_tag :photo, id: "photo_#{document.id}", class: "mb-3" %>
+
+            <label for="xml_<%= document.id %>" class="block mb-1">XML</label>
+            <%= file_field_tag :xml, id: "xml_#{document.id}", class: "mb-3" %>
+
+            <%= submit_tag "Salvar documento", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+</section>

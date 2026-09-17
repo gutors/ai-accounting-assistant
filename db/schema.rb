@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_17_010002) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_17_010003) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -151,6 +151,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_010002) do
     t.index ["bank_statement_id"], name: "index_payments_on_bank_statement_id"
   end
 
+  create_table "supporting_documents", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "amount_cents", null: false
+    t.datetime "created_at", null: false
+    t.date "document_on", null: false
+    t.string "kind", null: false
+    t.text "observation"
+    t.bigint "organization_id", null: false
+    t.string "payee", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_supporting_documents_on_account_id"
+    t.index ["organization_id", "document_on"], name: "index_supporting_documents_on_organization_id_and_document_on"
+    t.index ["organization_id"], name: "index_supporting_documents_on_organization_id"
+  end
+
   add_foreign_key "accesses", "accounts"
   add_foreign_key "accesses", "organizations"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
@@ -163,4 +178,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_010002) do
   add_foreign_key "invites", "organizations"
   add_foreign_key "months", "organizations"
   add_foreign_key "payments", "bank_statements"
+  add_foreign_key "supporting_documents", "accounts"
+  add_foreign_key "supporting_documents", "organizations"
 end

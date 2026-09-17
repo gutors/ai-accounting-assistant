@@ -38,6 +38,36 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: C21 spec/models/bank_statement_spec.rb:60-62 (import-specs)
 - last seen: 2026-09-17T00:19:39Z
 
+### L-005 - When a collection label also appears in the same page's form, assert it inside the collection HTML, not the whole body
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `request-specs` · harmful: 0
+- features: supporting-document-insert
+- evidence: verification.md Faults: list kind interpolation; C8 (request-specs)
+- last seen: 2026-09-17T01:55:56Z
+
+### L-006 - A page-include of a string the form always renders does not prove the list showed that string
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `request-specs` · harmful: 0
+- features: supporting-document-insert
+- evidence: C8 C15 verification.md (request-specs)
+- last seen: 2026-09-17T01:55:56Z
+
+### L-007 - When each collection row embeds a form whose options repeat the row labels, assert the display node, not a heading-sliced HTML fragment.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `request-specs` · harmful: 0
+- features: supporting-document-insert
+- evidence: verification.md Faults: list kind interpolation; C8 index.html.erb:65 (request-specs)
+- last seen: 2026-09-17T02:00:12Z
+
+### L-008 - A substring in a heading-sliced fragment is not list copy when nested row forms still render that substring.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `request-specs` · harmful: 0
+- features: supporting-document-insert
+- evidence: C8 C15 spec/requests/supporting_documents_spec.rb:92,150 (request-specs)
+- last seen: 2026-09-17T02:00:12Z
+
+### L-009 - A collection slice that still contains an edit form with the same option labels is not a unique assertion surface
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `request-specs` · harmful: 0
+- features: supporting-document-insert
+- evidence: verification.md round 2 Faults: PATCH options_for_select; C8 (request-specs)
+- last seen: 2026-09-17T02:00:43Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.
