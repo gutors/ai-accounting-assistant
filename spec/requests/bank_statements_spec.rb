@@ -307,4 +307,26 @@ RSpec.describe "Bank statements", type: :request do
     expect(dates.size).to be >= 2
     expect(dates).to eq(dates.sort)
   end
+
+  it "POST replace dissolves Match and returns documents to pool" do
+    account, organization, bank_account = open_with_account
+    post "/months/2026-05/bank_statements", params: {
+      bank_account_id: bank_account.id, pdf: statement_pdf, spreadsheet: bb_xlsx
+    }
+    payment = bank_account.bank_statements.last.payments.find_by!(amount_cents: 15500)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    post "/months/2026-05/matches", params: {
+      payment_ids: [ payment.id ], supporting_document_ids: [ document.id ]
+    }
+
+    post "/months/2026-05/bank_statements", params: {
+      bank_account_id: bank_account.id, pdf: statement_pdf, spreadsheet: one_row_csv
+    }
+
+    expect(Match.count).to eq(0)
+    get "/months/2026-05"
+    expect(pool_html(response.body)).to include("Padaria Central")
+    get "/supporting_documents"
+    expect(response.body).not_to include("Casado em 2026-05")
+  end
 end

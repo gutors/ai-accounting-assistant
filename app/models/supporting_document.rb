@@ -15,12 +15,15 @@ class SupportingDocument < ApplicationRecord
 
   belongs_to :organization
   belongs_to :account
+  belongs_to :match, optional: true
+  belongs_to :month, optional: true
   has_one_attached :photo
   has_one_attached :xml
 
   enum :kind, { nota_fiscal: "nota_fiscal", recibo: "recibo" }, validate: true
 
   scope :listed, -> { with_attached_photo.with_attached_xml.order(document_on: :desc, id: :desc) }
+  scope :unmatched, -> { where(match_id: nil) }
 
   def self.insert(organization:, account:, kind:, amount:, date:, payee:, observation: nil, photo: nil, xml: nil)
     new(organization: organization, account: account).tap do |doc|

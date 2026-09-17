@@ -416,4 +416,46 @@ RSpec.describe "Supporting documents", type: :request do
     expect(response).to redirect_to("/login")
     expect(SupportingDocument.find(id).payee).to eq("Padaria Central")
   end
+
+  it "GET /supporting_documents unmatched document does not include Casado em 2026-05" do
+    signed_in
+    post "/supporting_documents", params: recibo_params
+
+    get "/supporting_documents"
+
+    expect(response.body).to include("Padaria Central")
+    expect(response.body).not_to include("Casado em 2026-05")
+  end
+
+  it "GET /supporting_documents after match includes Casado em 2026-05" do
+    account, organization = signed_in
+    month, statement = plant_month(organization)
+    payment = plant_payment(statement, 22000)
+    post "/supporting_documents", params: recibo_params(payee: "Padaria A", amount: "100,00", photo: photo_named("a.jpg"))
+    post "/supporting_documents", params: recibo_params(payee: "Padaria B", amount: "120,00", photo: photo_named("b.jpg"))
+    docs = organization.supporting_documents.order(:id)
+    Match.confirm(month: month, payments: [ payment ], supporting_documents: docs.to_a)
+
+    get "/supporting_documents"
+
+    expect(response.body).to include("Casado em 2026-05")
+    expect(response.body).to include("Padaria A")
+    expect(response.body).to include("Padaria B")
+  end
+
+  it "PATCH payee on matched document keeps Casado" do
+    account, organization = signed_in
+    month, statement = plant_month(organization)
+    payment = plant_payment(statement, 22000)
+    post "/supporting_documents", params: recibo_params(amount: "220,00")
+    document = SupportingDocument.last
+    Match.confirm(month: month, payments: [ payment ], supporting_documents: [ document ])
+
+    patch "/supporting_documents/#{document.id}", params: { payee: "Mercado Silva" }
+
+    expect(Match.count).to eq(1)
+    get "/months/2026-05"
+    expect(response.body).to include("Casado")
+    expect(payment.reload.match_id).to be_present
+  end
 end

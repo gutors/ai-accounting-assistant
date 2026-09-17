@@ -24,6 +24,10 @@ Rails.application.routes.draw do
   post "/months", to: "months#create"
   get "/months/:year_month", to: "months#show"
   post "/months/:year_month/bank_statements", to: "bank_statements#create"
+  post "/months/:year_month/matches", to: "matches#create"
+  delete "/months/:year_month/matches/:id", to: "matches#destroy"
+  post "/months/:year_month/payments/:id/document_exception", to: "document_exceptions#create"
+  delete "/months/:year_month/payments/:id/document_exception", to: "document_exceptions#destroy"
 
   get "/supporting_documents", to: "supporting_documents#index"
   post "/supporting_documents", to: "supporting_documents#create"

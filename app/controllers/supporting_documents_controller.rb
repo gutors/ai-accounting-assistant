@@ -67,6 +67,6 @@ class SupportingDocumentsController < ApplicationController
   private
 
   def load_documents
-    @documents = focused_organization.supporting_documents.listed
+    @documents = focused_organization.supporting_documents.listed.includes(:month, :match)
   end
 end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_17_010003) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_17_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -118,6 +118,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_010003) do
     t.index ["organization_id"], name: "index_invites_on_organization_id"
   end
 
+  create_table "matches", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "month_id", null: false
+    t.text "observation"
+    t.datetime "updated_at", null: false
+    t.index ["month_id"], name: "index_matches_on_month_id"
+  end
+
   create_table "months", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.bigint "organization_id", null: false
@@ -144,11 +152,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_010003) do
     t.bigint "amount_cents", null: false
     t.bigint "bank_statement_id", null: false
     t.datetime "created_at", null: false
+    t.string "document_exception_kind"
     t.text "history", null: false
+    t.bigint "match_id"
     t.date "occurred_on", null: false
     t.datetime "updated_at", null: false
     t.index ["bank_statement_id", "occurred_on"], name: "index_payments_on_bank_statement_id_and_occurred_on"
     t.index ["bank_statement_id"], name: "index_payments_on_bank_statement_id"
+    t.index ["match_id"], name: "index_payments_on_match_id"
+    t.check_constraint "match_id IS NULL OR document_exception_kind IS NULL", name: "payments_match_xor_document_exception"
   end
 
   create_table "supporting_documents", force: :cascade do |t|
@@ -157,11 +169,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_010003) do
     t.datetime "created_at", null: false
     t.date "document_on", null: false
     t.string "kind", null: false
+    t.bigint "match_id"
+    t.bigint "month_id"
     t.text "observation"
     t.bigint "organization_id", null: false
     t.string "payee", null: false
     t.datetime "updated_at", null: false
     t.index ["account_id"], name: "index_supporting_documents_on_account_id"
+    t.index ["match_id"], name: "index_supporting_documents_on_match_id"
+    t.index ["month_id"], name: "index_supporting_documents_on_month_id"
     t.index ["organization_id", "document_on"], name: "index_supporting_documents_on_organization_id_and_document_on"
     t.index ["organization_id"], name: "index_supporting_documents_on_organization_id"
   end
@@ -176,8 +192,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_010003) do
   add_foreign_key "bank_statements", "months"
   add_foreign_key "inflows", "bank_statements"
   add_foreign_key "invites", "organizations"
+  add_foreign_key "matches", "months"
   add_foreign_key "months", "organizations"
   add_foreign_key "payments", "bank_statements"
+  add_foreign_key "payments", "matches"
   add_foreign_key "supporting_documents", "accounts"
+  add_foreign_key "supporting_documents", "matches"
+  add_foreign_key "supporting_documents", "months"
   add_foreign_key "supporting_documents", "organizations"
 end

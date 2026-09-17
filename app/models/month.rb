@@ -4,6 +4,7 @@ class Month < ApplicationRecord
   belongs_to :organization
 
   has_many :bank_statements, dependent: :restrict_with_exception
+  has_many :matches, dependent: :destroy
 
   validates :year_month, format: { with: YEAR_MONTH }
   validates :year_month, uniqueness: { scope: :organization_id }
