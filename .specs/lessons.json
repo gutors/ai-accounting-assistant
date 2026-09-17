@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 12,
+  "next_id": 15,
   "lessons": [
     {
       "id": "L-001",
@@ -202,6 +202,60 @@
       ],
       "created": "2026-09-17T03:33:10Z",
       "last_seen": "2026-09-17T03:33:10Z"
+    },
+    {
+      "id": "L-012",
+      "key": "ac_gap::when a check names formulas on specific total value cells assert sum or minus on those cells not a count of matching formula text anywhere in the workbook",
+      "text": "When a check names formulas on specific total-value cells, assert SUM or minus on those cells, not a count of matching formula text anywhere in the workbook.",
+      "signal": "ac_gap",
+      "scope": "spreadsheet-specs",
+      "status": "candidate",
+      "features": [
+        "close-for-send"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "C20 spec/requests/close_spec.rb:277-278 spec/models/summary_spreadsheet_spec.rb:127-128 (spreadsheet-specs)"
+      ],
+      "created": "2026-09-17T15:09:28Z",
+      "last_seen": "2026-09-17T15:09:28Z"
+    },
+    {
+      "id": "L-013",
+      "key": "spec_precision_gap::a workbook wide formula search does not bind sum to the two total cells or minus to resultado mes",
+      "text": "A workbook-wide formula search does not bind SUM to the two total cells or minus to Resultado mês.",
+      "signal": "spec_precision_gap",
+      "scope": "spreadsheet-specs",
+      "status": "candidate",
+      "features": [
+        "close-for-send"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "C20 verification.md Checks (spreadsheet-specs)"
+      ],
+      "created": "2026-09-17T15:09:28Z",
+      "last_seen": "2026-09-17T15:09:28Z"
+    },
+    {
+      "id": "L-014",
+      "key": "ac_gap::every spreadsheet section title and column header named in a landing door needs a check that asserts that literal string in the workbook including empty this cut columns",
+      "text": "Every spreadsheet section title and column header named in a Landing door needs a check that asserts that literal string in the workbook, including empty-this-cut columns.",
+      "signal": "ac_gap",
+      "scope": "coverage",
+      "status": "candidate",
+      "features": [
+        "close-for-send"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "verification.md Coverage Spreadsheet door-3 section titles; column headers Detalhe Detalhes (coverage)"
+      ],
+      "created": "2026-09-17T15:09:28Z",
+      "last_seen": "2026-09-17T15:09:28Z"
     }
   ]
 }
