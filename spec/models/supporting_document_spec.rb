@@ -324,4 +324,27 @@ RSpec.describe SupportingDocument, type: :model do
     expect(Match.exists?(match.id)).to be true
     expect(payment.reload.match_id).to eq(match.id)
   end
+
+  it "apply payee while document Month is closed leaves payee" do
+    month, statement = plant_month(organization)
+    payment = plant_payment(statement, 22000)
+    document = insert_doc(amount: "220,00")
+    Match.confirm(month: month, payments: [ payment ], supporting_documents: [ document ])
+    month.update!(closed: true)
+
+    document.reload.apply(payee: "Outro")
+
+    expect(document.errors[:base]).to include("Mês fechado")
+    expect(document.reload.payee).to eq("Padaria Central")
+  end
+
+  it "insert while a month is closed assigns no Month" do
+    month, _statement = plant_month(organization)
+    month.update!(closed: true)
+
+    document = insert_doc(payee: "Novo Recibo")
+
+    expect(document).to be_persisted
+    expect(document.month_id).to be_nil
+  end
 end

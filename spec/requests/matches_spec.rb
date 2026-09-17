@@ -330,4 +330,36 @@ RSpec.describe "Matches", type: :request do
 
     expect(response).to have_http_status(:not_found)
   end
+
+  it "POST match while closed returns 422 Mes fechado" do
+    account, organization, month, statement = signed_month
+    payment = plant_payment(statement, 22000)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    month.update!(closed: true)
+
+    post "/months/2026-05/matches", params: {
+      payment_ids: [ payment.id ], supporting_document_ids: [ document.id ]
+    }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Mês fechado")
+    expect(Match.count).to eq(0)
+  end
+
+  it "DELETE match while closed returns 422 Mes fechado" do
+    account, organization, month, statement = signed_month
+    payment = plant_payment(statement, 22000)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    post "/months/2026-05/matches", params: {
+      payment_ids: [ payment.id ], supporting_document_ids: [ document.id ]
+    }
+    match = Match.last
+    month.update!(closed: true)
+
+    delete "/months/2026-05/matches/#{match.id}"
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Mês fechado")
+    expect(Match.exists?(match.id)).to eq(true)
+  end
 end

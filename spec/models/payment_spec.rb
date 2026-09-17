@@ -93,4 +93,25 @@ RSpec.describe Payment, type: :model do
 
     expect(Payment.for_month(month).missing_document).to be_empty
   end
+
+  it "mark exception while Month closed persists no mark" do
+    payment = plant_payment(statement, 22000)
+    month.update!(closed: true)
+
+    payment.mark_document_exception("bank_fee")
+
+    expect(payment.errors[:base]).to include("Mês fechado")
+    expect(payment.reload.document_exception_kind).to be_nil
+  end
+
+  it "unmark exception while Month closed keeps the mark" do
+    payment = plant_payment(statement, 22000)
+    payment.mark_document_exception("bank_fee")
+    month.update!(closed: true)
+
+    payment.unmark_document_exception
+
+    expect(payment.errors[:base]).to include("Mês fechado")
+    expect(payment.reload.document_exception_kind).to eq("bank_fee")
+  end
 end

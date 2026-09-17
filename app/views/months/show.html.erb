@@ -3,6 +3,12 @@
 <div class="flex items-start justify-between gap-4 mb-8">
   <h1 class="text-2xl font-semibold"><%= @month.year_month %></h1>
   <div class="flex items-center gap-4">
+    <% if @month.closed? %>
+      <p>Mês fechado</p>
+      <%= button_to "Reabrir", "/months/#{@month.year_month}/reopen", method: :post, class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+    <% else %>
+      <%= button_to "Fechar para envio", "/months/#{@month.year_month}/close", method: :post, class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+    <% end %>
     <%= link_to "Início", "/", class: "text-sm underline" %>
     <%= button_to "Sair", "/session", method: :delete, class: "text-sm underline" %>
   </div>
@@ -36,13 +42,15 @@
           <% else %>
             <p class="mb-3">Falta</p>
           <% end %>
-          <%= form_with url: "/months/#{@month.year_month}/bank_statements", method: :post, multipart: true do %>
-            <%= hidden_field_tag :bank_account_id, bank_account.id %>
-            <label for="pdf_<%= bank_account.id %>" class="block mb-1">PDF</label>
-            <%= file_field_tag :pdf, id: "pdf_#{bank_account.id}", class: "mb-3" %>
-            <label for="spreadsheet_<%= bank_account.id %>" class="block mb-1">Planilha</label>
-            <%= file_field_tag :spreadsheet, id: "spreadsheet_#{bank_account.id}", class: "mb-3" %>
-            <%= submit_tag "Enviar extrato", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+          <% unless @month.closed? %>
+            <%= form_with url: "/months/#{@month.year_month}/bank_statements", method: :post, multipart: true do %>
+              <%= hidden_field_tag :bank_account_id, bank_account.id %>
+              <label for="pdf_<%= bank_account.id %>" class="block mb-1">PDF</label>
+              <%= file_field_tag :pdf, id: "pdf_#{bank_account.id}", class: "mb-3" %>
+              <label for="spreadsheet_<%= bank_account.id %>" class="block mb-1">Planilha</label>
+              <%= file_field_tag :spreadsheet, id: "spreadsheet_#{bank_account.id}", class: "mb-3" %>
+              <%= submit_tag "Enviar extrato", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+            <% end %>
           <% end %>
         </li>
       <% end %>
@@ -75,23 +83,25 @@
         <%= payment.history %>
         <% if payment.missing_document? %>
           Documento faltante
-          <%= form_with url: "/months/#{@month.year_month}/matches", method: :post do %>
-            <%= hidden_field_tag "payment_ids[]", payment.id, id: "payment_ids_#{payment.id}" %>
-            <% @unmatched_documents.each do |document| %>
-              <%= check_box_tag "supporting_document_ids[]", document.id, false, id: "doc_#{payment.id}_#{document.id}" %>
-              <label for="doc_<%= payment.id %>_<%= document.id %>"><%= document.payee %></label>
+          <% unless @month.closed? %>
+            <%= form_with url: "/months/#{@month.year_month}/matches", method: :post do %>
+              <%= hidden_field_tag "payment_ids[]", payment.id, id: "payment_ids_#{payment.id}" %>
+              <% @unmatched_documents.each do |document| %>
+                <%= check_box_tag "supporting_document_ids[]", document.id, false, id: "doc_#{payment.id}_#{document.id}" %>
+                <label for="doc_<%= payment.id %>_<%= document.id %>"><%= document.payee %></label>
+              <% end %>
+              <label for="observation_<%= payment.id %>" class="block mb-1">Observação do casamento</label>
+              <%= text_area_tag :observation, nil, id: "observation_#{payment.id}", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", rows: 2 %>
+              <%= submit_tag "Confirmar casamento", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
             <% end %>
-            <label for="observation_<%= payment.id %>" class="block mb-1">Observação do casamento</label>
-            <%= text_area_tag :observation, nil, id: "observation_#{payment.id}", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", rows: 2 %>
-            <%= submit_tag "Confirmar casamento", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
-          <% end %>
-          <%= form_with url: "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :post do %>
-            <%= hidden_field_tag :kind, "bank_fee", id: "kind_bank_#{payment.id}" %>
-            <%= submit_tag "Marcar tarifa", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
-          <% end %>
-          <%= form_with url: "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :post do %>
-            <%= hidden_field_tag :kind, "accountant_fee", id: "kind_accountant_#{payment.id}" %>
-            <%= submit_tag "Marcar honorário", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+            <%= form_with url: "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :post do %>
+              <%= hidden_field_tag :kind, "bank_fee", id: "kind_bank_#{payment.id}" %>
+              <%= submit_tag "Marcar tarifa", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+            <% end %>
+            <%= form_with url: "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :post do %>
+              <%= hidden_field_tag :kind, "accountant_fee", id: "kind_accountant_#{payment.id}" %>
+              <%= submit_tag "Marcar honorário", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+            <% end %>
           <% end %>
         <% elsif payment.match_id.present? %>
           Casado
@@ -101,18 +111,24 @@
           <% if payment.match.observation.present? %>
             <%= payment.match.observation %>
           <% end %>
-          <%= button_to "Desfazer casamento", "/months/#{@month.year_month}/matches/#{payment.match_id}", method: :delete, class: "text-sm underline" %>
+          <% unless @month.closed? %>
+            <%= button_to "Desfazer casamento", "/months/#{@month.year_month}/matches/#{payment.match_id}", method: :delete, class: "text-sm underline" %>
+          <% end %>
         <% elsif payment.bank_fee? %>
           Tarifa bancária
-          <%= button_to "Desmarcar exceção", "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :delete, class: "text-sm underline" %>
+          <% unless @month.closed? %>
+            <%= button_to "Desmarcar exceção", "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :delete, class: "text-sm underline" %>
+          <% end %>
         <% else %>
           Honorário do contador
-          <%= button_to "Desmarcar exceção", "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :delete, class: "text-sm underline" %>
+          <% unless @month.closed? %>
+            <%= button_to "Desmarcar exceção", "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :delete, class: "text-sm underline" %>
+          <% end %>
         <% end %>
       </li>
     <% end %>
   </ul>
-  <% if @missing_document_payments.size >= 2 && @unmatched_documents.any? %>
+  <% if !@month.closed? && @missing_document_payments.size >= 2 && @unmatched_documents.any? %>
     <%= form_with url: "/months/#{@month.year_month}/matches", method: :post do %>
       <% @missing_document_payments.each do |payment| %>
         <%= check_box_tag "payment_ids[]", payment.id, false, id: "n1_pay_#{payment.id}" %>

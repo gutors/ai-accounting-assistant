@@ -2,10 +2,10 @@
 
 ## Handoff
 
-**Feature**: match-and-exception
-**Where**: round 2 verification PASS at `ce6362e..884d9d7`; C1–C53 proven
+**Feature**: close-for-send
+**Where**: round-2 verification PASS at `6041140` (`.specs/features/close-for-send/verification.md`); C1–C78 proven
 **In progress**: none
-**Next step**: none — feature verified; PR when asked (`Closes #33`)
+**Next step**: none for this feature — independent Verifier passed; PR is a separate go-ahead
 **Blockers**: none
 **Uncommitted**: none
 **Branch**: coordinator-access

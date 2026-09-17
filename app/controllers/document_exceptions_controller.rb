@@ -35,7 +35,14 @@ class DocumentExceptionsController < ApplicationController
     return unless payment
 
     payment.unmark_document_exception
-    redirect_to "/months/#{month.year_month}", status: :found
+    if payment.errors.empty?
+      redirect_to "/months/#{month.year_month}", status: :found
+    else
+      @month = month
+      @month_error = payment.errors[:base].first
+      load_month_page
+      render "months/show", status: :unprocessable_content
+    end
   end
 
   private

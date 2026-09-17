@@ -229,4 +229,15 @@ RSpec.describe BankStatement, type: :model do
     expect(document.reload.match_id).to be_nil
     expect(document.month_id).to be_nil
   end
+
+  it "import while Month closed does not replace" do
+    existing = BankStatement.import(month: month, bank_account: bb_account, pdf: statement_pdf, spreadsheet: bb_xlsx)
+    payment_count = existing.payments.count
+    month.update!(closed: true)
+
+    result = BankStatement.import(month: month, bank_account: bb_account, pdf: statement_pdf, spreadsheet: one_row_csv)
+
+    expect(result.errors[:base]).to include("Mês fechado")
+    expect(existing.reload.payments.count).to eq(payment_count)
+  end
 end

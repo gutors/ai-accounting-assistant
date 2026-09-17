@@ -126,4 +126,29 @@ RSpec.describe "Document exceptions", type: :request do
     expect(response).to have_http_status(:not_found)
     expect(april_payment.reload.document_exception_kind).to be_nil
   end
+
+  it "POST exception while closed returns 422 Mes fechado" do
+    _account, _organization, month, statement = signed_month
+    payment = plant_payment(statement, 22000)
+    month.update!(closed: true)
+
+    post "/months/2026-05/payments/#{payment.id}/document_exception", params: { kind: "bank_fee" }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Mês fechado")
+    expect(payment.reload.document_exception_kind).to be_nil
+  end
+
+  it "DELETE exception while closed returns 422 Mes fechado" do
+    _account, _organization, month, statement = signed_month
+    payment = plant_payment(statement, 22000)
+    payment.mark_document_exception("bank_fee")
+    month.update!(closed: true)
+
+    delete "/months/2026-05/payments/#{payment.id}/document_exception"
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Mês fechado")
+    expect(payment.reload.document_exception_kind).to eq("bank_fee")
+  end
 end

@@ -80,6 +80,24 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: Coverage PATCH /supporting_documents/:id 302; C22 (coverage)
 - last seen: 2026-09-17T03:33:10Z
 
+### L-012 - When a check names formulas on specific total-value cells, assert SUM or minus on those cells, not a count of matching formula text anywhere in the workbook.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `spreadsheet-specs` · harmful: 0
+- features: close-for-send
+- evidence: C20 spec/requests/close_spec.rb:277-278 spec/models/summary_spreadsheet_spec.rb:127-128 (spreadsheet-specs)
+- last seen: 2026-09-17T15:09:28Z
+
+### L-013 - A workbook-wide formula search does not bind SUM to the two total cells or minus to Resultado mês.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `spreadsheet-specs` · harmful: 0
+- features: close-for-send
+- evidence: C20 verification.md Checks (spreadsheet-specs)
+- last seen: 2026-09-17T15:09:28Z
+
+### L-014 - Every spreadsheet section title and column header named in a Landing door needs a check that asserts that literal string in the workbook, including empty-this-cut columns.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `coverage` · harmful: 0
+- features: close-for-send
+- evidence: verification.md Coverage Spreadsheet door-3 section titles; column headers Detalhe Detalhes (coverage)
+- last seen: 2026-09-17T15:09:28Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

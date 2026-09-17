@@ -329,4 +329,22 @@ RSpec.describe "Bank statements", type: :request do
     get "/supporting_documents"
     expect(response.body).not_to include("Casado em 2026-05")
   end
+
+  it "POST bank_statements while closed returns 422 Mes fechado" do
+    _account, organization, bank_account = open_with_account
+    post "/months/2026-05/bank_statements", params: {
+      bank_account_id: bank_account.id, pdf: statement_pdf, spreadsheet: bb_xlsx
+    }
+    month = organization.months.find_by!(year_month: "2026-05")
+    existing_id = month.bank_statements.first.id
+    month.update!(closed: true)
+
+    post "/months/2026-05/bank_statements", params: {
+      bank_account_id: bank_account.id, pdf: statement_pdf, spreadsheet: one_row_csv
+    }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Mês fechado")
+    expect(month.bank_statements.find(existing_id).payments.count).to be > 1
+  end
 end

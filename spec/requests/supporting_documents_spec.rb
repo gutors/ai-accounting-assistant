@@ -459,4 +459,33 @@ RSpec.describe "Supporting documents", type: :request do
     expect(response.body).to include("Casado")
     expect(payment.reload.match_id).to be_present
   end
+
+  it "PATCH payee Outro on closed-month document returns 422 Mes fechado" do
+    account, organization = signed_in
+    month, statement = plant_month(organization)
+    payment = plant_payment(statement, 22000)
+    post "/supporting_documents", params: recibo_params(amount: "220,00")
+    document = SupportingDocument.last
+    Match.confirm(month: month, payments: [ payment ], supporting_documents: [ document ])
+    month.update!(closed: true)
+
+    patch "/supporting_documents/#{document.id}", params: { payee: "Outro" }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Mês fechado")
+    expect(document.reload.payee).to eq("Padaria Central")
+  end
+
+  it "POST recibo while a month is closed persists no Month 302" do
+    account, organization = signed_in
+    month, _statement = plant_month(organization)
+    month.update!(closed: true)
+
+    post "/supporting_documents", params: recibo_params(payee: "Novo Recibo")
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/supporting_documents")
+    expect(SupportingDocument.find_by!(payee: "Novo Recibo").month_id).to be_nil
+    expect(month.reload.closed?).to eq(true)
+  end
 end

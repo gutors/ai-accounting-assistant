@@ -269,4 +269,27 @@ RSpec.describe Match, type: :model do
       truncate_product_tables
     end
   end
+
+  it "confirm while Month closed persists no Match" do
+    payment = plant_payment(statement, 22000)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    month.update!(closed: true)
+
+    match = confirm(payments: [ payment ], documents: [ document ])
+
+    expect(match.errors[:base]).to include("Mês fechado")
+    expect(Match.count).to eq(0)
+  end
+
+  it "dissolve while Month closed keeps the Match" do
+    payment = plant_payment(statement, 22000)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    match = confirm(payments: [ payment ], documents: [ document ])
+    month.update!(closed: true)
+
+    match.dissolve
+
+    expect(match.errors[:base]).to include("Mês fechado")
+    expect(Match.exists?(match.id)).to eq(true)
+  end
 end

@@ -72,6 +72,7 @@ RSpec.configure do |config|
   config.include StatementHelpers
   config.include DocumentHelpers
   config.include MatchHelpers
+  config.include CloseHelpers
 
   config.before(:suite) do
     Bank.seed_catalog!
@@ -83,6 +84,7 @@ RSpec.configure do |config|
     OmniAuth.config.on_failure = proc do |_env|
       [ 302, { "Location" => "/login", "Content-Type" => "text/html" }, [] ]
     end
+    PackageArchiveWriter.reset!
   end
 
   # Filter lines from Rails gems in backtraces.

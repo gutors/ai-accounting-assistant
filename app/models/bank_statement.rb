@@ -25,6 +25,11 @@ class BankStatement < ApplicationRecord
 
   def submit(pdf:, spreadsheet:)
     errors.clear
+    if month.closed?
+      errors.add(:base, Month::CLOSED)
+      return self
+    end
+
     unless bank_account.active?
       errors.add(:base, "inactive")
       return self

@@ -55,7 +55,14 @@ class MatchesController < ApplicationController
     end
 
     match.dissolve
-    redirect_to "/months/#{month.year_month}", status: :found
+    if match.errors.empty?
+      redirect_to "/months/#{month.year_month}", status: :found
+    else
+      @month = month
+      @month_error = match.errors[:base].first
+      load_month_page
+      render "months/show", status: :unprocessable_content
+    end
   end
 
   private

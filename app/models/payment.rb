@@ -18,6 +18,11 @@ class Payment < ApplicationRecord
 
   def mark_document_exception(kind)
     errors.clear
+    if bank_statement.month.closed?
+      errors.add(:base, Month::CLOSED)
+      return self
+    end
+
     value = kind.to_s
     unless %w[bank_fee accountant_fee].include?(value)
       errors.add(:base, UNKNOWN_KIND)
@@ -33,6 +38,12 @@ class Payment < ApplicationRecord
   end
 
   def unmark_document_exception
+    errors.clear
+    if bank_statement.month.closed?
+      errors.add(:base, Month::CLOSED)
+      return self
+    end
+
     update!(document_exception_kind: nil)
     self
   end
