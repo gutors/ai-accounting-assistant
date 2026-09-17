@@ -86,10 +86,7 @@ RSpec.describe "Supporting documents", type: :request do
 
     get "/supporting_documents"
     list = response.body[response.body.index("Sem mês")..]
-    expect(list).to include("11/05/2026")
-    expect(list).to include("R$ 155,00")
-    expect(list).to include("Padaria Central")
-    expect(list).to include("Recibo")
+    expect(list).to match(%r{<time datetime="2026-05-11">11/05/2026</time>\s*R\$ 155,00\s*Recibo\s*Padaria Central}m)
     expect(list).to include("recibo.jpg")
   end
 
@@ -147,7 +144,7 @@ RSpec.describe "Supporting documents", type: :request do
 
     get "/supporting_documents"
     list = response.body[response.body.index("Sem mês")..]
-    expect(list).to include("Nota fiscal")
+    expect(list).to match(%r{<time datetime="2026-05-11">11/05/2026</time>\s*R\$ 155,00\s*Nota fiscal\s*Padaria Central}m)
     expect(list).to include("danfe.jpg")
   end
 
