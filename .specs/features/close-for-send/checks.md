@@ -3,7 +3,7 @@
 Profile: standard
 Plan: `.specs/features/close-for-send/plan.md`
 
-78 checks in 5 slices · 5 one-way doors · 4 open
+78 checks in 5 slices · 5 one-way doors · 0 open
 
 Proofs use `bin/rspec` and `-e` as `.cursor/rules/rails.mdc` names. CI runs `bin/rspec`.
 
@@ -377,6 +377,6 @@ Cost: dual proofs on close gates (C1–C5, C8–C10), spreadsheet cells (C11–C
 
 - S1–S5 share `Month`, the package-archive writer, the summary workbook, and `/months/:year_month`. Estimated ~22 product/spec files (Month close/reopen + migration, PackageArchiveWriter + memory/Drive adapters, SummarySpreadsheet, MonthPackage filenames, close/reopen controllers, closed guards on existing mutations, month show, request specs, model specs, puma timeout) ≪ 150k tokens. One builder, no split.
 - S1-S5 = one builder
-- **Boundary:** C1–C74 closed at `e6cada5`; C75–C78 and C20 re-proof open
+- **Boundary:** C1–C74 closed at `e6cada5`; C20 re-proof and C75–C78 closed at `fa71d60`
 - **Settled mid-build:** human approved additive C75–C78 for door-3 strings `Recebimentos`, `Custos/Despesas`, `Detalhe`, `Detalhes` after round-1 verification FAIL
 - **Abandoned:** none
