@@ -85,11 +85,12 @@ RSpec.describe "Supporting documents", type: :request do
     expect(SupportingDocument.where(organization: organization).count).to eq(1)
 
     get "/supporting_documents"
-    expect(response.body).to include("11/05/2026")
-    expect(response.body).to include("R$ 155,00")
-    expect(response.body).to include("Padaria Central")
-    expect(response.body).to include("Recibo")
-    expect(response.body).to include("recibo.jpg")
+    list = response.body[response.body.index("Sem mês")..]
+    expect(list).to include("11/05/2026")
+    expect(list).to include("R$ 155,00")
+    expect(list).to include("Padaria Central")
+    expect(list).to include("Recibo")
+    expect(list).to include("recibo.jpg")
   end
 
   it "POST recibo belongs to inserting Account and creates no Month" do
@@ -145,8 +146,9 @@ RSpec.describe "Supporting documents", type: :request do
     expect(doc.xml).not_to be_attached
 
     get "/supporting_documents"
-    expect(response.body).to include("Nota fiscal")
-    expect(response.body).to include("danfe.jpg")
+    list = response.body[response.body.index("Sem mês")..]
+    expect(list).to include("Nota fiscal")
+    expect(list).to include("danfe.jpg")
   end
 
   it "POST nota_fiscal xml persists xml filename" do
