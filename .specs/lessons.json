@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 7,
+  "next_id": 10,
   "lessons": [
     {
       "id": "L-001",
@@ -112,6 +112,60 @@
       ],
       "created": "2026-09-17T01:55:56Z",
       "last_seen": "2026-09-17T01:55:56Z"
+    },
+    {
+      "id": "L-007",
+      "key": "surviving_mutant::when each collection row embeds a form whose options repeat the row labels assert the display node not a heading sliced html fragment",
+      "text": "When each collection row embeds a form whose options repeat the row labels, assert the display node, not a heading-sliced HTML fragment.",
+      "signal": "surviving_mutant",
+      "scope": "request-specs",
+      "status": "candidate",
+      "features": [
+        "supporting-document-insert"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "verification.md Faults: list kind interpolation; C8 index.html.erb:65 (request-specs)"
+      ],
+      "created": "2026-09-17T02:00:12Z",
+      "last_seen": "2026-09-17T02:00:12Z"
+    },
+    {
+      "id": "L-008",
+      "key": "ac_gap::a substring in a heading sliced fragment is not list copy when nested row forms still render that substring",
+      "text": "A substring in a heading-sliced fragment is not list copy when nested row forms still render that substring.",
+      "signal": "ac_gap",
+      "scope": "request-specs",
+      "status": "candidate",
+      "features": [
+        "supporting-document-insert"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "C8 C15 spec/requests/supporting_documents_spec.rb:92,150 (request-specs)"
+      ],
+      "created": "2026-09-17T02:00:12Z",
+      "last_seen": "2026-09-17T02:00:12Z"
+    },
+    {
+      "id": "L-009",
+      "key": "surviving_mutant::a collection slice that still contains an edit form with the same option labels is not a unique assertion surface",
+      "text": "A collection slice that still contains an edit form with the same option labels is not a unique assertion surface",
+      "signal": "surviving_mutant",
+      "scope": "request-specs",
+      "status": "candidate",
+      "features": [
+        "supporting-document-insert"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "verification.md round 2 Faults: PATCH options_for_select; C8 (request-specs)"
+      ],
+      "created": "2026-09-17T02:00:43Z",
+      "last_seen": "2026-09-17T02:00:43Z"
     }
   ]
 }
