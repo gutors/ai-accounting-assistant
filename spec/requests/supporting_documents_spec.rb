@@ -151,7 +151,7 @@ RSpec.describe "Supporting documents", type: :request do
   it "POST nota_fiscal xml persists xml filename" do
     signed_in
 
-    post "/supporting_documents", params: nota_params(xml: xml_file("autorizada.xml"))
+    post "/supporting_documents", params: nota_params(xml: authorized_xml("autorizada.xml"))
 
     expect(response).to have_http_status(:found)
     doc = SupportingDocument.last
@@ -165,7 +165,7 @@ RSpec.describe "Supporting documents", type: :request do
   it "POST nota_fiscal photo and xml persists both blobs" do
     signed_in
 
-    post "/supporting_documents", params: nota_params(photo: photo_jpg, xml: xml_file)
+    post "/supporting_documents", params: nota_params(photo: photo_jpg, xml: authorized_xml)
 
     expect(response).to have_http_status(:found)
     doc = SupportingDocument.last
@@ -183,10 +183,10 @@ RSpec.describe "Supporting documents", type: :request do
     expect(SupportingDocument.where(organization: organization).count).to eq(0)
   end
 
-  it "POST nota_fiscal xml vNF 100.00 persists amount 15500" do
+  it "POST authorized XML with typed 100,00 persists 15500" do
     signed_in
 
-    post "/supporting_documents", params: nota_params(amount: "155,00", xml: xml_with_vnf)
+    post "/supporting_documents", params: nota_params(amount: "100,00", xml: authorized_xml)
 
     expect(SupportingDocument.last.amount_cents).to eq(15500)
   end
@@ -226,8 +226,9 @@ RSpec.describe "Supporting documents", type: :request do
 
   it "PATCH payee omits files and keeps blobs" do
     signed_in
-    post "/supporting_documents", params: nota_params(photo: photo_jpg("danfe.jpg"), xml: xml_file("autorizada.xml"))
+    post "/supporting_documents", params: nota_params(photo: photo_jpg("danfe.jpg"))
     doc = SupportingDocument.last
+    doc.xml.attach(io: StringIO.new("<nfe><vNF>100.00</vNF></nfe>"), filename: "autorizada.xml", content_type: "application/xml")
 
     patch "/supporting_documents/#{doc.id}", params: { payee: "Mercado Silva" }
 
@@ -366,7 +367,7 @@ RSpec.describe "Supporting documents", type: :request do
 
   it "PATCH kind recibo on xml-only nota_fiscal without photo returns 422 Envie a foto do recibo" do
     signed_in
-    post "/supporting_documents", params: nota_params(xml: xml_file)
+    post "/supporting_documents", params: nota_params(xml: authorized_xml)
     doc = SupportingDocument.last
 
     patch "/supporting_documents/#{doc.id}", params: { kind: "recibo" }
@@ -380,7 +381,7 @@ RSpec.describe "Supporting documents", type: :request do
 
   it "PATCH kind recibo with photo purges xml" do
     signed_in
-    post "/supporting_documents", params: nota_params(xml: xml_file)
+    post "/supporting_documents", params: nota_params(xml: authorized_xml)
     doc = SupportingDocument.last
 
     patch "/supporting_documents/#{doc.id}", params: { kind: "recibo", photo: photo_jpg("recibo-novo.jpg") }
@@ -718,5 +719,132 @@ RSpec.describe "Supporting documents", type: :request do
     padaria = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
     expect(mercado).to include("Sugestão")
     expect(padaria).not_to include("Sugestão")
+  end
+
+  it "POST authorized XML fills amount date payee chave and redirects" do
+    signed_in
+
+    post "/supporting_documents", params: { kind: "nota_fiscal", xml: authorized_xml }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/supporting_documents")
+    doc = SupportingDocument.last
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.document_on).to eq(Date.new(2026, 5, 11))
+    expect(doc.payee).to eq("Padaria Central")
+    expect(doc.chave).to eq("43260511222333000181550010000000011123456781")
+
+    get "/supporting_documents"
+    expect(response.body).to include("R$ 155,00")
+    expect(response.body).to include("11/05/2026")
+    expect(response.body).to include("Padaria Central")
+    expect(response.body).to include("43260511222333000181550010000000011123456781")
+    expect(response.body).not_to include("ONG Destinataria")
+  end
+
+  it "PATCH amount on uploaded XML returns 422" do
+    signed_in
+    post "/supporting_documents", params: { kind: "nota_fiscal", xml: authorized_xml }
+    id = SupportingDocument.last.id
+
+    patch "/supporting_documents/#{id}", params: { amount: "200,00" }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Valor, data e favorecido vêm da nota e não podem ser alterados")
+    expect(SupportingDocument.find(id).amount_cents).to eq(15500)
+  end
+
+  it "PATCH payee on uploaded XML returns 422" do
+    signed_in
+    post "/supporting_documents", params: { kind: "nota_fiscal", xml: authorized_xml }
+    id = SupportingDocument.last.id
+
+    patch "/supporting_documents/#{id}", params: { payee: "Mercado Silva" }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Valor, data e favorecido vêm da nota e não podem ser alterados")
+    expect(SupportingDocument.find(id).payee).to eq("Padaria Central")
+  end
+
+  it "PATCH date on uploaded XML returns 422" do
+    signed_in
+    post "/supporting_documents", params: { kind: "nota_fiscal", xml: authorized_xml }
+    id = SupportingDocument.last.id
+
+    patch "/supporting_documents/#{id}", params: { date: "2026-06-01" }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Valor, data e favorecido vêm da nota e não podem ser alterados")
+    expect(SupportingDocument.find(id).document_on).to eq(Date.new(2026, 5, 11))
+  end
+
+  it "PATCH observation on uploaded XML redirects" do
+    signed_in
+    post "/supporting_documents", params: { kind: "nota_fiscal", xml: authorized_xml }
+    id = SupportingDocument.last.id
+
+    patch "/supporting_documents/#{id}", params: { observation: "pago em dinheiro" }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/supporting_documents")
+    get "/supporting_documents"
+    expect(response.body).to include("pago em dinheiro")
+  end
+
+  it "POST malformed XML returns 422" do
+    _account, organization = signed_in
+
+    post "/supporting_documents", params: nota_params(xml: xml_file("nota.xml", "<nfe><"))
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("O XML da nota fiscal não pôde ser lido")
+    expect(SupportingDocument.where(organization: organization).count).to eq(0)
+  end
+
+  it "POST XML without ICMSTot vNF returns 422" do
+    _account, organization = signed_in
+
+    post "/supporting_documents", params: nota_params(xml: xml_with_vnf)
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("O XML da nota fiscal não pôde ser lido")
+    expect(SupportingDocument.where(organization: organization).count).to eq(0)
+  end
+
+  it "PATCH payee on pre-task XML blob redirects" do
+    signed_in
+    post "/supporting_documents", params: nota_params(photo: photo_jpg)
+    doc = SupportingDocument.last
+    doc.xml.attach(io: StringIO.new("<nfe><vNF>100.00</vNF></nfe>"), filename: "nota.xml", content_type: "application/xml")
+    doc.update_column(:fields_origin, nil)
+
+    patch "/supporting_documents/#{doc.id}", params: { payee: "Mercado Silva" }
+
+    expect(response).to have_http_status(:found)
+    expect(doc.reload.payee).to eq("Mercado Silva")
+    expect(doc.amount_cents).to eq(15500)
+  end
+
+  it "POST recibo then PATCH payee Mercado Silva redirects" do
+    signed_in
+    post "/supporting_documents", params: recibo_params
+    id = SupportingDocument.last.id
+
+    patch "/supporting_documents/#{id}", params: { payee: "Mercado Silva" }
+
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.find(id).payee).to eq("Mercado Silva")
+  end
+
+  it "POST typed nota_fiscal photo then PATCH payee redirects" do
+    signed_in
+    post "/supporting_documents", params: nota_params(photo: photo_jpg)
+    id = SupportingDocument.last.id
+
+    patch "/supporting_documents/#{id}", params: { payee: "Mercado Silva" }
+
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.find(id).payee).to eq("Mercado Silva")
+    expect(SupportingDocument.find(id).amount_cents).to eq(15500)
   end
 end

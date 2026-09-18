@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_18_200000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_18_210000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -194,8 +194,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_200000) do
   create_table "supporting_documents", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.bigint "amount_cents", null: false
+    t.string "chave"
     t.datetime "created_at", null: false
     t.date "document_on", null: false
+    t.string "fields_origin"
     t.bigint "justification_id"
     t.string "kind", null: false
     t.bigint "match_id"

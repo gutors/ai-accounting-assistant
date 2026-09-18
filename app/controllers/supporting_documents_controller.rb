@@ -15,7 +15,8 @@ class SupportingDocumentsController < ApplicationController
       payee: params[:payee],
       observation: params[:observation],
       photo: params[:photo],
-      xml: params[:xml]
+      xml: params[:xml],
+      chave: params[:chave]
     )
 
     if document.errors.empty?
@@ -37,7 +38,7 @@ class SupportingDocumentsController < ApplicationController
     end
 
     attrs = {}
-    %i[kind amount date payee observation].each do |key|
+    %i[kind amount date payee observation chave].each do |key|
       attrs[key] = params[key] if params.key?(key)
     end
     attrs[:photo] = params[:photo] if params[:photo].present?

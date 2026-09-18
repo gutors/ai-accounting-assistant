@@ -27,6 +27,9 @@
     <label for="payee" class="block mb-1">Favorecido</label>
     <%= text_field_tag :payee, nil, id: "payee", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "off" %>
 
+    <label for="chave" class="block mb-1">Chave de acesso</label>
+    <%= text_field_tag :chave, nil, id: "chave", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "off" %>
+
     <label for="observation" class="block mb-1">Observação</label>
     <%= text_area_tag :observation, nil, id: "observation", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", rows: 3 %>
 
@@ -52,6 +55,9 @@
           <%= format_reais(document.amount_cents) %>
           <%= document.recibo? ? "Recibo" : "Nota fiscal" %>
           <%= document.payee %>
+          <% if document.chave.present? %>
+            <p class="text-sm"><%= document.chave %></p>
+          <% end %>
           <% if coordinator_on_focus? && document.match_id? && document.month %>
             Casado em <%= document.month.year_month %>
           <% end %>
@@ -68,6 +74,7 @@
             <label for="kind_<%= document.id %>" class="block mb-1">Tipo</label>
             <%= select_tag :kind, options_for_select([ [ "Nota fiscal", "nota_fiscal" ], [ "Recibo", "recibo" ] ], document.kind), id: "kind_#{document.id}", class: "border rounded px-2 py-1 mb-3" %>
 
+            <% unless document.fields_locked? %>
             <label for="amount_<%= document.id %>" class="block mb-1">Valor</label>
             <%= text_field_tag :amount, format_reais(document.amount_cents).delete_prefix("R$ ").strip, id: "amount_#{document.id}", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "off" %>
 
@@ -76,6 +83,10 @@
 
             <label for="payee_<%= document.id %>" class="block mb-1">Favorecido</label>
             <%= text_field_tag :payee, document.payee, id: "payee_#{document.id}", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "off" %>
+            <% end %>
+
+            <label for="chave_<%= document.id %>" class="block mb-1">Chave de acesso</label>
+            <%= text_field_tag :chave, document.chave, id: "chave_#{document.id}", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "off" %>
 
             <label for="observation_<%= document.id %>" class="block mb-1">Observação</label>
             <%= text_area_tag :observation, document.observation, id: "observation_#{document.id}", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", rows: 3 %>

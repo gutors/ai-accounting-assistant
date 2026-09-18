@@ -78,7 +78,7 @@ RSpec.describe SupportingDocument, type: :model do
   end
 
   it "insert nota_fiscal xml has xml and no photo" do
-    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: xml_file)
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml)
 
     expect(doc).to be_persisted
     expect(doc.xml).to be_attached
@@ -86,7 +86,7 @@ RSpec.describe SupportingDocument, type: :model do
   end
 
   it "insert nota_fiscal with photo and xml attaches both" do
-    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg, xml: xml_file)
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg, xml: authorized_xml)
 
     expect(doc).to be_persisted
     expect(doc.photo).to be_attached
@@ -100,10 +100,11 @@ RSpec.describe SupportingDocument, type: :model do
     expect(SupportingDocument.count).to eq(0)
   end
 
-  it "insert ignores xml vNF and keeps typed 15500" do
-    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: xml_with_vnf, amount: "155,00")
+  it "insert authorized XML ignores typed 100,00 and keeps 15500" do
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml, amount: "100,00")
 
     expect(doc.amount_cents).to eq(15500)
+    expect(doc.amount_cents).to be_a(Integer)
   end
 
   it "lists by document date descending then id descending" do
@@ -132,7 +133,8 @@ RSpec.describe SupportingDocument, type: :model do
   end
 
   it "update payee keeps photo and xml blobs" do
-    doc = insert_doc(kind: "nota_fiscal", photo: photo_named("danfe.jpg"), xml: xml_file("autorizada.xml"))
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_named("danfe.jpg"))
+    doc.xml.attach(io: StringIO.new("<nfe><vNF>100.00</vNF></nfe>"), filename: "autorizada.xml", content_type: "application/xml")
     doc.apply(payee: "Mercado Silva")
 
     doc.reload
@@ -220,7 +222,7 @@ RSpec.describe SupportingDocument, type: :model do
   end
 
   it "rejects kind recibo on xml-only without photo" do
-    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: xml_file)
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml)
     doc.apply(kind: "recibo")
 
     expect(doc.errors[:base]).to include("Envie a foto do recibo")
@@ -229,7 +231,7 @@ RSpec.describe SupportingDocument, type: :model do
   end
 
   it "update kind recibo with photo purges xml" do
-    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: xml_file)
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml)
     doc.apply(kind: "recibo", photo: photo_named("recibo-novo.jpg"))
 
     doc.reload
@@ -379,5 +381,109 @@ RSpec.describe SupportingDocument, type: :model do
     expect(document.reload.withdraw).to eq(false)
     expect(document).to be_persisted
     expect(document.errors[:base]).to include(SupportingDocument::HAS_MONTH)
+  end
+
+  it "insert authorized XML persists 15500 Padaria Central 2026-05-11 and chave" do
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml, amount: nil, date: nil, payee: nil)
+
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.document_on).to eq(Date.new(2026, 5, 11))
+    expect(doc.payee).to eq("Padaria Central")
+    expect(doc.chave).to eq("43260511222333000181550010000000011123456781")
+  end
+
+  it "amount from vNF 155.00 is Integer 15500" do
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml, amount: nil, date: nil, payee: nil)
+
+    expect(doc.amount_cents).to be_a(Integer)
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.amount_cents).not_to be_a(Float)
+  end
+
+  it "apply amount on uploaded XML is rejected" do
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml)
+    doc.apply(amount: "200,00")
+
+    expect(doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
+    expect(doc.reload.amount_cents).to eq(15500)
+  end
+
+  it "apply payee on uploaded XML is rejected" do
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml)
+    doc.apply(payee: "Mercado Silva")
+
+    expect(doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
+    expect(doc.reload.payee).to eq("Padaria Central")
+  end
+
+  it "apply date on uploaded XML is rejected" do
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml)
+    doc.apply(date: "2026-06-01")
+
+    expect(doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
+    expect(doc.reload.document_on).to eq(Date.new(2026, 5, 11))
+  end
+
+  it "apply observation on uploaded XML persists" do
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml)
+    doc.apply(observation: "pago em dinheiro")
+
+    expect(doc.errors).to be_empty
+    expect(doc.reload.observation).to eq("pago em dinheiro")
+  end
+
+  it "insert malformed XML persists none" do
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: xml_file("nota.xml", "<nfe><"), amount: "155,00", date: "2026-05-11", payee: "Padaria Central")
+
+    expect(doc).not_to be_persisted
+    expect(doc.errors[:base]).to include(SupportingDocument::XML_UNREADABLE)
+    expect(SupportingDocument.count).to eq(0)
+  end
+
+  it "insert XML without ICMSTot vNF persists none" do
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: xml_with_vnf, amount: "155,00")
+
+    expect(doc).not_to be_persisted
+    expect(doc.errors[:base]).to include(SupportingDocument::XML_UNREADABLE)
+    expect(SupportingDocument.count).to eq(0)
+  end
+
+  it "apply payee on pre-task XML blob persists Mercado Silva" do
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg)
+    doc.xml.attach(io: StringIO.new("<nfe><vNF>100.00</vNF></nfe>"), filename: "nota.xml", content_type: "application/xml")
+    doc.update_column(:fields_origin, nil)
+    doc.apply(payee: "Mercado Silva")
+
+    expect(doc.errors).to be_empty
+    expect(doc.reload.payee).to eq("Mercado Silva")
+    expect(doc.amount_cents).to eq(15500)
+  end
+
+  it "insert recibo then apply payee Mercado Silva persists" do
+    doc = insert_doc
+    doc.apply(payee: "Mercado Silva")
+
+    expect(doc.reload.payee).to eq("Mercado Silva")
+  end
+
+  it "insert typed nota_fiscal photo then apply payee persists" do
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg, xml: nil)
+    doc.apply(payee: "Mercado Silva")
+
+    expect(doc.reload.payee).to eq("Mercado Silva")
+    expect(doc.amount_cents).to eq(15500)
+  end
+
+  it "insert XML dhEmi 2026-05-11T23:30:00-03:00 stores document_on 2026-05-11" do
+    doc = insert_doc(
+      kind: "nota_fiscal",
+      photo: nil,
+      xml: authorized_xml(dhemi: "2026-05-11T23:30:00-03:00"),
+      amount: nil,
+      date: nil,
+      payee: nil
+    )
+
+    expect(doc.document_on).to eq(Date.new(2026, 5, 11))
   end
 end
