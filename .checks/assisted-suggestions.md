@@ -3,6 +3,7 @@
 Sources:
 
 - `.tasks/assisted-suggestions.md` - this cut: criteria 1–67, doors, sweep, surface
+- conversation / `.checks/assisted-suggestions.verified.md` round 1 FAIL - C66 must assert the N:1 form (whole-page `payment_ids[]` does not); more than one 2:1 → lowest payment id wins that form; `format_2` N:1 picker proven at its own layer
 - https://github.com/gutors/ai-accounting-assistant/issues/37 - assisted match suggestion after the statement; exception suggestion of honorário from PIX or tax id
 - https://github.com/gutors/ai-accounting-assistant/issues/12#issuecomment-5607855444 - system never confirms; clear candidate already linked; still missing document until confirm
 - https://github.com/gutors/ai-accounting-assistant/issues/12#issuecomment-5628194387 / https://github.com/gutors/ai-accounting-assistant/issues/20#issuecomment-5628193823 - document has no month until match; closed month never
@@ -62,8 +63,9 @@ Evidence:
 - `spec/models/match_spec.rb` + `spec/requests/matches_spec.rb` — confirm shape / lesser observation is the closest analogue
 - `spec/models/payment_spec.rb` + `spec/requests/document_exceptions_spec.rb` — mark / missing-document
 - MonthsController#show and MatchesController stay pass-through once Suggestion / ExceptionSuggestion decide; HTTP status / copy / selected ids still need request specs
+- `Suggestion.format_2_for_n1_form` decides which 2:1 is preselected on the N:1 form (lowest min payment id); `ApplicationController#format_2_suggestion_on_month` forwards it. A request that reads selected `payment_ids[]` from the whole page does not discriminate (round-1 C66 mutant)
 
-Cost: model specs for every rank arm, name-hit rule, PIX/tax-id arm, and at-most-one assignment; request specs for every status/route/copy claim below.
+Cost: model specs for every rank arm, name-hit rule, PIX/tax-id arm, at-most-one assignment, and the N:1 form-winner members; request specs for every status/route/copy claim below.
 
 ## Checks
 
@@ -312,7 +314,7 @@ Proof: `bin/rspec spec/requests/supporting_documents_spec.rb -e "PATCH payee rea
 **C63** - When a coordinator clears `accountant_pix_key` and `accountant_tax_id`, then `GET /months/2026-05` of the payment whose history still contains `chave-pix` does not include `Sugestão de exceção`
 Proof: `bin/rspec spec/requests/accountants_spec.rb -e "clearing PIX and tax id omits Sugestao de excecao"`
 
-### S7 - Suggested ids are selected on confirm · 3 files · 32 KB · ~8k
+### S7 - Suggested ids are selected on confirm · 6 files · 83 KB · ~21k
 
 **C64** - Given the 1:1 of criterion 1, when a coordinator GETs `/months/2026-05`, then that payment’s `POST /months/2026-05/matches` form includes that Payment id and that SupportingDocument id as selected (`checked` checkbox or `type="hidden"` input named `payment_ids[]` / `supporting_document_ids[]`)
 Proof: `bin/rspec spec/requests/months_spec.rb -e "GET 1:1 form selects payment id and document id"`
@@ -320,11 +322,16 @@ Proof: `bin/rspec spec/requests/months_spec.rb -e "GET 1:1 form selects payment 
 **C65** - Given that same 1:1 and a second unmatched SupportingDocument payee `Mercado Silva`, then `Mercado Silva` is not selected on that payment’s match form
 Proof: `bin/rspec spec/requests/months_spec.rb -e "GET 1:1 form does not select Mercado Silva"`
 
-**C66** - Given the format-2 of criterion 26, when a coordinator GETs `/months/2026-05`, then the page includes both Payment ids and that SupportingDocument id as selected toward `POST /months/2026-05/matches`
-Proof: `bin/rspec spec/requests/months_spec.rb -e "GET format-2 selects both payment ids and the document id"`
+**C66** - Given the format-2 of criterion 26, when a coordinator GETs `/months/2026-05`, then the N:1 `POST /months/2026-05/matches` form whose submit is `Confirmar casamento N:1` has those two Payment ids as selected `payment_ids[]` and that SupportingDocument id as selected `supporting_document_ids[]`
+Proof: `bin/rspec spec/requests/months_spec.rb -e "GET format-2 N:1 form selects both payment ids and the document id"`
+Proof: `bin/rspec spec/models/suggestion_spec.rb -e "format_2_for_n1_form returns the two-payment proposal"`
 
 **C67** - Given the Justification of criterion 32, when a coordinator GETs `/months/2026-05`, then that payment’s match form includes both member SupportingDocument ids as selected
 Proof: `bin/rspec spec/requests/months_spec.rb -e "GET justification form selects both member document ids"`
+
+**C68** - Given unmatched SupportingDocument of `22000` cents payee `Padaria Central` with missing-document Payments of `10000` and `12000` cents created first, and unmatched SupportingDocument of `30000` cents payee `Mercado Silva` with missing-document Payments of `14000` and `16000` cents created after (so the Padaria pair has the lower Payment ids), when a coordinator GETs `/months/2026-05`, then the N:1 `POST /months/2026-05/matches` form whose submit is `Confirmar casamento N:1` has the `10000` and `12000` Payment ids and the Padaria document id selected, and does not have the `14000` or `16000` Payment ids or the Mercado document id selected
+Proof: `bin/rspec spec/requests/months_spec.rb -e "GET two format-2 N:1 form selects the pair with lowest payment id"`
+Proof: `bin/rspec spec/models/suggestion_spec.rb -e "two format-2 proposals n1 form picks lowest payment id"`
 
 ## Swept
 
@@ -332,7 +339,7 @@ Proof: `bin/rspec spec/requests/months_spec.rb -e "GET justification form select
 - failure modes: C25, C39, C42, C57, C58, C59
 - idempotency and retry: C1, C3 - a second GET still shows the same derived suggestion; a second confirm is existing `422` `Pagamento já está em um casamento`
 - authorization: C59, C60
-- concurrency and ordering: C13, C16, C17, C20, C21 - assignment is deterministic (name including accent fold, then lowest id); two concurrent confirms of the same ids are existing Match uniqueness
+- concurrency and ordering: C13, C16, C17, C20, C21, C68 - assignment is deterministic (name including accent fold, then lowest id); two 2:1s on one month, lowest payment id wins the N:1 form; two concurrent confirms of the same ids are existing Match uniqueness
 - data lifecycle: C11, C61, C62, C63 - derived at GET; insert, leave-match, payee PATCH, and clearing PIX/tax id change the next GET; nothing to backfill or delete
 - external-dependency failure: n/a - no new remote; Drive writer and Google OIDC are unchanged
 - state transitions: C1, C3, C27, C33, C40, C43, C55, C61
@@ -354,19 +361,22 @@ Proof: `bin/rspec spec/requests/months_spec.rb -e "GET justification form select
 | PIX/tax-id miss (4) | presentation name C49 · razão social C50 · empty catalog C51 · tarifa text C54 | - |
 | exception vs match (3) | equal suppresses C52 · lesser suppresses C53 · two hits two proposals C48 | - |
 | isolation / closed / submitter (4) | other org C57 · closed C58 · submitter 404 C59 · submitter insert still suggests C60 | - |
-| selected ids (4) | 1:1 C64 · not the other doc C65 · format-2 C66 · justification members C67 | - |
+| selected ids (5) | 1:1 C64 · not the other doc C65 · format-2 N:1 form C66 · justification members C67 · two 2:1 lowest payment id C68 | - |
+| N:1 form winner (2) | single 2:1 C66 · two 2:1s lowest min payment id C68 | - |
 | confirm from suggestion (6) | equal 1:1 C3 · lesser 422 C25 · format-2 C27 · justification equal C33 · justification greater persist C37 · justification lesser 422 C39 | - |
 | extra kind not exception-suggested (1) | C56 | - |
 | inflows / empty (2) | inflows C7 · zero payments C6 | - |
 | startup config assemblies | no new process setting | - |
 
-- Claims naming a status code, route or response shape: C1–C7, C10, C11, C25, C27, C33, C37, C39, C40–C43, C55, C57–C67 - each has a request-spec proof that crosses the boundary
+- Claims naming a status code, route or response shape: C1–C7, C10, C11, C25, C27, C33, C37, C39, C40–C43, C55, C57–C68 - each has a request-spec proof that crosses the boundary
 - No other check claims more than the single case its proof exercises
 
 ## Handoff
 
 S1 ~23k + S2 ~18k + S3 ~17k + S4 ~20k = ~78k (match assignment, month page). S5 enters exception PIX/tax-id at ~28k (running ~106k). S6 ~18k + S7 ~8k = ~132k floor. All seven slices stay under 150k. Surface changes at S5 (NormalizedEmail / BrazilianTaxId / accountant fields) but the running total never reaches the budget, so no split.
 
-Boundary: S1–S4 closed at `8dbc129`. This batch closes S5–S7 (C40–C67). ExceptionSuggestion is a PORO; match suggestion including lesser 1:1 suppresses it; format-2 ids are selected on the existing N:1 form.
-User settled mid-build: none.
+Boundary: S1–S4 closed at `8dbc129`. S5–S7 (C40–C67) closed at `6460ece`.
+User settled mid-build: verifier round 1 FAIL — raise C66 to the N:1 form (do not lower); add C68 for two 2:1s / lowest payment id; prove the N:1 picker at Suggestion (model + request). Not a lowering of C1–C65 or C67.
 Abandoned: none. Did not rebuild `Suggestion.assign`.
+
+Follow-up: C66 tighten + C68. S7 files ~83 KB · ~21k. Under 150k, no split.
