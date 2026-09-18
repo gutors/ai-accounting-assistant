@@ -35,4 +35,31 @@ module MatchHelpers
   def recebimentos_html(body)
     body[body.index("Recebimentos")...body.index("Pagamentos")]
   end
+
+  def pagamentos_html(body)
+    body[body.index("Pagamentos")...body.index("Documentos sem casamento")]
+  end
+
+  def payment_row_html(body, history:)
+    pagamentos_html(body).scan(%r{<li class="mb-2">.*?</li>}m).find { |li| li.include?(history) }
+  end
+
+  def payment_status_html(body, history:)
+    payment_row_html(body, history: history).split("<form").first
+  end
+
+  def selected_named_values(html, name)
+    Nokogiri::HTML(html).css(%(input[name="#{name}"])).filter_map do |input|
+      next unless input["type"] == "hidden" || input.has_attribute?("checked")
+
+      input["value"]
+    end
+  end
+
+  def n1_match_form_html(body)
+    form = Nokogiri::HTML(body).css("form").find do |node|
+      node.at_css(%(input[type="submit"][value="Confirmar casamento N:1"]))
+    end
+    form&.to_html.to_s
+  end
 end

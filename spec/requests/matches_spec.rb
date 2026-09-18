@@ -88,6 +88,131 @@ RSpec.describe "Matches", type: :request do
     expect(Match.count).to eq(1)
   end
 
+  it "POST suggested 1:1 equal persists Casado and omits Sugestao" do
+    account, organization, _month, statement = signed_month
+    payment = plant_payment(statement, 22000, history: "Pix enviado — Padaria Central")
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    post "/months/2026-05/matches", params: {
+      payment_ids: [ payment.id ], supporting_document_ids: [ document.id ]
+    }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/months/2026-05")
+    expect(Match.count).to eq(1)
+
+    get "/months/2026-05"
+    status = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
+    expect(status).to include("Casado")
+    expect(status).to include("Padaria Central")
+    expect(status).not_to include("Documento faltante")
+    expect(status).not_to include("Sugestão")
+  end
+
+  it "POST suggested lesser without observation returns 422" do
+    account, organization, _month, statement = signed_month
+    payment = plant_payment(statement, 22000)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "200,00")
+
+    post "/months/2026-05/matches", params: {
+      payment_ids: [ payment.id ], supporting_document_ids: [ document.id ]
+    }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Informe a observação do casamento")
+    expect(Match.count).to eq(0)
+  end
+
+  it "POST suggested format-2 persists Casado on both payments" do
+    account, organization, _month, statement = signed_month
+    ten = plant_payment(statement, 10000, history: "Pix enviado — Dez")
+    twelve = plant_payment(statement, 12000, history: "Pix enviado — Doze")
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    post "/months/2026-05/matches", params: {
+      payment_ids: [ ten.id, twelve.id ], supporting_document_ids: [ document.id ]
+    }
+
+    expect(Match.count).to eq(1)
+    get "/months/2026-05"
+    ten_status = payment_status_html(response.body, history: "Pix enviado — Dez")
+    twelve_status = payment_status_html(response.body, history: "Pix enviado — Doze")
+    expect(ten_status).to include("Casado")
+    expect(twelve_status).to include("Casado")
+    expect(ten_status).not_to include("Documento faltante")
+    expect(ten_status).not_to include("Sugestão")
+    expect(twelve_status).not_to include("Documento faltante")
+    expect(twelve_status).not_to include("Sugestão")
+  end
+
+  it "POST suggested justification equal persists Casado with both payees" do
+    account, organization, _month, statement = signed_month
+    payment = plant_payment(statement, 20000, history: "Pix enviado — Gasto")
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "45,00")
+    Justification.declare(
+      organization: organization,
+      account: account,
+      amount: "200,00",
+      supporting_document_ids: [ padaria.id, mercado.id ]
+    )
+
+    post "/months/2026-05/matches", params: {
+      payment_ids: [ payment.id ], supporting_document_ids: [ padaria.id, mercado.id ]
+    }
+
+    expect(response).to have_http_status(:found)
+    expect(Match.count).to eq(1)
+    get "/months/2026-05"
+    status = payment_status_html(response.body, history: "Pix enviado — Gasto")
+    expect(status).to include("Casado")
+    expect(status).to include("Padaria Central")
+    expect(status).to include("Mercado Silva")
+    expect(status).not_to include("Documento faltante")
+    expect(status).not_to include("Sugestão")
+  end
+
+  it "POST justification members greater than payment persists Match" do
+    account, organization, _month, statement = signed_month
+    payment = plant_payment(statement, 18000)
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "45,00")
+    Justification.declare(
+      organization: organization,
+      account: account,
+      amount: "180,00",
+      supporting_document_ids: [ padaria.id, mercado.id ]
+    )
+
+    post "/months/2026-05/matches", params: {
+      payment_ids: [ payment.id ], supporting_document_ids: [ padaria.id, mercado.id ]
+    }
+
+    expect(response).to have_http_status(:found)
+    expect(Match.count).to eq(1)
+  end
+
+  it "POST justification lesser without observation returns 422" do
+    account, organization, _month, statement = signed_month
+    payment = plant_payment(statement, 22000)
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "45,00")
+    Justification.declare(
+      organization: organization,
+      account: account,
+      amount: "220,00",
+      supporting_document_ids: [ padaria.id, mercado.id ]
+    )
+
+    post "/months/2026-05/matches", params: {
+      payment_ids: [ payment.id ], supporting_document_ids: [ padaria.id, mercado.id ]
+    }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Informe a observação do casamento")
+    expect(Match.count).to eq(0)
+  end
+
   it "POST 1 payment 1 document equal persists Match 302" do
     account, organization, _month, statement = signed_month
     payment = plant_payment(statement, 22000)
@@ -396,5 +521,23 @@ RSpec.describe "Matches", type: :request do
     end.not_to change(Match, :count)
 
     expect(response).to have_http_status(:not_found)
+  end
+
+  it "DELETE match restores Sugestao on the payment" do
+    account, organization, _month, statement = signed_month
+    payment = plant_payment(statement, 22000, history: "Pix enviado — Padaria Central")
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    post "/months/2026-05/matches", params: {
+      payment_ids: [ payment.id ], supporting_document_ids: [ document.id ]
+    }
+    match = Match.last
+
+    delete "/months/2026-05/matches/#{match.id}"
+
+    get "/months/2026-05"
+    status = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
+    expect(status).to include("Documento faltante")
+    expect(status).to include("Sugestão")
+    expect(status).to include("Padaria Central")
   end
 end

@@ -73,6 +73,9 @@ class ApplicationController < ActionController::Base
     @active_extra_exception_kinds = @organization.extra_exception_kinds.where(active: true).order(:name)
     @unmatched_documents = @organization.supporting_documents.unmatched.listed
     @missing_document_payments = @payments.select(&:missing_document?)
+    @suggestions_by_payment_id = suggestions_on_month
+    @exception_suggestions_by_payment_id = exception_suggestions_on_month
+    @format_2_suggestion = format_2_suggestion_on_month
     @focusable_organizations = current_account.organizations.order(:name)
   end
 
@@ -82,6 +85,36 @@ class ApplicationController < ActionController::Base
     @bank_accounts = @organization.bank_accounts.includes(:bank).order(:name)
     @extra_exception_kinds = @organization.extra_exception_kinds.order(:name)
     @focusable_organizations = current_account.organizations.order(:name)
+  end
+
+  def suggestions_on_month
+    return {} if @month.closed?
+
+    match_proposals_for_page.each_with_object({}) do |proposal, index|
+      proposal.payments.each do |payment|
+        next unless payment.bank_statement.month_id == @month.id
+
+        index[payment.id] = proposal
+      end
+    end
+  end
+
+  def exception_suggestions_on_month
+    return {} if @month.closed?
+
+    ExceptionSuggestion.assign(@organization, match_proposals: match_proposals_for_page).each_with_object({}) do |proposal, index|
+      next unless proposal.payment.bank_statement.month_id == @month.id
+
+      index[proposal.payment.id] = proposal
+    end
+  end
+
+  def format_2_suggestion_on_month
+    Suggestion.format_2_for_n1_form(@suggestions_by_payment_id.values)
+  end
+
+  def match_proposals_for_page
+    @match_proposals_for_page ||= Suggestion.assign(@organization)
   end
 
   def sign_in(account, organization:)
