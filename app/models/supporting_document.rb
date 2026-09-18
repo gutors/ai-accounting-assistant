@@ -18,6 +18,7 @@ class SupportingDocument < ApplicationRecord
   belongs_to :account
   belongs_to :match, optional: true
   belongs_to :month, optional: true
+  belongs_to :justification, optional: true
   has_one_attached :photo
   has_one_attached :xml
 
@@ -39,17 +40,25 @@ class SupportingDocument < ApplicationRecord
 
   def withdraw
     errors.clear
-    if month_id.present?
-      errors.add(:base, HAS_MONTH)
-      return false
-    end
-
+    withdrawn = false
     transaction do
+      lock!
+      if month_id.present?
+        errors.add(:base, HAS_MONTH)
+        raise ActiveRecord::Rollback
+      end
+
+      grouping_id = justification_id
       photo.purge if photo.attached?
       xml.purge if xml.attached?
       destroy!
+      if grouping_id
+        grouping = Justification.find(grouping_id)
+        grouping.destroy! unless grouping.supporting_documents.exists?
+      end
+      withdrawn = true
     end
-    true
+    withdrawn
   end
 
   def submit(**attrs)

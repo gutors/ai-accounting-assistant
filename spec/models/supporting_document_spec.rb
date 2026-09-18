@@ -357,6 +357,19 @@ RSpec.describe SupportingDocument, type: :model do
     expect(ActiveStorage::Blob.find_by(id: blob_id)).to be_nil
   end
 
+  it "withdraw last member document destroys the Justification" do
+    document = insert_doc
+    justification = Justification.declare(
+      organization: organization,
+      account: account,
+      amount: "155,00",
+      supporting_document_ids: [ document.id ]
+    )
+
+    expect(document.withdraw).to eq(true)
+    expect(Justification.find_by(id: justification.id)).to be_nil
+  end
+
   it "withdraw month document is rejected" do
     month, statement = plant_month(organization)
     payment = plant_payment(statement, 15500)

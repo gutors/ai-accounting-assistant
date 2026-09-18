@@ -64,12 +64,6 @@ class SupportingDocumentsController < ApplicationController
 
   private
 
-  def load_documents
-    scope = focused_organization.supporting_documents.listed.includes(:month, :match)
-    scope = scope.where(account: current_account) unless coordinator_on_focus?
-    @documents = scope
-  end
-
   def mutate_document
     document = focused_organization.supporting_documents.find_by(id: params[:id])
     unless document && (coordinator_on_focus? || document.account_id == current_account.id)

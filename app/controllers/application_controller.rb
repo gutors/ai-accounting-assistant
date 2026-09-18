@@ -46,6 +46,15 @@ class ApplicationController < ActionController::Base
     head :not_found unless coordinator_on_focus?
   end
 
+  def load_documents
+    scope = focused_organization.supporting_documents.listed.includes(:month, :match, :justification)
+    scope = scope.where(account: current_account) unless coordinator_on_focus?
+    @documents = scope
+    justifications = focused_organization.justifications.includes(:supporting_documents).order(created_at: :desc, id: :desc)
+    justifications = justifications.where(account: current_account) unless coordinator_on_focus?
+    @justifications = justifications
+  end
+
   def load_home
     @organization = focused_organization
     @coordinator_accesses = @organization.accesses.coordinator.includes(:account).order("accounts.email")

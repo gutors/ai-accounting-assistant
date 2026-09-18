@@ -96,3 +96,42 @@
     </ul>
   <% end %>
 </section>
+
+<section class="mt-10">
+  <h2 class="text-lg font-medium mb-3">Justificativas</h2>
+  <% if @justifications.empty? %>
+    <p class="mb-3">Nenhuma justificativa</p>
+  <% else %>
+    <ul class="mb-6">
+      <% @justifications.each do |justification| %>
+        <li class="border rounded p-3 mb-3">
+          <%= format_reais(justification.amount_cents) %>
+          <% justification.supporting_documents.each do |document| %>
+            <%= document.payee %>
+          <% end %>
+          <% if !coordinator_on_focus? && justification.supporting_documents.all? { |document| document.month_id.nil? } %>
+            <%= form_with url: "/justifications/#{justification.id}", method: :patch do %>
+              <label for="justification_amount_<%= justification.id %>" class="block mb-1">Valor gasto</label>
+              <%= text_field_tag :amount, format_reais(justification.amount_cents).delete_prefix("R$ ").strip, id: "justification_amount_#{justification.id}", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "off" %>
+              <%= submit_tag "Salvar justificativa", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+            <% end %>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+
+  <% unless coordinator_on_focus? %>
+    <%= form_with url: "/justifications", method: :post do %>
+      <label for="justification_amount" class="block mb-1">Valor gasto</label>
+      <%= text_field_tag :amount, nil, id: "justification_amount", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "off" %>
+      <% @documents.select { |document| document.month_id.nil? && document.justification_id.nil? }.each do |document| %>
+        <label for="supporting_document_<%= document.id %>" class="block mb-2">
+          <%= check_box_tag "supporting_document_ids[]", document.id, false, id: "supporting_document_#{document.id}" %>
+          <%= document.payee %>
+        </label>
+      <% end %>
+      <%= submit_tag "Justificar", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+    <% end %>
+  <% end %>
+</section>

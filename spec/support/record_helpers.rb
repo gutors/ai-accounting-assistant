@@ -21,6 +21,7 @@ module RecordHelpers
     Inflow.delete_all
     BankStatement.delete_all
     SupportingDocument.delete_all
+    Justification.delete_all
     Match.delete_all
     Month.delete_all
     BankAccount.delete_all
