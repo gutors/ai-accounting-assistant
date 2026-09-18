@@ -58,8 +58,12 @@
           <% if document.chave.present? %>
             <p class="text-sm"><%= document.chave %></p>
           <% end %>
-          <% if coordinator_on_focus? && document.match_id? && document.month %>
-            Casado em <%= document.month.year_month %>
+          <% if coordinator_on_focus? && document.month %>
+            <% if document.match_id? %>
+              Casado em <%= document.month.year_month %>
+            <% else %>
+              Sem casamento em <%= document.month.year_month %>
+            <% end %>
           <% end %>
           <% if document.photo.attached? %>
             <p class="text-sm"><%= document.photo.filename %></p>

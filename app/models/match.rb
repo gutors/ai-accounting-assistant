@@ -85,6 +85,10 @@ class Match < ApplicationRecord
         errors.add(:base, DOCUMENT_TAKEN)
         raise ActiveRecord::Rollback
       end
+      if locked_docs.any? { |document| document.month_id.present? && document.month_id != month_id }
+        errors.add(:base, SupportingDocument::HAS_MONTH)
+        raise ActiveRecord::Rollback
+      end
 
       self.observation = observation
       save!

@@ -68,6 +68,21 @@ class SupportingDocument < ApplicationRecord
     withdrawn
   end
 
+  def return_to_no_month
+    errors.clear
+    transaction do
+      locked_month = Month.lock.find_by(id: month_id)
+      lock!
+      if locked_month&.closed?
+        errors.add(:base, Month::CLOSED)
+        raise ActiveRecord::Rollback
+      end
+
+      update!(month_id: nil)
+    end
+    self
+  end
+
   def submit(**attrs)
     errors.clear
     if month&.closed?

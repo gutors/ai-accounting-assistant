@@ -95,6 +95,8 @@ class Suggestion
       built = []
 
       missing_payments.each do |payment|
+        next unless documents_compatible?(documents, payment)
+
         if payment.amount_cents == amount_key
           built << candidate(:equal, [ payment ], documents, group[:tie_id])
         elsif payment.amount_cents < amount_key
@@ -107,6 +109,7 @@ class Suggestion
       if documents.size == 1
         missing_payments.group_by { |payment| payment.bank_statement.month_id }.each_value do |month_payments|
           month_payments.combination(2).each do |left, right|
+            next unless documents_compatible?(documents, left)
             next unless left.amount_cents + right.amount_cents == amount_key
 
             built << candidate(:format_2, [ left, right ], documents, group[:tie_id])
@@ -122,6 +125,10 @@ class Suggestion
         documents.any? { |document| Suggestion.name_hit?(document.payee, payment.history) }
       end
       Candidate.new(rank: rank, name_hit: hit, payments: payments, documents: documents, tie_id: tie_id)
+    end
+
+    def documents_compatible?(documents, payment)
+      documents.all? { |document| document.month_id.nil? || document.month_id == payment.bank_statement.month_id }
     end
 
     def groups

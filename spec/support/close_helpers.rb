@@ -81,4 +81,16 @@ module CloseHelpers
     start = values.index(header)
     values[(start + 1)..].take_while { |row| !row.include?("Despesas total") }
   end
+
+  def unmatched_header_row(values)
+    values.find { |row| row&.first == "Arquivo" && row.include?("Observação") && row.include?("Tipo") }
+  end
+
+  def unmatched_data_rows(values)
+    header = unmatched_header_row(values)
+    return [] unless header
+
+    start = values.index(header)
+    values[(start + 1)..].reject { |row| row.nil? || row.compact.empty? }
+  end
 end

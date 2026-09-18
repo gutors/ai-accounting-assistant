@@ -5,9 +5,12 @@
   <div class="flex items-center gap-4">
     <% if @month.closed? %>
       <p>Mês fechado</p>
-      <%= button_to "Reabrir", "/months/#{@month.year_month}/reopen", method: :post, class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+      <%= button_to "Restaurar pasta", "/months/#{@month.year_month}/restore", method: :post, form: { data: { turbo_confirm: "Restaurar a pasta do mês no arquivo do pacote?" } }, class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+      <%= button_to "Reabrir", "/months/#{@month.year_month}/reopen", method: :post, form: { data: { turbo_confirm: "Reabrir o mês?" } }, class: "rounded bg-zinc-900 text-white px-4 py-2" %>
     <% else %>
-      <%= button_to "Fechar para envio", "/months/#{@month.year_month}/close", method: :post, class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+      <%= form_with url: "/months/#{@month.year_month}/close", method: :post, html: { id: "close-month", data: { turbo_confirm: "Fechar o mês para envio?" } } do %>
+        <%= submit_tag "Fechar para envio", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+      <% end %>
     <% end %>
     <%= link_to "Início", "/", class: "text-sm underline" %>
     <%= button_to "Sair", "/session", method: :delete, class: "text-sm underline" %>
@@ -175,8 +178,16 @@
     <ul>
       <% @unmatched_documents.each do |document| %>
         <li class="mb-2">
-          <%= document.payee %>
+          <% if !@month.closed? && document.month_id.nil? %>
+            <%= check_box_tag "supporting_document_ids[]", document.id, false, id: "close_doc_#{document.id}", form: "close-month" %>
+            <label for="close_doc_<%= document.id %>"><%= document.payee %></label>
+          <% else %>
+            <%= document.payee %>
+          <% end %>
           <%= format_reais(document.amount_cents) %>
+          <% if !@month.closed? && document.month_id == @month.id %>
+            <%= button_to "Devolver", "/months/#{@month.year_month}/supporting_documents/#{document.id}/return", method: :post, class: "text-sm underline" %>
+          <% end %>
         </li>
       <% end %>
     </ul>

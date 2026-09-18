@@ -33,7 +33,7 @@ class Month < ApplicationRecord
     value.to_s.match?(YEAR_MONTH)
   end
 
-  def close_for_send(writer: PackageArchiveWriter.current)
+  def close_for_send(writer: PackageArchiveWriter.current, supporting_documents: [])
     errors.clear
     with_lock do
       if (message = close_blocker)
@@ -41,7 +41,27 @@ class Month < ApplicationRecord
         next
       end
 
-      persist_closed_package(writer)
+      persist_closed_package(writer, supporting_documents: Array(supporting_documents))
+    end
+    self
+  end
+
+  def restore_month_folder(writer: PackageArchiveWriter.current)
+    errors.clear
+    with_lock do
+      unless closed?
+        errors.add(:base, OPEN)
+        next
+      end
+
+      writer.replace_month_folder(
+        parent_id: organization.package_archive_folder_id,
+        name: year_month,
+        folder_id: month_folder_id,
+        files: MonthPackage.files(self)
+      )
+    rescue PackageArchiveWriter::Error
+      errors.add(:base, WRITE_FAILED)
     end
     self
   end
@@ -77,16 +97,36 @@ class Month < ApplicationRecord
     (active_ids - present_ids).any?
   end
 
-  def persist_closed_package(writer)
-    files = MonthPackage.files(self)
+  def persist_closed_package(writer, supporting_documents:)
+    selected = lock_unmatched_selection(supporting_documents)
+    return if errors.any?
+
+    files = MonthPackage.files(self, extra_unmatched: selected)
     folder_id = writer.replace_month_folder(
       parent_id: organization.package_archive_folder_id,
       name: year_month,
       folder_id: month_folder_id,
       files: files
     )
+    selected.each { |document| document.update!(month_id: id) }
     update!(closed: true, month_folder_id: folder_id)
   rescue PackageArchiveWriter::Error
     errors.add(:base, WRITE_FAILED)
+  end
+
+  def lock_unmatched_selection(documents)
+    return [] if documents.empty?
+
+    locked = SupportingDocument.lock.where(id: documents.map(&:id)).order(:id).to_a
+    if locked.any? { |document| document.match_id.present? }
+      errors.add(:base, Match::DOCUMENT_TAKEN)
+      return []
+    end
+    if locked.any? { |document| document.month_id.present? }
+      errors.add(:base, SupportingDocument::HAS_MONTH)
+      return []
+    end
+
+    locked
   end
 end

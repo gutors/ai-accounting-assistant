@@ -23,7 +23,29 @@ class MonthsController < ApplicationController
     month = find_month
     return unless month
 
-    month.close_for_send
+    ids = Array(params[:supporting_document_ids]).map(&:to_i).reject(&:zero?).uniq
+    documents = focused_organization.supporting_documents.where(id: ids)
+    if ids.any? && documents.size != ids.size
+      head :not_found
+      return
+    end
+
+    month.close_for_send(supporting_documents: documents.to_a)
+    if month.errors.empty?
+      redirect_to "/months/#{month.year_month}", status: :found
+    else
+      @month = month
+      @month_error = month.errors[:base].first
+      load_month_page
+      render :show, status: :unprocessable_content
+    end
+  end
+
+  def restore
+    month = find_month
+    return unless month
+
+    month.restore_month_folder
     if month.errors.empty?
       redirect_to "/months/#{month.year_month}", status: :found
     else

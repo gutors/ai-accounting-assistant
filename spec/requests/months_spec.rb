@@ -1189,4 +1189,115 @@ RSpec.describe "Months", type: :request do
     selected_documents = selected_named_values(form, "supporting_document_ids[]")
     expect(selected_documents).to include(padaria.id.to_s, mercado.id.to_s)
   end
+
+  it "GET open month lists Padaria close checkbox and Fechar turbo confirm" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    plant_month(organization)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+
+    get "/months/2026-05"
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Documentos sem casamento")
+    expect(pool_html(response.body)).to include("Padaria Central")
+    expect(pool_close_document_ids(response.body)).to include(document.id)
+    expect(response.body).to include('data-turbo-confirm="Fechar o mês para envio?"')
+  end
+
+  it "GET closed month with unmatched Padaria includes Restaurar pasta and omits Mercado Silva" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    ready_to_close!(organization)
+    plant_month(organization)
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    post "/months/2026-05/close", params: { supporting_document_ids: [ padaria.id ] }
+    plant_recibo(organization, account, payee: "Mercado Silva", amount: "45,00")
+
+    get "/months/2026-05"
+
+    expect(response.body).to include("Mês fechado")
+    expect(response.body).to include("Restaurar pasta")
+    expect(response.body).to include("Reabrir")
+    expect(pool_html(response.body)).to include("Padaria Central")
+    expect(response.body).not_to include("Fechar para envio")
+    expect(pool_html(response.body)).not_to include("Mercado Silva")
+    expect(response.body).to include('data-turbo-confirm="Restaurar a pasta do mês no arquivo do pacote?"')
+    expect(response.body).to include('data-turbo-confirm="Reabrir o mês?"')
+  end
+
+  it "GET June omits May unmatched-in-package Padaria from the pool" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    ready_to_close!(organization)
+    plant_month(organization, year_month: "2026-05")
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    post "/months/2026-05/close", params: { supporting_document_ids: [ padaria.id ] }
+    plant_month(organization, year_month: "2026-06")
+
+    get "/months/2026-06"
+
+    expect(pool_html(response.body)).not_to include("Padaria Central")
+    expect(page_close_document_ids(response.body)).not_to include(padaria.id)
+  end
+
+  it "GET June does not suggest closed May unmatched-in-package Padaria" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    ready_to_close!(organization)
+    plant_month(organization, year_month: "2026-05")
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    post "/months/2026-05/close", params: { supporting_document_ids: [ padaria.id ] }
+    _june, june_statement = plant_month(organization, year_month: "2026-06")
+    plant_payment(june_statement, 22000, history: "Pix enviado — Padaria Central")
+
+    get "/months/2026-06"
+
+    status = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
+    expect(status).to include("Documento faltante")
+    expect(status).not_to include("Sugestão")
+  end
+
+  it "GET reopened May suggests unmatched-in-package Padaria" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    ready_to_close!(organization)
+    _month, statement = plant_month(organization)
+    payment = plant_payment(statement, 22000, history: "Pix enviado — Padaria Central")
+    payment.mark_document_exception("bank_fee")
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    post "/months/2026-05/close", params: { supporting_document_ids: [ padaria.id ] }
+    post "/months/2026-05/reopen"
+    delete "/months/2026-05/payments/#{payment.id}/document_exception"
+
+    get "/months/2026-05"
+
+    status = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
+    expect(status).to include("Documento faltante")
+    expect(status).to include("Sugestão")
+    expect(status).to include("Padaria Central")
+  end
+
+  it "GET June does not suggest a justification that includes May unmatched Padaria" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    ready_to_close!(organization)
+    plant_month(organization, year_month: "2026-05")
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "45,00")
+    Justification.declare(
+      organization: organization,
+      account: account,
+      amount: "200,00",
+      supporting_document_ids: [ padaria.id, mercado.id ]
+    )
+    post "/months/2026-05/close", params: { supporting_document_ids: [ padaria.id ] }
+    _june, june_statement = plant_month(organization, year_month: "2026-06")
+    plant_payment(june_statement, 20000, history: "Pix enviado — Gasto")
+
+    get "/months/2026-06"
+
+    status = payment_status_html(response.body, history: "Pix enviado — Gasto")
+    expect(status).not_to match(/Sugestão[\s\S]*Padaria Central/)
+  end
 end

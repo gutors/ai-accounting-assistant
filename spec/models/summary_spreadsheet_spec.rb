@@ -148,6 +148,59 @@ RSpec.describe SummarySpreadsheet, type: :model do
     expect(sheet_text(book)).not_to include("sem casamento")
   end
 
+  it "workbook without unmatched documents omits sem casamento" do
+    expect(sheet_text(book)).not_to include("sem casamento")
+  end
+
+  it "unmatched recibo section is after Resultado mes with Recibo 155" do
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    document.apply(observation: "pago em dinheiro")
+    document.update!(month_id: month.id)
+    values = sheet_cell_values(book)
+    resultado = values.index { |row| row.include?("Resultado mês") }
+    heading = values.index { |row| row.include?("Documentos sem casamento") }
+    header = unmatched_header_row(values)
+    row = unmatched_data_rows(values).find { |cells| cells.include?("Padaria Central") }
+    path = "notas-sem-casamento/recibo-2026-05-11-padaria-central-#{document.id}.jpg"
+
+    expect(book[0].sheet_name).to eq("2026-05")
+    expect(heading).to be > resultado
+    expect(header).to eq([ "Arquivo", "Tipo", "Valor", "Data", "Favorecido", "Observação" ])
+    expect(row).to include(path, "Recibo", 155, "11/05/2026", "Padaria Central", "pago em dinheiro")
+  end
+
+  it "unmatched nota fiscal Arquivo joins jpg and xml" do
+    document = plant_nota(organization, account, payee: "Padaria Central", amount: "155,00")
+    document.update!(month_id: month.id)
+    row = unmatched_data_rows(sheet_cell_values(book)).find { |cells| cells.include?("Padaria Central") }
+    joined = "notas-sem-casamento/nota-2026-05-11-padaria-central-#{document.id}.jpg; notas-sem-casamento/nota-2026-05-11-padaria-central-#{document.id}.xml"
+
+    expect(row[0]).to eq(joined)
+    expect(row).to include("Nota fiscal")
+  end
+
+  it "unmatched rows order by document_on then id" do
+    later = plant_recibo(organization, account, payee: "Depois", amount: "10,00", date: "2026-05-20")
+    earlier = plant_recibo(organization, account, payee: "Antes", amount: "10,00", date: "2026-05-04")
+    later.update!(month_id: month.id)
+    earlier.update!(month_id: month.id)
+    dates = unmatched_data_rows(sheet_cell_values(book)).map { |row| row[3] }
+
+    expect(dates).to eq([ "04/05/2026", "20/05/2026" ])
+  end
+
+  it "unmatched section omits matched Mercado Silva" do
+    payment = plant_payment(statement, 22000)
+    mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "220,00")
+    Match.confirm(month: month, payments: [ payment ], supporting_documents: [ mercado ])
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    padaria.update!(month_id: month.id)
+    unmatched_text = unmatched_data_rows(sheet_cell_values(book)).flatten.compact.map(&:to_s).join("\n")
+
+    expect(unmatched_text).to include("Padaria Central")
+    expect(unmatched_text).not_to include("Mercado Silva")
+  end
+
   it "expense rows are ordered 2026-05-04 then 2026-05-20" do
     first = plant_payment(statement, 10000, occurred_on: Date.new(2026, 5, 4))
     second = plant_payment(statement, 12000, occurred_on: Date.new(2026, 5, 20))

@@ -880,4 +880,79 @@ RSpec.describe SupportingDocument, type: :model do
       expect(@doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
     end
   end
+
+  it "return unmatched-in-package Padaria clears month_id" do
+    month, _statement = plant_month(organization)
+    document = insert_doc
+    document.update!(month_id: month.id)
+
+    document.return_to_no_month
+
+    expect(document.errors).to be_empty
+    expect(document.reload.month_id).to be_nil
+  end
+
+  it "return while Month closed keeps month_id" do
+    month, _statement = plant_month(organization)
+    document = insert_doc
+    document.update!(month_id: month.id)
+    month.update!(closed: true)
+
+    document.return_to_no_month
+
+    expect(document.errors[:base]).to include("Mês fechado")
+    expect(document.reload.month_id).to eq(month.id)
+  end
+
+  describe "return during re-close" do
+    self.use_transactional_tests = false
+
+    it "return during re-close write keeps month_id" do
+      truncate_product_tables
+      org = Organization.create!(
+        name: "ONG Norte",
+        accountant_presentation_name: "Maria Contadora",
+        package_archive_folder_id: CloseHelpers::ARCHIVE_FOLDER_ID
+      )
+      coord = Account.create!(email: "coord@example.com", google_uid: "uid-coord")
+      month, _statement = plant_month(org)
+      document = plant_recibo(org, coord, payee: "Padaria Central", amount: "155,00")
+      memory = PackageArchiveWriter::Memory.new
+      Month.find(month.id).close_for_send(writer: memory, supporting_documents: [ document ])
+      Month.find(month.id).reopen
+      gate = Queue.new
+      delay = Class.new do
+        def initialize(inner, gate)
+          @inner = inner
+          @gate = gate
+        end
+
+        def replace_month_folder(**kwargs)
+          @gate << :writing
+          sleep 0.5
+          @inner.replace_month_folder(**kwargs)
+        end
+      end.new(memory, gate)
+      returned = nil
+
+      closer = Thread.new do
+        ActiveRecord::Base.connection_pool.with_connection do
+          Month.find(month.id).close_for_send(writer: delay)
+        end
+      end
+      gate.pop
+      ActiveRecord::Base.connection_pool.with_connection do
+        returned = SupportingDocument.find(document.id)
+        returned.return_to_no_month
+      end
+      closer.join
+
+      expect(month.reload.closed?).to eq(true)
+      expect(document.reload.month_id).to eq(month.id)
+      expect(returned.errors[:base]).to include(Month::CLOSED)
+      expect(memory.calls.last.fetch(:files).keys.grep(/padaria/)).not_to be_empty
+    ensure
+      truncate_product_tables
+    end
+  end
 end

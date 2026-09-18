@@ -400,4 +400,34 @@ RSpec.describe Suggestion, type: :model do
 
     expect(proposal.one_to_one_form_document_ids).to eq([ padaria.id, mercado.id ])
   end
+
+  it "does not assign a document that belongs to another month" do
+    may, _may_statement = month_and_statement("2026-05")
+    payment = plant_payment(statement("2026-06"), 22000, history: "Pix enviado — Padaria Central")
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    document.update!(month_id: may.id)
+
+    expect(proposal_for(payment)).to be_nil
+  end
+
+  it "assigns unmatched-in-package Padaria to a missing-document payment of the same month" do
+    may, may_statement = month_and_statement("2026-05")
+    payment = plant_payment(may_statement, 22000, history: "Pix enviado — Padaria Central")
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    document.update!(month_id: may.id)
+
+    expect(proposal_for(payment).supporting_documents).to eq([ document ])
+  end
+
+  it "does not assign a justification group that includes a document of another month" do
+    may, _may_statement = month_and_statement("2026-05")
+    payment = plant_payment(statement("2026-06"), 20000)
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "45,00")
+    cover("200,00", [ padaria, mercado ])
+    padaria.update!(month_id: may.id)
+
+    proposal = proposal_for(payment)
+    expect(Array(proposal&.supporting_documents).map(&:payee)).not_to include("Padaria Central")
+  end
 end
