@@ -735,4 +735,89 @@ RSpec.describe "Months", type: :request do
     end
     expect(suggested).to be < 3
   end
+
+  def cover_docs(organization, account, amount:, documents:)
+    Justification.declare(
+      organization: organization,
+      account: account,
+      amount: amount,
+      supporting_document_ids: documents.map(&:id)
+    )
+  end
+
+  it "GET justification equal includes both payees and Documento faltante" do
+    account, organization, _month, statement = signed_open_month
+    plant_payment(statement, 20000, history: "Pix enviado — Gasto")
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "45,00")
+    cover_docs(organization, account, amount: "200,00", documents: [ padaria, mercado ])
+
+    get "/months/2026-05"
+
+    status = payment_status_html(response.body, history: "Pix enviado — Gasto")
+    expect(status).to include("Sugestão")
+    expect(status).to include("Padaria Central")
+    expect(status).to include("Mercado Silva")
+    expect(status).to include("Documento faltante")
+  end
+
+  it "GET justification member is not assigned as an individual" do
+    account, organization, _month, statement = signed_open_month
+    plant_payment(statement, 20000, history: "Pix enviado — Igual")
+    plant_payment(statement, 15500, history: "Pix enviado — Membro")
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "45,00")
+    cover_docs(organization, account, amount: "200,00", documents: [ padaria, mercado ])
+
+    get "/months/2026-05"
+
+    member = payment_status_html(response.body, history: "Pix enviado — Membro")
+    expect(member).not_to include("Sugestão")
+  end
+
+  it "GET does not format-2 a multi-document justification" do
+    account, organization, _month, statement = signed_open_month
+    plant_payment(statement, 10000, history: "Pix enviado — A")
+    plant_payment(statement, 10000, history: "Pix enviado — B")
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "45,00")
+    cover_docs(organization, account, amount: "200,00", documents: [ padaria, mercado ])
+
+    get "/months/2026-05"
+
+    suggested = [ "Pix enviado — A", "Pix enviado — B" ].count do |history|
+      payment_status_html(response.body, history: history).include?("Sugestão")
+    end
+    expect(suggested).to be < 2
+  end
+
+  it "GET justification amount_cents 18000 equal includes both payees" do
+    account, organization, _month, statement = signed_open_month
+    plant_payment(statement, 18000, history: "Pix enviado — Gasto")
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "45,00")
+    cover_docs(organization, account, amount: "180,00", documents: [ padaria, mercado ])
+
+    get "/months/2026-05"
+
+    status = payment_status_html(response.body, history: "Pix enviado — Gasto")
+    expect(status).to include("Sugestão")
+    expect(status).to include("Padaria Central")
+    expect(status).to include("Mercado Silva")
+  end
+
+  it "GET justification 22000 with members 20000 includes Sugestao" do
+    account, organization, _month, statement = signed_open_month
+    plant_payment(statement, 22000, history: "Pix enviado — Gasto")
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "45,00")
+    cover_docs(organization, account, amount: "220,00", documents: [ padaria, mercado ])
+
+    get "/months/2026-05"
+
+    status = payment_status_html(response.body, history: "Pix enviado — Gasto")
+    expect(status).to include("Sugestão")
+    expect(status).to include("Padaria Central")
+    expect(status).to include("Mercado Silva")
+  end
 end

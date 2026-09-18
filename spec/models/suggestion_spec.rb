@@ -267,4 +267,69 @@ RSpec.describe Suggestion, type: :model do
     matching = proposals.select { |proposal| proposal.supporting_documents.map(&:id).include?(document.id) }
     expect(matching).to all(satisfy { |proposal| proposal.payments.size < 3 })
   end
+
+  def cover(amount, documents)
+    Justification.declare(
+      organization: organization,
+      account: account,
+      amount: amount,
+      supporting_document_ids: documents.map(&:id)
+    )
+  end
+
+  it "justification equal assigns all members" do
+    payment = plant_payment(statement, 20000)
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "45,00")
+    cover("200,00", [ padaria, mercado ])
+
+    expect(proposal_for(payment).supporting_documents.map(&:id)).to contain_exactly(padaria.id, mercado.id)
+  end
+
+  it "justification members are never assigned as individuals" do
+    equal = plant_payment(statement, 20000, history: "Pix enviado — Igual")
+    member = plant_payment(statement, 15500, history: "Pix enviado — Membro")
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "45,00")
+    cover("200,00", [ padaria, mercado ])
+
+    expect(proposal_for(equal).supporting_documents.map(&:payee)).to include("Padaria Central")
+    expect(proposal_for(member)).to be_nil
+  end
+
+  it "multi-document justification never takes format-2" do
+    ten_a = plant_payment(statement, 10000, history: "Pix enviado — A")
+    ten_b = plant_payment(statement, 10000, history: "Pix enviado — B")
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "45,00")
+    cover("200,00", [ padaria, mercado ])
+
+    two_and_two = proposals.find do |proposal|
+      proposal.payments.size == 2 && proposal.supporting_documents.size == 2
+    end
+    expect(two_and_two).to be_nil
+    together = proposals.find do |proposal|
+      proposal.payments.map(&:id).sort == [ ten_a.id, ten_b.id ].sort &&
+        proposal.supporting_documents.map(&:id).sort == [ padaria.id, mercado.id ].sort
+    end
+    expect(together).to be_nil
+  end
+
+  it "justification amount_cents is the equal key" do
+    payment = plant_payment(statement, 18000)
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "45,00")
+    cover("180,00", [ padaria, mercado ])
+
+    expect(proposal_for(payment).supporting_documents.map(&:id)).to contain_exactly(padaria.id, mercado.id)
+  end
+
+  it "justification 22000 equal assigns members summing 20000" do
+    payment = plant_payment(statement, 22000)
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "45,00")
+    cover("220,00", [ padaria, mercado ])
+
+    expect(proposal_for(payment).supporting_documents.map(&:id)).to contain_exactly(padaria.id, mercado.id)
+  end
 end

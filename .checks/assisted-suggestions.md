@@ -364,3 +364,7 @@ Proof: `bin/rspec spec/requests/months_spec.rb -e "GET justification form select
 ## Handoff
 
 S1 ~23k + S2 ~18k + S3 ~17k + S4 ~20k = ~78k (match assignment, month page). S5 enters exception PIX/tax-id at ~28k (running ~106k). S6 ~18k + S7 ~8k = ~132k floor. All seven slices stay under 150k. Surface changes at S5 (NormalizedEmail / BrazilianTaxId / accountant fields) but the running total never reaches the budget, so no split.
+
+Boundary: S1–S4 closed at `7cf30f3` (S3) plus the S4 commit on this branch; remaining is S5–S7 (C40–C67).
+User settled mid-build: none.
+Abandoned: none. `Suggestion.assign` already ranks equal / format-2 / greater / lesser and groups Justification members. Do not re-derive that. S5 is a new `ExceptionSuggestion` PORO; match suggestion on a payment suppresses it, including lesser 1:1. S7 preselects ids on the existing `POST /matches` forms (per-payment checkboxes for 1:1 and justification; N:1 form for format-2).

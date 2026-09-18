@@ -145,6 +145,74 @@ RSpec.describe "Matches", type: :request do
     expect(twelve_status).not_to include("Sugestão")
   end
 
+  it "POST suggested justification equal persists Casado with both payees" do
+    account, organization, _month, statement = signed_month
+    payment = plant_payment(statement, 20000, history: "Pix enviado — Gasto")
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "45,00")
+    Justification.declare(
+      organization: organization,
+      account: account,
+      amount: "200,00",
+      supporting_document_ids: [ padaria.id, mercado.id ]
+    )
+
+    post "/months/2026-05/matches", params: {
+      payment_ids: [ payment.id ], supporting_document_ids: [ padaria.id, mercado.id ]
+    }
+
+    expect(response).to have_http_status(:found)
+    expect(Match.count).to eq(1)
+    get "/months/2026-05"
+    status = payment_status_html(response.body, history: "Pix enviado — Gasto")
+    expect(status).to include("Casado")
+    expect(status).to include("Padaria Central")
+    expect(status).to include("Mercado Silva")
+    expect(status).not_to include("Documento faltante")
+    expect(status).not_to include("Sugestão")
+  end
+
+  it "POST justification members greater than payment persists Match" do
+    account, organization, _month, statement = signed_month
+    payment = plant_payment(statement, 18000)
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "45,00")
+    Justification.declare(
+      organization: organization,
+      account: account,
+      amount: "180,00",
+      supporting_document_ids: [ padaria.id, mercado.id ]
+    )
+
+    post "/months/2026-05/matches", params: {
+      payment_ids: [ payment.id ], supporting_document_ids: [ padaria.id, mercado.id ]
+    }
+
+    expect(response).to have_http_status(:found)
+    expect(Match.count).to eq(1)
+  end
+
+  it "POST justification lesser without observation returns 422" do
+    account, organization, _month, statement = signed_month
+    payment = plant_payment(statement, 22000)
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "45,00")
+    Justification.declare(
+      organization: organization,
+      account: account,
+      amount: "220,00",
+      supporting_document_ids: [ padaria.id, mercado.id ]
+    )
+
+    post "/months/2026-05/matches", params: {
+      payment_ids: [ payment.id ], supporting_document_ids: [ padaria.id, mercado.id ]
+    }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Informe a observação do casamento")
+    expect(Match.count).to eq(0)
+  end
+
   it "POST 1 payment 1 document equal persists Match 302" do
     account, organization, _month, statement = signed_month
     payment = plant_payment(statement, 22000)
