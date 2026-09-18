@@ -1441,4 +1441,101 @@ RSpec.describe "Supporting documents", type: :request do
       expect(SupportingDocument.find(id).amount_cents).to eq(15500)
     end
   end
+
+  it "GET /supporting_documents after matching unmatched-in-package Padaria includes Casado em 2026-05" do
+    account, organization = signed_in
+    ready_to_close!(organization)
+    month, statement = plant_month(organization)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    post "/months/2026-05/close", params: { supporting_document_ids: [ document.id ] }
+    post "/months/2026-05/reopen"
+    payment = plant_payment(statement, 15500)
+    post "/months/2026-05/matches", params: {
+      payment_ids: [ payment.id ], supporting_document_ids: [ document.id ]
+    }
+
+    get "/supporting_documents"
+
+    expect(response.body).to include("Casado em 2026-05")
+    expect(response.body).not_to include("Sem casamento em 2026-05")
+    expect(document.reload.month_id).to eq(month.id)
+  end
+
+  it "GET /supporting_documents after unmatched close includes Sem casamento em 2026-05" do
+    account, organization = signed_in
+    ready_to_close!(organization)
+    plant_month(organization)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    post "/months/2026-05/close", params: { supporting_document_ids: [ document.id ] }
+
+    get "/supporting_documents"
+
+    expect(response.body).to include("Sem casamento em 2026-05")
+    expect(response.body).not_to include("Casado em 2026-05")
+  end
+
+  it "PATCH payee while unmatched-in-package of a closed month returns 422 Mes fechado" do
+    account, organization = signed_in
+    ready_to_close!(organization)
+    plant_month(organization)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    post "/months/2026-05/close", params: { supporting_document_ids: [ document.id ] }
+
+    patch "/supporting_documents/#{document.id}", params: { payee: "Mercado Silva" }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Mês fechado")
+    expect(document.reload.payee).to eq("Padaria Central")
+  end
+
+  it "PATCH payee of unmatched-in-package Padaria while open persists Mercado Silva" do
+    account, organization = signed_in
+    ready_to_close!(organization)
+    plant_month(organization)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    post "/months/2026-05/close", params: { supporting_document_ids: [ document.id ] }
+    post "/months/2026-05/reopen"
+
+    patch "/supporting_documents/#{document.id}", params: { payee: "Mercado Silva" }
+
+    expect(response).to have_http_status(:found)
+    expect(document.reload.payee).to eq("Mercado Silva")
+  end
+
+  it "submitter PATCH unmatched-in-package Padaria returns 422 Documento ja pertence a um mes" do
+    coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(submitter, organization: organization)
+    document = plant_recibo(organization, submitter, payee: "Padaria Central", amount: "155,00")
+    sign_in_as(coord, organization: organization)
+    ready_to_close!(organization)
+    plant_month(organization)
+    post "/months/2026-05/close", params: { supporting_document_ids: [ document.id ] }
+    sign_in_as(submitter, organization: organization)
+
+    patch "/supporting_documents/#{document.id}", params: { payee: "Mercado Silva" }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Documento já pertence a um mês")
+    expect(document.reload.payee).to eq("Padaria Central")
+  end
+
+  it "submitter DELETE unmatched-in-package Padaria returns 422 Documento ja pertence a um mes" do
+    coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(submitter, organization: organization)
+    document = plant_recibo(organization, submitter, payee: "Padaria Central", amount: "155,00")
+    sign_in_as(coord, organization: organization)
+    ready_to_close!(organization)
+    plant_month(organization)
+    post "/months/2026-05/close", params: { supporting_document_ids: [ document.id ] }
+    sign_in_as(submitter, organization: organization)
+
+    delete "/supporting_documents/#{document.id}"
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Documento já pertence a um mês")
+    expect(SupportingDocument.find(document.id)).to be_persisted
+    expect(document.reload.month_id).to be_present
+  end
 end

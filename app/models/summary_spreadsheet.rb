@@ -1,22 +1,25 @@
 class SummarySpreadsheet
   INFLOW_HEADERS = [ "Data", "Valor", "Onde", "Item", "Detalhe" ].freeze
   EXPENSE_HEADERS = [ "Data", "Valor", "Onde", "O que", "Detalhes", "Exceção", "Arquivo(s)", "Observação" ].freeze
+  UNMATCHED_HEADERS = [ "Arquivo", "Tipo", "Valor", "Data", "Favorecido", "Observação" ].freeze
+  TIPO_COPY = { "nota_fiscal" => "Nota fiscal", "recibo" => "Recibo" }.freeze
   EXCEPTION_COPY = {
     "bank_fee" => "Tarifa bancária",
     "accountant_fee" => "Honorário do contador"
   }.freeze
 
-  def self.bytes(month)
-    new(month).bytes
+  def self.bytes(month, extra_unmatched: [])
+    new(month, extra_unmatched: extra_unmatched).bytes
   end
 
-  def self.workbook(month)
-    new(month).workbook
+  def self.workbook(month, extra_unmatched: [])
+    new(month, extra_unmatched: extra_unmatched).workbook
   end
 
-  def initialize(month)
+  def initialize(month, extra_unmatched: [])
     @month = month
     @organization = month.organization
+    @extra_unmatched = Array(extra_unmatched)
   end
 
   def bytes
@@ -98,12 +101,43 @@ class SummarySpreadsheet
     row += 1
     sheet.add_cell(row, 0, "Resultado mês")
     sheet.add_cell(row, 1, nil, "B#{excel_row(@receita_row)}-B#{excel_row(@despesas_row)}")
+    write_unmatched(sheet, row + 2)
     row
   end
 
   def inflows
     Inflow.joins(:bank_statement).where(bank_statements: { month_id: @month.id })
       .includes(bank_statement: :bank_account).order(:occurred_on, :id)
+  end
+
+  def write_unmatched(sheet, row)
+    documents = unmatched_documents
+    return if documents.empty?
+
+    sheet.add_cell(row, 0, "Documentos sem casamento")
+    row += 1
+    UNMATCHED_HEADERS.each_with_index { |header, index| sheet.add_cell(row, index, header) }
+    row += 1
+    documents.each do |document|
+      sheet.add_cell(row, 0, unmatched_arquivo_cell(document))
+      sheet.add_cell(row, 1, TIPO_COPY.fetch(document.kind))
+      sheet.add_cell(row, 2, excel_amount(document.amount_cents))
+      sheet.add_cell(row, 3, format_date(document.document_on))
+      sheet.add_cell(row, 4, document.payee)
+      sheet.add_cell(row, 5, document.observation.to_s)
+      row += 1
+    end
+  end
+
+  def unmatched_documents
+    persisted = SupportingDocument.where(month_id: @month.id, match_id: nil)
+      .with_attached_photo.with_attached_xml.to_a
+    extras = @extra_unmatched.reject { |document| persisted.any? { |row| row.id == document.id } }
+    (persisted + extras).sort_by { |document| [ document.document_on, document.id ] }
+  end
+
+  def unmatched_arquivo_cell(document)
+    MonthPackage.document_package_names(document, folder: MonthPackage::UNMATCHED_FOLDER).join("; ")
   end
 
   def expenses

@@ -219,6 +219,166 @@ RSpec.describe Month, type: :model do
       expect(Month.column_names).not_to include("status")
       expect(opened).not_to respond_to(:closing)
     end
+
+    it "close with Padaria assigns month_id after a successful write" do
+      document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+
+      month.close_for_send(supporting_documents: [ document ])
+
+      expect(month.errors).to be_empty
+      expect(month.reload.closed?).to eq(true)
+      document.reload
+      expect(document.month_id).to eq(month.id)
+      expect(document.match_id).to be_nil
+    end
+
+    it "close without documents leaves Padaria month_id nil" do
+      document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+
+      month.close_for_send
+
+      expect(document.reload.month_id).to be_nil
+    end
+
+    it "close with only Padaria leaves Mercado month_id nil" do
+      padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+      mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "45,00")
+
+      month.close_for_send(supporting_documents: [ padaria ])
+
+      expect(padaria.reload.month_id).to eq(month.id)
+      expect(mercado.reload.month_id).to be_nil
+    end
+
+    it "close with a document of another month does not write" do
+      june = Month.open(organization: organization, year_month: "2026-06")
+      document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+      document.update!(month_id: june.id)
+      calls = writer.calls.size
+
+      month.close_for_send(supporting_documents: [ document ])
+
+      expect(month.errors[:base]).to include("Documento já pertence a um mês")
+      expect(month.reload.closed?).to eq(false)
+      expect(document.reload.month_id).to eq(june.id)
+      expect(writer.calls.size).to eq(calls)
+    end
+
+    it "close with a matched document does not write" do
+      payment = plant_payment(statement, 22000)
+      document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+      Match.confirm(month: month, payments: [ payment ], supporting_documents: [ document ])
+      calls = writer.calls.size
+
+      month.close_for_send(supporting_documents: [ document ])
+
+      expect(month.errors[:base]).to include("Documento já está em um casamento")
+      expect(month.reload.closed?).to eq(false)
+      expect(writer.calls.size).to eq(calls)
+    end
+
+    it "close selecting Padaria when writer raises leaves month_id nil" do
+      document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+      failing = Class.new do
+        def replace_month_folder(**)
+          raise PackageArchiveWriter::Error
+        end
+      end.new
+
+      month.close_for_send(writer: failing, supporting_documents: [ document ])
+
+      expect(month.errors[:base]).to include("Não foi possível gravar no arquivo do pacote")
+      expect(month.reload.closed?).to eq(false)
+      expect(document.reload.month_id).to be_nil
+    end
+
+    it "close selecting Padaria with missing document does not assign month_id" do
+      plant_payment(statement, 22000)
+      document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+      calls = writer.calls.size
+
+      month.close_for_send(supporting_documents: [ document ])
+
+      expect(month.errors[:base]).to include("Há documento faltante")
+      expect(document.reload.month_id).to be_nil
+      expect(writer.calls.size).to eq(calls)
+    end
+
+    it "reopen after unmatched Padaria close keeps month_id and does not write" do
+      document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+      month.close_for_send(supporting_documents: [ document ])
+      calls = writer.calls.size
+
+      month.reopen
+
+      expect(month.reload.closed?).to eq(false)
+      expect(writer.calls.size).to eq(calls)
+      document.reload
+      expect(document.month_id).to eq(month.id)
+      expect(document.match_id).to be_nil
+    end
+
+    it "re-close without documents keeps unmatched Padaria month_id" do
+      document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+      month.close_for_send(supporting_documents: [ document ])
+      month.reopen
+
+      month.close_for_send
+
+      document.reload
+      expect(document.month_id).to eq(month.id)
+      expect(document.match_id).to be_nil
+    end
+
+    it "restore_month_folder rewrites the same folder_id and stays closed" do
+      payment = plant_payment(statement, 22000)
+      mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "220,00")
+      Match.confirm(month: month, payments: [ payment ], supporting_documents: [ mercado ])
+      padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+      month.close_for_send(supporting_documents: [ padaria ])
+      folder_id = month.reload.month_folder_id
+      calls = writer.calls.size
+
+      month.restore_month_folder
+
+      expect(month.errors).to be_empty
+      expect(month.reload.closed?).to eq(true)
+      expect(month.month_folder_id).to eq(folder_id)
+      expect(padaria.reload.month_id).to eq(month.id)
+      expect(writer.calls.size).to eq(calls + 1)
+      call = writer.calls.last
+      expect(call[:folder_id]).to eq(folder_id)
+      expect(call[:files].keys).to include(
+        "notas-sem-casamento/recibo-2026-05-11-padaria-central-#{padaria.id}.jpg",
+        "notas/recibo-2026-05-11-mercado-silva-#{mercado.id}.jpg",
+        "resumo-2026-05.xlsx"
+      )
+    end
+
+    it "restore_month_folder while open does not write" do
+      calls = writer.calls.size
+
+      month.restore_month_folder
+
+      expect(month.errors[:base]).to include("Mês aberto")
+      expect(writer.calls.size).to eq(calls)
+    end
+
+    it "restore_month_folder when writer raises keeps folder_id" do
+      month.close_for_send
+      folder_id = month.reload.month_folder_id
+      failing = Class.new do
+        def replace_month_folder(**)
+          raise PackageArchiveWriter::Error
+        end
+      end.new
+
+      month.restore_month_folder(writer: failing)
+
+      expect(month.errors[:base]).to include("Não foi possível gravar no arquivo do pacote")
+      expect(month.reload.closed?).to eq(true)
+      expect(month.month_folder_id).to eq(folder_id)
+    end
   end
 
   describe "concurrent closes persist closed once and write once" do
@@ -240,6 +400,71 @@ RSpec.describe Month, type: :model do
 
       expect(month.reload.closed?).to eq(true)
       expect(memory.calls.size).to eq(1)
+    ensure
+      truncate_product_tables
+    end
+  end
+
+  describe "concurrent close of two months with the same Padaria" do
+    self.use_transactional_tests = false
+
+    it "concurrent close of two months with the same Padaria assigns one month_id" do
+      truncate_product_tables
+      org = Organization.create!(
+        name: "ONG Norte",
+        accountant_presentation_name: "Maria Contadora",
+        package_archive_folder_id: CloseHelpers::ARCHIVE_FOLDER_ID
+      )
+      coord = Account.create!(email: "coord@example.com", google_uid: "uid-coord")
+      may, _may_statement = plant_month(org, year_month: "2026-05")
+      june, _june_statement = plant_month(org, year_month: "2026-06")
+      document = plant_recibo(org, coord, payee: "Padaria Central", amount: "155,00")
+      memory_may = PackageArchiveWriter::Memory.new
+      memory_june = PackageArchiveWriter::Memory.new
+      queue = Queue.new
+      queue << [ may.id, memory_may ]
+      queue << [ june.id, memory_june ]
+
+      run_in_parallel(2) do
+        month_id, memory = queue.pop
+        Month.find(month_id).close_for_send(
+          writer: memory,
+          supporting_documents: [ SupportingDocument.find(document.id) ]
+        )
+      end
+
+      closed = Month.where(id: [ may.id, june.id ], closed: true)
+      expect(closed.count).to eq(1)
+      expect(SupportingDocument.find(document.id).month_id).to eq(closed.first.id)
+      winner_memory, loser_memory = [ memory_may, memory_june ].partition { |memory| memory.calls.any? }
+      expect(winner_memory.size).to eq(1)
+      expect(loser_memory.first.calls.size).to eq(0)
+    ensure
+      truncate_product_tables
+    end
+  end
+
+  describe "concurrent restore_month_folder" do
+    self.use_transactional_tests = false
+
+    it "concurrent restore_month_folder keeps closed and folder_id" do
+      truncate_product_tables
+      org = Organization.create!(
+        name: "ONG Norte",
+        accountant_presentation_name: "Maria Contadora",
+        package_archive_folder_id: CloseHelpers::ARCHIVE_FOLDER_ID
+      )
+      month, _statement = plant_month(org)
+      memory = PackageArchiveWriter::Memory.new
+      Month.find(month.id).close_for_send(writer: memory)
+      folder_id = month.reload.month_folder_id
+
+      run_in_parallel(2) do
+        Month.find(month.id).restore_month_folder(writer: memory)
+      end
+
+      expect(month.reload.closed?).to eq(true)
+      expect(month.month_folder_id).to eq(folder_id)
     ensure
       truncate_product_tables
     end

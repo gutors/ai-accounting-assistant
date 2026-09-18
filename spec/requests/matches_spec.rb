@@ -540,4 +540,57 @@ RSpec.describe "Matches", type: :request do
     expect(status).to include("Sugestão")
     expect(status).to include("Padaria Central")
   end
+
+  it "POST format-1 Match of unmatched-in-package Padaria keeps month_id" do
+    account, organization, month, statement = signed_month
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    ready_to_close!(organization)
+    post "/months/2026-05/close", params: { supporting_document_ids: [ document.id ] }
+    post "/months/2026-05/reopen"
+    payment = plant_payment(statement, 15500)
+
+    post "/months/2026-05/matches", params: {
+      payment_ids: [ payment.id ], supporting_document_ids: [ document.id ]
+    }
+
+    expect(Match.count).to eq(1)
+    expect(document.reload.month_id).to eq(month.id)
+    get "/months/2026-05"
+    expect(response.body).to include("Casado")
+    expect(pool_html(response.body)).not_to include("Devolver")
+  end
+
+  it "POST match of May unmatched-in-package Padaria onto June returns 422" do
+    account, organization, month, _statement = signed_month
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    ready_to_close!(organization)
+    post "/months/2026-05/close", params: { supporting_document_ids: [ document.id ] }
+    post "/months/2026-05/reopen"
+    _june, june_statement = plant_month(organization, year_month: "2026-06")
+    payment = plant_payment(june_statement, 15500)
+
+    post "/months/2026-06/matches", params: {
+      payment_ids: [ payment.id ], supporting_document_ids: [ document.id ]
+    }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Documento já pertence a um mês")
+    expect(Match.count).to eq(0)
+    expect(document.reload.month_id).to eq(month.id)
+  end
+
+  it "DELETE match of former unmatched-in-package Padaria clears month_id" do
+    account, organization, month, statement = signed_month
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    document.update!(month_id: month.id)
+    payment = plant_payment(statement, 15500)
+    post "/months/2026-05/matches", params: {
+      payment_ids: [ payment.id ], supporting_document_ids: [ document.id ]
+    }
+    match = Match.last
+
+    delete "/months/2026-05/matches/#{match.id}"
+
+    expect(document.reload.month_id).to be_nil
+  end
 end

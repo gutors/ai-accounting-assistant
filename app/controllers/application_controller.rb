@@ -71,7 +71,9 @@ class ApplicationController < ActionController::Base
     @inflows = Inflow.joins(:bank_statement).where(bank_statements: { month_id: @month.id }).includes(bank_statement: :bank_account).order(:occurred_on, :id)
     @payments = Payment.joins(:bank_statement).where(bank_statements: { month_id: @month.id }).includes(:extra_exception_kind, match: :supporting_documents, bank_statement: :bank_account).order(:occurred_on, :id)
     @active_extra_exception_kinds = @organization.extra_exception_kinds.where(active: true).order(:name)
-    @unmatched_documents = @organization.supporting_documents.unmatched.listed
+    @unmatched_documents = @organization.supporting_documents.unmatched.listed.where(
+      month_id: @month.closed? ? @month.id : [ nil, @month.id ]
+    )
     @missing_document_payments = @payments.select(&:missing_document?)
     @suggestions_by_payment_id = suggestions_on_month
     @exception_suggestions_by_payment_id = exception_suggestions_on_month

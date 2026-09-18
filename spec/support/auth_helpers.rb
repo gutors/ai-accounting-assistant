@@ -21,4 +21,20 @@ module AuthHelpers
     expect(session[:account_id]).to eq(account.id)
     post "/focus", params: { organization_id: organization.id } if session[:organization_id] != organization.id
   end
+
+  def signed_in_session(account)
+    host = ActionDispatch::Integration::Session.new(Rails.application)
+    host.host = "www.example.com"
+    OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(
+      provider: "google_oauth2",
+      uid: account.google_uid,
+      info: { email: account.email, email_verified: true },
+      extra: {
+        raw_info: { "email" => account.email, "email_verified" => true },
+        id_info: { "email_verified" => true, "email" => account.email }
+      }
+    )
+    host.get "/auth/google_oauth2/callback", headers: { "User-Agent" => ChromeUserAgent::CHROME }
+    host
+  end
 end

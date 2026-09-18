@@ -112,4 +112,30 @@ RSpec.describe "Reopen month", type: :request do
     expect(month.reload.closed?).to eq(true)
     expect(response).to have_http_status(:not_found)
   end
+
+  it "POST reopen after unmatched Padaria close keeps month_id and shows Devolver" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    ready_to_close!(organization)
+    month, _statement = plant_month(organization)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    post "/months/2026-05/close", params: { supporting_document_ids: [ document.id ] }
+    calls = writer.calls.size
+
+    post "/months/2026-05/reopen"
+
+    expect(month.reload.closed?).to eq(false)
+    expect(writer.calls.size).to eq(calls)
+    document.reload
+    expect(document.month_id).to eq(month.id)
+    expect(document.match_id).to be_nil
+
+    get "/months/2026-05"
+    expect(response.body).to include("Fechar para envio")
+    expect(response.body).to include('data-turbo-confirm="Fechar o mês para envio?"')
+    expect(pool_html(response.body)).to include("Devolver")
+    expect(pool_html(response.body)).to include("Padaria Central")
+    expect(response.body).not_to include("Restaurar pasta")
+    expect(response.body).not_to include("Mês fechado")
+  end
 end

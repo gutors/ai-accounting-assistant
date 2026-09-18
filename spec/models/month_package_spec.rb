@@ -65,4 +65,23 @@ RSpec.describe MonthPackage, type: :model do
   it "package files have no notas-sem-casamento prefix" do
     expect(package_files.keys.grep(/\Anotas-sem-casamento\//)).to eq([])
   end
+
+  it "unmatched-in-package recibo path is notas-sem-casamento" do
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    document.update!(month_id: month.id)
+
+    expect(package_files.keys).to include("notas-sem-casamento/recibo-2026-05-11-padaria-central-#{document.id}.jpg")
+    expect(package_files.keys.grep(%r{\Anotas/.*#{document.id}})).to eq([])
+  end
+
+  it "matched Mercado stays under notas when Padaria is unmatched-in-package" do
+    payment = plant_payment(statement, 22000)
+    mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "220,00")
+    Match.confirm(month: month, payments: [ payment ], supporting_documents: [ mercado ])
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    padaria.update!(month_id: month.id)
+
+    expect(package_files.keys).to include("notas/recibo-2026-05-11-mercado-silva-#{mercado.id}.jpg")
+    expect(package_files.keys).to include("notas-sem-casamento/recibo-2026-05-11-padaria-central-#{padaria.id}.jpg")
+  end
 end

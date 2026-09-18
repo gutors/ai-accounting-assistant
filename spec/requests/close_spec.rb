@@ -10,8 +10,16 @@ RSpec.describe "Close for send", type: :request do
     [ account, organization, month, statement ]
   end
 
-  def post_close(year_month = "2026-05")
-    post "/months/#{year_month}/close"
+  def post_close(year_month = "2026-05", **params)
+    if params.empty?
+      post "/months/#{year_month}/close"
+    else
+      post "/months/#{year_month}/close", params: params
+    end
+  end
+
+  def padaria_unmatched_path(document)
+    "notas-sem-casamento/recibo-2026-05-11-padaria-central-#{document.id}.jpg"
   end
 
   it "POST close while exception suggestion showing returns 422 Ha documento faltante" do
@@ -568,5 +576,291 @@ RSpec.describe "Close for send", type: :request do
 
     expect(response).to have_http_status(:found)
     expect(month.reload.closed?).to eq(true)
+  end
+
+  it "POST close with Padaria id assigns unmatched-in-package and writes notas-sem-casamento" do
+    account, organization, month, _statement = signed_ready
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+
+    post_close("2026-05", supporting_document_ids: [ document.id ])
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/months/2026-05")
+    expect(month.reload.closed?).to eq(true)
+    document.reload
+    expect(document.month_id).to eq(month.id)
+    expect(document.match_id).to be_nil
+    expect(writer_files.keys).to include(padaria_unmatched_path(document))
+    expect(writer_files.keys.grep(%r{\Anotas/.*#{document.id}})).to eq([])
+  end
+
+  it "POST close omitting supporting_document_ids leaves Padaria with no month" do
+    account, organization, _month, _statement = signed_ready
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+
+    post_close
+
+    expect(response).to have_http_status(:found)
+    expect(document.reload.month_id).to be_nil
+    expect(writer_files.keys.grep(/\Anotas-sem-casamento\//)).to eq([])
+  end
+
+  it "POST close with empty supporting_document_ids leaves Padaria with no month" do
+    account, organization, _month, _statement = signed_ready
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+
+    post_close("2026-05", supporting_document_ids: [])
+
+    expect(response).to have_http_status(:found)
+    expect(document.reload.month_id).to be_nil
+    expect(writer_files.keys.grep(/\Anotas-sem-casamento\//)).to eq([])
+  end
+
+  it "POST close with only Padaria id leaves Mercado with no month" do
+    account, organization, month, _statement = signed_ready
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "45,00")
+
+    post_close("2026-05", supporting_document_ids: [ padaria.id ])
+
+    expect(padaria.reload.month_id).to eq(month.id)
+    expect(mercado.reload.month_id).to be_nil
+    expect(writer_files.keys).to include(padaria_unmatched_path(padaria))
+    expect(writer_files.keys.grep(/#{mercado.id}/)).to eq([])
+  end
+
+  it "POST close with another organization document id returns 404" do
+    account, org_a = plant_coordinator(email: "a@example.com", organization_name: "A")
+    sign_in_as(account, organization: org_a)
+    ready_to_close!(org_a)
+    month_a, _statement = plant_month(org_a)
+    org_b = Organization.create!(name: "B")
+    Access.create!(account: account, organization: org_b, kind: :coordinator)
+    padaria = plant_recibo(org_b, account, payee: "Padaria Central", amount: "155,00")
+    calls = writer.calls.size
+
+    post_close("2026-05", supporting_document_ids: [ padaria.id ])
+
+    expect(response).to have_http_status(:not_found)
+    expect(month_a.reload.closed?).to eq(false)
+    expect(padaria.reload.month_id).to be_nil
+    expect(writer.calls.size).to eq(calls)
+  end
+
+  it "POST close with June unmatched-in-package returns 422 Documento ja pertence a um mes" do
+    account, organization, month_may, _statement = signed_ready
+    month_june, _june_statement = plant_month(organization, year_month: "2026-06")
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    document.update!(month_id: month_june.id)
+    calls = writer.calls.size
+
+    post_close("2026-05", supporting_document_ids: [ document.id ])
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Documento já pertence a um mês")
+    expect(month_may.reload.closed?).to eq(false)
+    expect(document.reload.month_id).to eq(month_june.id)
+    expect(writer.calls.size).to eq(calls)
+  end
+
+  it "POST close with a matched document returns 422 Documento ja esta em um casamento" do
+    account, organization, month, statement = signed_ready
+    payment = plant_payment(statement, 22000)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    Match.confirm(month: month, payments: [ payment ], supporting_documents: [ document ])
+    calls = writer.calls.size
+
+    post_close("2026-05", supporting_document_ids: [ document.id ])
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Documento já está em um casamento")
+    expect(month.reload.closed?).to eq(false)
+    expect(writer.calls.size).to eq(calls)
+  end
+
+  it "POST close selecting Padaria when writer raises leaves month_id nil" do
+    account, organization, month, _statement = signed_ready
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    allow(PackageArchiveWriter.current).to receive(:replace_month_folder).and_raise(PackageArchiveWriter::Error)
+
+    post_close("2026-05", supporting_document_ids: [ document.id ])
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Não foi possível gravar no arquivo do pacote")
+    expect(month.reload.closed?).to eq(false)
+    expect(document.reload.month_id).to be_nil
+  end
+
+  it "POST close selecting Padaria with missing document 22000 returns 422" do
+    account, organization, _month, statement = signed_ready
+    plant_payment(statement, 22000)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    calls = writer.calls.size
+
+    post_close("2026-05", supporting_document_ids: [ document.id ])
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Há documento faltante")
+    expect(document.reload.month_id).to be_nil
+    expect(writer.calls.size).to eq(calls)
+  end
+
+  it "unauthenticated POST close with supporting_document_ids responds 302 to /login" do
+    account, organization = plant_coordinator
+    ready_to_close!(organization)
+    plant_month(organization)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+
+    post_close("2026-05", supporting_document_ids: [ document.id ])
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/login")
+    expect(document.reload.month_id).to be_nil
+  end
+
+  it "submitter POST close with supporting_document_ids returns 404" do
+    coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    ready_to_close!(organization)
+    month, _statement = plant_month(organization)
+    document = plant_recibo(organization, coord, payee: "Padaria Central", amount: "155,00")
+    sign_in_as(submitter, organization: organization)
+
+    post_close("2026-05", supporting_document_ids: [ document.id ])
+
+    expect(response).to have_http_status(:not_found)
+    expect(month.reload.closed?).to eq(false)
+    expect(document.reload.month_id).to be_nil
+  end
+
+  it "re-close without ids keeps unmatched Padaria in notas-sem-casamento" do
+    account, organization, month, _statement = signed_ready
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    post_close("2026-05", supporting_document_ids: [ document.id ])
+    post "/months/2026-05/reopen"
+
+    post_close
+
+    expect(document.reload.month_id).to eq(month.id)
+    expect(document.match_id).to be_nil
+    expect(writer_files.keys).to include(padaria_unmatched_path(document))
+  end
+
+  it "close after return omits Padaria from writer files" do
+    account, organization, _month, _statement = signed_ready
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    post_close("2026-05", supporting_document_ids: [ document.id ])
+    post "/months/2026-05/reopen"
+    post "/months/2026-05/supporting_documents/#{document.id}/return"
+
+    post_close
+
+    expect(document.reload.month_id).to be_nil
+    expect(writer_files.keys.grep(/#{document.id}/)).to eq([])
+  end
+
+  it "xlsx unmatched section lists Padaria recibo after Resultado mes" do
+    account, organization, _month, _statement = signed_ready
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    document.apply(observation: "pago em dinheiro")
+    post_close("2026-05", supporting_document_ids: [ document.id ])
+    values = sheet_cell_values(parse_resumo)
+    resultado = values.index { |row| row.include?("Resultado mês") }
+    heading = values.index { |row| row.include?("Documentos sem casamento") }
+    header = unmatched_header_row(values)
+    row = unmatched_data_rows(values).find { |cells| cells.include?("Padaria Central") }
+
+    expect(parse_resumo[0].sheet_name).to eq("2026-05")
+    expect(heading).to be > resultado
+    expect(header).to eq([ "Arquivo", "Tipo", "Valor", "Data", "Favorecido", "Observação" ])
+    expect(row).to include(
+      padaria_unmatched_path(document),
+      "Recibo",
+      155,
+      "11/05/2026",
+      "Padaria Central",
+      "pago em dinheiro"
+    )
+  end
+
+  it "xlsx unmatched nota fiscal Arquivo joins jpg and xml" do
+    account, organization, _month, _statement = signed_ready
+    document = plant_nota(organization, account, payee: "Padaria Central", amount: "155,00")
+    post_close("2026-05", supporting_document_ids: [ document.id ])
+    row = unmatched_data_rows(sheet_cell_values(parse_resumo)).find { |cells| cells.include?("Padaria Central") }
+    joined = "notas-sem-casamento/nota-2026-05-11-padaria-central-#{document.id}.jpg; notas-sem-casamento/nota-2026-05-11-padaria-central-#{document.id}.xml"
+
+    expect(row[0]).to eq(joined)
+    expect(row).to include("Nota fiscal")
+  end
+
+  it "xlsx without unmatched documents omits sem casamento" do
+    _account, _organization, _month, _statement = signed_ready
+    post_close
+
+    expect(sheet_text(parse_resumo)).not_to include("sem casamento")
+  end
+
+  it "writer files keep matched Mercado under notas and omit it from unmatched" do
+    account, organization, month, statement = signed_ready
+    payment = plant_payment(statement, 22000)
+    mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "220,00")
+    Match.confirm(month: month, payments: [ payment ], supporting_documents: [ mercado ])
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+
+    post_close("2026-05", supporting_document_ids: [ padaria.id ])
+    values = sheet_cell_values(parse_resumo)
+    unmatched_text = unmatched_data_rows(values).flatten.compact.map(&:to_s).join("\n")
+
+    expect(writer_files.keys).to include("notas/recibo-2026-05-11-mercado-silva-#{mercado.id}.jpg")
+    expect(unmatched_text).not_to include("Mercado Silva")
+  end
+
+  describe "concurrent close of May and June with the same Padaria" do
+    self.use_transactional_tests = false
+
+    it "concurrent close of May and June with the same Padaria closes exactly one" do
+      truncate_product_tables
+      account, organization = plant_coordinator
+      ready_to_close!(organization)
+      plant_month(organization, year_month: "2026-05")
+      plant_month(organization, year_month: "2026-06")
+      document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+      session_may = signed_in_session(account)
+      session_june = signed_in_session(account)
+      headers = { "User-Agent" => ChromeUserAgent::CHROME }
+      statuses = []
+      mutex = Mutex.new
+
+      threads = [
+        Thread.new do
+          session_may.post(
+            "/months/2026-05/close",
+            params: { supporting_document_ids: [ document.id ] },
+            headers: headers
+          )
+          mutex.synchronize { statuses << session_may.response.status }
+        end,
+        Thread.new do
+          session_june.post(
+            "/months/2026-06/close",
+            params: { supporting_document_ids: [ document.id ] },
+            headers: headers
+          )
+          mutex.synchronize { statuses << session_june.response.status }
+        end
+      ]
+      threads.each(&:join)
+
+      closed = Month.where(organization: organization, closed: true)
+      expect(closed.count).to eq(1)
+      expect(document.reload.month_id).to eq(closed.first.id)
+      expect(statuses).to contain_exactly(302, 422)
+      expect(writer.calls.size).to eq(1)
+      loser = [ session_may, session_june ].find { |host| host.response.status == 422 }
+      expect(loser.response.body).to include("Documento já pertence a um mês")
+    ensure
+      truncate_product_tables
+    end
   end
 end

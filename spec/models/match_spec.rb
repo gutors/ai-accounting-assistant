@@ -305,4 +305,41 @@ RSpec.describe Match, type: :model do
     expect(match.errors[:base]).to include("Mês fechado")
     expect(Match.exists?(match.id)).to eq(true)
   end
+
+  it "confirm unmatched-in-package Padaria on the same month keeps month_id" do
+    payment = plant_payment(statement, 15500)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    document.update!(month_id: month.id)
+
+    match = confirm(payments: [ payment ], documents: [ document ])
+
+    expect(match).to be_persisted
+    expect(document.reload.month_id).to eq(month.id)
+    expect(document.match_id).to eq(match.id)
+  end
+
+  it "confirm document of another month is HAS_MONTH" do
+    june, june_statement = plant_month(organization, year_month: "2026-06")
+    payment = plant_payment(june_statement, 15500)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    document.update!(month_id: month.id)
+
+    match = Match.confirm(month: june, payments: [ payment ], supporting_documents: [ document ])
+
+    expect(match).not_to be_persisted
+    expect(match.errors[:base]).to include("Documento já pertence a um mês")
+    expect(Match.count).to eq(0)
+  end
+
+  it "dissolve of former unmatched-in-package Padaria clears month_id" do
+    payment = plant_payment(statement, 15500)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    document.update!(month_id: month.id)
+    match = confirm(payments: [ payment ], documents: [ document ])
+
+    match.dissolve
+
+    expect(document.reload.month_id).to be_nil
+    expect(document.match_id).to be_nil
+  end
 end

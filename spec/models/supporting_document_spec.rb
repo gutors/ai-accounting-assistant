@@ -880,4 +880,27 @@ RSpec.describe SupportingDocument, type: :model do
       expect(@doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
     end
   end
+
+  it "return unmatched-in-package Padaria clears month_id" do
+    month, _statement = plant_month(organization)
+    document = insert_doc
+    document.update!(month_id: month.id)
+
+    document.return_to_no_month
+
+    expect(document.errors).to be_empty
+    expect(document.reload.month_id).to be_nil
+  end
+
+  it "return while Month closed keeps month_id" do
+    month, _statement = plant_month(organization)
+    document = insert_doc
+    document.update!(month_id: month.id)
+    month.update!(closed: true)
+
+    document.return_to_no_month
+
+    expect(document.errors[:base]).to include("Mês fechado")
+    expect(document.reload.month_id).to eq(month.id)
+  end
 end

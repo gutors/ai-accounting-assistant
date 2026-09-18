@@ -32,6 +32,14 @@ module MatchHelpers
     body[body.index("Documentos sem casamento")..]
   end
 
+  def pool_close_document_ids(body)
+    Nokogiri::HTML(pool_html(body)).css('input[name="supporting_document_ids[]"]').map { |input| input["value"].to_i }
+  end
+
+  def page_close_document_ids(body)
+    Nokogiri::HTML(body).css('input[name="supporting_document_ids[]"]').map { |input| input["value"].to_i }
+  end
+
   def recebimentos_html(body)
     body[body.index("Recebimentos")...body.index("Pagamentos")]
   end

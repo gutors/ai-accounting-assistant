@@ -33,6 +33,8 @@ Rails.application.routes.draw do
   get "/months/:year_month", to: "months#show"
   post "/months/:year_month/close", to: "months#close"
   post "/months/:year_month/reopen", to: "months#reopen"
+  post "/months/:year_month/restore", to: "months#restore"
+  post "/months/:year_month/supporting_documents/:id/return", to: "month_returns#create"
   post "/months/:year_month/bank_statements", to: "bank_statements#create"
   post "/months/:year_month/matches", to: "matches#create"
   delete "/months/:year_month/matches/:id", to: "matches#destroy"
