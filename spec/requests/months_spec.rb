@@ -820,4 +820,286 @@ RSpec.describe "Months", type: :request do
     expect(status).to include("Padaria Central")
     expect(status).to include("Mercado Silva")
   end
+
+  def set_pix(organization, key)
+    organization.update!(accountant_presentation_name: "Ana Contadora", accountant_pix_key: key)
+  end
+
+  it "GET PIX chave-pix includes Sugestao de excecao and Documento faltante" do
+    _account, organization, _month, statement = signed_open_month
+    set_pix(organization, "chave-pix")
+    plant_payment(statement, 22000, history: "Pix enviado chave-pix")
+
+    get "/months/2026-05"
+
+    expect(response).to have_http_status(:ok)
+    status = payment_status_html(response.body, history: "Pix enviado chave-pix")
+    expect(status).to include("Sugestão de exceção")
+    expect(status).to include("Documento faltante")
+    expect(status).not_to include("Honorário do contador")
+  end
+
+  it "GET exception suggestion leaves document_exception_kind nil" do
+    _account, organization, _month, statement = signed_open_month
+    set_pix(organization, "chave-pix")
+    payment = plant_payment(statement, 22000, history: "Pix enviado chave-pix")
+
+    get "/months/2026-05"
+
+    expect(response).to have_http_status(:ok)
+    expect(payment.reload.document_exception_kind).to be_nil
+  end
+
+  it "GET tax id digits in history includes Sugestao de excecao" do
+    _account, organization, _month, statement = signed_open_month
+    organization.update!(accountant_presentation_name: "Ana Contadora", accountant_tax_id: "39053344705")
+    plant_payment(statement, 22000, history: "Pix 390.533.447-05")
+
+    get "/months/2026-05"
+
+    status = payment_status_html(response.body, history: "Pix 390.533.447-05")
+    expect(status).to include("Sugestão de exceção")
+  end
+
+  it "GET PIX email case-insensitive includes Sugestao de excecao" do
+    _account, organization, _month, statement = signed_open_month
+    set_pix(organization, "ana@example.com")
+    plant_payment(statement, 22000, history: "Pix Ana@Example.com")
+
+    get "/months/2026-05"
+
+    status = payment_status_html(response.body, history: "Pix Ana@Example.com")
+    expect(status).to include("Sugestão de exceção")
+  end
+
+  it "GET PIX phone digits includes Sugestao de excecao" do
+    _account, organization, _month, statement = signed_open_month
+    set_pix(organization, "51999999999")
+    plant_payment(statement, 22000, history: "Pix +55 51 99999-9999")
+
+    get "/months/2026-05"
+
+    status = payment_status_html(response.body, history: "Pix +55 51 99999-9999")
+    expect(status).to include("Sugestão de exceção")
+  end
+
+  it "GET PIX uuid digits includes Sugestao de excecao" do
+    _account, organization, _month, statement = signed_open_month
+    set_pix(organization, "f9c8d7e6-1234-4abc-9def-0123456789ab")
+    plant_payment(statement, 22000, history: "Pix F9C8D7E6-1234-4ABC-9DEF-0123456789AB")
+
+    get "/months/2026-05"
+
+    status = payment_status_html(response.body, history: "Pix F9C8D7E6-1234-4ABC-9DEF-0123456789AB")
+    expect(status).to include("Sugestão de exceção")
+  end
+
+  it "GET two PIX hits both include Sugestao de excecao" do
+    _account, organization, _month, statement = signed_open_month
+    set_pix(organization, "chave-pix")
+    plant_payment(statement, 22000, history: "Pix enviado chave-pix A")
+    plant_payment(statement, 15000, history: "Pix enviado chave-pix B")
+
+    get "/months/2026-05"
+
+    expect(payment_status_html(response.body, history: "Pix enviado chave-pix A")).to include("Sugestão de exceção")
+    expect(payment_status_html(response.body, history: "Pix enviado chave-pix B")).to include("Sugestão de exceção")
+  end
+
+  it "GET presentation name does not include Sugestao de excecao" do
+    _account, organization, _month, statement = signed_open_month
+    organization.update!(accountant_presentation_name: "Ana Contadora")
+    plant_payment(statement, 22000, history: "Pix Ana Contadora")
+
+    get "/months/2026-05"
+
+    status = payment_status_html(response.body, history: "Pix Ana Contadora")
+    expect(status).not_to include("Sugestão de exceção")
+  end
+
+  it "GET razao social does not include Sugestao de excecao" do
+    _account, organization, _month, statement = signed_open_month
+    organization.update!(accountant_presentation_name: "Ana", accountant_legal_name: "Ana Contabilidade LTDA")
+    plant_payment(statement, 22000, history: "Pix Ana Contabilidade LTDA")
+
+    get "/months/2026-05"
+
+    status = payment_status_html(response.body, history: "Pix Ana Contabilidade LTDA")
+    expect(status).not_to include("Sugestão de exceção")
+  end
+
+  it "GET empty PIX and tax id omits Sugestao de excecao" do
+    _account, _organization, _month, statement = signed_open_month
+    plant_payment(statement, 22000, history: "Pix 390.533.447-05")
+
+    get "/months/2026-05"
+
+    status = payment_status_html(response.body, history: "Pix 390.533.447-05")
+    expect(status).not_to include("Sugestão de exceção")
+  end
+
+  it "GET match suggestion suppresses Sugestao de excecao" do
+    account, organization, _month, statement = signed_open_month
+    set_pix(organization, "chave-pix")
+    plant_payment(statement, 22000, history: "Pix enviado chave-pix — Padaria Central")
+    plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    get "/months/2026-05"
+
+    status = payment_status_html(response.body, history: "Pix enviado chave-pix — Padaria Central")
+    expect(status).to include("Sugestão")
+    expect(status).to include("Padaria Central")
+    expect(status).not_to include("Sugestão de exceção")
+  end
+
+  it "GET lesser match suggestion suppresses Sugestao de excecao" do
+    account, organization, _month, statement = signed_open_month
+    set_pix(organization, "chave-pix")
+    plant_payment(statement, 50000, history: "Pix enviado chave-pix")
+    plant_recibo(organization, account, payee: "Padaria Central", amount: "200,00")
+
+    get "/months/2026-05"
+
+    status = payment_status_html(response.body, history: "Pix enviado chave-pix")
+    expect(status).to include("Sugestão")
+    expect(status).not_to include("Sugestão de exceção")
+  end
+
+  it "GET tarifa history omits Sugestao de excecao" do
+    _account, _organization, _month, statement = signed_open_month
+    plant_payment(statement, 22000, history: "Tarifa Pacote de Serviços")
+
+    get "/months/2026-05"
+
+    status = payment_status_html(response.body, history: "Tarifa Pacote de Serviços")
+    expect(status).not_to include("Sugestão de exceção")
+  end
+
+  it "GET extra exception kind is not Sugestao de excecao" do
+    _account, organization, _month, statement = signed_open_month
+    ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    plant_payment(statement, 22000, history: "Pix enviado")
+
+    get "/months/2026-05"
+
+    expect(response.body).to include("Doação")
+    expect(payment_status_html(response.body, history: "Pix enviado")).not_to include("Sugestão de exceção")
+  end
+
+  it "GET org A omits Sugestao of org B payee" do
+    account, org_a = plant_coordinator(email: "a@example.com", organization_name: "A")
+    org_b = Organization.create!(name: "B")
+    Access.create!(account: account, organization: org_b, kind: :coordinator)
+    sign_in_as(account, organization: org_a)
+    _month, statement = plant_month(org_a)
+    plant_payment(statement, 22000, history: "Pix enviado — Mesmo valor")
+    b_account = Account.create!(email: "b@example.com", google_uid: "uid-b")
+    Access.create!(account: b_account, organization: org_b, kind: :coordinator)
+    plant_recibo(org_b, b_account, payee: "Padaria Beta Isolada", amount: "220,00")
+
+    get "/months/2026-05"
+
+    status = payment_status_html(response.body, history: "Pix enviado — Mesmo valor")
+    expect(status).not_to include("Sugestão")
+    expect(response.body).not_to include("Padaria Beta Isolada")
+  end
+
+  it "GET closed month omits Sugestao and Sugestao de excecao" do
+    account, organization, month, statement = signed_open_month
+    set_pix(organization, "chave-pix")
+    plant_payment(statement, 22000, history: "Pix enviado chave-pix — Padaria Central")
+    plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    month.update!(closed: true)
+
+    get "/months/2026-05"
+
+    expect(response.body).not_to include("Sugestão")
+    expect(response.body).not_to include("Sugestão de exceção")
+  end
+
+  it "submitter GET omits PIX Isolado Sugestao and Padaria Central" do
+    coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    _month, statement = plant_month(organization)
+    plant_payment(statement, 22000, history: "PIX Isolado")
+    plant_recibo(organization, coord, payee: "Padaria Central", amount: "220,00")
+    sign_in_as(submitter, organization: organization)
+
+    get "/months/2026-05"
+
+    expect(response).to have_http_status(:not_found)
+    expect(response.body).not_to include("PIX Isolado")
+    expect(response.body).not_to include("Sugestão")
+    expect(response.body).not_to include("Padaria Central")
+  end
+
+  it "coordinator GET includes Sugestao of submitter document" do
+    coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    _month, statement = plant_month(organization)
+    plant_payment(statement, 22000, history: "Pix enviado — Padaria Central")
+    sign_in_as(submitter, organization: organization)
+    post "/supporting_documents", params: {
+      kind: "recibo", amount: "220,00", date: "2026-05-11", payee: "Padaria Central", photo: photo_jpg
+    }
+
+    sign_in_as(coord, organization: organization)
+    get "/months/2026-05"
+
+    status = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
+    expect(status).to include("Sugestão")
+    expect(status).to include("Padaria Central")
+  end
+
+  it "GET 1:1 form selects payment id and document id" do
+    account, organization, _month, statement = signed_open_month
+    payment = plant_payment(statement, 22000, history: "Pix enviado — Padaria Central")
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    get "/months/2026-05"
+
+    form = payment_row_html(response.body, history: "Pix enviado — Padaria Central")
+    expect(selected_named_values(form, "payment_ids[]")).to include(payment.id.to_s)
+    expect(selected_named_values(form, "supporting_document_ids[]")).to include(document.id.to_s)
+  end
+
+  it "GET 1:1 form does not select Mercado Silva" do
+    account, organization, _month, statement = signed_open_month
+    plant_payment(statement, 22000, history: "Pix enviado — Padaria Central")
+    plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "220,00")
+
+    get "/months/2026-05"
+
+    form = payment_row_html(response.body, history: "Pix enviado — Padaria Central")
+    expect(selected_named_values(form, "supporting_document_ids[]")).not_to include(mercado.id.to_s)
+  end
+
+  it "GET format-2 selects both payment ids and the document id" do
+    account, organization, _month, statement = signed_open_month
+    ten = plant_payment(statement, 10000, history: "Pix enviado — Dez")
+    twelve = plant_payment(statement, 12000, history: "Pix enviado — Doze")
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    get "/months/2026-05"
+
+    selected_payments = selected_named_values(response.body, "payment_ids[]")
+    selected_documents = selected_named_values(response.body, "supporting_document_ids[]")
+    expect(selected_payments).to include(ten.id.to_s, twelve.id.to_s)
+    expect(selected_documents).to include(document.id.to_s)
+  end
+
+  it "GET justification form selects both member document ids" do
+    account, organization, _month, statement = signed_open_month
+    plant_payment(statement, 20000, history: "Pix enviado — Gasto")
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "45,00")
+    cover_docs(organization, account, amount: "200,00", documents: [ padaria, mercado ])
+
+    get "/months/2026-05"
+
+    form = payment_row_html(response.body, history: "Pix enviado — Gasto")
+    selected_documents = selected_named_values(form, "supporting_document_ids[]")
+    expect(selected_documents).to include(padaria.id.to_s, mercado.id.to_s)
+  end
 end

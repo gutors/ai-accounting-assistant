@@ -47,4 +47,12 @@ module MatchHelpers
   def payment_status_html(body, history:)
     payment_row_html(body, history: history).split("<form").first
   end
+
+  def selected_named_values(html, name)
+    Nokogiri::HTML(html).css(%(input[name="#{name}"])).filter_map do |input|
+      next unless input["type"] == "hidden" || input.has_attribute?("checked")
+
+      input["value"]
+    end
+  end
 end

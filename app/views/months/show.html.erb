@@ -84,11 +84,14 @@
         <% if payment.missing_document? %>
           Documento faltante
           <% suggestion = @suggestions_by_payment_id[payment.id] %>
+          <% exception_suggestion = @exception_suggestions_by_payment_id[payment.id] %>
           <% if suggestion %>
             Sugestão
             <% suggestion.supporting_documents.each do |document| %>
               <%= document.payee %>
             <% end %>
+          <% elsif exception_suggestion %>
+            Sugestão de exceção
           <% end %>
           <% unless @month.closed? %>
             <%= form_with url: "/months/#{@month.year_month}/matches", method: :post do %>
@@ -150,11 +153,11 @@
   <% if !@month.closed? && @missing_document_payments.size >= 2 && @unmatched_documents.any? %>
     <%= form_with url: "/months/#{@month.year_month}/matches", method: :post do %>
       <% @missing_document_payments.each do |payment| %>
-        <%= check_box_tag "payment_ids[]", payment.id, false, id: "n1_pay_#{payment.id}" %>
+        <%= check_box_tag "payment_ids[]", payment.id, @format_2_suggestion&.covers_payment?(payment), id: "n1_pay_#{payment.id}" %>
         <label for="n1_pay_<%= payment.id %>"><%= format_reais(payment.amount_cents) %></label>
       <% end %>
       <% @unmatched_documents.each do |document| %>
-        <%= radio_button_tag "supporting_document_ids[]", document.id, false, id: "n1_doc_#{document.id}" %>
+        <%= radio_button_tag "supporting_document_ids[]", document.id, @format_2_suggestion&.suggested_document?(document), id: "n1_doc_#{document.id}" %>
         <label for="n1_doc_<%= document.id %>"><%= document.payee %></label>
       <% end %>
       <label for="observation_n1" class="block mb-1">Observação do casamento</label>

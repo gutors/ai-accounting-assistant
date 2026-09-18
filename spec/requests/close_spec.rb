@@ -13,6 +13,21 @@ RSpec.describe "Close for send", type: :request do
     post "/months/#{year_month}/close"
   end
 
+  it "POST close while exception suggestion showing returns 422 Ha documento faltante" do
+    _account, organization, month, statement = signed_ready
+    organization.update!(accountant_pix_key: "chave-pix")
+    plant_payment(statement, 22000, history: "Pix enviado chave-pix")
+
+    get "/months/2026-05"
+    expect(payment_status_html(response.body, history: "Pix enviado chave-pix")).to include("Sugestão de exceção")
+
+    post_close
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Há documento faltante")
+    expect(month.reload.closed?).to eq(false)
+  end
+
   it "POST close with missing document 22000 cents returns 422 Ha documento faltante" do
     _account, organization, month, statement = signed_ready
     plant_payment(statement, 22000)

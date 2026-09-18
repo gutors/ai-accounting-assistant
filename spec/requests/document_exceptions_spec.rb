@@ -308,4 +308,32 @@ RSpec.describe "Document exceptions", type: :request do
     expect(response).to have_http_status(:not_found)
     expect(payment.reload.extra_exception_kind_id).to be_nil
   end
+
+  it "POST accountant_fee on exception suggestion shows Honorario and omits Sugestao de excecao" do
+    _account, organization, _month, statement = signed_month
+    organization.update!(accountant_presentation_name: "Ana Contadora", accountant_pix_key: "chave-pix")
+    payment = plant_payment(statement, 22000, history: "Pix enviado chave-pix")
+
+    post "/months/2026-05/payments/#{payment.id}/document_exception", params: { kind: "accountant_fee" }
+
+    get "/months/2026-05"
+    status = payment_status_html(response.body, history: "Pix enviado chave-pix")
+    expect(status).to include("Honorário do contador")
+    expect(status).not_to include("Documento faltante")
+    expect(status).not_to include("Sugestão de exceção")
+  end
+
+  it "POST bank_fee while exception suggestion showing marks Tarifa bancaria" do
+    _account, organization, _month, statement = signed_month
+    organization.update!(accountant_presentation_name: "Ana Contadora", accountant_pix_key: "chave-pix")
+    payment = plant_payment(statement, 22000, history: "Pix enviado chave-pix")
+
+    post "/months/2026-05/payments/#{payment.id}/document_exception", params: { kind: "bank_fee" }
+
+    get "/months/2026-05"
+    status = payment_status_html(response.body, history: "Pix enviado chave-pix")
+    expect(status).to include("Tarifa bancária")
+    expect(status).not_to include("Sugestão de exceção")
+    expect(status).not_to include("Documento faltante")
+  end
 end
