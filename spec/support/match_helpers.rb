@@ -55,4 +55,11 @@ module MatchHelpers
       input["value"]
     end
   end
+
+  def n1_match_form_html(body)
+    form = Nokogiri::HTML(body).css("form").find do |node|
+      node.at_css(%(input[type="submit"][value="Confirmar casamento N:1"]))
+    end
+    form&.to_html.to_s
+  end
 end

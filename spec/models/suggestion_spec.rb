@@ -351,4 +351,27 @@ RSpec.describe Suggestion, type: :model do
 
     expect(proposal_for(payment)).to be_nil
   end
+
+  it "format_2_for_n1_form returns the two-payment proposal" do
+    ten = plant_payment(statement, 10000)
+    twelve = plant_payment(statement, 12000)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    proposal = described_class.new(payments: [ ten, twelve ], supporting_documents: [ document ])
+
+    expect(described_class.format_2_for_n1_form([ proposal ])).to eq(proposal)
+  end
+
+  it "two format-2 proposals n1 form picks lowest payment id" do
+    ten = plant_payment(statement, 10000)
+    twelve = plant_payment(statement, 12000)
+    fourteen = plant_payment(statement, 14000)
+    sixteen = plant_payment(statement, 16000)
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "300,00")
+    padaria_pair = described_class.new(payments: [ ten, twelve ], supporting_documents: [ padaria ])
+    mercado_pair = described_class.new(payments: [ fourteen, sixteen ], supporting_documents: [ mercado ])
+
+    expect(ten.id).to be < fourteen.id
+    expect(described_class.format_2_for_n1_form([ mercado_pair, padaria_pair ])).to eq(padaria_pair)
+  end
 end

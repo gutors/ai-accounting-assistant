@@ -1075,7 +1075,7 @@ RSpec.describe "Months", type: :request do
     expect(selected_named_values(form, "supporting_document_ids[]")).not_to include(mercado.id.to_s)
   end
 
-  it "GET format-2 selects both payment ids and the document id" do
+  it "GET format-2 N:1 form selects both payment ids and the document id" do
     account, organization, _month, statement = signed_open_month
     ten = plant_payment(statement, 10000, history: "Pix enviado — Dez")
     twelve = plant_payment(statement, 12000, history: "Pix enviado — Doze")
@@ -1083,10 +1083,32 @@ RSpec.describe "Months", type: :request do
 
     get "/months/2026-05"
 
-    selected_payments = selected_named_values(response.body, "payment_ids[]")
-    selected_documents = selected_named_values(response.body, "supporting_document_ids[]")
+    form = n1_match_form_html(response.body)
+    expect(form).to include("/months/2026-05/matches")
+    expect(selected_named_values(form, "payment_ids[]")).to include(ten.id.to_s, twelve.id.to_s)
+    expect(selected_named_values(form, "supporting_document_ids[]")).to include(document.id.to_s)
+  end
+
+  it "GET two format-2 N:1 form selects the pair with lowest payment id" do
+    account, organization, _month, statement = signed_open_month
+    ten = plant_payment(statement, 10000, history: "Pix enviado — Dez")
+    twelve = plant_payment(statement, 12000, history: "Pix enviado — Doze")
+    fourteen = plant_payment(statement, 14000, history: "Pix enviado — Catorze")
+    sixteen = plant_payment(statement, 16000, history: "Pix enviado — Dezesseis")
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "300,00")
+
+    get "/months/2026-05"
+
+    form = n1_match_form_html(response.body)
+    expect(form).to include("/months/2026-05/matches")
+    selected_payments = selected_named_values(form, "payment_ids[]")
+    selected_documents = selected_named_values(form, "supporting_document_ids[]")
+    expect(ten.id).to be < fourteen.id
     expect(selected_payments).to include(ten.id.to_s, twelve.id.to_s)
-    expect(selected_documents).to include(document.id.to_s)
+    expect(selected_payments).not_to include(fourteen.id.to_s, sixteen.id.to_s)
+    expect(selected_documents).to include(padaria.id.to_s)
+    expect(selected_documents).not_to include(mercado.id.to_s)
   end
 
   it "GET justification form selects both member document ids" do

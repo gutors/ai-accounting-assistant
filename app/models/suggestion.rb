@@ -12,6 +12,13 @@ class Suggestion
     Assigner.new(organization).proposals
   end
 
+  def self.format_2_for_n1_form(proposals)
+    Array(proposals)
+      .uniq { |proposal| proposal.payments.map(&:id).sort }
+      .select { |proposal| proposal.payments.size == 2 }
+      .min_by { |proposal| proposal.payments.map(&:id).min }
+  end
+
   def covers_payment?(payment)
     payments.any? { |member| member.id == payment.id }
   end

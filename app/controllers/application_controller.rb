@@ -110,10 +110,7 @@ class ApplicationController < ActionController::Base
   end
 
   def format_2_suggestion_on_month
-    @suggestions_by_payment_id.values
-      .uniq { |proposal| proposal.payments.map(&:id).sort }
-      .select { |proposal| proposal.payments.size == 2 }
-      .min_by { |proposal| proposal.payments.map(&:id).min }
+    Suggestion.format_2_for_n1_form(@suggestions_by_payment_id.values)
   end
 
   def match_proposals_for_page
