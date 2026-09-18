@@ -37,11 +37,8 @@ RSpec.describe SupportingDocument, type: :model do
     SefazConsulta.current.set(chave, SefazConsulta::Xml.new(authorized_nfe_xml(**nfe)))
   end
 
-  def stub_resumo_consulta(chave = nfe_chave)
-    SefazConsulta.current.set(
-      chave,
-      SefazConsulta::Resumo.new(amount_cents: 15500, payee: "Padaria Central", document_on: Date.new(2026, 5, 11))
-    )
+  def stub_resumo_consulta(chave = nfe_chave, amount_cents: 15500, payee: "Padaria Central", document_on: Date.new(2026, 5, 11))
+    SefazConsulta.current.set(chave, SefazConsulta::Resumo.new(amount_cents:, payee:, document_on:))
   end
 
   it "insert recibo jpg persists one SupportingDocument for the organization" do
@@ -724,6 +721,58 @@ RSpec.describe SupportingDocument, type: :model do
     expect(doc.reload.amount_cents).to eq(10000)
     doc.apply(amount: "200,00")
     expect(doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
+  end
+
+  it "confirm identified SEFAZ from resumo persists 10000 and locks" do
+    install_a1
+    stub_resumo_consulta(amount_cents: 10000, payee: "Mercado Silva", document_on: Date.new(2026, 5, 12))
+    doc = insert_doc(kind: "nota_fiscal", xml: nil)
+    doc.apply(chave: nfe_chave)
+    expect(doc.confirm_identified_sefaz).to eq(true)
+
+    doc.reload
+    expect(doc.amount_cents).to eq(10000)
+    expect(doc.payee).to eq("Mercado Silva")
+    expect(doc.document_on).to eq(Date.new(2026, 5, 12))
+    expect(doc.xml).not_to be_attached
+    doc.apply(amount: "200,00")
+    expect(doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
+  end
+
+  it "confirm identified SEFAZ with blank chave keeps 15500 editable" do
+    install_a1
+    doc = insert_doc(kind: "nota_fiscal", xml: nil)
+
+    expect(doc.confirm_identified_sefaz).to eq(false)
+    expect(doc.reload.amount_cents).to eq(15500)
+    doc.apply(payee: "Mercado Silva")
+    expect(doc.reload.payee).to eq("Mercado Silva")
+  end
+
+  it "confirm identified SEFAZ when xml cannot be parsed keeps 15500 editable" do
+    install_a1
+    stub_xml_consulta(vnf: "100.00")
+    doc = insert_doc(kind: "nota_fiscal", xml: nil)
+    doc.apply(chave: nfe_chave)
+    SefazConsulta.current.set(nfe_chave, SefazConsulta::Xml.new("<nfe>sem infNFe</nfe>"))
+
+    expect(doc.confirm_identified_sefaz).to eq(false)
+    expect(doc.reload.amount_cents).to eq(15500)
+    doc.apply(payee: "Mercado Silva")
+    expect(doc.reload.payee).to eq("Mercado Silva")
+  end
+
+  it "insert chave with stored certificate and blank wrap key stays typed" do
+    install_a1
+    stub_xml_consulta(vnf: "100.00")
+    doc = with_env("SEFAZ_WRAP_KEY" => nil) do
+      insert_doc(kind: "nota_fiscal", xml: nil, chave: nfe_chave)
+    end
+
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.xml).not_to be_attached
+    doc.apply(payee: "Mercado Silva")
+    expect(doc.reload.payee).to eq("Mercado Silva")
   end
 
   it "confirm identified SEFAZ when consulta errors keeps 15500 editable" do

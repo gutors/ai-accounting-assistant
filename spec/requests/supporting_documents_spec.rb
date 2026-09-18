@@ -28,6 +28,10 @@ RSpec.describe "Supporting documents", type: :request do
     SefazConsulta.current.set(chave, SefazConsulta::Xml.new(authorized_nfe_xml(**nfe)))
   end
 
+  def stub_resumo_consulta(chave = nfe_chave, amount_cents: 15500, payee: "Padaria Central", document_on: Date.new(2026, 5, 11))
+    SefazConsulta.current.set(chave, SefazConsulta::Resumo.new(amount_cents:, payee:, document_on:))
+  end
+
 
   it "unauthenticated GET /supporting_documents responds 302 to /login" do
     get "/supporting_documents"
@@ -1180,6 +1184,74 @@ RSpec.describe "Supporting documents", type: :request do
     expect(response.body).to include("R$ 100,00")
     expect(response.body).not_to include("R$ 155,00")
     expect(SupportingDocument.find(id).amount_cents).to eq(10000)
+  end
+
+  it "confirm identified SEFAZ from resumo persists 10000 and redirects" do
+    _account, organization = signed_in
+    install_a1(organization)
+    stub_resumo_consulta(amount_cents: 10000, payee: "Mercado Silva", document_on: Date.new(2026, 5, 12))
+    post "/supporting_documents", params: nota_params(photo: photo_jpg)
+    id = SupportingDocument.last.id
+    patch "/supporting_documents/#{id}", params: { chave: nfe_chave }
+
+    post "/supporting_documents/#{id}/sefaz_confirm"
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/supporting_documents")
+    get "/supporting_documents"
+    expect(response.body).to include("R$ 100,00")
+    expect(response.body).not_to include("R$ 155,00")
+    doc = SupportingDocument.find(id)
+    expect(doc.amount_cents).to eq(10000)
+    expect(doc.payee).to eq("Mercado Silva")
+    expect(doc.document_on).to eq(Date.new(2026, 5, 12))
+    expect(doc.xml).not_to be_attached
+  end
+
+  it "confirm identified SEFAZ with blank chave returns 422" do
+    signed_in
+    post "/supporting_documents", params: nota_params(photo: photo_jpg)
+    id = SupportingDocument.last.id
+
+    post "/supporting_documents/#{id}/sefaz_confirm"
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Não foi possível consultar a SEFAZ")
+    expect(SupportingDocument.find(id).amount_cents).to eq(15500)
+  end
+
+  it "confirm identified SEFAZ when xml cannot be parsed returns 422" do
+    _account, organization = signed_in
+    install_a1(organization)
+    stub_xml_consulta(vnf: "100.00")
+    post "/supporting_documents", params: nota_params(photo: photo_jpg)
+    id = SupportingDocument.last.id
+    patch "/supporting_documents/#{id}", params: { chave: nfe_chave }
+    SefazConsulta.current.set(nfe_chave, SefazConsulta::Xml.new("<nfe>sem infNFe</nfe>"))
+
+    post "/supporting_documents/#{id}/sefaz_confirm"
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Não foi possível consultar a SEFAZ")
+    expect(SupportingDocument.find(id).amount_cents).to eq(15500)
+    patch "/supporting_documents/#{id}", params: { payee: "Mercado Silva" }
+    expect(response).to have_http_status(:found)
+  end
+
+  it "POST chave with stored certificate and blank wrap key stays typed" do
+    _account, organization = signed_in
+    install_a1(organization)
+    stub_xml_consulta(vnf: "100.00")
+
+    with_env("SEFAZ_WRAP_KEY" => nil) do
+      post "/supporting_documents", params: nota_params(photo: photo_jpg, chave: nfe_chave)
+    end
+
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.last.amount_cents).to eq(15500)
+    expect(SupportingDocument.last.xml).not_to be_attached
+    patch "/supporting_documents/#{SupportingDocument.last.id}", params: { payee: "Mercado Silva" }
+    expect(response).to have_http_status(:found)
   end
 
   it "confirm identified SEFAZ when consulta errors returns 422" do
