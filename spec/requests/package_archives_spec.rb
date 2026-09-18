@@ -79,4 +79,15 @@ RSpec.describe "Package archives", type: :request do
     expect(response).to redirect_to("/login")
     expect(Organization.where.not(package_archive_url: nil).count).to eq(0)
   end
+
+  it "submitter PATCH /package_archive persists no URL and responds 404" do
+    _coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(submitter, organization: organization)
+
+    patch "/package_archive", params: { url: folders_url }
+
+    expect(response).to have_http_status(:not_found)
+    expect(organization.reload.package_archive_url).to be_nil
+  end
 end

@@ -153,4 +153,15 @@ RSpec.describe "Accountants", type: :request do
     expect(response).to have_http_status(:found)
     expect(response).to redirect_to("/login")
   end
+
+  it "submitter PATCH /accountant persists no name and responds 404" do
+    _coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(submitter, organization: organization)
+
+    patch "/accountant", params: { presentation_name: "Ana Contábil" }
+
+    expect(response).to have_http_status(:not_found)
+    expect(organization.reload.accountant_presentation_name).to be_nil
+  end
 end

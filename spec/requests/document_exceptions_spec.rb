@@ -151,4 +151,16 @@ RSpec.describe "Document exceptions", type: :request do
     expect(response.body).to include("Mês fechado")
     expect(payment.reload.document_exception_kind).to eq("bank_fee")
   end
+
+  it "submitter POST document_exception persists no mark and responds 404" do
+    account, organization, _month, statement = signed_month
+    payment = plant_payment(statement, 22000)
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(submitter, organization: organization)
+
+    post "/months/2026-05/payments/#{payment.id}/document_exception", params: { kind: "bank_fee" }
+
+    expect(response).to have_http_status(:not_found)
+    expect(payment.reload.document_exception_kind).to be_nil
+  end
 end

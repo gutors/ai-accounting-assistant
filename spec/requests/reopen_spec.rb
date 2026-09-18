@@ -101,4 +101,15 @@ RSpec.describe "Reopen month", type: :request do
 
     expect(response).to have_http_status(:not_found)
   end
+
+  it "submitter POST reopen leaves month closed and responds 404" do
+    _coord, organization, month, _statement = signed_closed
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(submitter, organization: organization)
+
+    post "/months/2026-05/reopen"
+
+    expect(month.reload.closed?).to eq(true)
+    expect(response).to have_http_status(:not_found)
+  end
 end
