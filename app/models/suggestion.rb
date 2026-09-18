@@ -27,6 +27,12 @@ class Suggestion
     supporting_documents.any? { |member| member.id == document.id }
   end
 
+  def one_to_one_form_document_ids
+    return [] unless payments.size == 1
+
+    supporting_documents.map(&:id)
+  end
+
   def self.name_hit?(payee, history)
     left = normalize_name(payee)
     right = normalize_name(history)

@@ -1124,4 +1124,69 @@ RSpec.describe "Months", type: :request do
     selected_documents = selected_named_values(form, "supporting_document_ids[]")
     expect(selected_documents).to include(padaria.id.to_s, mercado.id.to_s)
   end
+
+  it "GET format-2 1:1 form does not select Padaria Central" do
+    account, organization, _month, statement = signed_open_month
+    plant_payment(statement, 10000, history: "Pix enviado — Dez")
+    plant_payment(statement, 12000, history: "Pix enviado — Doze")
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    get "/months/2026-05"
+
+    ten_form = payment_row_html(response.body, history: "Pix enviado — Dez")
+    twelve_form = payment_row_html(response.body, history: "Pix enviado — Doze")
+    expect(selected_named_values(ten_form, "supporting_document_ids[]")).not_to include(document.id.to_s)
+    expect(selected_named_values(twelve_form, "supporting_document_ids[]")).not_to include(document.id.to_s)
+  end
+
+  it "POST format-2 1:1 form as shown returns 422 and leaves both unmatched" do
+    account, organization, _month, statement = signed_open_month
+    plant_payment(statement, 10000, history: "Pix enviado — Dez")
+    plant_payment(statement, 12000, history: "Pix enviado — Doze")
+    plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    get "/months/2026-05"
+    form = payment_row_html(response.body, history: "Pix enviado — Dez")
+    post "/months/2026-05/matches", params: {
+      payment_ids: selected_named_values(form, "payment_ids[]"),
+      supporting_document_ids: selected_named_values(form, "supporting_document_ids[]")
+    }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Selecione ao menos um documento")
+    expect(Match.count).to eq(0)
+
+    get "/months/2026-05"
+    ten_status = payment_status_html(response.body, history: "Pix enviado — Dez")
+    twelve_status = payment_status_html(response.body, history: "Pix enviado — Doze")
+    expect(ten_status).to include("Documento faltante")
+    expect(ten_status).to include("Sugestão")
+    expect(twelve_status).to include("Documento faltante")
+    expect(twelve_status).to include("Sugestão")
+  end
+
+  it "GET 1:1 form selects Padaria Central when suggestion has one payment" do
+    account, organization, _month, statement = signed_open_month
+    plant_payment(statement, 22000, history: "Pix enviado — Padaria Central")
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    get "/months/2026-05"
+
+    form = payment_row_html(response.body, history: "Pix enviado — Padaria Central")
+    expect(selected_named_values(form, "supporting_document_ids[]")).to include(document.id.to_s)
+  end
+
+  it "GET justification form selects both members when suggestion has one payment" do
+    account, organization, _month, statement = signed_open_month
+    plant_payment(statement, 20000, history: "Pix enviado — Gasto")
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "45,00")
+    cover_docs(organization, account, amount: "200,00", documents: [ padaria, mercado ])
+
+    get "/months/2026-05"
+
+    form = payment_row_html(response.body, history: "Pix enviado — Gasto")
+    selected_documents = selected_named_values(form, "supporting_document_ids[]")
+    expect(selected_documents).to include(padaria.id.to_s, mercado.id.to_s)
+  end
 end

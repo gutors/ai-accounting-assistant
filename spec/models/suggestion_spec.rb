@@ -374,4 +374,30 @@ RSpec.describe Suggestion, type: :model do
     expect(ten.id).to be < fourteen.id
     expect(described_class.format_2_for_n1_form([ mercado_pair, padaria_pair ])).to eq(padaria_pair)
   end
+
+  it "one_to_one_form_document_ids for 1:1 is the document id" do
+    payment = plant_payment(statement, 22000)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    proposal = described_class.new(payments: [ payment ], supporting_documents: [ document ])
+
+    expect(proposal.one_to_one_form_document_ids).to eq([ document.id ])
+  end
+
+  it "one_to_one_form_document_ids for 2:1 is empty" do
+    ten = plant_payment(statement, 10000)
+    twelve = plant_payment(statement, 12000)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    proposal = described_class.new(payments: [ ten, twelve ], supporting_documents: [ document ])
+
+    expect(proposal.one_to_one_form_document_ids).to eq([])
+  end
+
+  it "one_to_one_form_document_ids for 1:N is both document ids" do
+    payment = plant_payment(statement, 20000)
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "45,00")
+    proposal = described_class.new(payments: [ payment ], supporting_documents: [ padaria, mercado ])
+
+    expect(proposal.one_to_one_form_document_ids).to eq([ padaria.id, mercado.id ])
+  end
 end
