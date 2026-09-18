@@ -52,6 +52,22 @@ class SupportingDocumentsController < ApplicationController
     end
   end
 
+  def sefaz_confirm
+    document = mutate_document
+    return unless document
+
+    if submitter_month_locked?(document)
+      render_document_error(SupportingDocument::HAS_MONTH)
+      return
+    end
+
+    if document.confirm_identified_sefaz
+      redirect_to "/supporting_documents", status: :found
+    else
+      render_document_error(document.errors[:base].first)
+    end
+  end
+
   def destroy
     document = mutate_document
     return unless document

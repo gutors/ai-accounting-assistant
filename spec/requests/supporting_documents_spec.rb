@@ -1097,4 +1097,239 @@ RSpec.describe "Supporting documents", type: :request do
 
     expect(SupportingDocument.last.amount_cents).to eq(15500)
   end
+
+  it "PATCH kind recibo on locked nota discards xml chave and unlocks" do
+    signed_in
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg, xml: authorized_xml }
+    id = SupportingDocument.last.id
+
+    patch "/supporting_documents/#{id}", params: { kind: "recibo" }
+
+    doc = SupportingDocument.find(id)
+    expect(doc.kind).to eq("recibo")
+    expect(doc.xml).not_to be_attached
+    expect(doc.chave).to be_nil
+    expect(doc.amount_cents).to eq(15500)
+    patch "/supporting_documents/#{id}", params: { payee: "Mercado Silva" }
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.find(id).payee).to eq("Mercado Silva")
+  end
+
+  it "PATCH kind nota_fiscal on recibo fires consulta and locks" do
+    _account, organization = signed_in
+    install_a1(organization)
+    stub_xml_consulta(vnf: "100.00", emit: "Mercado Silva", dhemi: "2026-05-12T10:00:00-03:00")
+    post "/supporting_documents", params: recibo_params
+    id = SupportingDocument.last.id
+
+    patch "/supporting_documents/#{id}", params: { kind: "nota_fiscal", chave: nfe_chave }
+
+    doc = SupportingDocument.find(id)
+    expect(doc.amount_cents).to eq(10000)
+    expect(doc.payee).to eq("Mercado Silva")
+    expect(doc.document_on).to eq(Date.new(2026, 5, 12))
+    expect(doc.xml).to be_attached
+    patch "/supporting_documents/#{id}", params: { amount: "200,00" }
+    expect(response).to have_http_status(:unprocessable_content)
+  end
+
+  it "PATCH chave on typed nota keeps 15500 and includes Usar dados da SEFAZ" do
+    _account, organization = signed_in
+    install_a1(organization)
+    stub_xml_consulta(vnf: "100.00")
+    post "/supporting_documents", params: nota_params(photo: photo_jpg)
+    id = SupportingDocument.last.id
+
+    patch "/supporting_documents/#{id}", params: { chave: nfe_chave }
+
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.find(id).amount_cents).to eq(15500)
+    get "/supporting_documents"
+    expect(response.body).to include("Usar dados da SEFAZ")
+  end
+
+  it "PATCH observation on pending chave still includes Usar dados da SEFAZ" do
+    _account, organization = signed_in
+    install_a1(organization)
+    stub_xml_consulta(vnf: "100.00")
+    post "/supporting_documents", params: nota_params(photo: photo_jpg)
+    id = SupportingDocument.last.id
+    patch "/supporting_documents/#{id}", params: { chave: nfe_chave }
+
+    patch "/supporting_documents/#{id}", params: { observation: "ok" }
+
+    expect(response).to have_http_status(:found)
+    get "/supporting_documents"
+    expect(response.body).to include("Usar dados da SEFAZ")
+    expect(SupportingDocument.find(id).amount_cents).to eq(15500)
+  end
+
+  it "confirm identified SEFAZ persists 10000 and redirects" do
+    _account, organization = signed_in
+    install_a1(organization)
+    stub_xml_consulta(vnf: "100.00")
+    post "/supporting_documents", params: nota_params(photo: photo_jpg)
+    id = SupportingDocument.last.id
+    patch "/supporting_documents/#{id}", params: { chave: nfe_chave }
+
+    post "/supporting_documents/#{id}/sefaz_confirm"
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/supporting_documents")
+    get "/supporting_documents"
+    expect(response.body).to include("R$ 100,00")
+    expect(response.body).not_to include("R$ 155,00")
+    expect(SupportingDocument.find(id).amount_cents).to eq(10000)
+  end
+
+  it "confirm identified SEFAZ when consulta errors returns 422" do
+    _account, organization = signed_in
+    install_a1(organization)
+    stub_xml_consulta(vnf: "100.00")
+    post "/supporting_documents", params: nota_params(photo: photo_jpg)
+    id = SupportingDocument.last.id
+    patch "/supporting_documents/#{id}", params: { chave: nfe_chave }
+    SefazConsulta.current.set(nfe_chave, SefazConsulta::Error.new)
+
+    post "/supporting_documents/#{id}/sefaz_confirm"
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(SupportingDocument.find(id).amount_cents).to eq(15500)
+    patch "/supporting_documents/#{id}", params: { payee: "Mercado Silva" }
+    expect(response).to have_http_status(:found)
+  end
+
+  it "PATCH chave without certificate stores chave and omits Usar dados da SEFAZ" do
+    signed_in
+    post "/supporting_documents", params: nota_params(photo: photo_jpg)
+    id = SupportingDocument.last.id
+
+    patch "/supporting_documents/#{id}", params: { chave: nfe_chave }
+
+    expect(SupportingDocument.find(id).chave).to eq(nfe_chave)
+    expect(SupportingDocument.find(id).amount_cents).to eq(15500)
+    get "/supporting_documents"
+    expect(response.body).not_to include("Usar dados da SEFAZ")
+  end
+
+  it "confirm identified SEFAZ on already identified redirects unchanged" do
+    _account, organization = signed_in
+    install_a1(organization)
+    stub_xml_consulta
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg, chave: nfe_chave }
+    id = SupportingDocument.last.id
+    amount = SupportingDocument.find(id).amount_cents
+
+    post "/supporting_documents/#{id}/sefaz_confirm"
+
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.find(id).amount_cents).to eq(amount)
+    expect(SupportingDocument.find(id).payee).to eq("Padaria Central")
+  end
+
+  it "PATCH chave on closed month returns 422 Mes fechado" do
+    _account, organization = signed_in
+    post "/supporting_documents", params: nota_params(photo: photo_jpg, amount: "220,00")
+    document = SupportingDocument.last
+    month, statement = plant_month(organization)
+    payment = plant_payment(statement, 22000)
+    Match.confirm(month: month, payments: [ payment ], supporting_documents: [ document ])
+    month.update!(closed: true)
+
+    patch "/supporting_documents/#{document.id}", params: { chave: nfe_chave }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Mês fechado")
+    expect(document.reload.chave).to be_nil
+  end
+
+  it "submitter PATCH chave on own no-month document redirects" do
+    _coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(submitter, organization: organization)
+    post "/supporting_documents", params: nota_params(photo: photo_jpg)
+    id = SupportingDocument.last.id
+
+    patch "/supporting_documents/#{id}", params: { chave: nfe_chave }
+
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.find(id).chave).to eq(nfe_chave)
+  end
+
+  it "submitter PATCH chave on another Account document returns 404" do
+    coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(coord, organization: organization)
+    post "/supporting_documents", params: nota_params(photo: photo_jpg)
+    id = SupportingDocument.last.id
+    sign_in_as(submitter, organization: organization)
+
+    patch "/supporting_documents/#{id}", params: { chave: nfe_chave }
+
+    expect(response).to have_http_status(:not_found)
+    expect(SupportingDocument.find(id).chave).to be_nil
+  end
+
+  it "submitter PATCH chave on month document returns 422" do
+    _coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(submitter, organization: organization)
+    post "/supporting_documents", params: nota_params(photo: photo_jpg, amount: "220,00")
+    document = SupportingDocument.last
+    month, statement = plant_month(organization)
+    payment = plant_payment(statement, 22000)
+    Match.confirm(month: month, payments: [ payment ], supporting_documents: [ document ])
+
+    patch "/supporting_documents/#{document.id}", params: { chave: nfe_chave }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Documento já pertence a um mês")
+    expect(document.reload.chave).to be_nil
+  end
+
+  it "install A1 after typed chave does not retro-consult" do
+    _account, organization = signed_in
+    post "/supporting_documents", params: nota_params(photo: photo_jpg, chave: nfe_chave)
+    id = SupportingDocument.last.id
+    install_a1(organization)
+    stub_xml_consulta(vnf: "100.00")
+
+    patch "/supporting_documents/#{id}", params: { payee: "Mercado Silva" }
+
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.find(id).amount_cents).to eq(15500)
+    expect(SupportingDocument.find(id).payee).to eq("Mercado Silva")
+  end
+
+  it "DELETE certificate leaves identified lock on amount PATCH" do
+    _account, organization = signed_in
+    install_a1(organization)
+    stub_xml_consulta
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg, chave: nfe_chave }
+    id = SupportingDocument.last.id
+    delete "/sefaz_certificate"
+
+    patch "/supporting_documents/#{id}", params: { amount: "200,00" }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(SupportingDocument.find(id).amount_cents).to eq(15500)
+  end
+
+  it "expired certificate leaves identified lock on amount PATCH" do
+    _account, organization = signed_in
+    travel_to Date.new(2026, 5, 11) do
+      organization.install_sefaz_certificate(
+        file: sefaz_pfx(not_after: Date.new(2026, 5, 11), name: "exp.pfx"),
+        passphrase: "passphrase-secreta"
+      )
+      stub_xml_consulta
+      post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg, chave: nfe_chave }
+    end
+    id = SupportingDocument.last.id
+    travel_to Date.new(2026, 5, 12) do
+      patch "/supporting_documents/#{id}", params: { amount: "200,00" }
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(SupportingDocument.find(id).amount_cents).to eq(15500)
+    end
+  end
 end

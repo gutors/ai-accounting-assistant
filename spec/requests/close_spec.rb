@@ -1,6 +1,7 @@
 require "rails_helper"
 
 RSpec.describe "Close for send", type: :request do
+  include ActiveSupport::Testing::TimeHelpers
   def signed_ready
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
@@ -530,5 +531,42 @@ RSpec.describe "Close for send", type: :request do
 
     expect(month.reload.closed?).to eq(false)
     expect(response).to have_http_status(:not_found)
+  end
+
+  it "POST close with no certificate and no missing document redirects" do
+    _account, organization, month, _statement = signed_ready
+
+    post_close
+
+    expect(response).to have_http_status(:found)
+    expect(month.reload.closed?).to eq(true)
+    expect(organization.sefaz_titular_cnpj).to be_nil
+  end
+
+  it "POST close with expired certificate and no missing document redirects" do
+    _account, organization, month, _statement = signed_ready
+    travel_to Date.new(2026, 5, 11) do
+      organization.install_sefaz_certificate(
+        file: sefaz_pfx(not_after: Date.new(2026, 5, 11), name: "exp.pfx"),
+        passphrase: "passphrase-secreta"
+      )
+    end
+
+    travel_to Date.new(2026, 5, 12) do
+      post_close
+      expect(response).to have_http_status(:found)
+      expect(month.reload.closed?).to eq(true)
+    end
+  end
+
+  it "POST close with blank wrap key and no certificate redirects" do
+    _account, organization, month, _statement = signed_ready
+
+    with_env("SEFAZ_WRAP_KEY" => nil) do
+      post_close
+    end
+
+    expect(response).to have_http_status(:found)
+    expect(month.reload.closed?).to eq(true)
   end
 end

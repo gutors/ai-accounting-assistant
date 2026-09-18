@@ -16,6 +16,7 @@ class SupportingDocument < ApplicationRecord
   XML_UNREADABLE = "O XML da nota fiscal não pôde ser lido"
   LOCKED_FIELDS = "Valor, data e favorecido vêm da nota e não podem ser alterados"
   CHAVE_DIGITS = "Informe a chave de acesso com 44 dígitos"
+  SEFAZ_CONFIRM_FAILED = "Não foi possível consultar a SEFAZ"
   ORIGIN_TYPED = "typed"
   ORIGIN_UPLOADED_XML = "uploaded_xml"
   ORIGIN_IDENTIFIED = "identified"
@@ -123,6 +124,7 @@ class SupportingDocument < ApplicationRecord
     next_chave = nil
     identified_xml = nil
     identified_resumo = nil
+    confirm_pending = sefaz_confirm_pending
     if next_kind == "nota_fiscal"
       if attrs.key?(:chave) && attrs[:chave].to_s.strip.present?
         digits = attrs[:chave].to_s.gsub(/\D/, "")
@@ -137,13 +139,27 @@ class SupportingDocument < ApplicationRecord
         next_chave = chave
       end
 
-      if parsed_nfe.nil? && next_chave.present? && !persisted?
+      should_consult = parsed_nfe.nil? && next_chave.present? && (
+        !persisted? || attrs.key?(:chave) || kind != "nota_fiscal"
+      )
+      awaiting_confirm = persisted? && kind == "nota_fiscal" && attrs.key?(:chave) && !fields_locked?
+      confirm_pending = false if awaiting_confirm
+
+      if should_consult
         case consult_identified(next_chave)
         in SefazConsulta::Xml => consulta_xml
-          parsed_nfe = AuthorizedNfe.parse(consulta_xml.bytes)
-          identified_xml = consulta_xml.bytes if parsed_nfe
+          if awaiting_confirm
+            confirm_pending = true
+          else
+            parsed_nfe = AuthorizedNfe.parse(consulta_xml.bytes)
+            identified_xml = consulta_xml.bytes if parsed_nfe
+          end
         in SefazConsulta::Resumo => resumo
-          identified_resumo = resumo
+          if awaiting_confirm
+            confirm_pending = true
+          else
+            identified_resumo = resumo
+          end
         else
           nil
         end
@@ -229,6 +245,7 @@ class SupportingDocument < ApplicationRecord
       fields_origin.presence || ORIGIN_TYPED
     end
     next_chave = nil if next_kind == "recibo"
+    confirm_pending = false if next_kind == "recibo"
 
     persist_document(
       kind: next_kind,
@@ -240,7 +257,8 @@ class SupportingDocument < ApplicationRecord
       xml: incoming_xml,
       chave: next_chave,
       fields_origin: next_origin,
-      identified_xml: identified_xml
+      identified_xml: identified_xml,
+      sefaz_confirm_pending: confirm_pending
     )
     self
   end
@@ -249,9 +267,56 @@ class SupportingDocument < ApplicationRecord
     [ ORIGIN_UPLOADED_XML, ORIGIN_IDENTIFIED ].include?(fields_origin)
   end
 
+  def confirm_identified_sefaz
+    errors.clear
+    if month&.closed?
+      errors.add(:base, Month::CLOSED)
+      return false
+    end
+    return true if fields_origin == ORIGIN_IDENTIFIED
+    return fail_confirm if chave.blank?
+
+    case consult_identified(chave)
+    in SefazConsulta::Xml => consulta_xml
+      parsed = AuthorizedNfe.parse(consulta_xml.bytes)
+      return fail_confirm unless parsed
+
+      persist_document(
+        kind: "nota_fiscal",
+        amount_cents: parsed.amount_cents,
+        document_on: parsed.document_on,
+        payee: parsed.payee,
+        observation: observation,
+        photo: nil,
+        xml: nil,
+        chave: parsed.chave,
+        fields_origin: ORIGIN_IDENTIFIED,
+        identified_xml: consulta_xml.bytes,
+        sefaz_confirm_pending: false
+      )
+      true
+    in SefazConsulta::Resumo => resumo
+      persist_document(
+        kind: "nota_fiscal",
+        amount_cents: resumo.amount_cents,
+        document_on: resumo.document_on,
+        payee: resumo.payee,
+        observation: observation,
+        photo: nil,
+        xml: nil,
+        chave: chave,
+        fields_origin: ORIGIN_IDENTIFIED,
+        sefaz_confirm_pending: false
+      )
+      true
+    else
+      fail_confirm
+    end
+  end
+
   private
 
-  def persist_document(kind:, amount_cents:, document_on:, payee:, observation:, photo:, xml:, chave:, fields_origin:, identified_xml: nil)
+  def persist_document(kind:, amount_cents:, document_on:, payee:, observation:, photo:, xml:, chave:, fields_origin:, identified_xml: nil, sefaz_confirm_pending: false)
     transaction do
       self.kind = kind
       self.amount_cents = amount_cents
@@ -260,6 +325,7 @@ class SupportingDocument < ApplicationRecord
       self.observation = observation
       self.chave = chave
       self.fields_origin = fields_origin
+      self.sefaz_confirm_pending = sefaz_confirm_pending
       save!
       self.photo.attach(photo) if photo
       self.xml.attach(xml) if xml
@@ -272,6 +338,11 @@ class SupportingDocument < ApplicationRecord
       end
       self.xml.purge if recibo? && self.xml.attached?
     end
+  end
+
+  def fail_confirm
+    errors.add(:base, SEFAZ_CONFIRM_FAILED)
+    false
   end
 
   def consult_identified(chave_digits)
