@@ -139,7 +139,7 @@ class SupportingDocument < ApplicationRecord
         next_chave = chave
       end
 
-      should_consult = parsed_nfe.nil? && next_chave.present? && (
+      should_consult = parsed_nfe.nil? && next_chave.present? && !fields_locked? && (
         !persisted? || attrs.key?(:chave) || kind != "nota_fiscal"
       )
       awaiting_confirm = persisted? && kind == "nota_fiscal" && attrs.key?(:chave) && !fields_locked?
@@ -274,6 +274,10 @@ class SupportingDocument < ApplicationRecord
       return false
     end
     return true if fields_origin == ORIGIN_IDENTIFIED
+    if fields_origin == ORIGIN_UPLOADED_XML
+      errors.add(:base, LOCKED_FIELDS)
+      return false
+    end
     return fail_confirm if chave.blank?
 
     case consult_identified(chave)

@@ -664,6 +664,28 @@ RSpec.describe SupportingDocument, type: :model do
     expect(doc.amount_cents).to eq(15500)
   end
 
+  it "apply chave on uploaded XML keeps 15500" do
+    install_a1
+    stub_xml_consulta(vnf: "100.00", emit: "Outro")
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml(vnf: "155.00"), chave: nfe_chave)
+    doc.apply(kind: "nota_fiscal", chave: nfe_chave, observation: "ok")
+
+    expect(doc.reload.amount_cents).to eq(15500)
+    expect(doc.fields_origin).to eq(SupportingDocument::ORIGIN_UPLOADED_XML)
+    expect(doc.payee).to eq("Padaria Central")
+  end
+
+  it "confirm identified SEFAZ on uploaded XML keeps 15500" do
+    install_a1
+    stub_xml_consulta(vnf: "100.00", emit: "Outro")
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml(vnf: "155.00"), chave: nfe_chave)
+
+    expect(doc.confirm_identified_sefaz).to eq(false)
+    expect(doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
+    expect(doc.reload.amount_cents).to eq(15500)
+    expect(doc.fields_origin).to eq(SupportingDocument::ORIGIN_UPLOADED_XML)
+  end
+
   it "apply kind recibo on locked nota purges xml chave and unlocks" do
     doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg, xml: authorized_xml)
     doc.apply(kind: "recibo")

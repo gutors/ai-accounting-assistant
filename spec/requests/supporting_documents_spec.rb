@@ -1102,6 +1102,43 @@ RSpec.describe "Supporting documents", type: :request do
     expect(SupportingDocument.last.amount_cents).to eq(15500)
   end
 
+  it "PATCH chave on uploaded XML keeps 15500" do
+    _account, organization = signed_in
+    install_a1(organization)
+    stub_xml_consulta(vnf: "100.00", emit: "Outro")
+    post "/supporting_documents", params: {
+      kind: "nota_fiscal", photo: photo_jpg, xml: authorized_xml(vnf: "155.00"), chave: nfe_chave
+    }
+    id = SupportingDocument.last.id
+
+    patch "/supporting_documents/#{id}", params: {
+      kind: "nota_fiscal", chave: nfe_chave, observation: "ok"
+    }
+
+    expect(response).to have_http_status(:found)
+    doc = SupportingDocument.find(id)
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.fields_origin).to eq("uploaded_xml")
+    expect(doc.payee).to eq("Padaria Central")
+  end
+
+  it "confirm identified SEFAZ on uploaded XML returns 422" do
+    _account, organization = signed_in
+    install_a1(organization)
+    stub_xml_consulta(vnf: "100.00", emit: "Outro")
+    post "/supporting_documents", params: {
+      kind: "nota_fiscal", photo: photo_jpg, xml: authorized_xml(vnf: "155.00"), chave: nfe_chave
+    }
+    id = SupportingDocument.last.id
+
+    post "/supporting_documents/#{id}/sefaz_confirm"
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Valor, data e favorecido vêm da nota e não podem ser alterados")
+    expect(SupportingDocument.find(id).amount_cents).to eq(15500)
+    expect(SupportingDocument.find(id).fields_origin).to eq("uploaded_xml")
+  end
+
   it "PATCH kind recibo on locked nota discards xml chave and unlocks" do
     signed_in
     post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg, xml: authorized_xml }
