@@ -35,4 +35,16 @@ module MatchHelpers
   def recebimentos_html(body)
     body[body.index("Recebimentos")...body.index("Pagamentos")]
   end
+
+  def pagamentos_html(body)
+    body[body.index("Pagamentos")...body.index("Documentos sem casamento")]
+  end
+
+  def payment_row_html(body, history:)
+    pagamentos_html(body).scan(%r{<li class="mb-2">.*?</li>}m).find { |li| li.include?(history) }
+  end
+
+  def payment_status_html(body, history:)
+    payment_row_html(body, history: history).split("<form").first
+  end
 end

@@ -83,11 +83,19 @@
         <%= payment.history %>
         <% if payment.missing_document? %>
           Documento faltante
+          <% suggestion = @suggestions_by_payment_id[payment.id] %>
+          <% if suggestion %>
+            Sugestão
+            <% suggestion.supporting_documents.each do |document| %>
+              <%= document.payee %>
+            <% end %>
+          <% end %>
           <% unless @month.closed? %>
             <%= form_with url: "/months/#{@month.year_month}/matches", method: :post do %>
               <%= hidden_field_tag "payment_ids[]", payment.id, id: "payment_ids_#{payment.id}" %>
+              <% suggested_ids = suggestion&.supporting_documents&.map(&:id) || [] %>
               <% @unmatched_documents.each do |document| %>
-                <%= check_box_tag "supporting_document_ids[]", document.id, false, id: "doc_#{payment.id}_#{document.id}" %>
+                <%= check_box_tag "supporting_document_ids[]", document.id, suggested_ids.include?(document.id), id: "doc_#{payment.id}_#{document.id}" %>
                 <label for="doc_<%= payment.id %>_<%= document.id %>"><%= document.payee %></label>
               <% end %>
               <label for="observation_<%= payment.id %>" class="block mb-1">Observação do casamento</label>

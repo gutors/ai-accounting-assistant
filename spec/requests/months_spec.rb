@@ -374,4 +374,118 @@ RSpec.describe "Months", type: :request do
     expect(response.body).not_to include("Documento faltante")
     expect(response.body).not_to include("Desmarcar exceção")
   end
+
+  def signed_open_month
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    month, statement = plant_month(organization)
+    [ account, organization, month, statement ]
+  end
+
+  it "GET 1:1 equal Padaria Central includes Sugestao and Documento faltante" do
+    account, organization, _month, statement = signed_open_month
+    plant_payment(statement, 22000, history: "Pix enviado — Padaria Central")
+    plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    get "/months/2026-05"
+
+    expect(response).to have_http_status(:ok)
+    status = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
+    expect(status).to include("Documento faltante")
+    expect(status).to include("Sugestão")
+    expect(status).to include("Padaria Central")
+  end
+
+  it "GET 1:1 equal leaves Payment unmatched and document without month" do
+    account, organization, _month, statement = signed_open_month
+    payment = plant_payment(statement, 22000, history: "Pix enviado — Padaria Central")
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    get "/months/2026-05"
+
+    expect(response).to have_http_status(:ok)
+    payment.reload
+    document.reload
+    expect(payment.match_id).to be_nil
+    expect(payment.document_exception_kind).to be_nil
+    expect(payment.extra_exception_kind_id).to be_nil
+    expect(document.month_id).to be_nil
+    expect(document.match_id).to be_nil
+  end
+
+  it "GET missing-document payment with no unmatched document omits Sugestao" do
+    _account, _organization, _month, statement = signed_open_month
+    plant_payment(statement, 22000, history: "Pix enviado — Padaria Central")
+
+    get "/months/2026-05"
+
+    status = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
+    expect(status).to include("Documento faltante")
+    expect(status).not_to include("Sugestão")
+  end
+
+  it "GET /months/2026-05 with zero Payments omits Sugestao" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    plant_month(organization)
+    plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    get "/months/2026-05"
+
+    expect(response.body).not_to include("Sugestão")
+  end
+
+  it "Recebimentos section omits Sugestao and Sugestao de excecao" do
+    account, organization, _month, statement = signed_open_month
+    plant_inflow(statement, 10000, history: "Pix - Recebido Padaria Central")
+    plant_payment(statement, 22000, history: "Pix enviado — Padaria Central")
+    plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    get "/months/2026-05"
+
+    section = recebimentos_html(response.body)
+    expect(section).to include("Pix - Recebido Padaria Central")
+    expect(section).not_to include("Sugestão")
+    expect(section).not_to include("Sugestão de exceção")
+  end
+
+  it "GET recibo 1:1 includes Sugestao and Padaria Central" do
+    account, organization, _month, statement = signed_open_month
+    plant_payment(statement, 22000, history: "Pix enviado — Padaria Central")
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    get "/months/2026-05"
+
+    status = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
+    expect(status).to include("Sugestão")
+    expect(status).to include("Padaria Central")
+    expect(document.kind).to eq("recibo")
+  end
+
+  it "GET nota_fiscal with XML 1:1 includes Sugestao and Padaria Central" do
+    account, organization, _month, statement = signed_open_month
+    plant_payment(statement, 22000, history: "Pix enviado — Padaria Central")
+    document = plant_nota(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    get "/months/2026-05"
+
+    status = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
+    expect(status).to include("Sugestão")
+    expect(status).to include("Padaria Central")
+    expect(document.kind).to eq("nota_fiscal")
+    expect(document.xml).to be_attached
+  end
+
+  it "unmatched pool still includes Padaria Central while Sugestao shows" do
+    account, organization, _month, statement = signed_open_month
+    plant_payment(statement, 22000, history: "Pix enviado — Padaria Central")
+    plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    get "/months/2026-05"
+
+    status = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
+    expect(status).to include("Sugestão")
+    expect(status).to include("Padaria Central")
+    expect(pool_html(response.body)).to include("Padaria Central")
+  end
 end

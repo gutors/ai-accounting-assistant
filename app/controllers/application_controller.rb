@@ -73,6 +73,7 @@ class ApplicationController < ActionController::Base
     @active_extra_exception_kinds = @organization.extra_exception_kinds.where(active: true).order(:name)
     @unmatched_documents = @organization.supporting_documents.unmatched.listed
     @missing_document_payments = @payments.select(&:missing_document?)
+    @suggestions_by_payment_id = suggestions_on_month
     @focusable_organizations = current_account.organizations.order(:name)
   end
 
@@ -82,6 +83,18 @@ class ApplicationController < ActionController::Base
     @bank_accounts = @organization.bank_accounts.includes(:bank).order(:name)
     @extra_exception_kinds = @organization.extra_exception_kinds.order(:name)
     @focusable_organizations = current_account.organizations.order(:name)
+  end
+
+  def suggestions_on_month
+    return {} if @month.closed?
+
+    Suggestion.assign(@organization).each_with_object({}) do |proposal, index|
+      proposal.payments.each do |payment|
+        next unless payment.bank_statement.month_id == @month.id
+
+        index[payment.id] = proposal
+      end
+    end
   end
 
   def sign_in(account, organization:)

@@ -430,6 +430,23 @@ RSpec.describe "Supporting documents", type: :request do
     expect(response.body).not_to include("Casado em 2026-05")
   end
 
+  it "GET /supporting_documents after suggested 1:1 includes Casado em 2026-05" do
+    account, organization = signed_in
+    _month, statement = plant_month(organization)
+    payment = plant_payment(statement, 22000, history: "Pix enviado — Padaria Central")
+    post "/supporting_documents", params: recibo_params(amount: "220,00")
+    document = SupportingDocument.last
+
+    post "/months/2026-05/matches", params: {
+      payment_ids: [ payment.id ], supporting_document_ids: [ document.id ]
+    }
+
+    get "/supporting_documents"
+
+    expect(response.body).to include("Casado em 2026-05")
+    expect(response.body).to include("Padaria Central")
+  end
+
   it "GET /supporting_documents after match includes Casado em 2026-05" do
     account, organization = signed_in
     month, statement = plant_month(organization)
