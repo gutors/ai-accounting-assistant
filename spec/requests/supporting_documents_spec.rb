@@ -1,6 +1,7 @@
 require "rails_helper"
 
 RSpec.describe "Supporting documents", type: :request do
+  include ActiveSupport::Testing::TimeHelpers
   def signed_in
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
@@ -14,6 +15,19 @@ RSpec.describe "Supporting documents", type: :request do
   def nota_params(**extra)
     { kind: "nota_fiscal", amount: "155,00", date: "2026-05-11", payee: "Padaria Central" }.merge(extra)
   end
+
+  def nfe_chave
+    "43260511222333000181550010000000011123456781"
+  end
+
+  def install_a1(organization)
+    organization.install_sefaz_certificate(file: sefaz_pfx, passphrase: "passphrase-secreta")
+  end
+
+  def stub_xml_consulta(chave = nfe_chave, **nfe)
+    SefazConsulta.current.set(chave, SefazConsulta::Xml.new(authorized_nfe_xml(**nfe)))
+  end
+
 
   it "unauthenticated GET /supporting_documents responds 302 to /login" do
     get "/supporting_documents"
@@ -846,5 +860,241 @@ RSpec.describe "Supporting documents", type: :request do
     expect(response).to have_http_status(:found)
     expect(SupportingDocument.find(id).payee).to eq("Mercado Silva")
     expect(SupportingDocument.find(id).amount_cents).to eq(15500)
+  end
+
+  it "POST chave with consulta XML fills fields and redirects" do
+    _account, organization = signed_in
+    install_a1(organization)
+    stub_xml_consulta
+
+    post "/supporting_documents", params: {
+      kind: "nota_fiscal", photo: photo_jpg("danfe.jpg"), chave: nfe_chave
+    }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/supporting_documents")
+    doc = SupportingDocument.last
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.document_on).to eq(Date.new(2026, 5, 11))
+    expect(doc.payee).to eq("Padaria Central")
+    expect(doc.xml).to be_attached
+    get "/supporting_documents"
+    expect(response.body).to include("R$ 155,00")
+    expect(response.body).to include("11/05/2026")
+    expect(response.body).to include("Padaria Central")
+    expect(response.body).to include(nfe_chave)
+  end
+
+  it "submitter POST chave with consulta XML persists and omits certificate" do
+    coord, organization = plant_coordinator
+    install_a1(organization)
+    stub_xml_consulta
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(submitter, organization: organization)
+
+    post "/supporting_documents", params: {
+      kind: "nota_fiscal", photo: photo_jpg("danfe.jpg"), chave: nfe_chave
+    }
+
+    expect(SupportingDocument.last.amount_cents).to eq(15500)
+    expect(SupportingDocument.last.xml).to be_attached
+    get "/supporting_documents"
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("R$ 155,00")
+    expect(response.body).not_to include("11.222.333/0001-81")
+    expect(response.body).not_to include("Válido até")
+    expect(response.body).not_to include("passphrase-secreta")
+    expect(coord).to be_present
+  end
+
+  it "POST chave with consulta resumo locks fields without xml" do
+    _account, organization = signed_in
+    install_a1(organization)
+    SefazConsulta.current.set(
+      nfe_chave,
+      SefazConsulta::Resumo.new(amount_cents: 15500, payee: "Padaria Central", document_on: Date.new(2026, 5, 11))
+    )
+
+    post "/supporting_documents", params: {
+      kind: "nota_fiscal", photo: photo_jpg, chave: nfe_chave
+    }
+
+    doc = SupportingDocument.last
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.xml).not_to be_attached
+    expect(doc.photo).to be_attached
+    patch "/supporting_documents/#{doc.id}", params: { amount: "200,00" }
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Valor, data e favorecido vêm da nota e não podem ser alterados")
+  end
+
+  it "POST chave resumo without files returns 422 Envie a foto e/ou o XML" do
+    _account, organization = signed_in
+    install_a1(organization)
+    SefazConsulta.current.set(
+      nfe_chave,
+      SefazConsulta::Resumo.new(amount_cents: 15500, payee: "Padaria Central", document_on: Date.new(2026, 5, 11))
+    )
+
+    post "/supporting_documents", params: { kind: "nota_fiscal", chave: nfe_chave }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Envie a foto e/ou o XML")
+    expect(SupportingDocument.where(organization: organization).count).to eq(0)
+  end
+
+  it "POST chave consulta XML without files persists xml and redirects" do
+    _account, organization = signed_in
+    install_a1(organization)
+    stub_xml_consulta
+
+    post "/supporting_documents", params: { kind: "nota_fiscal", chave: nfe_chave }
+
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.last.xml).to be_attached
+    expect(SupportingDocument.last.amount_cents).to eq(15500)
+  end
+
+  it "POST chave without certificate stays typed and PATCH payee redirects" do
+    signed_in
+
+    post "/supporting_documents", params: nota_params(photo: photo_jpg, chave: nfe_chave)
+    id = SupportingDocument.last.id
+    patch "/supporting_documents/#{id}", params: { payee: "Mercado Silva" }
+
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.find(id).payee).to eq("Mercado Silva")
+  end
+
+  it "POST chave with expired certificate stays typed and PATCH payee redirects" do
+    _account, organization = signed_in
+    travel_to Date.new(2026, 5, 11) do
+      organization.install_sefaz_certificate(
+        file: sefaz_pfx(not_after: Date.new(2026, 5, 11), name: "exp.pfx"),
+        passphrase: "passphrase-secreta"
+      )
+    end
+    travel_to Date.new(2026, 5, 12) do
+      stub_xml_consulta
+      post "/supporting_documents", params: nota_params(photo: photo_jpg, chave: nfe_chave)
+      id = SupportingDocument.last.id
+      patch "/supporting_documents/#{id}", params: { payee: "Mercado Silva" }
+      expect(response).to have_http_status(:found)
+      expect(SupportingDocument.find(id).payee).to eq("Mercado Silva")
+    end
+  end
+
+  it "POST chave after certificate removed stays typed and PATCH payee redirects" do
+    _account, organization = signed_in
+    install_a1(organization)
+    organization.remove_sefaz_certificate
+    stub_xml_consulta
+    post "/supporting_documents", params: nota_params(photo: photo_jpg, chave: nfe_chave)
+    id = SupportingDocument.last.id
+    patch "/supporting_documents/#{id}", params: { payee: "Mercado Silva" }
+
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.find(id).payee).to eq("Mercado Silva")
+  end
+
+  it "POST chave when consulta errors stays typed and PATCH payee redirects" do
+    _account, organization = signed_in
+    install_a1(organization)
+    SefazConsulta.current.set(nfe_chave, SefazConsulta::Error.new)
+    post "/supporting_documents", params: nota_params(photo: photo_jpg, chave: nfe_chave)
+    id = SupportingDocument.last.id
+    patch "/supporting_documents/#{id}", params: { payee: "Mercado Silva" }
+
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.find(id).payee).to eq("Mercado Silva")
+  end
+
+  it "POST chave when consulta errors without typed fields returns 422" do
+    _account, organization = signed_in
+    install_a1(organization)
+    SefazConsulta.current.set(nfe_chave, SefazConsulta::Error.new)
+
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg, chave: nfe_chave }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Informe valor, data e favorecido")
+    expect(SupportingDocument.where(organization: organization).count).to eq(0)
+  end
+
+  it "POST chave when consulta not found or window-expired stays typed" do
+    _account, organization = signed_in
+    install_a1(organization)
+    [ SefazConsulta::NotFound.new, SefazConsulta::WindowExpired.new ].each do |result|
+      SefazConsulta.reset!
+      SefazConsulta.current.set(nfe_chave, result)
+      post "/supporting_documents", params: nota_params(photo: photo_named("n-#{result.class.name}.jpg"), chave: nfe_chave)
+      id = SupportingDocument.last.id
+      patch "/supporting_documents/#{id}", params: { payee: "Mercado Silva" }
+      expect(response).to have_http_status(:found)
+      expect(SupportingDocument.find(id).payee).to eq("Mercado Silva")
+    end
+  end
+
+  it "POST dotted chave persists 44 digits and XML fields" do
+    _account, organization = signed_in
+    install_a1(organization)
+    stub_xml_consulta
+
+    post "/supporting_documents", params: {
+      kind: "nota_fiscal",
+      photo: photo_jpg,
+      chave: "4326.0511.2223.3300.0181.5500.1000.0000.0111.2345.6781"
+    }
+
+    expect(SupportingDocument.last.chave).to eq(nfe_chave)
+    expect(SupportingDocument.last.xml).to be_attached
+  end
+
+  it "POST chave not 44 digits returns 422" do
+    _account, organization = signed_in
+
+    post "/supporting_documents", params: nota_params(photo: photo_jpg, chave: "123")
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Informe a chave de acesso com 44 dígitos")
+    expect(SupportingDocument.where(organization: organization).count).to eq(0)
+  end
+
+  it "POST duplicate chave persists two SupportingDocuments" do
+    _account, organization = signed_in
+    install_a1(organization)
+    stub_xml_consulta
+
+    post "/supporting_documents", params: nota_params(photo: photo_named("a.jpg"), chave: nfe_chave)
+    post "/supporting_documents", params: nota_params(photo: photo_named("b.jpg"), chave: nfe_chave)
+
+    expect(SupportingDocument.where(organization: organization, chave: nfe_chave).count).to eq(2)
+  end
+
+  it "POST recibo with chave stores no chave and PATCH payee redirects" do
+    _account, organization = signed_in
+    install_a1(organization)
+    stub_xml_consulta
+    post "/supporting_documents", params: recibo_params(chave: nfe_chave)
+    id = SupportingDocument.last.id
+
+    expect(SupportingDocument.find(id).kind).to eq("recibo")
+    expect(SupportingDocument.find(id).chave).to be_nil
+    expect(SupportingDocument.find(id).xml).not_to be_attached
+    patch "/supporting_documents/#{id}", params: { payee: "Mercado Silva" }
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.find(id).payee).to eq("Mercado Silva")
+  end
+
+  it "POST uploaded XML wins over consulta vNF 100.00" do
+    _account, organization = signed_in
+    install_a1(organization)
+    stub_xml_consulta(vnf: "100.00")
+
+    post "/supporting_documents", params: {
+      kind: "nota_fiscal", xml: authorized_xml(vnf: "155.00"), chave: nfe_chave
+    }
+
+    expect(SupportingDocument.last.amount_cents).to eq(15500)
   end
 end

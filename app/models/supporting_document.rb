@@ -15,6 +15,7 @@ class SupportingDocument < ApplicationRecord
   HAS_MONTH = "Documento já pertence a um mês"
   XML_UNREADABLE = "O XML da nota fiscal não pôde ser lido"
   LOCKED_FIELDS = "Valor, data e favorecido vêm da nota e não podem ser alterados"
+  CHAVE_DIGITS = "Informe a chave de acesso com 44 dígitos"
   ORIGIN_TYPED = "typed"
   ORIGIN_UPLOADED_XML = "uploaded_xml"
   ORIGIN_IDENTIFIED = "identified"
@@ -119,8 +120,40 @@ class SupportingDocument < ApplicationRecord
       end
     end
 
+    next_chave = nil
+    identified_xml = nil
+    identified_resumo = nil
+    if next_kind == "nota_fiscal"
+      if attrs.key?(:chave) && attrs[:chave].to_s.strip.present?
+        digits = attrs[:chave].to_s.gsub(/\D/, "")
+        unless digits.length == 44
+          errors.add(:base, CHAVE_DIGITS)
+          return self
+        end
+        next_chave = digits
+      elsif parsed_nfe
+        next_chave = parsed_nfe.chave
+      else
+        next_chave = chave
+      end
+
+      if parsed_nfe.nil? && next_chave.present? && !persisted?
+        case consult_identified(next_chave)
+        in SefazConsulta::Xml => consulta_xml
+          parsed_nfe = AuthorizedNfe.parse(consulta_xml.bytes)
+          identified_xml = consulta_xml.bytes if parsed_nfe
+        in SefazConsulta::Resumo => resumo
+          identified_resumo = resumo
+        else
+          nil
+        end
+      end
+    end
+
     next_cents = if parsed_nfe
       parsed_nfe.amount_cents
+    elsif identified_resumo
+      identified_resumo.amount_cents
     elsif attrs.key?(:amount)
       BrlCents.parse(attrs[:amount])
     else
@@ -128,6 +161,8 @@ class SupportingDocument < ApplicationRecord
     end
     next_on = if parsed_nfe
       parsed_nfe.document_on
+    elsif identified_resumo
+      identified_resumo.document_on
     elsif attrs.key?(:date)
       parse_document_on(attrs[:date])
     else
@@ -135,6 +170,8 @@ class SupportingDocument < ApplicationRecord
     end
     next_payee = if parsed_nfe
       parsed_nfe.payee
+    elsif identified_resumo
+      identified_resumo.payee
     elsif attrs.key?(:payee)
       attrs[:payee].to_s.strip
     else
@@ -171,7 +208,7 @@ class SupportingDocument < ApplicationRecord
     end
 
     will_have_photo = incoming_photo.present? || (persisted? && photo.attached?)
-    will_have_xml = incoming_xml.present? || (persisted? && xml.attached?)
+    will_have_xml = incoming_xml.present? || identified_xml.present? || (persisted? && xml.attached?)
     if next_kind == "recibo"
       unless will_have_photo
         errors.add(:base, RECIBO_PHOTO)
@@ -184,20 +221,14 @@ class SupportingDocument < ApplicationRecord
 
     next_origin = if next_kind == "recibo"
       ORIGIN_TYPED
-    elsif parsed_nfe
+    elsif incoming_xml && parsed_nfe
       ORIGIN_UPLOADED_XML
+    elsif identified_xml || identified_resumo
+      ORIGIN_IDENTIFIED
     else
       fields_origin.presence || ORIGIN_TYPED
     end
-    next_chave = if next_kind == "recibo"
-      nil
-    elsif parsed_nfe
-      parsed_nfe.chave
-    elsif attrs.key?(:chave)
-      attrs[:chave].to_s.gsub(/\D/, "").presence
-    else
-      chave
-    end
+    next_chave = nil if next_kind == "recibo"
 
     persist_document(
       kind: next_kind,
@@ -208,7 +239,8 @@ class SupportingDocument < ApplicationRecord
       photo: incoming_photo,
       xml: incoming_xml,
       chave: next_chave,
-      fields_origin: next_origin
+      fields_origin: next_origin,
+      identified_xml: identified_xml
     )
     self
   end
@@ -219,7 +251,7 @@ class SupportingDocument < ApplicationRecord
 
   private
 
-  def persist_document(kind:, amount_cents:, document_on:, payee:, observation:, photo:, xml:, chave:, fields_origin:)
+  def persist_document(kind:, amount_cents:, document_on:, payee:, observation:, photo:, xml:, chave:, fields_origin:, identified_xml: nil)
     transaction do
       self.kind = kind
       self.amount_cents = amount_cents
@@ -231,8 +263,29 @@ class SupportingDocument < ApplicationRecord
       save!
       self.photo.attach(photo) if photo
       self.xml.attach(xml) if xml
+      if identified_xml
+        self.xml.attach(
+          io: StringIO.new(identified_xml),
+          filename: "#{chave}.xml",
+          content_type: "application/xml"
+        )
+      end
       self.xml.purge if recibo? && self.xml.attached?
     end
+  end
+
+  def consult_identified(chave_digits)
+    org = organization
+    return if org.sefaz_titular_cnpj.blank?
+    return if org.sefaz_certificate_expired?
+    return unless WrapKey.present?
+
+    pkcs12 = org.unwrap_sefaz_pkcs12
+    return unless pkcs12
+
+    SefazConsulta.current.lookup(pkcs12:, chave: chave_digits)
+  rescue Timeout::Error, OpenSSL::PKCS12::PKCS12Error, WrapKey::Missing
+    SefazConsulta::Error.new
   end
 
   def read_bytes(file)

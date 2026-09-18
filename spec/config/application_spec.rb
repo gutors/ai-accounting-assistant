@@ -21,6 +21,11 @@ RSpec.describe "Application config" do
     expect(PackageArchiveWriter.current).not_to be_a(PackageArchiveWriter::Drive)
   end
 
+  it "test identified consulta is the Fake" do
+    expect(SefazConsulta.current).to be_a(SefazConsulta::Fake)
+    expect(SefazConsulta.current).not_to be_a(SefazConsulta::Real)
+  end
+
   it "Gemfile includes google-apis-drive_v3 and googleauth" do
     gemfile = Rails.root.join("Gemfile").read
     expect(gemfile).to include("google-apis-drive_v3")
