@@ -89,7 +89,7 @@ class Match < ApplicationRecord
       self.observation = observation
       save!
       locked_payments.each do |payment|
-        payment.update!(match_id: id, document_exception_kind: nil)
+        payment.update!(match_id: id, document_exception_kind: nil, extra_exception_kind_id: nil)
       end
       locked_docs.each do |document|
         document.update!(match_id: id, month_id: month_id)

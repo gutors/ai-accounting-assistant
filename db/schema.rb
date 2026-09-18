@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_18_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_18_180000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -97,6 +97,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_120000) do
     t.index ["ispb"], name: "index_banks_on_ispb", unique: true
   end
 
+  create_table "extra_exception_kinds", force: :cascade do |t|
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.bigint "organization_id", null: false
+    t.datetime "updated_at", null: false
+    t.index "organization_id, lower((name)::text)", name: "index_extra_exception_kinds_on_org_id_and_lower_name", unique: true
+    t.index ["organization_id"], name: "index_extra_exception_kinds_on_organization_id"
+  end
+
   create_table "inflows", force: :cascade do |t|
     t.bigint "amount_cents", null: false
     t.bigint "bank_statement_id", null: false
@@ -165,14 +175,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_120000) do
     t.bigint "bank_statement_id", null: false
     t.datetime "created_at", null: false
     t.string "document_exception_kind"
+    t.bigint "extra_exception_kind_id"
     t.text "history", null: false
     t.bigint "match_id"
     t.date "occurred_on", null: false
     t.datetime "updated_at", null: false
     t.index ["bank_statement_id", "occurred_on"], name: "index_payments_on_bank_statement_id_and_occurred_on"
     t.index ["bank_statement_id"], name: "index_payments_on_bank_statement_id"
+    t.index ["extra_exception_kind_id"], name: "index_payments_on_extra_exception_kind_id"
     t.index ["match_id"], name: "index_payments_on_match_id"
-    t.check_constraint "match_id IS NULL OR document_exception_kind IS NULL", name: "payments_match_xor_document_exception"
+    t.check_constraint "(match_id IS NULL OR document_exception_kind IS NULL) AND (match_id IS NULL OR extra_exception_kind_id IS NULL) AND (document_exception_kind IS NULL OR extra_exception_kind_id IS NULL)", name: "payments_match_xor_document_exception"
   end
 
   create_table "supporting_documents", force: :cascade do |t|
@@ -204,6 +216,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_120000) do
   add_foreign_key "bank_accounts", "organizations"
   add_foreign_key "bank_statements", "bank_accounts"
   add_foreign_key "bank_statements", "months"
+  add_foreign_key "extra_exception_kinds", "organizations"
   add_foreign_key "inflows", "bank_statements"
   add_foreign_key "invites", "organizations"
   add_foreign_key "justifications", "accounts"
@@ -211,6 +224,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_120000) do
   add_foreign_key "matches", "months"
   add_foreign_key "months", "organizations"
   add_foreign_key "payments", "bank_statements"
+  add_foreign_key "payments", "extra_exception_kinds", on_delete: :restrict
   add_foreign_key "payments", "matches"
   add_foreign_key "supporting_documents", "accounts"
   add_foreign_key "supporting_documents", "justifications"

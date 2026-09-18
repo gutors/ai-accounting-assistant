@@ -8,7 +8,13 @@ class DocumentExceptionsController < ApplicationController
     payment = payment_on(month)
     return unless payment
 
-    payment.mark_document_exception(params[:kind])
+    extra_id = params[:extra_exception_kind_id].presence
+    if extra_id && focused_organization.extra_exception_kinds.find_by(id: extra_id).nil?
+      head :not_found
+      return
+    end
+
+    payment.mark_document_exception(params[:kind], extra_exception_kind_id: extra_id)
     if payment.errors.empty?
       redirect_to "/months/#{month.year_month}", status: :found
     else

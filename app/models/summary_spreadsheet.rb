@@ -86,7 +86,7 @@ class SummarySpreadsheet
       sheet.add_cell(row, 2, payment.bank_statement.bank_account.name)
       sheet.add_cell(row, 3, payment.history)
       sheet.add_cell(row, 4, "")
-      sheet.add_cell(row, 5, EXCEPTION_COPY[payment.document_exception_kind] || "")
+      sheet.add_cell(row, 5, exception_label(payment))
       sheet.add_cell(row, 6, arquivo_cell(payment))
       sheet.add_cell(row, 7, payment.match&.observation.to_s)
       row += 1
@@ -108,7 +108,14 @@ class SummarySpreadsheet
 
   def expenses
     Payment.joins(:bank_statement).where(bank_statements: { month_id: @month.id })
-      .includes(match: :supporting_documents, bank_statement: :bank_account).order(:occurred_on, :id)
+      .includes(:extra_exception_kind, match: :supporting_documents, bank_statement: :bank_account)
+      .order(:occurred_on, :id)
+  end
+
+  def exception_label(payment)
+    return payment.extra_exception_kind.name if payment.extra_exception_kind_id.present?
+
+    EXCEPTION_COPY[payment.document_exception_kind] || ""
   end
 
   def arquivo_cell(payment)

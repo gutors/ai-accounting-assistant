@@ -295,4 +295,83 @@ RSpec.describe "Months", type: :request do
 
     expect(response).to have_http_status(:not_found)
   end
+
+  it "GET /months/2026-05 includes Doacao as a mark choice" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    _month, statement = plant_month(organization)
+    payment = plant_payment(statement, 22000)
+
+    get "/months/2026-05"
+
+    expect(response.body).to include("Doação")
+    expect(response.body).to include("name=\"extra_exception_kind_id\"")
+    expect(response.body).to include("value=\"#{organization.extra_exception_kinds.find_by!(name: "Doação").id}\"")
+    expect(response.body).to include("Documento faltante")
+    expect(payment).to be_missing_document
+  end
+
+  it "GET /months/2026-05 deactivated Doacao is not offered and stays on the marked payment" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    _month, statement = plant_month(organization)
+    marked = plant_payment(statement, 22000)
+    plant_payment(statement, 10000)
+    marked.mark_document_exception(extra_exception_kind_id: kind.id)
+    kind.apply_active(false)
+
+    get "/months/2026-05"
+
+    expect(response.body).not_to include("name=\"extra_exception_kind_id\"")
+    marked_row = response.body.scan(%r{<li class="mb-2">.*?</li>}m).find { |li| li.include?("R$ 220,00") }
+    status = marked_row.split("<form").first
+    expect(status).to include("Doação")
+    expect(status).not_to include("Documento faltante")
+  end
+
+  it "GET /months/2026-05 with every payment extra-excepted omits Documento faltante" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    _month, statement = plant_month(organization)
+    plant_payment(statement, 22000).mark_document_exception(extra_exception_kind_id: kind.id)
+    plant_payment(statement, 10000).mark_document_exception(extra_exception_kind_id: kind.id)
+
+    get "/months/2026-05"
+
+    expect(response.body).not_to include("Documento faltante")
+  end
+
+  it "GET /months/2026-05 does not include another organization extra exception kind" do
+    account, org_a = plant_coordinator(email: "coord@example.com", organization_name: "A")
+    org_b = Organization.create!(name: "B")
+    Access.create!(account: account, organization: org_b, kind: :coordinator)
+    ExtraExceptionKind.create_for(organization: org_b, name: "Só B Extra")
+    sign_in_as(account, organization: org_a)
+    _month, statement = plant_month(org_a)
+    plant_payment(statement, 22000)
+
+    get "/months/2026-05"
+
+    expect(response.body).not_to include("Só B Extra")
+  end
+
+  it "GET closed month shows deactivated Doacao without Desmarcar excecao" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    month, statement = plant_month(organization)
+    payment = plant_payment(statement, 22000)
+    payment.mark_document_exception(extra_exception_kind_id: kind.id)
+    kind.apply_active(false)
+    month.update!(closed: true)
+
+    get "/months/2026-05"
+
+    expect(response.body).to include("Doação")
+    expect(response.body).not_to include("Documento faltante")
+    expect(response.body).not_to include("Desmarcar exceção")
+  end
 end

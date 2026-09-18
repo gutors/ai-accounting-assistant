@@ -102,6 +102,12 @@
               <%= hidden_field_tag :kind, "accountant_fee", id: "kind_accountant_#{payment.id}" %>
               <%= submit_tag "Marcar honorário", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
             <% end %>
+            <% @active_extra_exception_kinds.each do |extra_exception_kind| %>
+              <%= form_with url: "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :post do %>
+                <%= hidden_field_tag :extra_exception_kind_id, extra_exception_kind.id, id: "extra_kind_#{payment.id}_#{extra_exception_kind.id}" %>
+                <%= submit_tag extra_exception_kind.name, class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+              <% end %>
+            <% end %>
           <% end %>
         <% elsif payment.match_id.present? %>
           Casado
@@ -119,8 +125,13 @@
           <% unless @month.closed? %>
             <%= button_to "Desmarcar exceção", "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :delete, class: "text-sm underline" %>
           <% end %>
-        <% else %>
+        <% elsif payment.accountant_fee? %>
           Honorário do contador
+          <% unless @month.closed? %>
+            <%= button_to "Desmarcar exceção", "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :delete, class: "text-sm underline" %>
+          <% end %>
+        <% elsif payment.extra_exception_kind_id.present? %>
+          <%= payment.extra_exception_kind.name %>
           <% unless @month.closed? %>
             <%= button_to "Desmarcar exceção", "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :delete, class: "text-sm underline" %>
           <% end %>

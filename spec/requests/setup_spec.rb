@@ -137,7 +137,8 @@ RSpec.describe "Setup", type: :request do
     expect(active).to be_active
     expect(response.body).to include("Desativar")
     expect(response.body).to include("Reativar")
-    expect(response.body).not_to include("Excluir")
+    bank_rows = response.body.scan(%r{<li class="border rounded p-3 mb-3">.*?</li>}m).select { |li| li.include?("extrato-") }
+    expect(bank_rows.join).not_to include("Excluir")
   end
 
   it "setup does not list another organization bank account names" do
@@ -162,5 +163,107 @@ RSpec.describe "Setup", type: :request do
 
     expect(response).to have_http_status(:not_found)
     expect(response.body).not_to include("Conta Principal")
+  end
+
+  it "GET /setup with zero extra exception kinds includes Tipos extras de excecao and Nenhum tipo extra" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    get "/setup"
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Tipos extras de exceção")
+    expect(response.body).to include("Nenhum tipo extra")
+  end
+
+  it "GET /setup lists extra exception kinds Alfa before Zeta" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    ExtraExceptionKind.create_for(organization: organization, name: "Zeta")
+    ExtraExceptionKind.create_for(organization: organization, name: "Alfa")
+
+    get "/setup"
+
+    expect(response.body.index("Alfa")).to be < response.body.index("Zeta")
+  end
+
+  it "setup extra exception kind has no control that submits a new name" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+
+    get "/setup"
+
+    row = extra_kind_row(response.body, "Doação")
+    expect(row).to be_present
+    expect(row).not_to include('name="name"')
+  end
+
+  it "GET /setup does not list Tarifa bancaria or Honorario do contador as extra exception kinds" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    get "/setup"
+
+    extras = extra_kinds_section(response.body)
+    expect(extras).not_to include("Tarifa bancária")
+    expect(extras).not_to include("Honorário do contador")
+  end
+
+  it "setup extra exception kinds show Desativar or Reativar" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    ExtraExceptionKind.create_for(organization: organization, name: "Ativa Extra")
+    inactive = ExtraExceptionKind.create_for(organization: organization, name: "Parada Extra")
+    inactive.apply_active(false)
+
+    get "/setup"
+
+    expect(extra_kind_row(response.body, "Ativa Extra")).to include("Desativar")
+    expect(extra_kind_row(response.body, "Parada Extra")).to include("Reativar")
+  end
+
+  it "setup unused extra exception kind Folha includes Excluir" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    ExtraExceptionKind.create_for(organization: organization, name: "Folha")
+
+    get "/setup"
+
+    expect(extra_kind_row(response.body, "Folha")).to include("Excluir")
+  end
+
+  it "setup includes no Excluir while every extra exception kind is referenced" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    _month, statement = plant_month(organization)
+    payment = plant_payment(statement, 22000)
+    payment.update!(extra_exception_kind: kind)
+
+    get "/setup"
+
+    expect(response.body).not_to include("Excluir")
+  end
+
+  it "setup does not list another organization extra exception kind" do
+    account, org_a = plant_coordinator(email: "coord@example.com", organization_name: "A")
+    org_b = Organization.create!(name: "B")
+    Access.create!(account: account, organization: org_b, kind: :coordinator)
+    ExtraExceptionKind.create_for(organization: org_b, name: "Só B Extra")
+    sign_in_as(account, organization: org_a)
+
+    get "/setup"
+
+    expect(response.body).not_to include("Só B Extra")
+  end
+
+  def extra_kind_row(body, name)
+    body.scan(%r{<li class="border rounded p-3 mb-3">.*?</li>}m).find { |li| li.include?(name) && !li.include?("extrato-") }
+  end
+
+  def extra_kinds_section(body)
+    start = body.index("Tipos extras de exceção")
+    body[start..]
   end
 end

@@ -88,3 +88,33 @@
     <%= submit_tag "Adicionar conta", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
   <% end %>
 </section>
+
+<section>
+  <h2 class="text-lg font-medium mb-3">Tipos extras de exceção</h2>
+  <% if @extra_exception_kinds.empty? %>
+    <p class="mb-3">Nenhum tipo extra</p>
+  <% else %>
+    <ul class="mb-6">
+      <% @extra_exception_kinds.each do |extra_exception_kind| %>
+        <li class="border rounded p-3 mb-3">
+          <p class="font-medium"><%= extra_exception_kind.name %></p>
+          <% if extra_exception_kind.active? %>
+            <%= button_to "Desativar", "/extra_exception_kinds/#{extra_exception_kind.id}", method: :patch, params: { active: false }, class: "text-sm underline mb-3" %>
+          <% else %>
+            <p class="mb-2">Desativado</p>
+            <%= button_to "Reativar", "/extra_exception_kinds/#{extra_exception_kind.id}", method: :patch, params: { active: true }, class: "text-sm underline mb-3" %>
+          <% end %>
+          <% if extra_exception_kind.payments.none? %>
+            <%= button_to "Excluir", "/extra_exception_kinds/#{extra_exception_kind.id}", method: :delete, class: "text-sm underline" %>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+
+  <%= form_with url: "/extra_exception_kinds", method: :post do %>
+    <label for="extra_exception_kind_name" class="block mb-1">Nome</label>
+    <%= text_field_tag :name, nil, id: "extra_exception_kind_name", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "off" %>
+    <%= submit_tag "Adicionar tipo extra", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+  <% end %>
+</section>
