@@ -36,6 +36,7 @@ Rails.application.routes.draw do
   get "/supporting_documents", to: "supporting_documents#index"
   post "/supporting_documents", to: "supporting_documents#create"
   patch "/supporting_documents/:id", to: "supporting_documents#update"
+  delete "/supporting_documents/:id", to: "supporting_documents#destroy"
 
   root "organizations#show"
 end

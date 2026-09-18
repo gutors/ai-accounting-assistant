@@ -392,15 +392,18 @@ RSpec.describe "Supporting documents", type: :request do
     expect(doc.xml).not_to be_attached
   end
 
-  it "DELETE /supporting_documents/:id returns 404 and keeps the row" do
-    signed_in
-    post "/supporting_documents", params: recibo_params
-    id = SupportingDocument.last.id
+  it "DELETE /supporting_documents/:id of a month document returns 422 and keeps the row" do
+    account, organization = signed_in
+    post "/supporting_documents", params: recibo_params(amount: "220,00")
+    document = SupportingDocument.last
+    month, statement = plant_month(organization)
+    payment = plant_payment(statement, 22000)
+    Match.confirm(month: month, payments: [ payment ], supporting_documents: [ document ])
 
-    delete "/supporting_documents/#{id}"
+    delete "/supporting_documents/#{document.id}"
 
-    expect(response).to have_http_status(:not_found)
-    expect(SupportingDocument.find(id)).to be_persisted
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(SupportingDocument.find(document.id)).to be_persisted
   end
 
   it "unauthenticated PATCH /supporting_documents/:id responds 302 to /login" do
@@ -552,5 +555,134 @@ RSpec.describe "Supporting documents", type: :request do
     get "/supporting_documents"
 
     expect(response.body).to include("Padaria Central")
+  end
+
+  it "submitter POST recibo jpg persists Padaria Central Recibo and redirects" do
+    _coord, organization = plant_coordinator
+    account, _ = plant_submitter(organization: organization)
+    sign_in_as(account, organization: organization)
+
+    post "/supporting_documents", params: recibo_params(photo: photo_jpg("recibo.jpg"))
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/supporting_documents")
+    document = SupportingDocument.last
+    expect(document.organization).to eq(organization)
+    expect(document.account).to eq(account)
+    expect(document.month_id).to be_nil
+    expect(SupportingDocument.where(organization: organization).count).to eq(1)
+
+    get "/supporting_documents"
+    list = response.body[response.body.index("Sem mês")..]
+    expect(list).to match(%r{<time datetime="2026-05-11">11/05/2026</time>\s*R\$ 155,00\s*Recibo\s*Padaria Central}m)
+  end
+
+  it "submitter PATCH payee on own no-month document redirects" do
+    _coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(submitter, organization: organization)
+    post "/supporting_documents", params: recibo_params
+    id = SupportingDocument.last.id
+
+    patch "/supporting_documents/#{id}", params: { payee: "Mercado Silva" }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/supporting_documents")
+    get "/supporting_documents"
+    expect(response.body).to include("Mercado Silva")
+    expect(response.body).not_to include("Padaria Central")
+  end
+
+  it "submitter PATCH payee on another Account document returns 404" do
+    coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(coord, organization: organization)
+    post "/supporting_documents", params: recibo_params
+    id = SupportingDocument.last.id
+    sign_in_as(submitter, organization: organization)
+
+    patch "/supporting_documents/#{id}", params: { payee: "Hijacked" }
+
+    expect(response).to have_http_status(:not_found)
+    expect(SupportingDocument.find(id).payee).to eq("Padaria Central")
+  end
+
+  it "submitter PATCH payee on own month document returns 422" do
+    _coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(submitter, organization: organization)
+    post "/supporting_documents", params: recibo_params(amount: "220,00")
+    document = SupportingDocument.last
+    month, statement = plant_month(organization)
+    payment = plant_payment(statement, 22000)
+    Match.confirm(month: month, payments: [ payment ], supporting_documents: [ document ])
+
+    patch "/supporting_documents/#{document.id}", params: { payee: "Mercado Silva" }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(document.reload.payee).to eq("Padaria Central")
+  end
+
+  it "submitter DELETE own no-month document redirects and purges blobs" do
+    _coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(submitter, organization: organization)
+    post "/supporting_documents", params: recibo_params(payee: "Padaria Central")
+    document = SupportingDocument.last
+    blob_id = document.photo.blob.id
+
+    delete "/supporting_documents/#{document.id}"
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/supporting_documents")
+    expect(SupportingDocument.find_by(id: document.id)).to be_nil
+    expect(ActiveStorage::Blob.find_by(id: blob_id)).to be_nil
+    get "/supporting_documents"
+    expect(response.body).not_to include("Padaria Central")
+  end
+
+  it "submitter DELETE own month document returns 422" do
+    _coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(submitter, organization: organization)
+    post "/supporting_documents", params: recibo_params(amount: "220,00")
+    document = SupportingDocument.last
+    month, statement = plant_month(organization)
+    payment = plant_payment(statement, 22000)
+    Match.confirm(month: month, payments: [ payment ], supporting_documents: [ document ])
+
+    delete "/supporting_documents/#{document.id}"
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(SupportingDocument.find(document.id)).to be_persisted
+  end
+
+  it "submitter DELETE another Account no-month document returns 404" do
+    coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(coord, organization: organization)
+    post "/supporting_documents", params: recibo_params(payee: "Doc Alheio")
+    id = SupportingDocument.last.id
+    sign_in_as(submitter, organization: organization)
+
+    delete "/supporting_documents/#{id}"
+
+    expect(response).to have_http_status(:not_found)
+    expect(SupportingDocument.find(id)).to be_persisted
+  end
+
+  it "coordinator DELETE submitter no-month document redirects" do
+    coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(submitter, organization: organization)
+    post "/supporting_documents", params: recibo_params(payee: "Padaria Central")
+    id = SupportingDocument.last.id
+    sign_in_as(coord, organization: organization)
+
+    delete "/supporting_documents/#{id}"
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/supporting_documents")
+    expect(SupportingDocument.find_by(id: id)).to be_nil
   end
 end
