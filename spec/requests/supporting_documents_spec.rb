@@ -702,4 +702,21 @@ RSpec.describe "Supporting documents", type: :request do
     expect(response).to redirect_to("/supporting_documents")
     expect(SupportingDocument.find_by(id: id)).to be_nil
   end
+
+  it "PATCH payee reassigns Sugestao to Mercado Silva payment" do
+    account, organization = signed_in
+    _month, statement = plant_month(organization)
+    plant_payment(statement, 22000, history: "Pix enviado — Padaria Central")
+    plant_payment(statement, 22000, history: "Pix enviado — Mercado Silva")
+    post "/supporting_documents", params: recibo_params(amount: "220,00", payee: "Padaria Central")
+    document = SupportingDocument.last
+
+    patch "/supporting_documents/#{document.id}", params: { payee: "Mercado Silva" }
+
+    get "/months/2026-05"
+    mercado = payment_status_html(response.body, history: "Pix enviado — Mercado Silva")
+    padaria = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
+    expect(mercado).to include("Sugestão")
+    expect(padaria).not_to include("Sugestão")
+  end
 end

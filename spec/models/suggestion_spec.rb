@@ -332,4 +332,23 @@ RSpec.describe Suggestion, type: :model do
 
     expect(proposal_for(payment).supporting_documents.map(&:id)).to contain_exactly(padaria.id, mercado.id)
   end
+
+  it "does not assign another organization document" do
+    payment = plant_payment(statement, 22000, history: "Pix enviado — Mesmo valor")
+    other = Organization.create!(name: "B")
+    other_account = Account.create!(email: "b@example.com", google_uid: "uid-b")
+    document = plant_recibo(other, other_account, payee: "Padaria Beta Isolada", amount: "220,00")
+
+    expect(proposal_for(payment)).to be_nil
+    expect(proposals.flat_map(&:supporting_documents)).not_to include(document)
+  end
+
+  it "closed month payments are not assigned" do
+    month, month_statement = plant_month(organization)
+    payment = plant_payment(month_statement, 22000, history: "Pix enviado — Padaria Central")
+    plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    month.update!(closed: true)
+
+    expect(proposal_for(payment)).to be_nil
+  end
 end

@@ -522,4 +522,22 @@ RSpec.describe "Matches", type: :request do
 
     expect(response).to have_http_status(:not_found)
   end
+
+  it "DELETE match restores Sugestao on the payment" do
+    account, organization, _month, statement = signed_month
+    payment = plant_payment(statement, 22000, history: "Pix enviado — Padaria Central")
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    post "/months/2026-05/matches", params: {
+      payment_ids: [ payment.id ], supporting_document_ids: [ document.id ]
+    }
+    match = Match.last
+
+    delete "/months/2026-05/matches/#{match.id}"
+
+    get "/months/2026-05"
+    status = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
+    expect(status).to include("Documento faltante")
+    expect(status).to include("Sugestão")
+    expect(status).to include("Padaria Central")
+  end
 end

@@ -164,4 +164,18 @@ RSpec.describe "Accountants", type: :request do
     expect(response).to have_http_status(:not_found)
     expect(organization.reload.accountant_presentation_name).to be_nil
   end
+
+  it "clearing PIX and tax id omits Sugestao de excecao" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    organization.update_accountant(presentation_name: "Ana Contadora", pix_key: "chave-pix", tax_id: "39053344705")
+    _month, statement = plant_month(organization)
+    plant_payment(statement, 22000, history: "Pix enviado chave-pix")
+
+    patch "/accountant", params: { presentation_name: "Ana Contadora" }
+
+    get "/months/2026-05"
+    status = payment_status_html(response.body, history: "Pix enviado chave-pix")
+    expect(status).not_to include("Sugestão de exceção")
+  end
 end
