@@ -210,6 +210,19 @@ RSpec.describe Match, type: :model do
     expect(payment.match_id).to eq(match.id)
   end
 
+  it "confirm on extra Doacao payment clears the extra mark" do
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    payment = plant_payment(statement, 22000)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    payment.mark_document_exception(extra_exception_kind_id: kind.id)
+
+    match = confirm(payments: [ payment ], documents: [ document ])
+
+    expect(match).to be_persisted
+    expect(payment.reload.extra_exception_kind_id).to be_nil
+    expect(payment.match_id).to eq(match.id)
+  end
+
   describe "concurrent confirms sharing a document persist exactly one Match" do
     self.use_transactional_tests = false
 

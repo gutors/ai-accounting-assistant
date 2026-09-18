@@ -164,4 +164,15 @@ RSpec.describe SummarySpreadsheet, type: :model do
 
     expect(sheet_text(book)).to include("Honorário do contador")
   end
+
+  it "extra Doacao expense Excecao cell is Doacao" do
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    payment = plant_payment(statement, 15500)
+    payment.mark_document_exception(extra_exception_kind_id: kind.id)
+    values = sheet_cell_values(book)
+    header = custos_header_row(values)
+    row = custos_data_rows(values).find { |cells| cells.include?("Doação") }
+
+    expect(row[header.index("Exceção")]).to eq("Doação")
+  end
 end

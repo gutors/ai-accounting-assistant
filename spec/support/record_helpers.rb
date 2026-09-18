@@ -24,6 +24,7 @@ module RecordHelpers
     Justification.delete_all
     Match.delete_all
     Month.delete_all
+    ExtraExceptionKind.delete_all
     BankAccount.delete_all
     Invite.delete_all
     Access.delete_all

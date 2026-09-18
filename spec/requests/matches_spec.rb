@@ -269,6 +269,24 @@ RSpec.describe "Matches", type: :request do
     expect(response.body).not_to include("Tarifa bancária")
   end
 
+  it "POST format-1 Match on extra Doacao payment clears the extra mark" do
+    account, organization, _month, statement = signed_month
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    payment = plant_payment(statement, 22000)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    payment.mark_document_exception(extra_exception_kind_id: kind.id)
+
+    post "/months/2026-05/matches", params: {
+      payment_ids: [ payment.id ], supporting_document_ids: [ document.id ]
+    }
+
+    expect(Match.count).to eq(1)
+    expect(payment.reload.extra_exception_kind_id).to be_nil
+    get "/months/2026-05"
+    expect(response.body).to include("Casado")
+    expect(response.body).not_to include("Doação")
+  end
+
   it "POST match with another organization payment returns 404" do
     account, org_a = plant_coordinator(email: "a@example.com", organization_name: "A")
     org_b = Organization.create!(name: "B")

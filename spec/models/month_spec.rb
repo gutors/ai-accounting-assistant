@@ -84,6 +84,16 @@ RSpec.describe Month, type: :model do
       expect(writer.calls.size).to eq(calls)
     end
 
+    it "close with extra Doacao payment does not add Ha documento faltante" do
+      kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+      payment = plant_payment(statement, 22000)
+      payment.mark_document_exception(extra_exception_kind_id: kind.id)
+
+      month.close_for_send
+
+      expect(month.errors[:base]).not_to include("Há documento faltante")
+    end
+
     it "close with active account without statement does not close" do
       BankAccount.create_for(organization: organization, name: "Conta Principal", compe: "001")
       opened = Month.open(organization: organization, year_month: "2026-05")

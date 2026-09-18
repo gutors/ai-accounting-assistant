@@ -22,6 +22,9 @@ Rails.application.routes.draw do
   patch "/package_archive", to: "package_archives#update"
   post "/bank_accounts", to: "bank_accounts#create"
   patch "/bank_accounts/:id", to: "bank_accounts#update"
+  post "/extra_exception_kinds", to: "extra_exception_kinds#create"
+  patch "/extra_exception_kinds/:id", to: "extra_exception_kinds#update"
+  delete "/extra_exception_kinds/:id", to: "extra_exception_kinds#destroy"
 
   post "/months", to: "months#create"
   get "/months/:year_month", to: "months#show"
