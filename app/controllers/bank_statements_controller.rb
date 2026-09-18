@@ -1,10 +1,7 @@
 class BankStatementsController < ApplicationController
-  def create
-    unless focused_organization
-      redirect_to login_path, status: :found
-      return
-    end
+  before_action :require_coordinator_organization
 
+  def create
     unless Month.valid_year_month?(params[:year_month])
       head :not_found
       return

@@ -12,11 +12,13 @@ class SupportingDocument < ApplicationRecord
   PHOTO_TYPE = "A foto deve ser JPEG, PNG, WebP ou PDF"
   XML_TYPE = "O XML deve ser um arquivo .xml"
   PAYEE_LENGTH = "Favorecido pode ter no máximo 200 caracteres"
+  HAS_MONTH = "Documento já pertence a um mês"
 
   belongs_to :organization
   belongs_to :account
   belongs_to :match, optional: true
   belongs_to :month, optional: true
+  belongs_to :justification, optional: true
   has_one_attached :photo
   has_one_attached :xml
 
@@ -34,6 +36,29 @@ class SupportingDocument < ApplicationRecord
   def apply(**attrs)
     submit(**attrs)
     self
+  end
+
+  def withdraw
+    errors.clear
+    withdrawn = false
+    transaction do
+      lock!
+      if month_id.present?
+        errors.add(:base, HAS_MONTH)
+        raise ActiveRecord::Rollback
+      end
+
+      grouping_id = justification_id
+      photo.purge if photo.attached?
+      xml.purge if xml.attached?
+      destroy!
+      if grouping_id
+        grouping = Justification.find(grouping_id)
+        grouping.destroy! unless grouping.supporting_documents.exists?
+      end
+      withdrawn = true
+    end
+    withdrawn
   end
 
   def submit(**attrs)

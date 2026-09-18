@@ -347,4 +347,18 @@ RSpec.describe "Bank statements", type: :request do
     expect(response.body).to include("Mês fechado")
     expect(month.bank_statements.find(existing_id).payments.count).to be > 1
   end
+
+  it "submitter POST bank_statements persists no statement and responds 404" do
+    _coord, organization, bank_account = open_with_account
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(submitter, organization: organization)
+
+    expect do
+      post "/months/2026-05/bank_statements", params: {
+        bank_account_id: bank_account.id, pdf: statement_pdf, spreadsheet: bb_xlsx
+      }
+    end.not_to change(BankStatement, :count)
+
+    expect(response).to have_http_status(:not_found)
+  end
 end

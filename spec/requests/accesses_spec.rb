@@ -77,6 +77,43 @@ RSpec.describe "Accesses", type: :request do
     expect(Access.find(other_access.id)).to eq(other_access)
   end
 
+  it "DELETE submitter Access redirects and keeps Account" do
+    account, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    access = organization.accesses.submitter.find_by!(account: submitter)
+    sign_in_as(account, organization: organization)
+
+    delete "/accesses/#{access.id}"
+
+    expect(Access.find_by(id: access.id)).to be_nil
+    expect(Account.find(submitter.id)).to eq(submitter)
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/")
+  end
+
+  it "DELETE last submitter Access leaves coordinator Accesses" do
+    account, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    access = organization.accesses.submitter.find_by!(account: submitter)
+    sign_in_as(account, organization: organization)
+
+    delete "/accesses/#{access.id}"
+
+    expect(organization.accesses.coordinator.pluck(:account_id)).to eq([ account.id ])
+  end
+
+  it "submitter DELETE /accesses/:id returns 404" do
+    _coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    access = organization.accesses.coordinator.first
+    sign_in_as(submitter, organization: organization)
+
+    delete "/accesses/#{access.id}"
+
+    expect(response).to have_http_status(:not_found)
+    expect(Access.find(access.id)).to eq(access)
+  end
+
   def signed_in_session(account)
     host = ActionDispatch::Integration::Session.new(Rails.application)
     host.host = "www.example.com"

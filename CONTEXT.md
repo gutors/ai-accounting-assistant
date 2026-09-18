@@ -17,7 +17,7 @@ A person with coordinator access on an organization: runs monthly close and vali
 _Avoid_: accountant (as the operator), business owner, bookkeeper
 
 **Invite**:
-A pending grant of coordinator access by email on one organization. It exists only while pending and is deleted when accepted or cancelled. User-facing copy is convite.
+A pending grant of coordinator or submitter access by email on one organization. It exists only while pending and is deleted when accepted or cancelled. User-facing copy is convite.
 _Avoid_: access (standing), membership, signup
 
 **Submitter**:

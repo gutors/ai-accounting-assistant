@@ -504,4 +504,16 @@ RSpec.describe "Close for send", type: :request do
 
     expect(response).to have_http_status(:not_found)
   end
+
+  it "submitter POST close leaves month open and responds 404" do
+    _coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    month, _statement = plant_month(organization)
+    sign_in_as(submitter, organization: organization)
+
+    post "/months/2026-05/close"
+
+    expect(month.reload.closed?).to eq(false)
+    expect(response).to have_http_status(:not_found)
+  end
 end

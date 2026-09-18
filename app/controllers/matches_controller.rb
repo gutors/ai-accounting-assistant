@@ -1,10 +1,7 @@
 class MatchesController < ApplicationController
-  def create
-    unless focused_organization
-      redirect_to login_path, status: :found
-      return
-    end
+  before_action :require_coordinator_organization
 
+  def create
     month = find_opened_month
     return unless month
 
@@ -40,11 +37,6 @@ class MatchesController < ApplicationController
   end
 
   def destroy
-    unless focused_organization
-      redirect_to login_path, status: :found
-      return
-    end
-
     month = find_opened_month
     return unless month
 

@@ -1,6 +1,8 @@
 class AccessesController < ApplicationController
+  before_action :require_coordinator_organization
+
   def destroy
-    access = focused_organization&.accesses&.find_by(id: params[:id])
+    access = focused_organization.accesses.find_by(id: params[:id])
     unless access
       head :not_found
       return

@@ -1,10 +1,7 @@
 class AccountantsController < ApplicationController
-  def update
-    unless focused_organization
-      redirect_to login_path, status: :found
-      return
-    end
+  before_action :require_coordinator_organization
 
+  def update
     if focused_organization.update_accountant(accountant_params)
       redirect_to "/setup", status: :found
     else

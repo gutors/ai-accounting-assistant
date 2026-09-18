@@ -347,4 +347,37 @@ RSpec.describe SupportingDocument, type: :model do
     expect(document).to be_persisted
     expect(document.month_id).to be_nil
   end
+
+  it "withdraw no-month document deletes the row and blobs" do
+    document = insert_doc
+    blob_id = document.photo.blob.id
+
+    expect(document.withdraw).to eq(true)
+    expect(SupportingDocument.find_by(id: document.id)).to be_nil
+    expect(ActiveStorage::Blob.find_by(id: blob_id)).to be_nil
+  end
+
+  it "withdraw last member document destroys the Justification" do
+    document = insert_doc
+    justification = Justification.declare(
+      organization: organization,
+      account: account,
+      amount: "155,00",
+      supporting_document_ids: [ document.id ]
+    )
+
+    expect(document.withdraw).to eq(true)
+    expect(Justification.find_by(id: justification.id)).to be_nil
+  end
+
+  it "withdraw month document is rejected" do
+    month, statement = plant_month(organization)
+    payment = plant_payment(statement, 15500)
+    document = insert_doc
+    Match.confirm(month: month, payments: [ payment ], supporting_documents: [ document ])
+
+    expect(document.reload.withdraw).to eq(false)
+    expect(document).to be_persisted
+    expect(document.errors[:base]).to include(SupportingDocument::HAS_MONTH)
+  end
 end

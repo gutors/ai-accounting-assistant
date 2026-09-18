@@ -13,6 +13,17 @@ RSpec.describe "Organization home", type: :request do
     expect(response.body).to include("guest@example.com")
   end
 
+  it "organization home lists standing submitter email" do
+    account, organization = plant_coordinator(email: "coord@example.com")
+    plant_submitter(email: "sub@example.com", organization: organization)
+    sign_in_as(account, organization: organization)
+
+    get "/"
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("sub@example.com")
+  end
+
   it "organization home lists no pending invite when none exist" do
     account, organization = plant_coordinator(email: "coord@example.com")
     sign_in_as(account, organization: organization)
@@ -114,5 +125,29 @@ RSpec.describe "Organization home", type: :request do
 
     expect(response.body).to include("2026-05")
     expect(response.body).to include('href="/months/2026-05"')
+  end
+
+  it "submitter home lists organization names when Account has multiple Accesses" do
+    account, first = plant_submitter(email: "sub@example.com", organization_name: "ONG Norte")
+    second = Organization.create!(name: "ONG Sul")
+    Access.create!(account: account, organization: second, kind: :submitter)
+    sign_in_as(account, organization: first)
+
+    get "/"
+
+    expect(response.body).to include("ONG Norte")
+    expect(response.body).to include("ONG Sul")
+  end
+
+  it "submitter home omits close-ritual chrome" do
+    account, organization = plant_submitter
+    sign_in_as(account, organization: organization)
+
+    get "/"
+
+    expect(response.body).not_to include("Abrir mês")
+    expect(response.body).not_to include("Fechar para envio")
+    expect(response.body).not_to include("Configuração")
+    expect(response.body).not_to include("Convidar coordenador")
   end
 end

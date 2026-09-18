@@ -160,4 +160,16 @@ RSpec.describe "Bank accounts", type: :request do
     expect(response).to have_http_status(:not_found)
     expect(bank_account.reload.name).to eq("Alheia")
   end
+
+  it "submitter POST /bank_accounts persists no account and responds 404" do
+    _coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(submitter, organization: organization)
+
+    expect do
+      post "/bank_accounts", params: { name: "Conta Principal", compe: "001" }
+    end.not_to change(BankAccount, :count)
+
+    expect(response).to have_http_status(:not_found)
+  end
 end

@@ -10,6 +10,8 @@ Rails.application.routes.draw do
 
   post "/coordinator_invites", to: "coordinator_invites#create"
   delete "/coordinator_invites/:id", to: "coordinator_invites#destroy"
+  post "/submitter_invites", to: "submitter_invites#create"
+  delete "/submitter_invites/:id", to: "submitter_invites#destroy"
 
   delete "/accesses/:id", to: "accesses#destroy"
 
@@ -34,6 +36,9 @@ Rails.application.routes.draw do
   get "/supporting_documents", to: "supporting_documents#index"
   post "/supporting_documents", to: "supporting_documents#create"
   patch "/supporting_documents/:id", to: "supporting_documents#update"
+  delete "/supporting_documents/:id", to: "supporting_documents#destroy"
+  post "/justifications", to: "justifications#create"
+  patch "/justifications/:id", to: "justifications#update"
 
   root "organizations#show"
 end

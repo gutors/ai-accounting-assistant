@@ -1,10 +1,7 @@
 class SetupController < ApplicationController
-  def show
-    unless focused_organization
-      redirect_to login_path, status: :found
-      return
-    end
+  before_action :require_coordinator_organization
 
+  def show
     load_setup
   end
 end

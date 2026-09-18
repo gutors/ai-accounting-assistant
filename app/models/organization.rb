@@ -4,6 +4,7 @@ class Organization < ApplicationRecord
   has_many :bank_accounts, dependent: :restrict_with_exception
   has_many :months, dependent: :restrict_with_exception
   has_many :supporting_documents, dependent: :restrict_with_exception
+  has_many :justifications, dependent: :restrict_with_exception
 
   validates :name, presence: true
   validate :accountant_shape, on: :accountant
