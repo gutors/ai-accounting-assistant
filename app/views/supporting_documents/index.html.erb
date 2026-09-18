@@ -52,7 +52,7 @@
           <%= format_reais(document.amount_cents) %>
           <%= document.recibo? ? "Recibo" : "Nota fiscal" %>
           <%= document.payee %>
-          <% if document.match_id? && document.month %>
+          <% if coordinator_on_focus? && document.match_id? && document.month %>
             Casado em <%= document.month.year_month %>
           <% end %>
           <% if document.photo.attached? %>

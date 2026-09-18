@@ -1,5 +1,6 @@
 class Account < ApplicationRecord
   has_many :accesses, dependent: :restrict_with_exception
+  has_many :organizations, through: :accesses
   has_many :coordinator_accesses, -> { coordinator }, class_name: "Access"
   has_many :coordinator_organizations, through: :coordinator_accesses, source: :organization
   has_many :supporting_documents, dependent: :restrict_with_exception

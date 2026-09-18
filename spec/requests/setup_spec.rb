@@ -151,4 +151,16 @@ RSpec.describe "Setup", type: :request do
 
     expect(response.body).not_to include("Conta Só B")
   end
+
+  it "submitter GET /setup responds 404 and omits bank-account name" do
+    _coord, organization = plant_coordinator
+    BankAccount.create_for(organization: organization, name: "Conta Principal", compe: "001")
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(submitter, organization: organization)
+
+    get "/setup"
+
+    expect(response).to have_http_status(:not_found)
+    expect(response.body).not_to include("Conta Principal")
+  end
 end

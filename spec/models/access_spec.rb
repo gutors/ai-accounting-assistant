@@ -19,6 +19,16 @@ RSpec.describe Access, type: :model do
     expect(invite.kind).to eq("coordinator")
   end
 
+  it "destroy last submitter Access is allowed" do
+    _coordinator, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    access = organization.accesses.submitter.find_by!(account: submitter)
+
+    expect(access.destroy).to be_truthy
+    expect(Access.find_by(id: access.id)).to be_nil
+    expect(organization.accesses.coordinator.count).to eq(1)
+  end
+
   it "destroy is rejected when it is the last coordinator Access" do
     _account, organization = plant_coordinator
     access = organization.accesses.coordinator.first

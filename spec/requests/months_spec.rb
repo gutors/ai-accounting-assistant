@@ -247,4 +247,52 @@ RSpec.describe "Months", type: :request do
 
     expect(response.body).not_to include("Documento faltante")
   end
+
+  it "submitter focus GET /months/2026-05 responds 404" do
+    account, org_a = plant_coordinator(email: "mixed@example.com", organization_name: "A")
+    org_b = Organization.create!(name: "B")
+    Access.create!(account: account, organization: org_b, kind: :submitter)
+    plant_month(org_b)
+    sign_in_as(account, organization: org_b)
+
+    get "/months/2026-05"
+
+    expect(response).to have_http_status(:not_found)
+  end
+
+  it "coordinator focus GET /months/2026-05 responds 200 for mixed Access" do
+    account, org_a = plant_coordinator(email: "mixed@example.com", organization_name: "A")
+    org_b = Organization.create!(name: "B")
+    Access.create!(account: account, organization: org_b, kind: :submitter)
+    plant_month(org_a)
+    sign_in_as(account, organization: org_a)
+
+    get "/months/2026-05"
+
+    expect(response).to have_http_status(:ok)
+  end
+
+  it "submitter GET /months/2026-05 responds 404 and omits PIX Isolado" do
+    _coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    _month, statement = plant_month(organization)
+    plant_payment(statement, 15500, history: "PIX Isolado")
+    sign_in_as(submitter, organization: organization)
+
+    get "/months/2026-05"
+
+    expect(response).to have_http_status(:not_found)
+    expect(response.body).not_to include("PIX Isolado")
+  end
+
+  it "submitter POST /months persists no Month and responds 404" do
+    account, organization = plant_submitter
+    sign_in_as(account, organization: organization)
+
+    expect do
+      post "/months", params: { year_month: "2026-05" }
+    end.not_to change(Month, :count)
+
+    expect(response).to have_http_status(:not_found)
+  end
 end

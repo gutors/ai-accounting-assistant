@@ -362,4 +362,21 @@ RSpec.describe "Matches", type: :request do
     expect(response.body).to include("Mês fechado")
     expect(Match.exists?(match.id)).to eq(true)
   end
+
+  it "submitter POST match persists no Match and responds 404" do
+    account, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    _month, statement = plant_month(organization)
+    payment = plant_payment(statement, 22000)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    sign_in_as(submitter, organization: organization)
+
+    expect do
+      post "/months/2026-05/matches", params: {
+        payment_ids: [ payment.id ], supporting_document_ids: [ document.id ]
+      }
+    end.not_to change(Match, :count)
+
+    expect(response).to have_http_status(:not_found)
+  end
 end

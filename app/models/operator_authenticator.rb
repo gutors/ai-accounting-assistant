@@ -18,26 +18,26 @@ class OperatorAuthenticator
     account = Account.find_by(email: email)
     pending = Invite.where(email: email).to_a
 
-    if account&.coordinator_accesses&.any?
-      assign_uid!(account)
-      Result.new(status: :signed_in, account: account, organization: account.coordinator_organizations.first)
-    elsif pending.any?
+    if pending.any?
       account ||= Account.create!(email: email, google_uid: uid.presence)
       assign_uid!(account)
-      organization = nil
-      pending.each do |invite|
-        invite.accept!(account)
-        organization = invite.organization
-      end
-      Result.new(status: :signed_in, account: account, organization: organization)
+      pending.each { |invite| invite.accept!(account) }
+    elsif account&.accesses&.any?
+      assign_uid!(account)
     else
-      Result.new(status: :denied, account: account)
+      return Result.new(status: :denied, account: account)
     end
+
+    Result.new(status: :signed_in, account: account, organization: focus_for(account))
   end
 
   private
 
   attr_reader :auth
+
+  def focus_for(account)
+    account.coordinator_organizations.first || account.organizations.first
+  end
 
   def email_verified?
     values = [

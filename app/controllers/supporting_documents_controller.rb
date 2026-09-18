@@ -1,19 +1,11 @@
 class SupportingDocumentsController < ApplicationController
-  def index
-    unless focused_organization
-      redirect_to login_path, status: :found
-      return
-    end
+  before_action :require_focused_organization
 
+  def index
     load_documents
   end
 
   def create
-    unless focused_organization
-      redirect_to login_path, status: :found
-      return
-    end
-
     document = SupportingDocument.insert(
       organization: focused_organization,
       account: current_account,
@@ -36,11 +28,6 @@ class SupportingDocumentsController < ApplicationController
   end
 
   def update
-    unless focused_organization
-      redirect_to login_path, status: :found
-      return
-    end
-
     document = focused_organization.supporting_documents.find_by(id: params[:id])
     unless document
       head :not_found
@@ -67,6 +54,8 @@ class SupportingDocumentsController < ApplicationController
   private
 
   def load_documents
-    @documents = focused_organization.supporting_documents.listed.includes(:month, :match)
+    scope = focused_organization.supporting_documents.listed.includes(:month, :match)
+    scope = scope.where(account: current_account) unless coordinator_on_focus?
+    @documents = scope
   end
 end

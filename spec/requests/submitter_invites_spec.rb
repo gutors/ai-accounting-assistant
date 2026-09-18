@@ -1,0 +1,80 @@
+require "rails_helper"
+
+RSpec.describe "Submitter invites", type: :request do
+  it "POST /submitter_invites persists a submitter Invite and redirects" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    expect do
+      post "/submitter_invites", params: { email: "guest@example.com" }
+    end.to change(Invite, :count).by(1)
+
+    invite = Invite.last
+    expect(invite.email).to eq("guest@example.com")
+    expect(invite.kind).to eq("submitter")
+    expect(invite.organization).to eq(organization)
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/")
+    follow_redirect!
+    expect(response.body).to include("guest@example.com")
+  end
+
+  it "rejected submitter invite emails return 422" do
+    account, organization = plant_coordinator(email: "coord@example.com")
+    standing_coord = Account.create!(email: "standing-coord@example.com", google_uid: "uid-standing-coord")
+    Access.create!(account: standing_coord, organization: organization, kind: :coordinator)
+    standing_sub = Account.create!(email: "standing-sub@example.com", google_uid: "uid-standing-sub")
+    Access.create!(account: standing_sub, organization: organization, kind: :submitter)
+    Invite.create!(organization: organization, email: "pending@example.com", kind: :submitter)
+    sign_in_as(account, organization: organization)
+
+    [
+      "standing-coord@example.com",
+      "standing-sub@example.com",
+      "pending@example.com",
+      "not-an-email"
+    ].each do |email|
+      expect do
+        post "/submitter_invites", params: { email: email }
+      end.not_to change(Invite, :count)
+      expect(response).to have_http_status(:unprocessable_content)
+    end
+  end
+
+  it "unauthenticated POST /submitter_invites responds 302 to /login" do
+    expect do
+      post "/submitter_invites", params: { email: "guest@example.com" }
+    end.not_to change(Invite, :count)
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/login")
+  end
+
+  it "DELETE /submitter_invites/:id redirects" do
+    account, organization = plant_coordinator
+    invite = Invite.create!(organization: organization, email: "guest@example.com", kind: :submitter)
+    sign_in_as(account, organization: organization)
+
+    delete "/submitter_invites/#{invite.id}"
+
+    expect(Invite.find_by(id: invite.id)).to be_nil
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/")
+  end
+
+  it "submitter POST invites persist no Invite and respond 404" do
+    _coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(submitter, organization: organization)
+
+    [
+      "/coordinator_invites",
+      "/submitter_invites"
+    ].each do |path|
+      expect do
+        post path, params: { email: "guest@example.com" }
+      end.not_to change(Invite, :count)
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+end

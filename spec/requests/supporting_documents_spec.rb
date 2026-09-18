@@ -488,4 +488,69 @@ RSpec.describe "Supporting documents", type: :request do
     expect(SupportingDocument.find_by!(payee: "Novo Recibo").month_id).to be_nil
     expect(month.reload.closed?).to eq(true)
   end
+
+  it "submitter documents page does not include another organization payee" do
+    account, org_a = plant_submitter(email: "sub@example.com", organization_name: "A")
+    org_b = Organization.create!(name: "B")
+    Access.create!(account: account, organization: org_b, kind: :submitter)
+    sign_in_as(account, organization: org_b)
+    post "/supporting_documents", params: recibo_params(payee: "Only Org B")
+
+    sign_in_as(account, organization: org_a)
+    get "/supporting_documents"
+
+    expect(response.body).not_to include("Only Org B")
+  end
+
+  it "submitter GET /supporting_documents omits another Account payee" do
+    coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(coord, organization: organization)
+    post "/supporting_documents", params: recibo_params(payee: "Doc Alheio")
+    sign_in_as(submitter, organization: organization)
+
+    get "/supporting_documents"
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Documentos de suporte")
+    expect(response.body).not_to include("Doc Alheio")
+  end
+
+  it "submitter GET /supporting_documents with no own documents includes Nenhum documento" do
+    _coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(submitter, organization: organization)
+
+    get "/supporting_documents"
+
+    expect(response.body).to include("Nenhum documento")
+  end
+
+  it "submitter GET /supporting_documents matched document omits Casado em" do
+    _coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(submitter, organization: organization)
+    post "/supporting_documents", params: recibo_params(amount: "220,00")
+    document = SupportingDocument.last
+    month, statement = plant_month(organization)
+    payment = plant_payment(statement, 22000)
+    Match.confirm(month: month, payments: [ payment ], supporting_documents: [ document ])
+
+    get "/supporting_documents"
+
+    expect(response.body).to include("Padaria Central")
+    expect(response.body).not_to include("Casado em")
+  end
+
+  it "coordinator GET /supporting_documents includes submitter payee" do
+    coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(submitter, organization: organization)
+    post "/supporting_documents", params: recibo_params(payee: "Padaria Central")
+    sign_in_as(coord, organization: organization)
+
+    get "/supporting_documents"
+
+    expect(response.body).to include("Padaria Central")
+  end
 end

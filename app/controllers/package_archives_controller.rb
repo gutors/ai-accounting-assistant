@@ -1,10 +1,7 @@
 class PackageArchivesController < ApplicationController
-  def update
-    unless focused_organization
-      redirect_to login_path, status: :found
-      return
-    end
+  before_action :require_coordinator_organization
 
+  def update
     if focused_organization.update_package_archive(params[:url])
       redirect_to "/setup", status: :found
     else

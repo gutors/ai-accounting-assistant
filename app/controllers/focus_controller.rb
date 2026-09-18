@@ -1,6 +1,6 @@
 class FocusController < ApplicationController
   def create
-    organization = current_account.coordinator_organizations.find_by(id: params[:organization_id])
+    organization = current_account.organizations.find_by(id: params[:organization_id])
     unless organization
       head :not_found
       return

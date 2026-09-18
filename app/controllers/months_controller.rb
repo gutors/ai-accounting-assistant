@@ -1,10 +1,7 @@
 class MonthsController < ApplicationController
-  def create
-    unless focused_organization
-      redirect_to login_path, status: :found
-      return
-    end
+  before_action :require_coordinator_organization
 
+  def create
     month = Month.open(organization: focused_organization, year_month: params[:year_month])
     if month.persisted?
       redirect_to "/months/#{month.year_month}", status: :found
@@ -15,11 +12,6 @@ class MonthsController < ApplicationController
   end
 
   def show
-    unless focused_organization
-      redirect_to login_path, status: :found
-      return
-    end
-
     month = find_month
     return unless month
 
@@ -28,11 +20,6 @@ class MonthsController < ApplicationController
   end
 
   def close
-    unless focused_organization
-      redirect_to login_path, status: :found
-      return
-    end
-
     month = find_month
     return unless month
 
@@ -48,11 +35,6 @@ class MonthsController < ApplicationController
   end
 
   def reopen
-    unless focused_organization
-      redirect_to login_path, status: :found
-      return
-    end
-
     month = find_month
     return unless month
 

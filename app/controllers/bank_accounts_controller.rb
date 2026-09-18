@@ -1,10 +1,7 @@
 class BankAccountsController < ApplicationController
-  def create
-    unless focused_organization
-      redirect_to login_path, status: :found
-      return
-    end
+  before_action :require_coordinator_organization
 
+  def create
     bank_account = BankAccount.create_for(
       organization: focused_organization,
       name: params[:name],
@@ -21,7 +18,7 @@ class BankAccountsController < ApplicationController
   end
 
   def update
-    bank_account = focused_organization&.bank_accounts&.find_by(id: params[:id])
+    bank_account = focused_organization.bank_accounts.find_by(id: params[:id])
     unless bank_account
       head :not_found
       return

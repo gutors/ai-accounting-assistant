@@ -7,7 +7,7 @@ class ApplicationController < ActionController::Base
 
   before_action :require_account
 
-  helper_method :current_account, :focused_organization
+  helper_method :current_account, :focused_organization, :coordinator_on_focus?
 
   private
 
@@ -20,18 +20,38 @@ class ApplicationController < ActionController::Base
   def focused_organization
     return unless current_account && session[:organization_id]
 
-    @focused_organization ||= current_account.coordinator_organizations.find_by(id: session[:organization_id])
+    @focused_organization ||= current_account.organizations.find_by(id: session[:organization_id])
+  end
+
+  def coordinator_on_focus?
+    return false unless current_account && focused_organization
+
+    current_account.coordinator_accesses.exists?(organization_id: focused_organization.id)
   end
 
   def require_account
     redirect_to login_path, status: :found unless current_account
   end
 
+  def require_focused_organization
+    redirect_to login_path, status: :found unless focused_organization
+  end
+
+  def require_coordinator_organization
+    unless focused_organization
+      redirect_to login_path, status: :found
+      return
+    end
+
+    head :not_found unless coordinator_on_focus?
+  end
+
   def load_home
     @organization = focused_organization
     @coordinator_accesses = @organization.accesses.coordinator.includes(:account).order("accounts.email")
+    @submitter_accesses = @organization.accesses.submitter.includes(:account).order("accounts.email")
     @invites = @organization.invites.order(:email)
-    @focusable_organizations = current_account.coordinator_organizations.order(:name)
+    @focusable_organizations = current_account.organizations.order(:name)
     @months = @organization.months.order(year_month: :desc)
   end
 
@@ -43,14 +63,14 @@ class ApplicationController < ActionController::Base
     @payments = Payment.joins(:bank_statement).where(bank_statements: { month_id: @month.id }).includes(match: :supporting_documents, bank_statement: :bank_account).order(:occurred_on, :id)
     @unmatched_documents = @organization.supporting_documents.unmatched.listed
     @missing_document_payments = @payments.select(&:missing_document?)
-    @focusable_organizations = current_account.coordinator_organizations.order(:name)
+    @focusable_organizations = current_account.organizations.order(:name)
   end
 
   def load_setup
     @organization = focused_organization
     @banks = Bank.ordered_catalog
     @bank_accounts = @organization.bank_accounts.includes(:bank).order(:name)
-    @focusable_organizations = current_account.coordinator_organizations.order(:name)
+    @focusable_organizations = current_account.organizations.order(:name)
   end
 
   def sign_in(account, organization:)
