@@ -12,7 +12,8 @@ class CreateExtraExceptionKinds < ActiveRecord::Migration[8.1]
 
     add_reference :payments, :extra_exception_kind, foreign_key: { on_delete: :restrict }
 
-    remove_check_constraint :payments, name: "payments_match_xor_document_exception"
+    remove_check_constraint :payments, "match_id IS NULL OR document_exception_kind IS NULL",
+      name: "payments_match_xor_document_exception"
     add_check_constraint :payments,
       "(match_id IS NULL OR document_exception_kind IS NULL) AND " \
       "(match_id IS NULL OR extra_exception_kind_id IS NULL) AND " \
