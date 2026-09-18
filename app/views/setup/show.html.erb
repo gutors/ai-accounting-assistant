@@ -45,6 +45,31 @@
   <% end %>
 </section>
 
+<section class="mb-10">
+  <h2 class="text-lg font-medium mb-3">Certificado SEFAZ</h2>
+  <% if @certificate_error.present? %>
+    <p class="mb-3"><%= @certificate_error %></p>
+  <% end %>
+  <% if @organization.sefaz_titular_cnpj.blank? %>
+    <p class="mb-3">Nenhum certificado</p>
+  <% else %>
+    <p class="mb-3"><%= @organization.sefaz_titular_display %></p>
+    <% if @organization.sefaz_certificate_expired? %>
+      <p class="mb-3">Expirado em <%= l(@organization.sefaz_not_after) %></p>
+    <% else %>
+      <p class="mb-3">Válido até <%= l(@organization.sefaz_not_after) %></p>
+    <% end %>
+    <%= button_to "Remover", "/sefaz_certificate", method: :delete, form: { data: { turbo_confirm: "Remover o certificado SEFAZ?" } }, class: "text-sm underline mb-3" %>
+  <% end %>
+  <%= form_with url: "/sefaz_certificate", method: :post, multipart: true do %>
+    <label for="certificate" class="block mb-1">Arquivo</label>
+    <%= file_field_tag :certificate, id: "certificate", class: "mb-3" %>
+    <label for="passphrase" class="block mb-1">Senha</label>
+    <%= password_field_tag :passphrase, nil, id: "passphrase", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "off" %>
+    <%= submit_tag "Instalar certificado", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+  <% end %>
+</section>
+
 <section>
   <h2 class="text-lg font-medium mb-3">Contas bancárias</h2>
   <% if @bank_accounts.empty? %>

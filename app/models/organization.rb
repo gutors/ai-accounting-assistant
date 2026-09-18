@@ -1,4 +1,12 @@
+require "base64"
+require "openssl"
+
 class Organization < ApplicationRecord
+  MAX_SEFAZ_PKCS12_BYTES = 1_048_576
+  SEFAZ_OPEN_FAILED = "Não foi possível abrir o certificado com essa senha"
+  SEFAZ_NOT_ECNPJ = "O certificado deve ser e-CNPJ A1 vigente"
+  SEFAZ_WRAP_FAILED = "O certificado não pôde ser guardado"
+
   has_many :accesses, dependent: :restrict_with_exception
   has_many :invites, dependent: :destroy
   has_many :bank_accounts, dependent: :restrict_with_exception
@@ -29,7 +37,108 @@ class Organization < ApplicationRecord
     update(package_archive_url: parsed.url, package_archive_folder_id: parsed.folder_id)
   end
 
+  def install_sefaz_certificate(file:, passphrase:)
+    errors.clear
+    bytes, filename = read_sefaz_upload(file)
+    unless bytes
+      errors.add(:base, SEFAZ_NOT_ECNPJ)
+      return false
+    end
+    if bytes.bytesize > MAX_SEFAZ_PKCS12_BYTES
+      errors.add(:base, SEFAZ_NOT_ECNPJ)
+      return false
+    end
+    unless %w[.pfx .p12].include?(File.extname(filename).downcase)
+      errors.add(:base, SEFAZ_NOT_ECNPJ)
+      return false
+    end
+
+    begin
+      pkcs12 = OpenSSL::PKCS12.new(bytes, passphrase.to_s)
+    rescue OpenSSL::PKCS12::PKCS12Error
+      errors.add(:base, SEFAZ_OPEN_FAILED)
+      return false
+    end
+
+    cert = pkcs12.certificate
+    titular = titular_from_certificate(cert)
+    not_after = cert.not_after.utc.to_date
+    unless titular&.length == 14 && not_after >= Date.current
+      errors.add(:base, SEFAZ_NOT_ECNPJ)
+      return false
+    end
+
+    unless WrapKey.present?
+      errors.add(:base, SEFAZ_WRAP_FAILED)
+      return false
+    end
+
+    persist_sefaz_slot(bytes:, passphrase: passphrase.to_s, titular:, not_after:)
+  rescue WrapKey::Missing
+    errors.add(:base, SEFAZ_WRAP_FAILED)
+    false
+  end
+
+  def remove_sefaz_certificate
+    update!(
+      sefaz_pkcs12_ciphertext: nil,
+      sefaz_passphrase_ciphertext: nil,
+      sefaz_titular_cnpj: nil,
+      sefaz_not_after: nil
+    )
+  end
+
+  def sefaz_certificate_expired?
+    sefaz_not_after.present? && sefaz_not_after < Date.current
+  end
+
+  def sefaz_titular_display
+    digits = sefaz_titular_cnpj.to_s
+    return if digits.length != 14
+
+    "#{digits[0, 2]}.#{digits[2, 3]}.#{digits[5, 3]}/#{digits[8, 4]}-#{digits[12, 2]}"
+  end
+
+  def unwrap_sefaz_pkcs12
+    return if sefaz_pkcs12_ciphertext.blank? || sefaz_passphrase_ciphertext.blank?
+
+    bytes = Base64.strict_decode64(WrapKey.decrypt(sefaz_pkcs12_ciphertext))
+    OpenSSL::PKCS12.new(bytes, WrapKey.decrypt(sefaz_passphrase_ciphertext))
+  end
+
   private
+
+  def persist_sefaz_slot(bytes:, passphrase:, titular:, not_after:)
+    transaction do
+      lock!
+      self.sefaz_pkcs12_ciphertext = WrapKey.encrypt(Base64.strict_encode64(bytes))
+      self.sefaz_passphrase_ciphertext = WrapKey.encrypt(passphrase)
+      self.sefaz_titular_cnpj = titular
+      self.sefaz_not_after = not_after
+      save!
+    end
+    true
+  end
+
+  def read_sefaz_upload(file)
+    return unless file.respond_to?(:original_filename)
+
+    filename = file.original_filename.to_s
+    return if filename.blank?
+
+    size = file.size if file.respond_to?(:size)
+    return [ "x" * (MAX_SEFAZ_PKCS12_BYTES + 1), filename ] if size && size > MAX_SEFAZ_PKCS12_BYTES
+
+    file.rewind if file.respond_to?(:rewind)
+    bytes = file.read
+    file.rewind if file.respond_to?(:rewind)
+    [ bytes, filename ]
+  end
+
+  def titular_from_certificate(certificate)
+    haystack = certificate.subject.to_s
+    haystack.scan(/\d{14}/).first || haystack.scan(/\d{11}/).first
+  end
 
   def accountant_shape
     satellites_present = accountant_tax_id.present? || accountant_legal_name.present? ||

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_18_180000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_18_200000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -167,6 +167,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_180000) do
     t.string "package_archive_folder_id"
     t.string "package_archive_url"
     t.string "package_destination_email"
+    t.date "sefaz_not_after"
+    t.text "sefaz_passphrase_ciphertext"
+    t.text "sefaz_pkcs12_ciphertext"
+    t.string "sefaz_titular_cnpj"
     t.datetime "updated_at", null: false
   end
 

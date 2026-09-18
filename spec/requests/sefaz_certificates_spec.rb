@@ -1,0 +1,254 @@
+require "rails_helper"
+
+RSpec.describe "SEFAZ certificates", type: :request do
+  include ActiveSupport::Testing::TimeHelpers
+
+  def signed_in
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    [ account, organization ]
+  end
+
+  it "POST /sefaz_certificate persists pfx and redirects" do
+    _account, organization = signed_in
+
+    post "/sefaz_certificate", params: {
+      certificate: sefaz_pfx,
+      passphrase: "passphrase-secreta"
+    }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/setup")
+    organization.reload
+    expect(organization.sefaz_titular_cnpj).to eq("11222333000181")
+    expect(organization.sefaz_not_after).to eq(Date.new(2027, 9, 18))
+
+    get "/setup"
+    expect(response.body).to include("11.222.333/0001-81")
+    expect(response.body).to include("Válido até 18/09/2027")
+    expect(response.body).not_to include("Nenhum certificado")
+    expect(response.body).not_to include("passphrase-secreta")
+  end
+
+  it "POST /sefaz_certificate accepts p12" do
+    signed_in
+
+    post "/sefaz_certificate", params: {
+      certificate: sefaz_p12,
+      passphrase: "passphrase-secreta"
+    }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/setup")
+    get "/setup"
+    expect(response.body).to include("11.222.333/0001-81")
+  end
+
+  it "GET /sefaz_certificate after install responds 404 without PKCS12 bytes" do
+    signed_in
+    der = sefaz_pkcs12_der(
+      titular: "11222333000181",
+      not_after: Date.new(2027, 9, 18),
+      passphrase: "passphrase-secreta"
+    )
+    post "/sefaz_certificate", params: {
+      certificate: sefaz_pfx,
+      passphrase: "passphrase-secreta"
+    }
+
+    get "/sefaz_certificate"
+
+    expect(response).to have_http_status(:not_found)
+    expect(response.body.b).not_to include(der.b)
+  end
+
+  it "POST pfx with passphrase errada returns 422" do
+    _account, organization = signed_in
+
+    post "/sefaz_certificate", params: {
+      certificate: sefaz_pfx,
+      passphrase: "errada"
+    }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Não foi possível abrir o certificado com essa senha")
+    expect(response.body).to include("Nenhum certificado")
+    expect(organization.reload.sefaz_titular_cnpj).to be_nil
+  end
+
+  it "POST e-CPF returns 422" do
+    _account, organization = signed_in
+
+    post "/sefaz_certificate", params: {
+      certificate: sefaz_pfx(titular: "39053344705"),
+      passphrase: "passphrase-secreta"
+    }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("O certificado deve ser e-CNPJ A1 vigente")
+    expect(organization.reload.sefaz_titular_cnpj).to be_nil
+  end
+
+  it "POST expired A1 returns 422" do
+    travel_to Date.new(2026, 5, 11) do
+      _account, organization = signed_in
+
+      post "/sefaz_certificate", params: {
+        certificate: sefaz_pfx(not_after: Date.new(2026, 5, 10)),
+        passphrase: "passphrase-secreta"
+      }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.body).to include("O certificado deve ser e-CNPJ A1 vigente")
+      expect(organization.reload.sefaz_titular_cnpj).to be_nil
+    end
+  end
+
+  it "POST txt certificate returns 422" do
+    _account, organization = signed_in
+
+    post "/sefaz_certificate", params: {
+      certificate: sefaz_txt_certificate,
+      passphrase: "passphrase-secreta"
+    }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("O certificado deve ser e-CNPJ A1 vigente")
+    expect(organization.reload.sefaz_titular_cnpj).to be_nil
+  end
+
+  it "POST PKCS12 larger than 1048576 returns 422" do
+    _account, organization = signed_in
+
+    post "/sefaz_certificate", params: {
+      certificate: oversized_sefaz_pfx,
+      passphrase: "passphrase-secreta"
+    }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(organization.reload.sefaz_titular_cnpj).to be_nil
+  end
+
+  it "unauthenticated POST /sefaz_certificate responds 302 to /login" do
+    expect do
+      post "/sefaz_certificate", params: {
+        certificate: sefaz_pfx,
+        passphrase: "passphrase-secreta"
+      }
+    end.not_to change { Organization.where.not(sefaz_titular_cnpj: nil).count }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/login")
+  end
+
+  it "submitter POST /sefaz_certificate persists none and responds 404" do
+    _coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(submitter, organization: organization)
+
+    post "/sefaz_certificate", params: {
+      certificate: sefaz_pfx,
+      passphrase: "passphrase-secreta"
+    }
+
+    expect(response).to have_http_status(:not_found)
+    expect(organization.reload.sefaz_titular_cnpj).to be_nil
+  end
+
+  it "POST second A1 replaces titular on /setup" do
+    signed_in
+    post "/sefaz_certificate", params: {
+      certificate: sefaz_pfx,
+      passphrase: "passphrase-secreta"
+    }
+
+    post "/sefaz_certificate", params: {
+      certificate: sefaz_pfx(titular: "12345678000101", name: "other.pfx"),
+      passphrase: "passphrase-secreta"
+    }
+
+    expect(response).to have_http_status(:found)
+    get "/setup"
+    expect(response.body).to include("12.345.678/0001-01")
+    expect(response.body).not_to include("11.222.333/0001-81")
+  end
+
+  it "DELETE /sefaz_certificate clears the slot and redirects" do
+    _account, organization = signed_in
+    post "/sefaz_certificate", params: {
+      certificate: sefaz_pfx,
+      passphrase: "passphrase-secreta"
+    }
+
+    delete "/sefaz_certificate"
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/setup")
+    expect(organization.reload.sefaz_titular_cnpj).to be_nil
+    get "/setup"
+    expect(response.body).to include("Nenhum certificado")
+    expect(response.body).not_to include("11.222.333/0001-81")
+  end
+
+  it "unauthenticated DELETE /sefaz_certificate leaves certificate and responds 302 to /login" do
+    account, organization = signed_in
+    post "/sefaz_certificate", params: {
+      certificate: sefaz_pfx,
+      passphrase: "passphrase-secreta"
+    }
+    delete "/session"
+
+    delete "/sefaz_certificate"
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/login")
+    expect(organization.reload.sefaz_titular_cnpj).to eq("11222333000181")
+    expect(account).to be_present
+  end
+
+  it "submitter DELETE /sefaz_certificate leaves certificate and responds 404" do
+    _coord, organization = plant_coordinator
+    sign_in_as(_coord, organization: organization)
+    post "/sefaz_certificate", params: {
+      certificate: sefaz_pfx,
+      passphrase: "passphrase-secreta"
+    }
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(submitter, organization: organization)
+
+    delete "/sefaz_certificate"
+
+    expect(response).to have_http_status(:not_found)
+    expect(organization.reload.sefaz_titular_cnpj).to eq("11222333000181")
+  end
+
+  it "POST A1 with blank wrap key returns 422" do
+    _account, organization = signed_in
+
+    with_env("SEFAZ_WRAP_KEY" => nil) do
+      post "/sefaz_certificate", params: {
+        certificate: sefaz_pfx,
+        passphrase: "passphrase-secreta"
+      }
+    end
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("O certificado não pôde ser guardado")
+    expect(organization.reload.sefaz_titular_cnpj).to be_nil
+  end
+
+  it "POST A1 while month closed still persists and redirects" do
+    _account, organization = signed_in
+    month, _statement = plant_month(organization)
+    month.update!(closed: true)
+
+    post "/sefaz_certificate", params: {
+      certificate: sefaz_pfx,
+      passphrase: "passphrase-secreta"
+    }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/setup")
+    expect(organization.reload.sefaz_titular_cnpj).to eq("11222333000181")
+  end
+end
