@@ -1,6 +1,8 @@
 require "rails_helper"
 
 RSpec.describe Organization, type: :model do
+  include ActiveSupport::Testing::TimeHelpers
+
   it "persists trimmed accountant presentation name" do
     organization = Organization.create!(name: "ONG")
 
@@ -174,5 +176,146 @@ RSpec.describe Organization, type: :model do
     expect(organization.update_package_archive("https://drive.google.com/file/d/0B_NiLAzvehC9R2stRmQyM3ZiVjQ/view")).to be(false)
     organization.reload
     expect(organization.package_archive_url).to eq(good)
+  end
+
+  it "install pfx persists titular 11222333000181 and notAfter 2027-09-18" do
+    organization = Organization.create!(name: "ONG")
+
+    expect(organization.install_sefaz_certificate(file: sefaz_pfx, passphrase: "passphrase-secreta")).to be(true)
+    expect(organization.sefaz_titular_cnpj).to eq("11222333000181")
+    expect(organization.sefaz_not_after).to eq(Date.new(2027, 9, 18))
+    pkcs12 = organization.unwrap_sefaz_pkcs12
+    expect(pkcs12).to be_a(OpenSSL::PKCS12)
+  end
+
+  it "install p12 persists titular 11222333000181" do
+    organization = Organization.create!(name: "ONG")
+
+    expect(organization.install_sefaz_certificate(file: sefaz_p12, passphrase: "passphrase-secreta")).to be(true)
+    expect(organization.sefaz_titular_cnpj).to eq("11222333000181")
+  end
+
+  it "install with passphrase errada persists no certificate" do
+    organization = Organization.create!(name: "ONG")
+
+    expect(organization.install_sefaz_certificate(file: sefaz_pfx, passphrase: "errada")).to be(false)
+    expect(organization.errors[:base]).to include("Não foi possível abrir o certificado com essa senha")
+    expect(organization.reload.sefaz_titular_cnpj).to be_nil
+  end
+
+  it "install e-CPF 39053344705 persists no certificate" do
+    organization = Organization.create!(name: "ONG")
+
+    expect(organization.install_sefaz_certificate(
+      file: sefaz_pfx(titular: "39053344705"),
+      passphrase: "passphrase-secreta"
+    )).to be(false)
+    expect(organization.errors[:base]).to include("O certificado deve ser e-CNPJ A1 vigente")
+    expect(organization.reload.sefaz_titular_cnpj).to be_nil
+  end
+
+  it "install notAfter 2026-05-10 on 2026-05-11 persists no certificate" do
+    organization = Organization.create!(name: "ONG")
+
+    travel_to Date.new(2026, 5, 11) do
+      expect(organization.install_sefaz_certificate(
+        file: sefaz_pfx(not_after: Date.new(2026, 5, 10)),
+        passphrase: "passphrase-secreta"
+      )).to be(false)
+    end
+    expect(organization.errors[:base]).to include("O certificado deve ser e-CNPJ A1 vigente")
+    expect(organization.reload.sefaz_titular_cnpj).to be_nil
+  end
+
+  it "install txt persists no certificate" do
+    organization = Organization.create!(name: "ONG")
+
+    expect(organization.install_sefaz_certificate(
+      file: sefaz_txt_certificate,
+      passphrase: "passphrase-secreta"
+    )).to be(false)
+    expect(organization.errors[:base]).to include("O certificado deve ser e-CNPJ A1 vigente")
+    expect(organization.reload.sefaz_titular_cnpj).to be_nil
+  end
+
+  it "install larger than 1048576 persists no certificate" do
+    organization = Organization.create!(name: "ONG")
+
+    expect(organization.install_sefaz_certificate(
+      file: oversized_sefaz_pfx,
+      passphrase: "passphrase-secreta"
+    )).to be(false)
+    expect(organization.reload.sefaz_titular_cnpj).to be_nil
+  end
+
+  it "install second A1 replaces titular 12345678000101" do
+    organization = Organization.create!(name: "ONG")
+    organization.install_sefaz_certificate(file: sefaz_pfx, passphrase: "passphrase-secreta")
+
+    expect(organization.install_sefaz_certificate(
+      file: sefaz_pfx(titular: "12345678000101", passphrase: "outrasenha", name: "other.pfx"),
+      passphrase: "outrasenha"
+    )).to be(true)
+    expect(organization.sefaz_titular_cnpj).to eq("12345678000101")
+    expect(organization.sefaz_titular_cnpj).not_to eq("11222333000181")
+    pkcs12 = organization.unwrap_sefaz_pkcs12
+    expect(pkcs12).to be_a(OpenSSL::PKCS12)
+  end
+
+  it "remove_sefaz_certificate nulls the slot" do
+    organization = Organization.create!(name: "ONG")
+    organization.install_sefaz_certificate(file: sefaz_pfx, passphrase: "passphrase-secreta")
+
+    organization.remove_sefaz_certificate
+
+    expect(organization.sefaz_titular_cnpj).to be_nil
+    expect(organization.sefaz_not_after).to be_nil
+    expect(organization.sefaz_pkcs12_ciphertext).to be_nil
+    expect(organization.sefaz_passphrase_ciphertext).to be_nil
+  end
+
+  it "install with blank wrap key persists no certificate" do
+    organization = Organization.create!(name: "ONG")
+
+    with_env("SEFAZ_WRAP_KEY" => nil) do
+      expect(organization.install_sefaz_certificate(file: sefaz_pfx, passphrase: "passphrase-secreta")).to be(false)
+    end
+    expect(organization.errors[:base]).to include("O certificado não pôde ser guardado")
+    expect(organization.reload.sefaz_titular_cnpj).to be_nil
+  end
+
+  it "install while a month is closed still persists" do
+    organization = Organization.create!(name: "ONG")
+    month, _statement = plant_month(organization)
+    month.update!(closed: true)
+
+    expect(organization.install_sefaz_certificate(file: sefaz_pfx, passphrase: "passphrase-secreta")).to be(true)
+    expect(organization.sefaz_titular_cnpj).to eq("11222333000181")
+  end
+
+  describe "concurrent A1 installs leave one consistent pair" do
+    self.use_transactional_tests = false
+
+    it "concurrent A1 installs leave one consistent pair" do
+      truncate_product_tables
+      organization = Organization.create!(name: "ONG")
+      first = sefaz_pfx(titular: "11222333000181", passphrase: "senha-a", name: "a.pfx")
+      second = sefaz_pfx(titular: "12345678000101", passphrase: "senha-b", name: "b.pfx")
+      queue = Queue.new
+      queue << [ first, "senha-a" ]
+      queue << [ second, "senha-b" ]
+
+      run_in_parallel(2) do
+        file, passphrase = queue.pop
+        Organization.find(organization.id).install_sefaz_certificate(file:, passphrase:)
+      end
+
+      organization.reload
+      expect(Organization.where(id: organization.id).where.not(sefaz_titular_cnpj: nil).count).to eq(1)
+      expect(%w[11222333000181 12345678000101]).to include(organization.sefaz_titular_cnpj)
+      expect(organization.unwrap_sefaz_pkcs12).to be_a(OpenSSL::PKCS12)
+    ensure
+      truncate_product_tables
+    end
   end
 end

@@ -15,7 +15,8 @@ class SupportingDocumentsController < ApplicationController
       payee: params[:payee],
       observation: params[:observation],
       photo: params[:photo],
-      xml: params[:xml]
+      xml: params[:xml],
+      chave: params[:chave]
     )
 
     if document.errors.empty?
@@ -37,7 +38,7 @@ class SupportingDocumentsController < ApplicationController
     end
 
     attrs = {}
-    %i[kind amount date payee observation].each do |key|
+    %i[kind amount date payee observation chave].each do |key|
       attrs[key] = params[key] if params.key?(key)
     end
     attrs[:photo] = params[:photo] if params[:photo].present?
@@ -45,6 +46,22 @@ class SupportingDocumentsController < ApplicationController
     document.apply(**attrs)
 
     if document.errors.empty?
+      redirect_to "/supporting_documents", status: :found
+    else
+      render_document_error(document.errors[:base].first)
+    end
+  end
+
+  def sefaz_confirm
+    document = mutate_document
+    return unless document
+
+    if submitter_month_locked?(document)
+      render_document_error(SupportingDocument::HAS_MONTH)
+      return
+    end
+
+    if document.confirm_identified_sefaz
       redirect_to "/supporting_documents", status: :found
     else
       render_document_error(document.errors[:base].first)

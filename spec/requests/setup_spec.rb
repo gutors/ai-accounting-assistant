@@ -1,6 +1,8 @@
 require "rails_helper"
 
 RSpec.describe "Setup", type: :request do
+  include ActiveSupport::Testing::TimeHelpers
+
   it "unauthenticated GET /setup responds 302 to /login" do
     get "/setup"
 
@@ -32,6 +34,17 @@ RSpec.describe "Setup", type: :request do
     expect(response.body).to include("Contador")
     expect(response.body).to include("Arquivo do pacote")
     expect(response.body).to include("Contas bancárias")
+  end
+
+  it "GET /setup with no SEFAZ certificate includes Certificado SEFAZ and Nenhum certificado" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    get "/setup"
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Certificado SEFAZ")
+    expect(response.body).to include("Nenhum certificado")
   end
 
   it "GET /setup empty accountant includes Cadastre o contador" do
@@ -151,6 +164,76 @@ RSpec.describe "Setup", type: :request do
     get "/setup"
 
     expect(response.body).not_to include("Conta Só B")
+  end
+
+  it "submitter GET /setup responds 404 and omits titular CNPJ" do
+    _coord, organization = plant_coordinator
+    sign_in_as(_coord, organization: organization)
+    organization.install_sefaz_certificate(file: sefaz_pfx, passphrase: "passphrase-secreta")
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(submitter, organization: organization)
+
+    get "/setup"
+
+    expect(response).to have_http_status(:not_found)
+    expect(response.body).not_to include("11.222.333/0001-81")
+    expect(response.body).not_to include("Válido até")
+  end
+
+  it "GET /setup with certificate includes Remover turbo confirm" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    organization.install_sefaz_certificate(file: sefaz_pfx, passphrase: "passphrase-secreta")
+
+    get "/setup"
+
+    expect(response.body).to include("Remover")
+    expect(response.body).to include('data-turbo-confirm="Remover o certificado SEFAZ?"')
+  end
+
+  it "setup does not include another organization titular CNPJ" do
+    account, org_a = plant_coordinator(email: "coord@example.com", organization_name: "A")
+    org_b = Organization.create!(name: "B")
+    Access.create!(account: account, organization: org_b, kind: :coordinator)
+    org_b.install_sefaz_certificate(
+      file: sefaz_pfx(titular: "12345678000101", name: "b.pfx"),
+      passphrase: "passphrase-secreta"
+    )
+    sign_in_as(account, organization: org_a)
+
+    get "/setup"
+
+    expect(response.body).not_to include("12.345.678/0001-01")
+  end
+
+  it "GET /setup with expired certificate includes Expirado em 11/05/2026" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    travel_to Date.new(2026, 5, 11) do
+      organization.install_sefaz_certificate(
+        file: sefaz_pfx(not_after: Date.new(2026, 5, 11), name: "expiring.pfx"),
+        passphrase: "passphrase-secreta"
+      )
+    end
+
+    travel_to Date.new(2026, 5, 12) do
+      get "/setup"
+    end
+
+    expect(response.body).to include("Expirado em 11/05/2026")
+    expect(response.body).not_to include("Válido até")
+  end
+
+  it "GET /setup with blank wrap key and no certificate includes Nenhum certificado" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    with_env("SEFAZ_WRAP_KEY" => nil) do
+      get "/setup"
+    end
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Nenhum certificado")
   end
 
   it "submitter GET /setup responds 404 and omits bank-account name" do

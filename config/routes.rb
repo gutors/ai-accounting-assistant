@@ -20,6 +20,9 @@ Rails.application.routes.draw do
   get "/setup", to: "setup#show"
   patch "/accountant", to: "accountants#update"
   patch "/package_archive", to: "package_archives#update"
+  get "/sefaz_certificate", to: "sefaz_certificates#show"
+  post "/sefaz_certificate", to: "sefaz_certificates#create"
+  delete "/sefaz_certificate", to: "sefaz_certificates#destroy"
   post "/bank_accounts", to: "bank_accounts#create"
   patch "/bank_accounts/:id", to: "bank_accounts#update"
   post "/extra_exception_kinds", to: "extra_exception_kinds#create"
@@ -40,6 +43,7 @@ Rails.application.routes.draw do
   post "/supporting_documents", to: "supporting_documents#create"
   patch "/supporting_documents/:id", to: "supporting_documents#update"
   delete "/supporting_documents/:id", to: "supporting_documents#destroy"
+  post "/supporting_documents/:id/sefaz_confirm", to: "supporting_documents#sefaz_confirm"
   post "/justifications", to: "justifications#create"
   patch "/justifications/:id", to: "justifications#update"
 

@@ -1,6 +1,7 @@
 require "rails_helper"
 
 RSpec.describe SupportingDocument, type: :model do
+  include ActiveSupport::Testing::TimeHelpers
   def organization
     @organization ||= Organization.create!(name: "ONG")
   end
@@ -22,6 +23,22 @@ RSpec.describe SupportingDocument, type: :model do
         xml: nil
       }.merge(overrides)
     )
+  end
+
+  def nfe_chave
+    "43260511222333000181550010000000011123456781"
+  end
+
+  def install_a1
+    organization.install_sefaz_certificate(file: sefaz_pfx, passphrase: "passphrase-secreta")
+  end
+
+  def stub_xml_consulta(chave = nfe_chave, **nfe)
+    SefazConsulta.current.set(chave, SefazConsulta::Xml.new(authorized_nfe_xml(**nfe)))
+  end
+
+  def stub_resumo_consulta(chave = nfe_chave, amount_cents: 15500, payee: "Padaria Central", document_on: Date.new(2026, 5, 11))
+    SefazConsulta.current.set(chave, SefazConsulta::Resumo.new(amount_cents:, payee:, document_on:))
   end
 
   it "insert recibo jpg persists one SupportingDocument for the organization" do
@@ -78,7 +95,7 @@ RSpec.describe SupportingDocument, type: :model do
   end
 
   it "insert nota_fiscal xml has xml and no photo" do
-    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: xml_file)
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml)
 
     expect(doc).to be_persisted
     expect(doc.xml).to be_attached
@@ -86,7 +103,7 @@ RSpec.describe SupportingDocument, type: :model do
   end
 
   it "insert nota_fiscal with photo and xml attaches both" do
-    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg, xml: xml_file)
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg, xml: authorized_xml)
 
     expect(doc).to be_persisted
     expect(doc.photo).to be_attached
@@ -100,10 +117,11 @@ RSpec.describe SupportingDocument, type: :model do
     expect(SupportingDocument.count).to eq(0)
   end
 
-  it "insert ignores xml vNF and keeps typed 15500" do
-    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: xml_with_vnf, amount: "155,00")
+  it "insert authorized XML ignores typed 100,00 and keeps 15500" do
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml, amount: "100,00")
 
     expect(doc.amount_cents).to eq(15500)
+    expect(doc.amount_cents).to be_a(Integer)
   end
 
   it "lists by document date descending then id descending" do
@@ -132,7 +150,8 @@ RSpec.describe SupportingDocument, type: :model do
   end
 
   it "update payee keeps photo and xml blobs" do
-    doc = insert_doc(kind: "nota_fiscal", photo: photo_named("danfe.jpg"), xml: xml_file("autorizada.xml"))
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_named("danfe.jpg"))
+    doc.xml.attach(io: StringIO.new("<nfe><vNF>100.00</vNF></nfe>"), filename: "autorizada.xml", content_type: "application/xml")
     doc.apply(payee: "Mercado Silva")
 
     doc.reload
@@ -220,7 +239,7 @@ RSpec.describe SupportingDocument, type: :model do
   end
 
   it "rejects kind recibo on xml-only without photo" do
-    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: xml_file)
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml)
     doc.apply(kind: "recibo")
 
     expect(doc.errors[:base]).to include("Envie a foto do recibo")
@@ -229,7 +248,7 @@ RSpec.describe SupportingDocument, type: :model do
   end
 
   it "update kind recibo with photo purges xml" do
-    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: xml_file)
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml)
     doc.apply(kind: "recibo", photo: photo_named("recibo-novo.jpg"))
 
     doc.reload
@@ -379,5 +398,486 @@ RSpec.describe SupportingDocument, type: :model do
     expect(document.reload.withdraw).to eq(false)
     expect(document).to be_persisted
     expect(document.errors[:base]).to include(SupportingDocument::HAS_MONTH)
+  end
+
+  it "insert authorized XML persists 15500 Padaria Central 2026-05-11 and chave" do
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml, amount: nil, date: nil, payee: nil)
+
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.document_on).to eq(Date.new(2026, 5, 11))
+    expect(doc.payee).to eq("Padaria Central")
+    expect(doc.chave).to eq("43260511222333000181550010000000011123456781")
+  end
+
+  it "amount from vNF 155.00 is Integer 15500" do
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml, amount: nil, date: nil, payee: nil)
+
+    expect(doc.amount_cents).to be_a(Integer)
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.amount_cents).not_to be_a(Float)
+  end
+
+  it "apply amount on uploaded XML is rejected" do
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml)
+    doc.apply(amount: "200,00")
+
+    expect(doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
+    expect(doc.reload.amount_cents).to eq(15500)
+  end
+
+  it "apply payee on uploaded XML is rejected" do
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml)
+    doc.apply(payee: "Mercado Silva")
+
+    expect(doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
+    expect(doc.reload.payee).to eq("Padaria Central")
+  end
+
+  it "apply date on uploaded XML is rejected" do
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml)
+    doc.apply(date: "2026-06-01")
+
+    expect(doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
+    expect(doc.reload.document_on).to eq(Date.new(2026, 5, 11))
+  end
+
+  it "apply observation on uploaded XML persists" do
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml)
+    doc.apply(observation: "pago em dinheiro")
+
+    expect(doc.errors).to be_empty
+    expect(doc.reload.observation).to eq("pago em dinheiro")
+  end
+
+  it "insert malformed XML persists none" do
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: xml_file("nota.xml", "<nfe><"), amount: "155,00", date: "2026-05-11", payee: "Padaria Central")
+
+    expect(doc).not_to be_persisted
+    expect(doc.errors[:base]).to include(SupportingDocument::XML_UNREADABLE)
+    expect(SupportingDocument.count).to eq(0)
+  end
+
+  it "insert XML without ICMSTot vNF persists none" do
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: xml_with_vnf, amount: "155,00")
+
+    expect(doc).not_to be_persisted
+    expect(doc.errors[:base]).to include(SupportingDocument::XML_UNREADABLE)
+    expect(SupportingDocument.count).to eq(0)
+  end
+
+  it "apply payee on pre-task XML blob persists Mercado Silva" do
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg)
+    doc.xml.attach(io: StringIO.new("<nfe><vNF>100.00</vNF></nfe>"), filename: "nota.xml", content_type: "application/xml")
+    doc.update_column(:fields_origin, nil)
+    doc.apply(payee: "Mercado Silva")
+
+    expect(doc.errors).to be_empty
+    expect(doc.reload.payee).to eq("Mercado Silva")
+    expect(doc.amount_cents).to eq(15500)
+  end
+
+  it "insert recibo then apply payee Mercado Silva persists" do
+    doc = insert_doc
+    doc.apply(payee: "Mercado Silva")
+
+    expect(doc.reload.payee).to eq("Mercado Silva")
+  end
+
+  it "insert typed nota_fiscal photo then apply payee persists" do
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg, xml: nil)
+    doc.apply(payee: "Mercado Silva")
+
+    expect(doc.reload.payee).to eq("Mercado Silva")
+    expect(doc.amount_cents).to eq(15500)
+  end
+
+  it "insert XML dhEmi 2026-05-11T23:30:00-03:00 stores document_on 2026-05-11" do
+    doc = insert_doc(
+      kind: "nota_fiscal",
+      photo: nil,
+      xml: authorized_xml(dhemi: "2026-05-11T23:30:00-03:00"),
+      amount: nil,
+      date: nil,
+      payee: nil
+    )
+
+    expect(doc.document_on).to eq(Date.new(2026, 5, 11))
+  end
+
+  it "insert chave with consulta XML persists 15500 and attaches xml" do
+    install_a1
+    stub_xml_consulta
+    doc = insert_doc(kind: "nota_fiscal", xml: nil, amount: nil, date: nil, payee: nil, chave: nfe_chave)
+
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.document_on).to eq(Date.new(2026, 5, 11))
+    expect(doc.payee).to eq("Padaria Central")
+    expect(doc.xml).to be_attached
+    expect(doc.chave).to eq(nfe_chave)
+  end
+
+  it "insert chave with resumo persists fields without xml and locks amount" do
+    install_a1
+    stub_resumo_consulta
+    doc = insert_doc(kind: "nota_fiscal", xml: nil, amount: nil, date: nil, payee: nil, chave: nfe_chave)
+
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.payee).to eq("Padaria Central")
+    expect(doc.xml).not_to be_attached
+    expect(doc.photo).to be_attached
+    doc.apply(amount: "200,00")
+    expect(doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
+  end
+
+  it "insert chave resumo without files persists none" do
+    install_a1
+    stub_resumo_consulta
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: nil, amount: nil, date: nil, payee: nil, chave: nfe_chave)
+
+    expect(doc).not_to be_persisted
+    expect(doc.errors[:base]).to include(SupportingDocument::NF_FILES)
+  end
+
+  it "insert chave consulta XML without files attaches xml" do
+    install_a1
+    stub_xml_consulta
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: nil, amount: nil, date: nil, payee: nil, chave: nfe_chave)
+
+    expect(doc).to be_persisted
+    expect(doc.xml).to be_attached
+    expect(doc.amount_cents).to eq(15500)
+  end
+
+  it "insert chave without certificate stays typed" do
+    doc = insert_doc(kind: "nota_fiscal", xml: nil, chave: nfe_chave)
+    doc.apply(payee: "Mercado Silva")
+
+    expect(doc.reload.payee).to eq("Mercado Silva")
+    expect(doc.amount_cents).to eq(15500)
+  end
+
+  it "insert chave with expired certificate stays typed" do
+    travel_to Date.new(2026, 5, 11) do
+      organization.install_sefaz_certificate(
+        file: sefaz_pfx(not_after: Date.new(2026, 5, 11), name: "exp.pfx"),
+        passphrase: "passphrase-secreta"
+      )
+    end
+    travel_to Date.new(2026, 5, 12) do
+      stub_xml_consulta
+      doc = insert_doc(kind: "nota_fiscal", xml: nil, chave: nfe_chave)
+      doc.apply(payee: "Mercado Silva")
+      expect(doc.reload.payee).to eq("Mercado Silva")
+    end
+  end
+
+  it "insert chave after certificate removed stays typed" do
+    install_a1
+    organization.remove_sefaz_certificate
+    stub_xml_consulta
+    doc = insert_doc(kind: "nota_fiscal", xml: nil, chave: nfe_chave)
+    doc.apply(payee: "Mercado Silva")
+
+    expect(doc.reload.payee).to eq("Mercado Silva")
+  end
+
+  it "insert chave when consulta errors stays typed" do
+    install_a1
+    SefazConsulta.current.set(nfe_chave, SefazConsulta::Error.new)
+    doc = insert_doc(kind: "nota_fiscal", xml: nil, chave: nfe_chave)
+    doc.apply(payee: "Mercado Silva")
+
+    expect(doc.reload.payee).to eq("Mercado Silva")
+  end
+
+  it "insert chave when consulta errors without typed fields persists none" do
+    install_a1
+    SefazConsulta.current.set(nfe_chave, SefazConsulta::Error.new)
+    doc = insert_doc(kind: "nota_fiscal", xml: nil, amount: nil, date: nil, payee: nil, chave: nfe_chave)
+
+    expect(doc).not_to be_persisted
+    expect(doc.errors[:base]).to include(SupportingDocument::MISSING_FIELDS)
+  end
+
+  it "insert chave when consulta not found or window-expired stays typed" do
+    install_a1
+    [ SefazConsulta::NotFound.new, SefazConsulta::WindowExpired.new ].each do |result|
+      SefazConsulta.reset!
+      SefazConsulta.current.set(nfe_chave, result)
+      doc = insert_doc(kind: "nota_fiscal", xml: nil, chave: nfe_chave, payee: "Padaria Central")
+      doc.apply(payee: "Mercado Silva")
+      expect(doc.reload.payee).to eq("Mercado Silva")
+      expect(doc.fields_origin).not_to eq(SupportingDocument::ORIGIN_IDENTIFIED)
+      doc.destroy
+    end
+  end
+
+  it "insert dotted chave stores 44 digits" do
+    install_a1
+    stub_xml_consulta
+    doc = insert_doc(
+      kind: "nota_fiscal",
+      xml: nil,
+      amount: nil,
+      date: nil,
+      payee: nil,
+      chave: "4326.0511.2223.3300.0181.5500.1000.0000.0111.2345.6781"
+    )
+
+    expect(doc.chave).to eq(nfe_chave)
+    expect(doc.xml).to be_attached
+  end
+
+  it "insert chave not 44 digits persists none" do
+    doc = insert_doc(kind: "nota_fiscal", xml: nil, chave: "123")
+
+    expect(doc).not_to be_persisted
+    expect(doc.errors[:base]).to include(SupportingDocument::CHAVE_DIGITS)
+  end
+
+  it "insert duplicate chave persists two SupportingDocuments" do
+    install_a1
+    stub_xml_consulta
+    insert_doc(kind: "nota_fiscal", xml: nil, chave: nfe_chave, photo: photo_named("a.jpg"))
+    insert_doc(kind: "nota_fiscal", xml: nil, chave: nfe_chave, photo: photo_named("b.jpg"))
+
+    expect(SupportingDocument.where(organization: organization, chave: nfe_chave).count).to eq(2)
+  end
+
+  it "insert recibo with chave stores no chave" do
+    install_a1
+    stub_xml_consulta
+    doc = insert_doc(chave: nfe_chave)
+    doc.apply(payee: "Mercado Silva")
+
+    expect(doc.reload.chave).to be_nil
+    expect(doc.kind).to eq("recibo")
+    expect(doc.xml).not_to be_attached
+    expect(doc.payee).to eq("Mercado Silva")
+  end
+
+  it "insert uploaded XML wins over consulta vNF 100.00" do
+    install_a1
+    stub_xml_consulta(vnf: "100.00", emit: "Outro")
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml(vnf: "155.00"), chave: nfe_chave)
+
+    expect(doc.amount_cents).to eq(15500)
+  end
+
+  it "apply chave on uploaded XML keeps 15500" do
+    install_a1
+    stub_xml_consulta(vnf: "100.00", emit: "Outro")
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml(vnf: "155.00"), chave: nfe_chave)
+    doc.apply(kind: "nota_fiscal", chave: nfe_chave, observation: "ok")
+
+    expect(doc.reload.amount_cents).to eq(15500)
+    expect(doc.fields_origin).to eq(SupportingDocument::ORIGIN_UPLOADED_XML)
+    expect(doc.payee).to eq("Padaria Central")
+  end
+
+  it "confirm identified SEFAZ on uploaded XML keeps 15500" do
+    install_a1
+    stub_xml_consulta(vnf: "100.00", emit: "Outro")
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml(vnf: "155.00"), chave: nfe_chave)
+
+    expect(doc.confirm_identified_sefaz).to eq(false)
+    expect(doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
+    expect(doc.reload.amount_cents).to eq(15500)
+    expect(doc.fields_origin).to eq(SupportingDocument::ORIGIN_UPLOADED_XML)
+  end
+
+  it "apply kind recibo on locked nota purges xml chave and unlocks" do
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg, xml: authorized_xml)
+    doc.apply(kind: "recibo")
+
+    doc.reload
+    expect(doc.kind).to eq("recibo")
+    expect(doc.xml).not_to be_attached
+    expect(doc.chave).to be_nil
+    doc.apply(payee: "Mercado Silva")
+    expect(doc.reload.payee).to eq("Mercado Silva")
+  end
+
+  it "apply kind nota_fiscal on recibo fires consulta and locks" do
+    install_a1
+    stub_xml_consulta(vnf: "100.00", emit: "Mercado Silva", dhemi: "2026-05-12T10:00:00-03:00")
+    doc = insert_doc
+    doc.apply(kind: "nota_fiscal", chave: nfe_chave)
+
+    expect(doc.amount_cents).to eq(10000)
+    expect(doc.payee).to eq("Mercado Silva")
+    expect(doc.document_on).to eq(Date.new(2026, 5, 12))
+    expect(doc.xml).to be_attached
+    doc.apply(amount: "200,00")
+    expect(doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
+  end
+
+  it "apply chave on typed nota keeps 15500" do
+    install_a1
+    stub_xml_consulta(vnf: "100.00")
+    doc = insert_doc(kind: "nota_fiscal", xml: nil)
+    doc.apply(chave: nfe_chave)
+
+    expect(doc.reload.amount_cents).to eq(15500)
+    expect(doc.sefaz_confirm_pending).to eq(true)
+  end
+
+  it "apply observation on pending chave keeps sefaz_confirm_pending" do
+    install_a1
+    stub_xml_consulta(vnf: "100.00")
+    doc = insert_doc(kind: "nota_fiscal", xml: nil)
+    doc.apply(chave: nfe_chave)
+    doc.apply(observation: "ok")
+
+    expect(doc.reload.sefaz_confirm_pending).to eq(true)
+    expect(doc.amount_cents).to eq(15500)
+  end
+
+  it "confirm identified SEFAZ persists 10000 and locks" do
+    install_a1
+    stub_xml_consulta(vnf: "100.00")
+    doc = insert_doc(kind: "nota_fiscal", xml: nil)
+    doc.apply(chave: nfe_chave)
+    expect(doc.confirm_identified_sefaz).to eq(true)
+
+    expect(doc.reload.amount_cents).to eq(10000)
+    doc.apply(amount: "200,00")
+    expect(doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
+  end
+
+  it "confirm identified SEFAZ from resumo persists 10000 and locks" do
+    install_a1
+    stub_resumo_consulta(amount_cents: 10000, payee: "Mercado Silva", document_on: Date.new(2026, 5, 12))
+    doc = insert_doc(kind: "nota_fiscal", xml: nil)
+    doc.apply(chave: nfe_chave)
+    expect(doc.confirm_identified_sefaz).to eq(true)
+
+    doc.reload
+    expect(doc.amount_cents).to eq(10000)
+    expect(doc.payee).to eq("Mercado Silva")
+    expect(doc.document_on).to eq(Date.new(2026, 5, 12))
+    expect(doc.xml).not_to be_attached
+    doc.apply(amount: "200,00")
+    expect(doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
+  end
+
+  it "confirm identified SEFAZ with blank chave keeps 15500 editable" do
+    install_a1
+    doc = insert_doc(kind: "nota_fiscal", xml: nil)
+
+    expect(doc.confirm_identified_sefaz).to eq(false)
+    expect(doc.reload.amount_cents).to eq(15500)
+    doc.apply(payee: "Mercado Silva")
+    expect(doc.reload.payee).to eq("Mercado Silva")
+  end
+
+  it "confirm identified SEFAZ when xml cannot be parsed keeps 15500 editable" do
+    install_a1
+    stub_xml_consulta(vnf: "100.00")
+    doc = insert_doc(kind: "nota_fiscal", xml: nil)
+    doc.apply(chave: nfe_chave)
+    SefazConsulta.current.set(nfe_chave, SefazConsulta::Xml.new("<nfe>sem infNFe</nfe>"))
+
+    expect(doc.confirm_identified_sefaz).to eq(false)
+    expect(doc.reload.amount_cents).to eq(15500)
+    doc.apply(payee: "Mercado Silva")
+    expect(doc.reload.payee).to eq("Mercado Silva")
+  end
+
+  it "insert chave with stored certificate and blank wrap key stays typed" do
+    install_a1
+    stub_xml_consulta(vnf: "100.00")
+    doc = with_env("SEFAZ_WRAP_KEY" => nil) do
+      insert_doc(kind: "nota_fiscal", xml: nil, chave: nfe_chave)
+    end
+
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.xml).not_to be_attached
+    doc.apply(payee: "Mercado Silva")
+    expect(doc.reload.payee).to eq("Mercado Silva")
+  end
+
+  it "confirm identified SEFAZ when consulta errors keeps 15500 editable" do
+    install_a1
+    stub_xml_consulta(vnf: "100.00")
+    doc = insert_doc(kind: "nota_fiscal", xml: nil)
+    doc.apply(chave: nfe_chave)
+    SefazConsulta.current.set(nfe_chave, SefazConsulta::Error.new)
+
+    expect(doc.confirm_identified_sefaz).to eq(false)
+    expect(doc.reload.amount_cents).to eq(15500)
+    doc.apply(payee: "Mercado Silva")
+    expect(doc.reload.payee).to eq("Mercado Silva")
+  end
+
+  it "apply chave without certificate stores chave and keeps 15500" do
+    doc = insert_doc(kind: "nota_fiscal", xml: nil)
+    doc.apply(chave: nfe_chave)
+
+    expect(doc.reload.chave).to eq(nfe_chave)
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.sefaz_confirm_pending).to eq(false)
+  end
+
+  it "confirm identified SEFAZ on already identified changes nothing" do
+    install_a1
+    stub_xml_consulta
+    doc = insert_doc(kind: "nota_fiscal", xml: nil, amount: nil, date: nil, payee: nil, chave: nfe_chave)
+    amount = doc.amount_cents
+    payee = doc.payee
+    date = doc.document_on
+
+    expect(doc.confirm_identified_sefaz).to eq(true)
+    expect(doc.reload.amount_cents).to eq(amount)
+    expect(doc.payee).to eq(payee)
+    expect(doc.document_on).to eq(date)
+  end
+
+  it "apply chave while month closed is rejected" do
+    doc = insert_doc(kind: "nota_fiscal", xml: nil, amount: "220,00")
+    month, statement = plant_month(organization)
+    payment = plant_payment(statement, 22000)
+    Match.confirm(month: month, payments: [ payment ], supporting_documents: [ doc ])
+    month.update!(closed: true)
+
+    doc.reload.apply(chave: nfe_chave)
+
+    expect(doc.errors[:base]).to include("Mês fechado")
+    expect(doc.reload.chave).to be_nil
+  end
+
+  it "install A1 after typed chave leaves amount typed" do
+    doc = insert_doc(kind: "nota_fiscal", xml: nil, chave: nfe_chave)
+    install_a1
+    stub_xml_consulta(vnf: "100.00")
+    doc.apply(payee: "Mercado Silva")
+
+    expect(doc.reload.amount_cents).to eq(15500)
+    expect(doc.payee).to eq("Mercado Silva")
+  end
+
+  it "remove certificate leaves identified lock" do
+    install_a1
+    stub_xml_consulta
+    doc = insert_doc(kind: "nota_fiscal", xml: nil, amount: nil, date: nil, payee: nil, chave: nfe_chave)
+    organization.remove_sefaz_certificate
+    doc.apply(amount: "200,00")
+
+    expect(doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
+  end
+
+  it "expired certificate leaves identified lock" do
+    travel_to Date.new(2026, 5, 11) do
+      organization.install_sefaz_certificate(
+        file: sefaz_pfx(not_after: Date.new(2026, 5, 11), name: "exp.pfx"),
+        passphrase: "passphrase-secreta"
+      )
+      stub_xml_consulta
+      @doc = insert_doc(kind: "nota_fiscal", xml: nil, amount: nil, date: nil, payee: nil, chave: nfe_chave)
+    end
+    travel_to Date.new(2026, 5, 12) do
+      @doc.apply(amount: "200,00")
+      expect(@doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
+    end
   end
 end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_18_180000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_18_220000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -167,6 +167,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_180000) do
     t.string "package_archive_folder_id"
     t.string "package_archive_url"
     t.string "package_destination_email"
+    t.date "sefaz_not_after"
+    t.text "sefaz_passphrase_ciphertext"
+    t.text "sefaz_pkcs12_ciphertext"
+    t.string "sefaz_titular_cnpj"
     t.datetime "updated_at", null: false
   end
 
@@ -190,8 +194,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_180000) do
   create_table "supporting_documents", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.bigint "amount_cents", null: false
+    t.string "chave"
     t.datetime "created_at", null: false
     t.date "document_on", null: false
+    t.string "fields_origin"
     t.bigint "justification_id"
     t.string "kind", null: false
     t.bigint "match_id"
@@ -199,6 +205,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_180000) do
     t.text "observation"
     t.bigint "organization_id", null: false
     t.string "payee", null: false
+    t.boolean "sefaz_confirm_pending", default: false, null: false
     t.datetime "updated_at", null: false
     t.index ["account_id"], name: "index_supporting_documents_on_account_id"
     t.index ["justification_id"], name: "index_supporting_documents_on_justification_id"

@@ -71,6 +71,7 @@ RSpec.configure do |config|
   config.include Concurrency
   config.include StatementHelpers
   config.include DocumentHelpers
+  config.include Pkcs12Helpers
   config.include MatchHelpers
   config.include CloseHelpers
 
@@ -79,6 +80,8 @@ RSpec.configure do |config|
   end
 
   config.before do
+    ENV["SEFAZ_WRAP_KEY"] = "test-sefaz-wrap-key-not-for-production"
+    SefazConsulta.reset!
     OmniAuth.config.test_mode = true
     OmniAuth.config.mock_auth[:google_oauth2] = nil
     OmniAuth.config.on_failure = proc do |_env|

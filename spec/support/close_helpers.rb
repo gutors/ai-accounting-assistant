@@ -17,6 +17,8 @@ module CloseHelpers
   end
 
   def plant_nota(organization, account, payee:, amount:, date: "2026-05-11")
+    cents = BrlCents.parse(amount)
+    vnf = format("%d.%02d", cents / 100, cents % 100)
     SupportingDocument.insert(
       organization: organization,
       account: account,
@@ -25,7 +27,12 @@ module CloseHelpers
       date: date,
       payee: payee,
       photo: photo_named("nota-#{payee.parameterize}.jpg"),
-      xml: xml_file("nota-#{payee.parameterize}.xml")
+      xml: authorized_xml(
+        "nota-#{payee.parameterize}.xml",
+        vnf: vnf,
+        emit: payee,
+        dhemi: "#{date}T10:00:00-03:00"
+      )
     )
   end
 
