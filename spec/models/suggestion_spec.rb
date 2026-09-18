@@ -181,4 +181,90 @@ RSpec.describe Suggestion, type: :model do
 
     expect(proposals.count { |proposal| proposal.supporting_documents.map(&:id).include?(document.id) }).to eq(1)
   end
+
+  it "equal rank beats greater rank" do
+    payment = plant_payment(statement, 22000, history: "Pix enviado — Mercado Silva")
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    plant_recibo(organization, account, payee: "Mercado Silva", amount: "250,00")
+
+    expect(proposal_for(payment).supporting_documents).to eq([ padaria ])
+  end
+
+  it "greater rank beats lesser rank" do
+    payment = plant_payment(statement, 22000)
+    greater = plant_recibo(organization, account, payee: "Padaria Grande", amount: "250,00")
+    plant_recibo(organization, account, payee: "Padaria Pequena", amount: "200,00")
+
+    expect(proposal_for(payment).supporting_documents).to eq([ greater ])
+  end
+
+  it "lesser 1:1 is assigned" do
+    payment = plant_payment(statement, 22000)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "200,00")
+
+    expect(proposal_for(payment).supporting_documents).to eq([ document ])
+  end
+
+  it "format-2 assigns both payments and one document" do
+    ten = plant_payment(statement, 10000)
+    twelve = plant_payment(statement, 12000)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    assigned = proposals
+    ten_proposal = assigned.find { |proposal| proposal.payments.map(&:id).include?(ten.id) }
+    twelve_proposal = assigned.find { |proposal| proposal.payments.map(&:id).include?(twelve.id) }
+
+    expect(ten_proposal.payments.map(&:id)).to contain_exactly(ten.id, twelve.id)
+    expect(twelve_proposal.payments.map(&:id)).to contain_exactly(ten.id, twelve.id)
+    expect(ten_proposal.supporting_documents).to eq([ document ])
+    expect(twelve_proposal.supporting_documents).to eq([ document ])
+  end
+
+  it "equal rank beats format-2 rank" do
+    equal = plant_payment(statement, 22000)
+    ten = plant_payment(statement, 10000)
+    plant_payment(statement, 12000)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    expect(proposal_for(equal).supporting_documents).to eq([ document ])
+    expect(proposal_for(ten)).to be_nil
+  end
+
+  it "format-2 name hit beats format-2 no name hit" do
+    padaria_ten = plant_payment(statement, 10000, history: "Pix enviado — Padaria Central")
+    padaria_twelve = plant_payment(statement, 12000, history: "Pix enviado — Padaria Central")
+    outro_ten = plant_payment(statement, 10000, history: "Outro")
+    outro_twelve = plant_payment(statement, 12000, history: "Outro")
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    expect(proposal_for(padaria_ten).supporting_documents).to eq([ document ])
+    expect(proposal_for(padaria_twelve).supporting_documents).to eq([ document ])
+    expect(proposal_for(outro_ten)).to be_nil
+    expect(proposal_for(outro_twelve)).to be_nil
+  end
+
+  it "suggestion shape is 1:N or exactly 2:1" do
+    plant_payment(statement, 22000, history: "Pix A")
+    plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    plant_payment(statement, 10000, history: "Pix B")
+    plant_payment(statement, 15000, history: "Pix B")
+    plant_recibo(organization, account, payee: "Mercado Silva", amount: "250,00")
+
+    expect(proposals).not_to be_empty
+    proposals.each do |proposal|
+      one_to_many = proposal.payments.size == 1 && proposal.supporting_documents.size >= 1
+      two_to_one = proposal.payments.size == 2 && proposal.supporting_documents.size == 1
+      expect(one_to_many || two_to_one).to be(true)
+    end
+  end
+
+  it "does not assign three payments to one document" do
+    plant_payment(statement, 7000)
+    plant_payment(statement, 7000)
+    plant_payment(statement, 8000)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    matching = proposals.select { |proposal| proposal.supporting_documents.map(&:id).include?(document.id) }
+    expect(matching).to all(satisfy { |proposal| proposal.payments.size < 3 })
+  end
 end

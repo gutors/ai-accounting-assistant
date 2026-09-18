@@ -109,6 +109,42 @@ RSpec.describe "Matches", type: :request do
     expect(status).not_to include("Sugestão")
   end
 
+  it "POST suggested lesser without observation returns 422" do
+    account, organization, _month, statement = signed_month
+    payment = plant_payment(statement, 22000)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "200,00")
+
+    post "/months/2026-05/matches", params: {
+      payment_ids: [ payment.id ], supporting_document_ids: [ document.id ]
+    }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Informe a observação do casamento")
+    expect(Match.count).to eq(0)
+  end
+
+  it "POST suggested format-2 persists Casado on both payments" do
+    account, organization, _month, statement = signed_month
+    ten = plant_payment(statement, 10000, history: "Pix enviado — Dez")
+    twelve = plant_payment(statement, 12000, history: "Pix enviado — Doze")
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    post "/months/2026-05/matches", params: {
+      payment_ids: [ ten.id, twelve.id ], supporting_document_ids: [ document.id ]
+    }
+
+    expect(Match.count).to eq(1)
+    get "/months/2026-05"
+    ten_status = payment_status_html(response.body, history: "Pix enviado — Dez")
+    twelve_status = payment_status_html(response.body, history: "Pix enviado — Doze")
+    expect(ten_status).to include("Casado")
+    expect(twelve_status).to include("Casado")
+    expect(ten_status).not_to include("Documento faltante")
+    expect(ten_status).not_to include("Sugestão")
+    expect(twelve_status).not_to include("Documento faltante")
+    expect(twelve_status).not_to include("Sugestão")
+  end
+
   it "POST 1 payment 1 document equal persists Match 302" do
     account, organization, _month, statement = signed_month
     payment = plant_payment(statement, 22000)

@@ -633,4 +633,106 @@ RSpec.describe "Months", type: :request do
     expect(jose).to include("José Silva")
     expect(mercado).not_to include("Sugestão")
   end
+
+  it "GET equal beats greater even when greater has name hit" do
+    account, organization, _month, statement = signed_open_month
+    plant_payment(statement, 22000, history: "Pix enviado — Mercado Silva")
+    plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    plant_recibo(organization, account, payee: "Mercado Silva", amount: "250,00")
+
+    get "/months/2026-05"
+
+    status = payment_status_html(response.body, history: "Pix enviado — Mercado Silva")
+    expect(status).to include("Sugestão")
+    copy = status[status.index("Sugestão")..]
+    expect(copy).to include("Padaria Central")
+    expect(copy).not_to include("Mercado Silva")
+  end
+
+  it "GET greater beats lesser" do
+    account, organization, _month, statement = signed_open_month
+    plant_payment(statement, 22000, history: "Pix enviado — Pagamento")
+    plant_recibo(organization, account, payee: "Padaria Grande", amount: "250,00")
+    plant_recibo(organization, account, payee: "Padaria Pequena", amount: "200,00")
+
+    get "/months/2026-05"
+
+    status = payment_status_html(response.body, history: "Pix enviado — Pagamento")
+    expect(status).to include("Sugestão")
+    expect(status).to include("Padaria Grande")
+    expect(status).not_to include("Padaria Pequena")
+  end
+
+  it "GET lesser 1:1 includes Sugestao and Padaria Central" do
+    account, organization, _month, statement = signed_open_month
+    plant_payment(statement, 22000, history: "Pix enviado — Pagamento")
+    plant_recibo(organization, account, payee: "Padaria Central", amount: "200,00")
+
+    get "/months/2026-05"
+
+    status = payment_status_html(response.body, history: "Pix enviado — Pagamento")
+    expect(status).to include("Sugestão")
+    expect(status).to include("Padaria Central")
+  end
+
+  it "GET format-2 both payments include Sugestao and Padaria Central" do
+    account, organization, _month, statement = signed_open_month
+    plant_payment(statement, 10000, history: "Pix enviado — Dez")
+    plant_payment(statement, 12000, history: "Pix enviado — Doze")
+    plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    get "/months/2026-05"
+
+    ten = payment_status_html(response.body, history: "Pix enviado — Dez")
+    twelve = payment_status_html(response.body, history: "Pix enviado — Doze")
+    expect(ten).to include("Sugestão")
+    expect(ten).to include("Padaria Central")
+    expect(twelve).to include("Sugestão")
+    expect(twelve).to include("Padaria Central")
+  end
+
+  it "GET equal beats format-2" do
+    account, organization, _month, statement = signed_open_month
+    plant_payment(statement, 22000, history: "Pix enviado — Igual")
+    plant_payment(statement, 10000, history: "Pix enviado — Dez")
+    plant_payment(statement, 12000, history: "Pix enviado — Doze")
+    plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    get "/months/2026-05"
+
+    expect(payment_status_html(response.body, history: "Pix enviado — Igual")).to include("Sugestão")
+    expect(payment_status_html(response.body, history: "Pix enviado — Igual")).to include("Padaria Central")
+    expect(payment_status_html(response.body, history: "Pix enviado — Dez")).not_to include("Sugestão")
+  end
+
+  it "GET format-2 name hit beats format-2 no name hit" do
+    account, organization, _month, statement = signed_open_month
+    plant_payment(statement, 10000, history: "Pix enviado — Padaria Central")
+    plant_payment(statement, 12000, history: "Pix enviado — Padaria Central 2")
+    plant_payment(statement, 10000, history: "Outro Dez")
+    plant_payment(statement, 12000, history: "Outro Doze")
+    plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    get "/months/2026-05"
+
+    expect(payment_status_html(response.body, history: "Pix enviado — Padaria Central")).to include("Sugestão")
+    expect(payment_status_html(response.body, history: "Pix enviado — Padaria Central 2")).to include("Sugestão")
+    expect(payment_status_html(response.body, history: "Outro Dez")).not_to include("Sugestão")
+    expect(payment_status_html(response.body, history: "Outro Doze")).not_to include("Sugestão")
+  end
+
+  it "GET three payments does not group all three as one suggestion" do
+    account, organization, _month, statement = signed_open_month
+    plant_payment(statement, 7000, history: "Pix enviado — A")
+    plant_payment(statement, 7000, history: "Pix enviado — B")
+    plant_payment(statement, 8000, history: "Pix enviado — C")
+    plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    get "/months/2026-05"
+
+    suggested = [ "Pix enviado — A", "Pix enviado — B", "Pix enviado — C" ].count do |history|
+      payment_status_html(response.body, history: history).include?("Sugestão")
+    end
+    expect(suggested).to be < 3
+  end
 end
