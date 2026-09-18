@@ -904,7 +904,502 @@ RSpec.describe SupportingDocument, type: :model do
     expect(document.reload.month_id).to eq(month.id)
   end
 
+  it "insert photo chave with consulta XML persists 15500 and attaches xml" do
+    stub_photo_symbols("danfe.jpg", chave: nfe_chave)
+    install_a1
+    stub_xml_consulta
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("danfe.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.document_on).to eq(Date.new(2026, 5, 11))
+    expect(doc.payee).to eq("Padaria Central")
+    expect(doc.chave).to eq(nfe_chave)
+    expect(doc.xml).to be_attached
+  end
+
+  it "insert pdf photo chave with consulta XML persists chave and xml" do
+    stub_photo_symbols("foto.pdf", chave: nfe_chave)
+    install_a1
+    stub_xml_consulta
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_with_ext("pdf"), xml: nil, amount: nil, date: nil, payee: nil)
+
+    expect(doc.chave).to eq(nfe_chave)
+    expect(doc.xml).to be_attached
+    expect(doc.amount_cents).to eq(15500)
+  end
+
+  it "insert printed-digit chave with consulta XML persists 15500" do
+    stub_photo_symbols("printed.jpg", chave: nfe_chave)
+    install_a1
+    stub_xml_consulta
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("printed.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+
+    expect(doc.chave).to eq(nfe_chave)
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.xml).to be_attached
+  end
+
+  it "insert photo chave wins over typed chave" do
+    stub_photo_symbols("danfe.jpg", chave: nfe_chave)
+    install_a1
+    stub_xml_consulta
+    stub_xml_consulta(other_chave, vnf: "100.00")
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("danfe.jpg"), xml: nil, amount: nil, date: nil, payee: nil, chave: other_chave)
+
+    expect(doc.chave).to eq(nfe_chave)
+    expect(doc.amount_cents).to eq(15500)
+  end
+
+  it "insert non-44 photo decode uses typed chave" do
+    stub_photo_symbols("bad.jpg", chave: "123")
+    install_a1
+    stub_xml_consulta
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("bad.jpg"), xml: nil, amount: nil, date: nil, payee: nil, chave: nfe_chave)
+
+    expect(doc.chave).to eq(nfe_chave)
+    expect(doc.xml).to be_attached
+  end
+
+  it "insert recibo ignores photo chave" do
+    stub_photo_symbols("recibo.jpg", chave: nfe_chave)
+    install_a1
+    stub_xml_consulta
+    doc = insert_doc
+    doc.apply(payee: "Mercado Silva")
+
+    expect(doc.kind).to eq("recibo")
+    expect(doc.chave).to be_nil
+    expect(doc.xml).not_to be_attached
+    expect(doc.reload.payee).to eq("Mercado Silva")
+  end
+
+  it "insert uploaded XML chave wins over photo chave" do
+    stub_photo_symbols("danfe.jpg", chave: other_chave)
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("danfe.jpg"), xml: authorized_xml)
+
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.chave).to eq(nfe_chave)
+  end
+
+  it "insert photo chave without certificate stays typed-correctable" do
+    stub_photo_symbols("danfe.jpg", chave: nfe_chave)
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("danfe.jpg"), xml: nil)
+    doc.apply(payee: "Mercado Silva")
+
+    expect(doc.chave).to eq(nfe_chave)
+    expect(doc.reload.payee).to eq("Mercado Silva")
+    expect(doc.amount_cents).to eq(15500)
+  end
+
+  it "insert photo chave when consulta errors stays typed" do
+    stub_photo_symbols("danfe.jpg", chave: nfe_chave)
+    install_a1
+    SefazConsulta.current.set(nfe_chave, SefazConsulta::Error.new)
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("danfe.jpg"), xml: nil)
+    doc.apply(payee: "Mercado Silva")
+
+    expect(doc.reload.payee).to eq("Mercado Silva")
+  end
+
+  it "insert photo chave with resumo locks amount" do
+    stub_photo_symbols("danfe.jpg", chave: nfe_chave)
+    install_a1
+    stub_resumo_consulta
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("danfe.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.payee).to eq("Padaria Central")
+    expect(doc.photo).to be_attached
+    expect(doc.xml).not_to be_attached
+    doc.apply(amount: "200,00")
+    expect(doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
+  end
+
+  it "insert NFC-e QR public consulta persists 15500 origin nfc_e_public" do
+    stub_photo_symbols("nfce.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
+    stub_public_fields(nfce_qr_url)
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("nfce.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+    doc.apply(amount: "200,00")
+
+    expect(doc.amount_cents).to eq(20000)
+    expect(doc.reload.fields_origin).to eq(SupportingDocument::ORIGIN_NFC_E_PUBLIC)
+    expect(doc.xml).not_to be_attached
+    expect(doc.chave).to eq(nfce_chave)
+  end
+
+  it "insert NFC-e QR public consulta with blank wrap key stays correctable" do
+    stub_photo_symbols("nfce.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
+    stub_public_fields(nfce_qr_url)
+    install_a1
+    stub_xml_consulta(nfce_chave, vnf: "100.00")
+    doc = with_env("SEFAZ_WRAP_KEY" => nil) do
+      insert_doc(kind: "nota_fiscal", photo: photo_jpg("nfce.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+    end
+    doc.apply(amount: "200,00")
+
+    expect(doc.amount_cents).to eq(20000)
+  end
+
+  it "insert NFC-e QR public consulta with expired certificate stays correctable" do
+    stub_photo_symbols("nfce.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
+    stub_public_fields(nfce_qr_url)
+    travel_to Date.new(2026, 5, 11) do
+      organization.install_sefaz_certificate(
+        file: sefaz_pfx(not_after: Date.new(2026, 5, 11), name: "exp.pfx"),
+        passphrase: "passphrase-secreta"
+      )
+    end
+    travel_to Date.new(2026, 5, 12) do
+      stub_xml_consulta(nfce_chave, vnf: "100.00")
+      doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("nfce.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+      doc.apply(amount: "200,00")
+      expect(doc.amount_cents).to eq(20000)
+    end
+  end
+
+  it "insert NFC-e QR public consulta when identified errors stays correctable" do
+    stub_photo_symbols("nfce.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
+    stub_public_fields(nfce_qr_url)
+    install_a1
+    SefazConsulta.current.set(nfce_chave, SefazConsulta::Error.new)
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("nfce.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+    doc.apply(amount: "200,00")
+
+    expect(doc.amount_cents).to eq(20000)
+  end
+
+  it "insert NFC-e QR public consulta when identified not found stays correctable" do
+    stub_photo_symbols("nfce.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
+    stub_public_fields(nfce_qr_url)
+    install_a1
+    [ SefazConsulta::NotFound.new, SefazConsulta::WindowExpired.new ].each do |result|
+      SefazConsulta.reset!
+      PhotoSymbols.reset!
+      PhotoFields.reset!
+      PublicNfceConsulta.reset!
+      stub_photo_symbols("nfce.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
+      stub_public_fields(nfce_qr_url)
+      SefazConsulta.current.set(nfce_chave, result)
+      doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("nfce.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+      doc.apply(amount: "200,00")
+      expect(doc.amount_cents).to eq(20000)
+      doc.destroy
+    end
+  end
+
+  it "insert NFC-e QR identified XML locks and skips public" do
+    stub_photo_symbols("nfce.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
+    stub_public_fields(nfce_qr_url, amount_cents: 20000, payee: "Mercado Silva")
+    install_a1
+    stub_xml_consulta(nfce_chave)
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("nfce.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+    doc.apply(amount: "200,00")
+
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.xml).to be_attached
+    expect(doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
+  end
+
+  it "insert CODE-128 without QR URL keeps typed payee" do
+    stub_photo_symbols("code128.jpg", chave: nfe_chave)
+    stub_public_fields("https://www.sefaz.rs.gov.br/anywhere", payee: "Mercado Silva")
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("code128.jpg"), xml: nil)
+
+    expect(doc.payee).to eq("Padaria Central")
+  end
+
+  it "insert QR 127.0.0.1 keeps typed payee and no xml" do
+    stub_photo_symbols("ssrf.jpg", chave: nfe_chave, qr_url: "http://127.0.0.1/nfce")
+    stub_public_fields("http://127.0.0.1/nfce", payee: "Mercado Silva")
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("ssrf.jpg"), xml: nil)
+
+    expect(doc.payee).to eq("Padaria Central")
+    expect(doc.xml).not_to be_attached
+  end
+
+  it "insert QR example.com keeps typed payee and no xml" do
+    stub_photo_symbols("ex.jpg", chave: nfe_chave, qr_url: "https://example.com/nfce")
+    stub_public_fields("https://example.com/nfce", payee: "Mercado Silva")
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("ex.jpg"), xml: nil)
+
+    expect(doc.payee).to eq("Padaria Central")
+    expect(doc.xml).not_to be_attached
+  end
+
+  it "insert NFC-e QR when public consulta errors keeps typed payee" do
+    stub_photo_symbols("nfce.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
+    PublicNfceConsulta.current.set(nfce_qr_url, PublicNfceConsulta::Error.new)
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("nfce.jpg"), xml: nil)
+
+    expect(doc.payee).to eq("Padaria Central")
+  end
+
+  it "insert NFC-e QR public partial three keeps typed payee" do
+    stub_photo_symbols("nfce.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
+    PublicNfceConsulta.current.set(
+      nfce_qr_url,
+      PublicNfceConsulta::Fields.new(amount_cents: 15500, payee: nil, document_on: nil)
+    )
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("nfce.jpg"), xml: nil)
+
+    expect(doc.payee).to eq("Padaria Central")
+  end
+
+  it "insert NFC-e QR public consulta payee is emitente" do
+    stub_photo_symbols("nfce.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
+    stub_public_fields(nfce_qr_url)
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("nfce.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+
+    expect(doc.payee).to eq("Padaria Central")
+    expect(doc.payee).not_to eq("ONG Destinataria")
+  end
+
+  it "insert photo field reading persists 15500 origin photo" do
+    stub_photo_fields("fields.jpg")
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("fields.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+    doc.apply(payee: "Mercado Silva")
+
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.reload.payee).to eq("Mercado Silva")
+    expect(doc.fields_origin).to eq(SupportingDocument::ORIGIN_PHOTO)
+  end
+
+  it "insert CODE-128 when identified errors uses field reading" do
+    stub_photo_symbols("code128.jpg", chave: nfe_chave)
+    stub_photo_fields("code128.jpg")
+    install_a1
+    SefazConsulta.current.set(nfe_chave, SefazConsulta::Error.new)
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("code128.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+    doc.apply(payee: "Mercado Silva")
+
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.reload.payee).to eq("Mercado Silva")
+  end
+
+  it "insert NFC-e QR when public errors uses field reading" do
+    stub_photo_symbols("nfce.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
+    PublicNfceConsulta.current.set(nfce_qr_url, PublicNfceConsulta::Error.new)
+    stub_photo_fields("nfce.jpg")
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("nfce.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+    doc.apply(payee: "Mercado Silva")
+
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.reload.payee).to eq("Mercado Silva")
+  end
+
+  it "insert photo field reading partial three uses typed" do
+    PhotoFields.current.set(
+      "partial.jpg",
+      amount_cents: 15500,
+      document_on: nil,
+      payee: nil
+    )
+    doc = insert_doc(
+      kind: "nota_fiscal",
+      photo: photo_jpg("partial.jpg"),
+      xml: nil,
+      amount: "100,00",
+      date: "2026-05-11",
+      payee: "Padaria Central"
+    )
+
+    expect(doc.amount_cents).to eq(10000)
+    expect(doc.payee).to eq("Padaria Central")
+  end
+
+  it "insert nota photo with all extracts missing persists none" do
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("empty.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+
+    expect(doc).not_to be_persisted
+    expect(doc.errors[:base]).to include(SupportingDocument::MISSING_FIELDS)
+    expect(SupportingDocument.count).to eq(0)
+  end
+
+  it "insert recibo ignores photo field reading" do
+    stub_photo_fields("recibo.jpg", payee: "Mercado Silva")
+    doc = insert_doc
+
+    expect(doc.payee).to eq("Padaria Central")
+  end
+
+  it "insert photo field reading wins over typed payee" do
+    stub_photo_fields("fields.jpg")
+    doc = insert_doc(
+      kind: "nota_fiscal",
+      photo: photo_jpg("fields.jpg"),
+      xml: nil,
+      amount: "155,00",
+      date: "2026-05-11",
+      payee: "Mercado Silva"
+    )
+
+    expect(doc.payee).to eq("Padaria Central")
+  end
+
+  it "insert unreadable XML does not use photo field reading" do
+    stub_photo_fields("danfe.jpg")
+    doc = insert_doc(
+      kind: "nota_fiscal",
+      photo: photo_jpg("danfe.jpg"),
+      xml: xml_file("nota.xml", "<nfe><"),
+      amount: nil,
+      date: nil,
+      payee: nil
+    )
+
+    expect(doc).not_to be_persisted
+    expect(doc.errors[:base]).to include(SupportingDocument::XML_UNREADABLE)
+    expect(SupportingDocument.count).to eq(0)
+  end
+
+  it "apply chave on photo-filled nota keeps 15500 pending confirm" do
+    stub_photo_fields("fields.jpg")
+    install_a1
+    stub_xml_consulta(vnf: "100.00")
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("fields.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+    doc.apply(chave: nfe_chave)
+
+    expect(doc.reload.amount_cents).to eq(15500)
+    expect(doc.sefaz_confirm_pending).to eq(true)
+  end
+
+  it "confirm identified SEFAZ on photo-filled nota locks 10000" do
+    stub_photo_fields("fields.jpg")
+    install_a1
+    stub_xml_consulta(vnf: "100.00")
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("fields.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+    doc.apply(chave: nfe_chave)
+    expect(doc.confirm_identified_sefaz).to eq(true)
+
+    expect(doc.reload.amount_cents).to eq(10000)
+    doc.apply(amount: "200,00")
+    expect(doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
+  end
+
+  it "apply chave on public-filled nota keeps 15500 pending confirm" do
+    stub_photo_symbols("nfce.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
+    stub_public_fields(nfce_qr_url)
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("nfce.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+    install_a1
+    stub_xml_consulta(nfce_chave, vnf: "100.00")
+    doc.apply(chave: nfce_chave)
+
+    expect(doc.reload.amount_cents).to eq(15500)
+    expect(doc.sefaz_confirm_pending).to eq(true)
+  end
+
+  it "confirm identified SEFAZ on public-filled nota locks 10000" do
+    stub_photo_symbols("nfce.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
+    stub_public_fields(nfce_qr_url)
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("nfce.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+    install_a1
+    stub_xml_consulta(nfce_chave, vnf: "100.00")
+    doc.apply(chave: nfce_chave)
+    expect(doc.confirm_identified_sefaz).to eq(true)
+
+    expect(doc.reload.amount_cents).to eq(10000)
+    doc.apply(amount: "200,00")
+    expect(doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
+  end
+
+  it "apply kind nota_fiscal on recibo reads existing photo chave" do
+    stub_photo_symbols("recibo.jpg", chave: nfe_chave)
+    install_a1
+    stub_xml_consulta(vnf: "100.00", emit: "Mercado Silva", dhemi: "2026-05-12T10:00:00-03:00")
+    doc = insert_doc
+    doc.apply(kind: "nota_fiscal")
+
+    expect(doc.amount_cents).to eq(10000)
+    expect(doc.payee).to eq("Mercado Silva")
+    expect(doc.document_on).to eq(Date.new(2026, 5, 12))
+    expect(doc.xml).to be_attached
+    doc.apply(amount: "200,00")
+    expect(doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
+  end
+
+  it "apply kind recibo on photo-filled nota drops chave" do
+    stub_photo_fields("fields.jpg")
+    stub_photo_symbols("fields.jpg", chave: nfe_chave)
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("fields.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+    doc.apply(kind: "recibo")
+
+    expect(doc.kind).to eq("recibo")
+    expect(doc.chave).to be_nil
+    expect(doc.amount_cents).to eq(15500)
+    doc.apply(payee: "Mercado Silva")
+    expect(doc.reload.payee).to eq("Mercado Silva")
+  end
+
+  it "install A1 after photo-filled chave leaves amount" do
+    stub_photo_fields("fields.jpg")
+    stub_photo_symbols("fields.jpg", chave: nfe_chave)
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("fields.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+    install_a1
+    stub_xml_consulta(vnf: "100.00")
+    doc.apply(payee: "Mercado Silva")
+
+    expect(doc.reload.amount_cents).to eq(15500)
+    expect(doc.payee).to eq("Mercado Silva")
+  end
+
+  it "apply chave on closed-month photo-filled document is rejected" do
+    stub_photo_fields("fields.jpg")
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("fields.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+    month, _statement = plant_month(organization)
+    doc.update!(month_id: month.id)
+    month.update!(closed: true)
+    doc.apply(chave: nfe_chave)
+
+    expect(doc.errors[:base]).to include(Month::CLOSED)
+    expect(doc.reload.chave).to be_nil
+  end
+
+  it "insert duplicate photo chave persists two" do
+    stub_photo_symbols("a.jpg", chave: nfe_chave)
+    stub_photo_symbols("b.jpg", chave: nfe_chave)
+    install_a1
+    stub_xml_consulta
+    first = insert_doc(kind: "nota_fiscal", photo: photo_named("a.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+    second = insert_doc(kind: "nota_fiscal", photo: photo_named("b.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+
+    expect(first).to be_persisted
+    expect(second).to be_persisted
+    expect(SupportingDocument.where(chave: nfe_chave).count).to eq(2)
+  end
+
+  it "amount from public consulta 155.00 is Integer 15500" do
+    stub_photo_symbols("nfce.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
+    stub_public_fields(nfce_qr_url)
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("nfce.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+
+    expect(doc.amount_cents).to be_a(Integer)
+    expect(doc.amount_cents).to eq(15500)
+  end
+
+  it "amount from photo field reading 155.00 is Integer 15500" do
+    stub_photo_fields("fields.jpg")
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("fields.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+
+    expect(doc.amount_cents).to be_a(Integer)
+    expect(doc.amount_cents).to eq(15500)
+  end
+
+  it "confirm identified SEFAZ on photo-filled nota when consulta errors keeps 15500 editable" do
+    stub_photo_fields("fields.jpg")
+    install_a1
+    stub_xml_consulta(vnf: "100.00")
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("fields.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+    doc.apply(chave: nfe_chave)
+    SefazConsulta.current.set(nfe_chave, SefazConsulta::Error.new)
+    expect(doc.confirm_identified_sefaz).to eq(false)
+
+    expect(doc.reload.amount_cents).to eq(15500)
+    doc.apply(payee: "Mercado Silva")
+    expect(doc.reload.payee).to eq("Mercado Silva")
+  end
+
   describe "return during re-close" do
+    self.use_transactional_tests = false
     self.use_transactional_tests = false
 
     it "return during re-close write keeps month_id" do

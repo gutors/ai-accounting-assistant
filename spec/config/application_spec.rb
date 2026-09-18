@@ -26,6 +26,21 @@ RSpec.describe "Application config" do
     expect(SefazConsulta.current).not_to be_a(SefazConsulta::Real)
   end
 
+  it "test photo symbols is the Fake" do
+    expect(PhotoSymbols.current).to be_a(PhotoSymbols::Fake)
+    expect(PhotoSymbols.current).not_to be_a(PhotoSymbols::Real)
+  end
+
+  it "test photo fields is the Fake" do
+    expect(PhotoFields.current).to be_a(PhotoFields::Fake)
+    expect(PhotoFields.current).not_to be_a(PhotoFields::Real)
+  end
+
+  it "test public NFC-e consulta is the Fake" do
+    expect(PublicNfceConsulta.current).to be_a(PublicNfceConsulta::Fake)
+    expect(PublicNfceConsulta.current).not_to be_a(PublicNfceConsulta::Real)
+  end
+
   it "Gemfile includes google-apis-drive_v3 and googleauth" do
     gemfile = Rails.root.join("Gemfile").read
     expect(gemfile).to include("google-apis-drive_v3")
