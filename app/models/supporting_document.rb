@@ -20,6 +20,8 @@ class SupportingDocument < ApplicationRecord
   ORIGIN_TYPED = "typed"
   ORIGIN_UPLOADED_XML = "uploaded_xml"
   ORIGIN_IDENTIFIED = "identified"
+  ORIGIN_PHOTO = "photo"
+  ORIGIN_NFC_E_PUBLIC = "nfc_e_public"
 
   belongs_to :organization
   belongs_to :account
@@ -139,19 +141,31 @@ class SupportingDocument < ApplicationRecord
     next_chave = nil
     identified_xml = nil
     identified_resumo = nil
+    public_fields = nil
+    photo_fields = nil
     confirm_pending = sefaz_confirm_pending
+    photo_symbols = PhotoSymbols::Symbols.new(chave: nil, qr_url: nil)
+    extract_source = photo_source_for_extract(incoming_photo, next_kind) if parsed_nfe.nil? && next_kind == "nota_fiscal"
+    if extract_source
+      photo_symbols = PhotoSymbols.current.scan(bytes: extract_source[:bytes], filename: extract_source[:filename])
+    end
+
     if next_kind == "nota_fiscal"
+      photo_chave = forty_four_digits(photo_symbols.chave)
+      typed_chave = nil
       if attrs.key?(:chave) && attrs[:chave].to_s.strip.present?
         digits = attrs[:chave].to_s.gsub(/\D/, "")
-        unless digits.length == 44
+        if digits.length == 44
+          typed_chave = digits
+        elsif photo_chave.nil?
           errors.add(:base, CHAVE_DIGITS)
           return self
         end
-        next_chave = digits
-      elsif parsed_nfe
-        next_chave = parsed_nfe.chave
+      end
+      next_chave = if parsed_nfe
+        parsed_nfe.chave
       else
-        next_chave = chave
+        photo_chave || typed_chave || chave
       end
 
       should_consult = parsed_nfe.nil? && next_chave.present? && !fields_locked? && (
@@ -179,12 +193,36 @@ class SupportingDocument < ApplicationRecord
           nil
         end
       end
+
+      identified_delivered = parsed_nfe.present? || identified_resumo.present?
+      if !identified_delivered && photo_symbols.qr_url.present?
+        case PublicNfceConsulta.current.fetch(photo_symbols.qr_url)
+        in PublicNfceConsulta::Fields => fields if complete_triple?(fields.amount_cents, fields.document_on, fields.payee)
+          public_fields = fields
+        in PublicNfceConsulta::Error
+          nil
+        else
+          nil
+        end
+      end
+      if !identified_delivered && public_fields.nil? && extract_source
+        case PhotoFields.current.read(bytes: extract_source[:bytes], filename: extract_source[:filename])
+        in PhotoFields::Fields => fields if complete_triple?(fields.amount_cents, fields.document_on, fields.payee)
+          photo_fields = fields
+        else
+          nil
+        end
+      end
     end
 
     next_cents = if parsed_nfe
       parsed_nfe.amount_cents
     elsif identified_resumo
       identified_resumo.amount_cents
+    elsif public_fields
+      public_fields.amount_cents
+    elsif photo_fields
+      photo_fields.amount_cents
     elsif attrs.key?(:amount)
       BrlCents.parse(attrs[:amount])
     else
@@ -194,6 +232,10 @@ class SupportingDocument < ApplicationRecord
       parsed_nfe.document_on
     elsif identified_resumo
       identified_resumo.document_on
+    elsif public_fields
+      public_fields.document_on
+    elsif photo_fields
+      photo_fields.document_on
     elsif attrs.key?(:date)
       parse_document_on(attrs[:date])
     else
@@ -203,6 +245,10 @@ class SupportingDocument < ApplicationRecord
       parsed_nfe.payee
     elsif identified_resumo
       identified_resumo.payee
+    elsif public_fields
+      public_fields.payee
+    elsif photo_fields
+      photo_fields.payee
     elsif attrs.key?(:payee)
       attrs[:payee].to_s.strip
     else
@@ -256,6 +302,10 @@ class SupportingDocument < ApplicationRecord
       ORIGIN_UPLOADED_XML
     elsif identified_xml || identified_resumo
       ORIGIN_IDENTIFIED
+    elsif public_fields
+      ORIGIN_NFC_E_PUBLIC
+    elsif photo_fields
+      ORIGIN_PHOTO
     else
       fields_origin.presence || ORIGIN_TYPED
     end
@@ -426,6 +476,27 @@ class SupportingDocument < ApplicationRecord
       bytes.bytesize
     end
     size > MAX_BYTES
+  end
+
+  def photo_source_for_extract(incoming_photo, next_kind)
+    if !persisted? && incoming_photo
+      { bytes: read_bytes(incoming_photo), filename: filename_of(incoming_photo) }
+    elsif persisted? && kind.to_s == "recibo" && next_kind == "nota_fiscal"
+      if incoming_photo
+        { bytes: read_bytes(incoming_photo), filename: filename_of(incoming_photo) }
+      elsif photo.attached?
+        { bytes: photo.download, filename: photo.filename.to_s }
+      end
+    end
+  end
+
+  def forty_four_digits(value)
+    digits = value.to_s.gsub(/\D/, "")
+    digits if digits.length == 44
+  end
+
+  def complete_triple?(amount_cents, document_on, payee)
+    amount_cents.is_a?(Integer) && amount_cents.positive? && document_on.present? && payee.present?
   end
 
   def parse_document_on(value)
