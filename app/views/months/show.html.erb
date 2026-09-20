@@ -1,195 +1,255 @@
 <% content_for :title, "#{@organization.name} — #{@month.year_month}" %>
+<% missing_count = @missing_document_payments.size %>
+<% accounts_without_statement = @active_bank_accounts.count { |bank_account| @statements_by_account_id[bank_account.id].nil? } %>
 
-<div class="flex items-start justify-between gap-4 mb-8">
-  <h1 class="text-2xl font-semibold"><%= @month.year_month %></h1>
-  <div class="flex items-center gap-4">
+<div class="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
+  <div>
+    <h1 class="text-[1.75rem] leading-[1.1] font-semibold tracking-[-0.02em] md:text-display"><%= month_title(@month.year_month) %></h1>
+    <p class="mt-1 text-meta text-ink-soft"><%= @month.year_month %></p>
+  </div>
+  <div class="flex flex-wrap items-center gap-3">
     <% if @month.closed? %>
-      <p>Mês fechado</p>
-      <%= button_to "Restaurar pasta", "/months/#{@month.year_month}/restore", method: :post, form: { data: { turbo_confirm: "Restaurar a pasta do mês no arquivo do pacote?" } }, class: "rounded bg-zinc-900 text-white px-4 py-2" %>
-      <%= button_to "Reabrir", "/months/#{@month.year_month}/reopen", method: :post, form: { data: { turbo_confirm: "Reabrir o mês?" } }, class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+      <span data-stamp="closed" class="inline-block rounded-[2px] border-2 border-ink px-2 py-0.5 font-semibold outline outline-1 outline-offset-[3px] outline-ink">Mês fechado</span>
+      <%= button_to "Restaurar pasta", "/months/#{@month.year_month}/restore", method: :post, form: { data: { turbo_confirm: "Restaurar a pasta do mês no arquivo do pacote?" } }, class: "rounded border border-ink px-4 py-2 text-ink" %>
+      <%= button_to "Reabrir", "/months/#{@month.year_month}/reopen", method: :post, form: { data: { turbo_confirm: "Reabrir o mês?" } }, class: "rounded border border-ink px-4 py-2 text-ink" %>
     <% else %>
       <%= form_with url: "/months/#{@month.year_month}/close", method: :post, html: { id: "close-month", data: { turbo_confirm: "Fechar o mês para envio?" } } do %>
-        <%= submit_tag "Fechar para envio", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+        <%= submit_tag "Fechar para envio", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
       <% end %>
     <% end %>
-    <%= link_to "Início", "/", class: "text-sm underline" %>
-    <%= button_to "Sair", "/session", method: :delete, class: "text-sm underline" %>
   </div>
 </div>
 
+<p class="mt-6">
+  <% if missing_count.zero? %>
+    <span>Nenhum documento faltante.</span>
+  <% else %>
+    <span class="text-margem"><%= missing_count %> <%= missing_count == 1 ? "pagamento" : "pagamentos" %> com documento faltante.</span>
+  <% end %>
+  <% if accounts_without_statement.positive? %>
+    <span>Falta o extrato de <%= accounts_without_statement %> <%= accounts_without_statement == 1 ? "conta ativa" : "contas ativas" %>.</span>
+  <% end %>
+</p>
+
 <% if @import_error.present? %>
-  <p class="mb-6"><%= @import_error %></p>
+  <div class="mt-6"><%= render "shared/notice", message: @import_error %></div>
 <% end %>
 
 <% if @month_error.present? %>
-  <p class="mb-6"><%= @month_error %></p>
+  <div class="mt-6"><%= render "shared/notice", message: @month_error %></div>
 <% end %>
 
-<section class="mb-10">
-  <h2 class="text-lg font-medium mb-3">Contas bancárias</h2>
-  <% if @active_bank_accounts.empty? %>
-    <p class="mb-3">Nenhuma conta bancária ativa</p>
-  <% else %>
-    <ul>
-      <% @active_bank_accounts.each do |bank_account| %>
-        <% statement = @statements_by_account_id[bank_account.id] %>
-        <li class="border rounded p-3 mb-3">
-          <p class="font-medium"><%= bank_account.name %></p>
-          <% if bank_account.coordinates.present? %>
-            <p class="text-sm mb-2"><%= bank_account.coordinates %></p>
-          <% end %>
-          <% if statement %>
-            <p>Presente</p>
-            <p class="text-sm"><%= statement.pdf.filename %></p>
-            <p class="text-sm mb-3"><%= statement.spreadsheet.filename %></p>
-          <% else %>
-            <p class="mb-3">Falta</p>
-          <% end %>
-          <% unless @month.closed? %>
-            <%= form_with url: "/months/#{@month.year_month}/bank_statements", method: :post, multipart: true do %>
-              <%= hidden_field_tag :bank_account_id, bank_account.id %>
-              <label for="pdf_<%= bank_account.id %>" class="block mb-1">PDF</label>
-              <%= file_field_tag :pdf, id: "pdf_#{bank_account.id}", class: "mb-3" %>
-              <label for="spreadsheet_<%= bank_account.id %>" class="block mb-1">Planilha</label>
-              <%= file_field_tag :spreadsheet, id: "spreadsheet_#{bank_account.id}", class: "mb-3" %>
-              <%= submit_tag "Enviar extrato", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+<div class="mt-10 space-y-12">
+  <section>
+    <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Contas bancárias</h2>
+    <% if @active_bank_accounts.empty? %>
+      <p>Nenhuma conta bancária ativa</p>
+    <% else %>
+      <ul>
+        <% @active_bank_accounts.each do |bank_account| %>
+          <% statement = @statements_by_account_id[bank_account.id] %>
+          <li data-row="bank-account" data-bank-account-id="<%= bank_account.id %>" class="grid gap-x-6 gap-y-2 border-b border-rule py-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)]">
+            <div>
+              <p class="font-medium"><%= bank_account.name %></p>
+              <% if bank_account.coordinates.present? %>
+                <p class="text-meta text-ink-soft"><%= bank_account.coordinates %></p>
+              <% end %>
+            </div>
+            <div>
+              <% if statement %>
+                <p>Presente</p>
+                <p class="text-meta text-ink-soft"><%= statement.pdf.filename %></p>
+                <p class="text-meta text-ink-soft"><%= statement.spreadsheet.filename %></p>
+              <% else %>
+                <p class="text-margem">Falta</p>
+              <% end %>
+            </div>
+            <% unless @month.closed? %>
+              <div>
+                <% if statement %>
+                  <details>
+                    <summary class="cursor-pointer font-medium text-caixa">Substituir extrato</summary>
+                    <div class="mt-3 rounded border border-rule bg-sheet p-4">
+                      <%= render "months/statement_form", month: @month, bank_account: bank_account %>
+                    </div>
+                  </details>
+                <% else %>
+                  <%= render "months/statement_form", month: @month, bank_account: bank_account %>
+                <% end %>
+              </div>
             <% end %>
-          <% end %>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+  </section>
+
+  <section>
+    <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Recebimentos</h2>
+    <ul>
+      <% @inflows.each do |inflow| %>
+        <li data-row="inflow" class="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-x-4 gap-y-1 border-b border-rule py-3 md:grid-cols-[5.5rem_minmax(0,1fr)_8rem_12rem]">
+          <time datetime="<%= inflow.occurred_on.iso8601 %>" class="col-start-1 row-start-1 tabular-nums"><%= l(inflow.occurred_on) %></time>
+          <div class="col-span-2 row-start-2 md:col-span-1 md:col-start-2 md:row-start-1">
+            <p class="font-medium"><%= inflow.history %></p>
+            <p class="text-meta text-ink-soft"><%= inflow.bank_statement.bank_account.name %></p>
+          </div>
+          <p data-cell="amount" class="col-start-2 row-start-1 text-right font-medium tabular-nums md:col-start-3"><%= format_reais(inflow.amount_cents) %></p>
         </li>
       <% end %>
     </ul>
-  <% end %>
-</section>
+  </section>
 
-<section class="mb-10">
-  <h2 class="text-lg font-medium mb-3">Recebimentos</h2>
-  <ul>
-    <% @inflows.each do |inflow| %>
-      <li class="mb-2">
-        <time datetime="<%= inflow.occurred_on.iso8601 %>"><%= l(inflow.occurred_on) %></time>
-        <%= format_reais(inflow.amount_cents) %>
-        <%= inflow.bank_statement.bank_account.name %>
-        <%= inflow.history %>
-      </li>
-    <% end %>
-  </ul>
-</section>
-
-<section class="mb-10">
-  <h2 class="text-lg font-medium mb-3">Pagamentos</h2>
-  <ul>
-    <% @payments.each do |payment| %>
-      <li class="mb-2">
-        <time datetime="<%= payment.occurred_on.iso8601 %>"><%= l(payment.occurred_on) %></time>
-        <%= format_reais(payment.amount_cents) %>
-        <%= payment.bank_statement.bank_account.name %>
-        <%= payment.history %>
-        <% if payment.missing_document? %>
-          Documento faltante
+  <section>
+    <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Pagamentos</h2>
+    <ul>
+      <% @payments.each do |payment| %>
+        <% status = payment_status(payment) %>
+        <li data-row="payment" data-payment-id="<%= payment.id %>" data-status="<%= status %>" class="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-x-4 gap-y-1 border-b border-rule py-3 md:grid-cols-[5.5rem_minmax(0,1fr)_8rem_12rem] <%= "border-l-[3px] border-l-margem pl-3" if status == "missing" %>">
+          <time datetime="<%= payment.occurred_on.iso8601 %>" class="col-start-1 row-start-1 tabular-nums"><%= l(payment.occurred_on) %></time>
+          <div class="col-span-2 row-start-2 md:col-span-1 md:col-start-2 md:row-start-1">
+            <p class="font-medium"><%= payment.history %></p>
+            <p class="text-meta text-ink-soft"><%= payment.bank_statement.bank_account.name %></p>
+          </div>
+          <p data-cell="amount" class="col-start-2 row-start-1 text-right font-medium tabular-nums md:col-start-3"><%= format_reais(payment.amount_cents) %></p>
           <% suggestion = @suggestions_by_payment_id[payment.id] %>
           <% exception_suggestion = @exception_suggestions_by_payment_id[payment.id] %>
-          <% if suggestion %>
-            Sugestão
-            <% suggestion.supporting_documents.each do |document| %>
-              <%= document.payee %>
-            <% end %>
-          <% elsif exception_suggestion %>
-            Sugestão de exceção
-          <% end %>
-          <% unless @month.closed? %>
-            <%= form_with url: "/months/#{@month.year_month}/matches", method: :post do %>
-              <%= hidden_field_tag "payment_ids[]", payment.id, id: "payment_ids_#{payment.id}" %>
-              <% suggested_ids = suggestion&.one_to_one_form_document_ids || [] %>
-              <% @unmatched_documents.each do |document| %>
-                <%= check_box_tag "supporting_document_ids[]", document.id, suggested_ids.include?(document.id), id: "doc_#{payment.id}_#{document.id}" %>
-                <label for="doc_<%= payment.id %>_<%= document.id %>"><%= document.payee %></label>
+          <div class="col-span-2 row-start-3 md:col-span-1 md:col-start-4 md:row-start-1">
+            <% if status == "missing" %>
+              <p class="font-medium text-margem">Documento faltante</p>
+              <% if suggestion %>
+                <p class="text-meta text-ink-soft">Sugestão <%= suggestion.supporting_documents.map(&:payee).join(", ") %></p>
+              <% elsif exception_suggestion %>
+                <p class="text-meta text-ink-soft">Sugestão de exceção</p>
               <% end %>
-              <label for="observation_<%= payment.id %>" class="block mb-1">Observação do casamento</label>
-              <%= text_area_tag :observation, nil, id: "observation_#{payment.id}", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", rows: 2 %>
-              <%= submit_tag "Confirmar casamento", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
-            <% end %>
-            <%= form_with url: "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :post do %>
-              <%= hidden_field_tag :kind, "bank_fee", id: "kind_bank_#{payment.id}" %>
-              <%= submit_tag "Marcar tarifa", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
-            <% end %>
-            <%= form_with url: "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :post do %>
-              <%= hidden_field_tag :kind, "accountant_fee", id: "kind_accountant_#{payment.id}" %>
-              <%= submit_tag "Marcar honorário", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
-            <% end %>
-            <% @active_extra_exception_kinds.each do |extra_exception_kind| %>
-              <%= form_with url: "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :post do %>
-                <%= hidden_field_tag :extra_exception_kind_id, extra_exception_kind.id, id: "extra_kind_#{payment.id}_#{extra_exception_kind.id}" %>
-                <%= submit_tag extra_exception_kind.name, class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+            <% elsif status == "matched" %>
+              <p class="font-medium">Casado</p>
+              <p class="text-meta text-ink-soft"><%= payment.match.supporting_documents.map(&:payee).join(", ") %></p>
+              <% if payment.match.observation.present? %>
+                <p class="text-meta text-ink-soft"><%= payment.match.observation %></p>
+              <% end %>
+              <% unless @month.closed? %>
+                <%= button_to "Desfazer casamento", "/months/#{@month.year_month}/matches/#{payment.match_id}", method: :delete, form_class: "mt-1", class: "text-margem underline underline-offset-2" %>
+              <% end %>
+            <% elsif status == "bank_fee" %>
+              <p class="font-medium">Tarifa bancária</p>
+              <% unless @month.closed? %>
+                <%= button_to "Desmarcar exceção", "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :delete, form_class: "mt-1", class: "text-margem underline underline-offset-2" %>
+              <% end %>
+            <% elsif status == "accountant_fee" %>
+              <p class="font-medium">Honorário do contador</p>
+              <% unless @month.closed? %>
+                <%= button_to "Desmarcar exceção", "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :delete, form_class: "mt-1", class: "text-margem underline underline-offset-2" %>
+              <% end %>
+            <% elsif status == "extra" %>
+              <p class="font-medium"><%= payment.extra_exception_kind.name %></p>
+              <% unless @month.closed? %>
+                <%= button_to "Desmarcar exceção", "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :delete, form_class: "mt-1", class: "text-margem underline underline-offset-2" %>
               <% end %>
             <% end %>
-          <% end %>
-        <% elsif payment.match_id.present? %>
-          Casado
-          <% payment.match.supporting_documents.each do |document| %>
-            <%= document.payee %>
-          <% end %>
-          <% if payment.match.observation.present? %>
-            <%= payment.match.observation %>
-          <% end %>
-          <% unless @month.closed? %>
-            <%= button_to "Desfazer casamento", "/months/#{@month.year_month}/matches/#{payment.match_id}", method: :delete, class: "text-sm underline" %>
-          <% end %>
-        <% elsif payment.bank_fee? %>
-          Tarifa bancária
-          <% unless @month.closed? %>
-            <%= button_to "Desmarcar exceção", "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :delete, class: "text-sm underline" %>
-          <% end %>
-        <% elsif payment.accountant_fee? %>
-          Honorário do contador
-          <% unless @month.closed? %>
-            <%= button_to "Desmarcar exceção", "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :delete, class: "text-sm underline" %>
-          <% end %>
-        <% elsif payment.extra_exception_kind_id.present? %>
-          <%= payment.extra_exception_kind.name %>
-          <% unless @month.closed? %>
-            <%= button_to "Desmarcar exceção", "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :delete, class: "text-sm underline" %>
-          <% end %>
-        <% end %>
-      </li>
-    <% end %>
-  </ul>
-  <% if !@month.closed? && @missing_document_payments.size >= 2 && @unmatched_documents.any? %>
-    <%= form_with url: "/months/#{@month.year_month}/matches", method: :post do %>
-      <% @missing_document_payments.each do |payment| %>
-        <%= check_box_tag "payment_ids[]", payment.id, @format_2_suggestion&.covers_payment?(payment), id: "n1_pay_#{payment.id}" %>
-        <label for="n1_pay_<%= payment.id %>"><%= format_reais(payment.amount_cents) %></label>
-      <% end %>
-      <% @unmatched_documents.each do |document| %>
-        <%= radio_button_tag "supporting_document_ids[]", document.id, @format_2_suggestion&.suggested_document?(document), id: "n1_doc_#{document.id}" %>
-        <label for="n1_doc_<%= document.id %>"><%= document.payee %></label>
-      <% end %>
-      <label for="observation_n1" class="block mb-1">Observação do casamento</label>
-      <%= text_area_tag :observation, nil, id: "observation_n1", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", rows: 2 %>
-      <%= submit_tag "Confirmar casamento N:1", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
-    <% end %>
-  <% end %>
-</section>
-
-<section class="mb-10">
-  <h2 class="text-lg font-medium mb-3">Documentos sem casamento</h2>
-  <% if @unmatched_documents.empty? %>
-    <p>Nenhum documento sem casamento</p>
-  <% else %>
-    <ul>
-      <% @unmatched_documents.each do |document| %>
-        <li class="mb-2">
-          <% if !@month.closed? && document.month_id.nil? %>
-            <%= check_box_tag "supporting_document_ids[]", document.id, false, id: "close_doc_#{document.id}", form: "close-month" %>
-            <label for="close_doc_<%= document.id %>"><%= document.payee %></label>
-          <% else %>
-            <%= document.payee %>
-          <% end %>
-          <%= format_reais(document.amount_cents) %>
-          <% if !@month.closed? && document.month_id == @month.id %>
-            <%= button_to "Devolver", "/months/#{@month.year_month}/supporting_documents/#{document.id}/return", method: :post, class: "text-sm underline" %>
+          </div>
+          <% if status == "missing" && !@month.closed? %>
+            <%= tag.details open: suggestion.present? || exception_suggestion.present?, class: "col-span-2 row-start-4 md:col-span-3 md:col-start-2 md:row-start-2" do %>
+              <summary class="cursor-pointer font-medium text-caixa">Resolver</summary>
+              <div class="mt-3 space-y-4 rounded border border-rule bg-sheet p-4">
+                <%= form_with url: "/months/#{@month.year_month}/matches", method: :post, class: "space-y-3" do %>
+                  <%= hidden_field_tag "payment_ids[]", payment.id, id: "payment_ids_#{payment.id}" %>
+                  <% suggested_ids = suggestion&.one_to_one_form_document_ids || [] %>
+                  <% if @unmatched_documents.any? %>
+                    <div class="flex flex-wrap gap-x-4 gap-y-2">
+                      <% @unmatched_documents.each do |document| %>
+                        <span class="inline-flex items-center gap-2">
+                          <%= check_box_tag "supporting_document_ids[]", document.id, suggested_ids.include?(document.id), id: "doc_#{payment.id}_#{document.id}" %>
+                          <label for="doc_<%= payment.id %>_<%= document.id %>"><%= document.payee %></label>
+                        </span>
+                      <% end %>
+                    </div>
+                  <% end %>
+                  <div>
+                    <label for="observation_<%= payment.id %>" class="mb-1 block font-medium">Observação do casamento</label>
+                    <%= text_area_tag :observation, nil, id: "observation_#{payment.id}", class: "w-full max-w-md rounded border border-rule bg-sheet px-3 py-2", rows: 2 %>
+                  </div>
+                  <%= submit_tag "Confirmar casamento", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+                <% end %>
+                <div class="flex flex-wrap gap-2">
+                  <%= form_with url: "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :post do %>
+                    <%= hidden_field_tag :kind, "bank_fee", id: "kind_bank_#{payment.id}" %>
+                    <%= submit_tag "Marcar tarifa", class: "rounded border border-ink px-4 py-2 text-ink" %>
+                  <% end %>
+                  <%= form_with url: "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :post do %>
+                    <%= hidden_field_tag :kind, "accountant_fee", id: "kind_accountant_#{payment.id}" %>
+                    <%= submit_tag "Marcar honorário", class: "rounded border border-ink px-4 py-2 text-ink" %>
+                  <% end %>
+                  <% @active_extra_exception_kinds.each do |extra_exception_kind| %>
+                    <%= form_with url: "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :post do %>
+                      <%= hidden_field_tag :extra_exception_kind_id, extra_exception_kind.id, id: "extra_kind_#{payment.id}_#{extra_exception_kind.id}" %>
+                      <%= submit_tag extra_exception_kind.name, class: "rounded border border-ink px-4 py-2 text-ink" %>
+                    <% end %>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
           <% end %>
         </li>
       <% end %>
     </ul>
-  <% end %>
-</section>
+    <% if !@month.closed? && @missing_document_payments.size >= 2 && @unmatched_documents.any? %>
+      <%= tag.details open: @format_2_suggestion.present?, class: "mt-4" do %>
+        <summary class="cursor-pointer font-medium text-caixa">Casar vários pagamentos com um documento</summary>
+        <div class="mt-3 rounded border border-rule bg-sheet p-4">
+          <%= form_with url: "/months/#{@month.year_month}/matches", method: :post, class: "space-y-3" do %>
+            <div class="flex flex-wrap gap-x-4 gap-y-2">
+              <% @missing_document_payments.each do |payment| %>
+                <span class="inline-flex items-center gap-2">
+                  <%= check_box_tag "payment_ids[]", payment.id, @format_2_suggestion&.covers_payment?(payment), id: "n1_pay_#{payment.id}" %>
+                  <label for="n1_pay_<%= payment.id %>" class="tabular-nums"><%= format_reais(payment.amount_cents) %></label>
+                </span>
+              <% end %>
+            </div>
+            <div class="flex flex-wrap gap-x-4 gap-y-2">
+              <% @unmatched_documents.each do |document| %>
+                <span class="inline-flex items-center gap-2">
+                  <%= radio_button_tag "supporting_document_ids[]", document.id, @format_2_suggestion&.suggested_document?(document), id: "n1_doc_#{document.id}" %>
+                  <label for="n1_doc_<%= document.id %>"><%= document.payee %></label>
+                </span>
+              <% end %>
+            </div>
+            <div>
+              <label for="observation_n1" class="mb-1 block font-medium">Observação do casamento</label>
+              <%= text_area_tag :observation, nil, id: "observation_n1", class: "w-full max-w-md rounded border border-rule bg-sheet px-3 py-2", rows: 2 %>
+            </div>
+            <%= submit_tag "Confirmar casamento N:1", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+          <% end %>
+        </div>
+      <% end %>
+    <% end %>
+  </section>
+
+  <section>
+    <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Documentos sem casamento</h2>
+    <% if @unmatched_documents.empty? %>
+      <p>Nenhum documento sem casamento</p>
+    <% else %>
+      <ul>
+        <% @unmatched_documents.each do |document| %>
+          <li data-row="pool-document" data-document-id="<%= document.id %>" class="grid grid-cols-[minmax(0,1fr)_8rem] gap-x-4 gap-y-1 border-b border-rule py-3 md:grid-cols-[minmax(0,1fr)_8rem_12rem]">
+            <div class="flex items-center gap-2 font-medium">
+              <% if !@month.closed? && document.month_id.nil? %>
+                <%= check_box_tag "supporting_document_ids[]", document.id, false, id: "close_doc_#{document.id}", form: "close-month" %>
+                <label for="close_doc_<%= document.id %>"><%= document.payee %></label>
+              <% else %>
+                <%= document.payee %>
+              <% end %>
+            </div>
+            <p data-cell="amount" class="text-right font-medium tabular-nums"><%= format_reais(document.amount_cents) %></p>
+            <% if !@month.closed? && document.month_id == @month.id %>
+              <div class="col-span-2 md:col-span-1">
+                <%= button_to "Devolver", "/months/#{@month.year_month}/supporting_documents/#{document.id}/return", method: :post, class: "text-margem underline underline-offset-2" %>
+              </div>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+  </section>
+</div>

@@ -2,5 +2,7 @@ pt-BR:
   date:
     formats:
       default: "%d/%m/%Y"
+      month_title: "%B de %Y"
+    month_names: [~, janeiro, fevereiro, março, abril, maio, junho, julho, agosto, setembro, outubro, novembro, dezembro]
   accesses:
     last_coordinator: "A organização precisa de pelo menos um coordenador."

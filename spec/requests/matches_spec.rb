@@ -593,4 +593,21 @@ RSpec.describe "Matches", type: :request do
 
     expect(document.reload.month_id).to be_nil
   end
+
+  it "N:1 form folds under Casar varios pagamentos com um documento" do
+    account, organization, _month, statement = signed_month
+    plant_payment(statement, 10000, history: "Pix enviado — Padaria A")
+    plant_payment(statement, 12000, history: "Pix enviado — Padaria B")
+    plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    get "/months/2026-05"
+
+    form = page_doc(response.body).css("form").find do |node|
+      node.at_css('input[type="submit"][value="Confirmar casamento N:1"]')
+    end
+    expect(form).not_to be_nil
+    details = form.ancestors("details").first
+    expect(details).not_to be_nil
+    expect(details.at_css("summary").text.strip).to eq("Casar vários pagamentos com um documento")
+  end
 end

@@ -325,7 +325,7 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     expect(response.body).not_to include("name=\"extra_exception_kind_id\"")
-    marked_row = response.body.scan(%r{<li class="mb-2">.*?</li>}m).find { |li| li.include?("R$ 220,00") }
+    marked_row = rows_html(response.body, "payment").find { |li| li.include?("R$ 220,00") }
     status = marked_row.split("<form").first
     expect(status).to include("Doação")
     expect(status).not_to include("Documento faltante")
@@ -527,7 +527,7 @@ RSpec.describe "Months", type: :request do
 
     get "/months/2026-05"
 
-    rows = pagamentos_html(response.body).scan(%r{<li class="mb-2">.*?</li>}m)
+    rows = rows_html(response.body, "payment")
     suggested = rows.select { |row| row.split("<form").first.include?("Sugestão") }
     expect(suggested.size).to eq(1)
     expect(suggested.first).to include("value=\"#{first.id}\"")
@@ -1299,5 +1299,187 @@ RSpec.describe "Months", type: :request do
 
     status = payment_status_html(response.body, history: "Pix enviado — Gasto")
     expect(status).not_to match(/Sugestão[\s\S]*Padaria Central/)
+  end
+
+  # Ledger arrangement (visual-identity C17–C25, C29–C33, C35, C36)
+
+  def resolver_details(row)
+    details = row.css("details").select { |node| node.at_css("summary")&.text&.strip == "Resolver" }
+    expect(details.size).to eq(1)
+    details.first
+  end
+
+  it "month title is maio de 2026 with 2026-05 under it" do
+    signed_open_month
+
+    get "/months/2026-05"
+
+    expect(response).to have_http_status(:ok)
+    expect(page_doc(response.body).at_css("h1").text).to include("maio de 2026")
+    expect(response.body).to include("2026-05")
+  end
+
+  it "summary says 2 pagamentos com documento faltante" do
+    _account, _organization, _month, statement = signed_open_month
+    plant_payment(statement, 22000)
+    plant_payment(statement, 10000)
+
+    get "/months/2026-05"
+
+    expect(response.body).to include("2 pagamentos com documento faltante")
+  end
+
+  it "summary says 1 pagamento com documento faltante" do
+    _account, _organization, _month, statement = signed_open_month
+    plant_payment(statement, 22000)
+
+    get "/months/2026-05"
+
+    expect(response.body).to include("1 pagamento com documento faltante")
+  end
+
+  it "summary says Nenhum documento faltante and no row says Documento faltante" do
+    _account, _organization, _month, statement = signed_open_month
+    plant_payment(statement, 15500, history: "Tarifa").mark_document_exception("bank_fee")
+
+    get "/months/2026-05"
+
+    expect(response.body).to include("Nenhum documento faltante")
+    expect(response.body).not_to include("Documento faltante")
+  end
+
+  it "summary says Falta o extrato de 1 conta ativa" do
+    _account, organization, _month, _statement = signed_open_month
+    BankAccount.create_for(organization: organization, name: "Conta Alfa", compe: "033")
+
+    get "/months/2026-05"
+
+    expect(response.body).to include("Falta o extrato de 1 conta ativa")
+  end
+
+  it "summary says Falta o extrato de 2 contas ativas" do
+    _account, organization, _month, _statement = signed_open_month
+    BankAccount.create_for(organization: organization, name: "Conta Alfa", compe: "033")
+    BankAccount.create_for(organization: organization, name: "Conta Beta", compe: "104")
+
+    get "/months/2026-05"
+
+    expect(response.body).to include("Falta o extrato de 2 contas ativas")
+  end
+
+  it "summary omits Falta o extrato when every active account has a statement" do
+    _account, organization, _month, _statement = signed_open_month
+    inactive = BankAccount.create_for(organization: organization, name: "Parada", compe: "033")
+    inactive.apply_from(active: false)
+
+    get "/months/2026-05"
+
+    expect(response.body).not_to include("Falta o extrato")
+  end
+
+  it "payment row data-status is missing" do
+    _account, _organization, _month, statement = signed_open_month
+    payment = plant_payment(statement, 22000)
+
+    get "/months/2026-05"
+
+    expect(row(response.body, "payment", payment_id: payment.id, status: "missing")).not_to be_nil
+  end
+
+  it "payment row data-status is matched" do
+    account, organization, month, statement = signed_open_month
+    payment = plant_payment(statement, 22000)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    Match.confirm(month: month, payments: [ payment ], supporting_documents: [ document ])
+
+    get "/months/2026-05"
+
+    expect(row(response.body, "payment", payment_id: payment.id, status: "matched")).not_to be_nil
+  end
+
+  it "inflow pool-document and bank-account rows carry data-row hooks" do
+    account, organization, _month, statement = signed_open_month
+    plant_inflow(statement, 6300)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    bank_account = statement.bank_account
+
+    get "/months/2026-05"
+
+    expect(rows(response.body, "inflow").size).to eq(1)
+    expect(row(response.body, "pool-document", document_id: document.id)).not_to be_nil
+    expect(row(response.body, "bank-account", bank_account_id: bank_account.id)).not_to be_nil
+  end
+
+  it "missing row folds its forms under Resolver after the status" do
+    _account, _organization, _month, statement = signed_open_month
+    payment = plant_payment(statement, 22000)
+
+    get "/months/2026-05"
+
+    payment_row = row(response.body, "payment", payment_id: payment.id)
+    details = resolver_details(payment_row)
+    forms = payment_row.css("form")
+    expect(forms).not_to be_empty
+    expect(forms.all? { |form| form.ancestors.include?(details) }).to eq(true)
+    html = payment_row.to_html
+    expect(html.index("Documento faltante")).to be < html.index("<details")
+  end
+
+  it "Resolver is open when a suggestion exists" do
+    account, organization, _month, statement = signed_open_month
+    payment = plant_payment(statement, 22000, history: "Pix enviado — Padaria Central")
+    plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    get "/months/2026-05"
+
+    details = resolver_details(row(response.body, "payment", payment_id: payment.id))
+    expect(details.has_attribute?("open")).to eq(true)
+  end
+
+  it "Resolver is open when an exception suggestion exists" do
+    _account, organization, _month, statement = signed_open_month
+    set_pix(organization, "chave-pix")
+    payment = plant_payment(statement, 22000, history: "Pix enviado chave-pix")
+
+    get "/months/2026-05"
+
+    details = resolver_details(row(response.body, "payment", payment_id: payment.id))
+    expect(details.has_attribute?("open")).to eq(true)
+  end
+
+  it "Resolver is closed when no suggestion exists" do
+    _account, _organization, _month, statement = signed_open_month
+    payment = plant_payment(statement, 22000)
+
+    get "/months/2026-05"
+
+    details = resolver_details(row(response.body, "payment", payment_id: payment.id))
+    expect(details.has_attribute?("open")).to eq(false)
+  end
+
+  it "present statement folds the upload form under Substituir extrato" do
+    _account, _organization, _month, statement = signed_open_month
+    attach_statement_files(statement)
+
+    get "/months/2026-05"
+
+    account_row = row(response.body, "bank-account", bank_account_id: statement.bank_account_id)
+    form = account_row.css("form").find { |node| node["action"] == "/months/2026-05/bank_statements" }
+    expect(form).not_to be_nil
+    details = form.ancestors("details").first
+    expect(details).not_to be_nil
+    expect(details.at_css("summary").text.strip).to eq("Substituir extrato")
+  end
+
+  it "absent statement shows the upload form inline" do
+    _account, organization, _month, _statement = signed_open_month
+    bank_account = BankAccount.create_for(organization: organization, name: "Conta Alfa", compe: "033")
+
+    get "/months/2026-05"
+
+    account_row = row(response.body, "bank-account", bank_account_id: bank_account.id)
+    form = account_row.css("form").find { |node| node["action"] == "/months/2026-05/bank_statements" }
+    expect(form).not_to be_nil
+    expect(form.ancestors("details")).to be_empty
   end
 end

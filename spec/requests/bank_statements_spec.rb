@@ -76,6 +76,15 @@ RSpec.describe "Bank statements", type: :request do
     expect(response.body).to include("Conta Principal")
   end
 
+  it "import error renders as a data-notice error alert" do
+    _account, _organization, bank_account = open_with_account
+
+    post "/months/2026-05/bank_statements", params: { bank_account_id: bank_account.id }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(error_notice_text(response.body)).to eq("Envie o PDF e a planilha")
+  end
+
   it "POST pdf only returns 422 Envie o PDF e a planilha" do
     _account, organization, bank_account = open_with_account
 
