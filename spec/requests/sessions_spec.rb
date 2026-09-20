@@ -15,6 +15,20 @@ RSpec.describe "Sessions", type: :request do
     expect(response.body).to include("Entrar com Google")
   end
 
+  it "GET /login renders the header without nav, the h1, the sentence and Entrar com Google" do
+    get "/login"
+
+    expect(response).to have_http_status(:ok)
+    page = Nokogiri::HTML(response.body)
+    header = page.at_css("header")
+    expect(header).not_to be_nil
+    expect(header.text).to include("Fechamento mensal")
+    expect(header.at_css("nav")).to be_nil
+    expect(page.at_css("h1").text.strip).to eq("Fechamento mensal")
+    expect(response.body).to include("Feche o mês da sua organização: extratos, documentos, casamentos e o pacote para o contador.")
+    expect(page.css('button[type="submit"]').map { |button| button.text.strip }).to include("Entrar com Google")
+  end
+
   it "DELETE /session clears session and redirects to /login" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)

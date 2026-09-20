@@ -68,6 +68,10 @@ jobs:
       - name: Prepare database
         run: bin/rails db:prepare
 
+      # The build output is gitignored; stylesheet and screen specs read the served CSS.
+      - name: Build Tailwind
+        run: bin/rails tailwindcss:build
+
       - name: Run test suite
         run: bin/rspec
 
