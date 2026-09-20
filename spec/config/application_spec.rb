@@ -50,16 +50,17 @@ RSpec.describe "Application config" do
   it "production runtime image installs tesseract-ocr and tesseract-ocr-por" do
     dockerfile = Rails.root.join("Dockerfile").read
     base, = dockerfile.split("FROM base AS build", 2)
+    packages = base.split(/\s+/)
 
-    expect(base).to include("tesseract-ocr")
-    expect(base).to include("tesseract-ocr-por")
+    expect(packages).to include("tesseract-ocr", "tesseract-ocr-por")
   end
 
   it "CI test job installs tesseract-ocr and tesseract-ocr-por before rspec" do
     ci = Rails.root.join(".github/workflows/ci.yml").read
     test_job = ci[/  test:.*?(?=\n  lint:|\z)/m]
+    packages = test_job.split(/\s+/)
 
-    expect(test_job.index("tesseract-ocr")).to be < test_job.index("bin/rspec")
-    expect(test_job.index("tesseract-ocr-por")).to be < test_job.index("bin/rspec")
+    expect(packages.index("tesseract-ocr")).to be < packages.index("bin/rspec")
+    expect(packages.index("tesseract-ocr-por")).to be < packages.index("bin/rspec")
   end
 end
