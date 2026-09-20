@@ -222,4 +222,17 @@ RSpec.describe "Justifications", type: :request do
     expect(response).to have_http_status(:not_found)
     expect(justification.reload.amount_cents).to eq(8000)
   end
+
+  it "justification row carries data-row hook" do
+    _account, _organization = signed_submitter
+    document = insert_own(payee: "Padaria Central", amount: "80,00")
+    post "/justifications", params: { amount: "80,00", supporting_document_ids: [ document.id ] }
+    justification = Justification.last
+
+    get "/supporting_documents"
+
+    justification_row = row(response.body, "justification", justification_id: justification.id)
+    expect(justification_row).not_to be_nil
+    expect(justification_row.text).to include("R$ 80,00", "Padaria Central")
+  end
 end

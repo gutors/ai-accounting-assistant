@@ -104,7 +104,9 @@ RSpec.describe "Supporting documents", type: :request do
 
     get "/supporting_documents"
     list = response.body[response.body.index("Sem mês")..]
-    expect(list).to match(%r{<time datetime="2026-05-11">11/05/2026</time>\s*R\$ 155,00\s*Recibo\s*Padaria Central}m)
+    document_row = rows(list, "document").first
+    expect(document_row.at_css('time[datetime="2026-05-11"]').text).to eq("11/05/2026")
+    expect(document_row.text).to include("R$ 155,00", "Recibo", "Padaria Central")
     expect(list).to include("recibo.jpg")
   end
 
@@ -116,6 +118,89 @@ RSpec.describe "Supporting documents", type: :request do
     end.not_to change(Month, :count)
 
     expect(SupportingDocument.last.account).to eq(account)
+  end
+
+  # Ledger arrangement (visual-identity C44, C45, C47, C48)
+
+  def editar_details(document_row)
+    details = document_row.css("details").select { |node| node.at_css("summary")&.text&.strip == "Editar" }
+    expect(details.size).to eq(1)
+    details.first
+  end
+
+  it "documents h1 insert form first and edit folds under Editar" do
+    account, organization = signed_in
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+
+    get "/supporting_documents"
+
+    expect(response).to have_http_status(:ok)
+    page = page_doc(response.body)
+    expect(page.at_css("h1").text.strip).to eq("Documentos de suporte")
+    first_section = page.css("section").first
+    insert_form = first_section.css("form").find { |node| node["action"] == "/supporting_documents" && node["method"] == "post" }
+    expect(insert_form).not_to be_nil
+    expect(insert_form.at_css('input[type="submit"][value="Incluir documento"]')).not_to be_nil
+
+    document_row = row(response.body, "document", document_id: document.id)
+    expect(document_row).not_to be_nil
+    edit_form = document_row.css("form").find { |node| node["action"] == "/supporting_documents/#{document.id}" && node.at_css('input[name="_method"][value="patch"]') }
+    expect(edit_form).not_to be_nil
+    expect(edit_form.ancestors.include?(editar_details(document_row))).to eq(true)
+  end
+
+  it "Excluir sits inside Editar" do
+    account, organization = signed_in
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+
+    get "/supporting_documents"
+
+    document_row = row(response.body, "document", document_id: document.id)
+    excluir = document_row.css("button").find { |button| button.text.strip == "Excluir" }
+    expect(excluir).not_to be_nil
+    expect(excluir.ancestors.include?(editar_details(document_row))).to eq(true)
+  end
+
+  it "Usar dados da SEFAZ stays outside Editar" do
+    _account, organization = signed_in
+    install_a1(organization)
+    stub_xml_consulta(vnf: "100.00")
+    post "/supporting_documents", params: nota_params(photo: photo_jpg)
+    id = SupportingDocument.last.id
+    patch "/supporting_documents/#{id}", params: { chave: nfe_chave }
+    expect(SupportingDocument.find(id).sefaz_confirm_pending?).to eq(true)
+
+    get "/supporting_documents"
+
+    document_row = row(response.body, "document", document_id: id)
+    sefaz = document_row.css("button").find { |button| button.text.strip == "Usar dados da SEFAZ" }
+    expect(sefaz).not_to be_nil
+    expect(sefaz.ancestors("details")).to be_empty
+  end
+
+  it "chave is displayed in groups of four and kept raw in the edit field" do
+    signed_in
+    chave = "35240612345678000190550010000012341000012340"
+    post "/supporting_documents", params: nota_params(photo: photo_jpg, chave: chave)
+    id = SupportingDocument.last.id
+    expect(SupportingDocument.find(id).chave).to eq(chave)
+
+    get "/supporting_documents"
+
+    document_row = row(response.body, "document", document_id: id)
+    expect(document_row.at_css("[data-chave]").text.strip).to eq("3524 0612 3456 7800 0190 5500 1000 0012 3410 0001 2340")
+    expect(document_row.at_css('input[name="chave"]')["value"]).to eq(chave)
+  end
+
+  it "document error renders as a data-notice error alert" do
+    signed_in
+
+    post "/supporting_documents", params: {
+      kind: "recibo", amount: "155,00", date: "2026-05-11", payee: "Padaria Central"
+    }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(error_notice_text(response.body)).to eq("Envie a foto do recibo")
   end
 
   it "POST recibo without photo returns 422 Envie a foto do recibo" do
@@ -162,7 +247,9 @@ RSpec.describe "Supporting documents", type: :request do
 
     get "/supporting_documents"
     list = response.body[response.body.index("Sem mês")..]
-    expect(list).to match(%r{<time datetime="2026-05-11">11/05/2026</time>\s*R\$ 155,00\s*Nota fiscal\s*Padaria Central}m)
+    document_row = rows(list, "document").first
+    expect(document_row.at_css('time[datetime="2026-05-11"]').text).to eq("11/05/2026")
+    expect(document_row.text).to include("R$ 155,00", "Nota fiscal", "Padaria Central")
     expect(list).to include("danfe.jpg")
   end
 
@@ -610,7 +697,9 @@ RSpec.describe "Supporting documents", type: :request do
 
     get "/supporting_documents"
     list = response.body[response.body.index("Sem mês")..]
-    expect(list).to match(%r{<time datetime="2026-05-11">11/05/2026</time>\s*R\$ 155,00\s*Recibo\s*Padaria Central}m)
+    document_row = rows(list, "document").first
+    expect(document_row.at_css('time[datetime="2026-05-11"]').text).to eq("11/05/2026")
+    expect(document_row.text).to include("R$ 155,00", "Recibo", "Padaria Central")
   end
 
   it "submitter PATCH payee on own no-month document redirects" do
