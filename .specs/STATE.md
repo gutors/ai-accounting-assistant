@@ -3,9 +3,9 @@
 ## Handoff
 
 **Feature**: visual-identity
-**Where**: build complete; C1–C54 closed at `0d0606d` on branch `visual-identity` (feature base `fc0d56b`); all 54 proofs green, full `bin/rspec` green, `bin/rubocop` and `bin/erb_lint` clean; `validate_plan.py` and `validate_checks.py` exit 0 at profile `ui`
-**In progress**: none — builder reported and stopped
-**Next step**: orchestrator dispatches a fresh Verifier (`.cursor/agents/tlc-verifier.md`) over `fc0d56b..HEAD` with every check at profile `ui`; screenshots for C49–C53 come from `bin/rspec spec/system/screens_spec.rb` (writes `tmp/screenshots/`). PR to `main` is a separate go-ahead (needs a GitHub issue; local `main` is behind `origin/main` by PR #55, rebase before opening)
+**Where**: round-2 scoped verification PASS at `612c08d` (`.specs/features/visual-identity/verification.md`, profile `ui`); C1–C57 proven, `validate_verification.py` exits 0
+**In progress**: none
+**Next step**: none for this feature — independent Verifier passed. PR to `main` is a separate go-ahead: needs a GitHub issue (`Closes #N`), `/open-pr`, then `the-judge`; local `main` is behind `origin/main` (PR #55), rebase `visual-identity` first
 **Blockers**: none
 **Uncommitted**: none
 **Branch**: visual-identity
