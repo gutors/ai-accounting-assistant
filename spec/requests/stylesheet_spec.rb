@@ -69,4 +69,13 @@ RSpec.describe "Served stylesheet", type: :request do
   it "served stylesheet ships no keyframes" do
     expect(served_stylesheet).not_to include("@keyframes")
   end
+
+  it "served stylesheet declares sheet, ink-soft and the two font stacks" do
+    css = served_stylesheet
+
+    expect(css).to match(/--color-sheet:\s*#(fff|ffffff)\b/i)
+    expect(css).to match(/--color-ink-soft:\s*#5c6e66\b/i)
+    expect(css).to match(/--font-sans:\s*"IBM Plex Sans"/)
+    expect(css).to match(/--font-mono:\s*"IBM Plex Mono"/)
+  end
 end

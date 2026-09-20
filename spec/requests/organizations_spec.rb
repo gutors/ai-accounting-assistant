@@ -166,6 +166,16 @@ RSpec.describe "Organization home", type: :request do
     expect(month_rows.first.text).not_to include("Fechado")
   end
 
+  it "home has a Pessoas h2" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    get "/"
+
+    headings = page_doc(response.body).css("h2").map { |h2| h2.text.strip }
+    expect(headings).to include("Pessoas")
+  end
+
   it "closed month row says Fechado" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)

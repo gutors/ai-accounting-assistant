@@ -186,6 +186,17 @@ Proof: `bin/rails tailwindcss:build && bin/rspec spec/system/screens_spec.rb -e 
 **C54** - No file under `spec/` contains `class="mb-2"`, `class="mb-6"`, or `class="border rounded p-3 mb-3"` (PROOF-01, AC 36, door 3)
 Proof: `! rg -n 'class="mb-2"|class="mb-6"|class="border rounded p-3 mb-3"' spec/`
 
+### S6 - Additive after round-1 verification (human approved 2026-09-20)
+
+**C55** - The served stylesheet declares `--color-sheet: #fff` (or `#ffffff`), `--color-ink-soft: #5c6e66`, `--font-sans` whose value begins with `"IBM Plex Sans"`, and `--font-mono` whose value begins with `"IBM Plex Mono"` (SHELL-01, AC 1, AC 2, door 2)
+Proof: `bin/rails tailwindcss:build && bin/rspec spec/requests/stylesheet_spec.rb -e "served stylesheet declares sheet, ink-soft and the two font stacks"`
+
+**C56** - Coordinator `GET /` renders an `<h2>` whose text is `Pessoas` (HOME-01, AC 26)
+Proof: `bin/rspec spec/requests/organizations_spec.rb -e "home has a Pessoas h2"`
+
+**C57** - Submitter `GET /supporting_documents`: a justification whose documents all have `month_id` nil renders its `PATCH /justifications/{id}` form inside a `<details>` with `<summary>` `Editar`, inside `li[data-row="justification"][data-justification-id="{id}"]` (DOCS-01, AC 31)
+Proof: `bin/rspec spec/requests/justifications_spec.rb -e "justification edit form folds under Editar"`
+
 ## Coverage
 
 | Set (size) | Member -> proof | Unproven |
@@ -211,6 +222,9 @@ Proof: `! rg -n 'class="mb-2"|class="mb-6"|class="border rounded p-3 mb-3"' spec
 | tabular amount screens (2) | `month` C50 · `documents` C50 | - |
 | screenshot files (14) | C49, table-driven over all 14 | - |
 | Landing doors (4) | fonts C2 · tokens C1, C16 · test anchors C54 · screen proofs C49 | - |
+| remaining `@theme` tokens, door 2 (4) | `--color-sheet` C55 · `--color-ink-soft` C55 · `--font-sans` C55 · `--font-mono` C55 | - |
+| home `design.md` new copy (4) | `Meses` C38 · `Pessoas` C56 · `Aberto` C38 · `Fechado` C39 | - |
+| `<details>` summaries, sixth (1) | `Editar` on justification C57 | - |
 
 - Claims naming a status code or response shape: C10, C11, C12, C13 - each has a proof that crosses the HTTP boundary
 - C1–C5 assert on the stylesheet as served (after Propshaft), fetched from the `<link>` of `GET /login`
@@ -257,3 +271,4 @@ Cost: 37 request examples across 12 spec files, 5 system examples, 4 static-file
 - Files touched (6 views, layout + header partial, `application.css`, locale, `Gemfile`, `ci.yml`, icon, `match_helpers.rb`, 13 request specs, 4 new spec files) total ~296 KB by `wc -c` -> ~74k tokens ≪ 150k. One builder, no split.
 - Order: S1 (tokens, fonts, header, notices) -> S2 (month) -> S5 test anchors and system spec scaffold (so re-anchored helpers exist before S3/S4 rows change) -> S3 -> S4 -> S5 screenshots last.
 - **Boundary:** C1-C54 closed at `0d0606d` (feature base `fc0d56b`, branch `visual-identity`); screenshots for C49-C53 under `tmp/screenshots/` after `bin/rspec spec/system/screens_spec.rb`
+- **Settled mid-build:** human approved additive C55–C57 after round-1 verification FAIL (unproven `@theme` tokens with a surviving mutant on `--color-ink-soft`, `Pessoas` heading, justification `Editar` fold)

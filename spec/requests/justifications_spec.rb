@@ -235,4 +235,22 @@ RSpec.describe "Justifications", type: :request do
     expect(justification_row).not_to be_nil
     expect(justification_row.text).to include("R$ 80,00", "Padaria Central")
   end
+
+  it "justification edit form folds under Editar" do
+    _account, _organization = signed_submitter
+    document = insert_own(payee: "Padaria Central", amount: "80,00")
+    post "/justifications", params: { amount: "80,00", supporting_document_ids: [ document.id ] }
+    justification = Justification.last
+    expect(document.reload.month_id).to be_nil
+
+    get "/supporting_documents"
+
+    justification_row = row(response.body, "justification", justification_id: justification.id)
+    form = justification_row.at_css("form[action=\"/justifications/#{justification.id}\"]")
+    expect(form).not_to be_nil
+    expect(form.at_css('input[name="_method"][value="patch"]')).not_to be_nil
+    details = form.ancestors("details").first
+    expect(details).not_to be_nil
+    expect(details.at_css("summary").text.strip).to eq("Editar")
+  end
 end
