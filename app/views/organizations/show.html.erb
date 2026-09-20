@@ -1,23 +1,12 @@
 <% content_for :title, @organization.name %>
 
-<div class="flex items-start justify-between gap-4 mb-8">
-  <h1 class="text-2xl font-semibold"><%= @organization.name %></h1>
-  <div class="flex items-center gap-4">
-    <%= link_to "Documentos", "/supporting_documents" %>
-    <% if coordinator_on_focus? %>
-      <%= link_to "Configuração", "/setup" %>
-    <% end %>
-    <%= button_to "Sair", "/session", method: :delete, class: "text-sm underline" %>
-  </div>
-</div>
-
 <% if @focusable_organizations.size > 1 %>
   <nav aria-label="Organizações" class="mb-8">
-    <p class="text-sm font-medium mb-2">Organizações</p>
     <ul class="flex flex-wrap gap-2">
       <% @focusable_organizations.each do |organization| %>
+        <% focused = organization.id == @organization.id %>
         <li>
-          <%= button_to organization.name, "/focus", params: { organization_id: organization.id }, class: "rounded border px-3 py-1" %>
+          <%= button_to organization.name, "/focus", params: { organization_id: organization.id }, aria: { current: focused ? "true" : nil }, class: focused ? "rounded bg-caixa px-3 py-1 font-semibold text-white" : "rounded border border-ink px-3 py-1 text-ink" %>
         </li>
       <% end %>
     </ul>
@@ -25,83 +14,99 @@
 <% end %>
 
 <% if coordinator_on_focus? %>
-  <section class="mb-8">
-    <h2 class="text-lg font-medium mb-3">Meses</h2>
-    <% if @months.empty? %>
-      <p class="mb-3">Nenhum mês aberto</p>
-    <% else %>
-      <ul class="mb-3">
-        <% @months.each do |month| %>
-          <li class="mb-2">
-            <%= link_to month.year_month, "/months/#{month.year_month}" %>
-          </li>
-        <% end %>
-      </ul>
-    <% end %>
-    <%= form_with url: "/months", method: :post do %>
-      <label for="year_month" class="block mb-1">Mês</label>
-      <%= month_field_tag :year_month, nil, id: "year_month", class: "border rounded px-2 py-1 mb-3", autocomplete: "off" %>
-      <%= submit_tag "Abrir mês", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
-    <% end %>
-  </section>
+  <h1 class="text-2xl leading-7 font-semibold tracking-[-0.01em]">Meses</h1>
 
-  <section class="mb-8">
-    <h2 class="text-lg font-medium mb-3">Coordenadores</h2>
-    <ul>
-      <% @coordinator_accesses.each do |access| %>
-        <li class="flex items-center gap-3 mb-2">
-          <span><%= access.account.email %></span>
-          <%= button_to "Revogar", "/accesses/#{access.id}", method: :delete, form: { data: { turbo_confirm: "Revogar o acesso deste coordenador?" } }, class: "text-sm underline" %>
-        </li>
+  <div class="mt-6 space-y-12">
+    <section>
+      <% if @months.empty? %>
+        <p>Nenhum mês aberto</p>
+      <% else %>
+        <ul class="border-t border-rule">
+          <% @months.each do |month| %>
+            <li data-row="month" class="grid grid-cols-[minmax(0,1fr)_8rem] gap-x-4 border-b border-rule py-3">
+              <%= link_to month.year_month, "/months/#{month.year_month}", class: "font-medium text-caixa tabular-nums underline underline-offset-2" %>
+              <span class="text-right text-ink-soft"><%= month.closed? ? "Fechado" : "Aberto" %></span>
+            </li>
+          <% end %>
+        </ul>
       <% end %>
-    </ul>
-  </section>
-
-  <section class="mb-8">
-    <h2 class="text-lg font-medium mb-3">Submitters</h2>
-    <ul>
-      <% @submitter_accesses.each do |access| %>
-        <li class="flex items-center gap-3 mb-2">
-          <span><%= access.account.email %></span>
-          <%= button_to "Revogar", "/accesses/#{access.id}", method: :delete, form: { data: { turbo_confirm: "Revogar o acesso deste submitter?" } }, class: "text-sm underline" %>
-        </li>
+      <%= form_with url: "/months", method: :post, class: "mt-4 flex flex-wrap items-end gap-3" do %>
+        <div>
+          <label for="year_month" class="mb-1 block font-medium">Mês</label>
+          <%= month_field_tag :year_month, nil, id: "year_month", class: "rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
+        </div>
+        <%= submit_tag "Abrir mês", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
       <% end %>
-    </ul>
-  </section>
+    </section>
 
-  <section class="mb-8">
-    <h2 class="text-lg font-medium mb-3">Convites pendentes</h2>
-    <% if @invites.any? %>
-      <ul>
-        <% @invites.each do |invite| %>
-          <li class="flex items-center gap-3 mb-2">
-            <span><%= invite.email %></span>
-            <% if invite.submitter? %>
-              <%= button_to "Cancelar", "/submitter_invites/#{invite.id}", method: :delete, class: "text-sm underline" %>
-            <% else %>
-              <%= button_to "Cancelar", "/coordinator_invites/#{invite.id}", method: :delete, class: "text-sm underline" %>
+    <section>
+      <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Pessoas</h2>
+      <div class="grid gap-x-8 gap-y-10 md:grid-cols-2">
+        <div>
+          <h3 class="mb-2 font-medium">Coordenadores</h3>
+          <ul>
+            <% @coordinator_accesses.each do |access| %>
+              <li class="flex items-center justify-between gap-3 border-b border-rule py-2">
+                <span class="min-w-0 break-all"><%= access.account.email %></span>
+                <%= button_to "Revogar", "/accesses/#{access.id}", method: :delete, form: { data: { turbo_confirm: "Revogar o acesso deste coordenador?" } }, class: "text-margem underline underline-offset-2" %>
+              </li>
             <% end %>
-          </li>
-        <% end %>
-      </ul>
-    <% end %>
-  </section>
+          </ul>
+          <%= form_with url: "/coordinator_invites", method: :post, class: "mt-4" do %>
+            <fieldset>
+              <legend class="mb-2 font-medium">Convidar coordenador</legend>
+              <label for="email" class="mb-1 block">E-mail</label>
+              <div class="flex flex-wrap gap-2">
+                <%= email_field_tag :email, nil, id: "email", class: "min-w-0 grow rounded border border-rule bg-sheet px-3 py-2", autocomplete: "email" %>
+                <%= submit_tag "Convidar", class: "rounded border border-ink px-4 py-2 text-ink" %>
+              </div>
+            </fieldset>
+          <% end %>
+        </div>
 
-  <section class="mb-8">
-    <h2 class="text-lg font-medium mb-3">Convidar coordenador</h2>
-    <%= form_with url: "/coordinator_invites", method: :post do %>
-      <label for="email" class="block mb-1">E-mail</label>
-      <%= email_field_tag :email, nil, id: "email", class: "border rounded px-2 py-1 mb-3", autocomplete: "email" %>
-      <%= submit_tag "Convidar", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
-    <% end %>
-  </section>
+        <div>
+          <h3 class="mb-2 font-medium">Submitters</h3>
+          <ul>
+            <% @submitter_accesses.each do |access| %>
+              <li class="flex items-center justify-between gap-3 border-b border-rule py-2">
+                <span class="min-w-0 break-all"><%= access.account.email %></span>
+                <%= button_to "Revogar", "/accesses/#{access.id}", method: :delete, form: { data: { turbo_confirm: "Revogar o acesso deste submitter?" } }, class: "text-margem underline underline-offset-2" %>
+              </li>
+            <% end %>
+          </ul>
+          <%= form_with url: "/submitter_invites", method: :post, class: "mt-4" do %>
+            <fieldset>
+              <legend class="mb-2 font-medium">Convidar submitter</legend>
+              <label for="submitter_email" class="mb-1 block">E-mail</label>
+              <div class="flex flex-wrap gap-2">
+                <%= email_field_tag :email, nil, id: "submitter_email", class: "min-w-0 grow rounded border border-rule bg-sheet px-3 py-2", autocomplete: "email" %>
+                <%= submit_tag "Convidar", class: "rounded border border-ink px-4 py-2 text-ink" %>
+              </div>
+            </fieldset>
+          <% end %>
+        </div>
+      </div>
+    </section>
 
-  <section>
-    <h2 class="text-lg font-medium mb-3">Convidar submitter</h2>
-    <%= form_with url: "/submitter_invites", method: :post do %>
-      <label for="submitter_email" class="block mb-1">E-mail</label>
-      <%= email_field_tag :email, nil, id: "submitter_email", class: "border rounded px-2 py-1 mb-3", autocomplete: "email" %>
-      <%= submit_tag "Convidar", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
-    <% end %>
-  </section>
+    <section>
+      <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Convites pendentes</h2>
+      <% if @invites.any? %>
+        <ul>
+          <% @invites.each do |invite| %>
+            <li class="flex items-center justify-between gap-3 border-b border-rule py-2">
+              <span class="min-w-0 break-all"><%= invite.email %></span>
+              <% if invite.submitter? %>
+                <%= button_to "Cancelar", "/submitter_invites/#{invite.id}", method: :delete, class: "text-margem underline underline-offset-2" %>
+              <% else %>
+                <%= button_to "Cancelar", "/coordinator_invites/#{invite.id}", method: :delete, class: "text-margem underline underline-offset-2" %>
+              <% end %>
+            </li>
+          <% end %>
+        </ul>
+      <% end %>
+    </section>
+  </div>
+<% else %>
+  <h1 class="text-2xl leading-7 font-semibold tracking-[-0.01em]">Início</h1>
+  <p class="mt-4">Inclua e acompanhe seus documentos de suporte em <%= link_to "Documentos", "/supporting_documents", class: "text-caixa underline underline-offset-2" %>.</p>
 <% end %>

@@ -76,6 +76,18 @@ RSpec.describe "SEFAZ certificates", type: :request do
     expect(organization.reload.sefaz_titular_cnpj).to be_nil
   end
 
+  it "certificate error renders as a data-notice error alert" do
+    signed_in
+
+    post "/sefaz_certificate", params: {
+      certificate: sefaz_pfx(titular: "39053344705"),
+      passphrase: "passphrase-secreta"
+    }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(error_notice_text(response.body)).to eq("O certificado deve ser e-CNPJ A1 vigente")
+  end
+
   it "POST e-CPF returns 422" do
     _account, organization = signed_in
 

@@ -150,7 +150,7 @@ RSpec.describe "Setup", type: :request do
     expect(active).to be_active
     expect(response.body).to include("Desativar")
     expect(response.body).to include("Reativar")
-    bank_rows = response.body.scan(%r{<li class="border rounded p-3 mb-3">.*?</li>}m).select { |li| li.include?("extrato-") }
+    bank_rows = rows_html(response.body, "bank-account")
     expect(bank_rows.join).not_to include("Excluir")
   end
 
@@ -341,8 +341,26 @@ RSpec.describe "Setup", type: :request do
     expect(response.body).not_to include("Só B Extra")
   end
 
+  it "setup h1 is Configuracao and bank account edit folds under Editar" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    bank_account = BankAccount.create_for(organization: organization, name: "Conta Principal", compe: "001")
+
+    get "/setup"
+
+    expect(response).to have_http_status(:ok)
+    expect(page_doc(response.body).at_css("h1").text.strip).to eq("Configuração")
+    account_row = row(response.body, "bank-account", bank_account_id: bank_account.id)
+    expect(account_row).not_to be_nil
+    form = account_row.css("form").find { |node| node["action"] == "/bank_accounts/#{bank_account.id}" && node.at_css('input[name="_method"][value="patch"]') && node.at_css('input[name="name"]') }
+    expect(form).not_to be_nil
+    details = form.ancestors("details").first
+    expect(details).not_to be_nil
+    expect(details.at_css("summary").text.strip).to eq("Editar")
+  end
+
   def extra_kind_row(body, name)
-    body.scan(%r{<li class="border rounded p-3 mb-3">.*?</li>}m).find { |li| li.include?(name) && !li.include?("extrato-") }
+    rows_html(body, "extra-exception-kind").find { |li| li.include?(name) }
   end
 
   def extra_kinds_section(body)
