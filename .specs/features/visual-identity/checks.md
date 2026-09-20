@@ -256,3 +256,4 @@ Cost: 37 request examples across 12 spec files, 5 system examples, 4 static-file
 
 - Files touched (6 views, layout + header partial, `application.css`, locale, `Gemfile`, `ci.yml`, icon, `match_helpers.rb`, 13 request specs, 4 new spec files) total ~296 KB by `wc -c` -> ~74k tokens ≪ 150k. One builder, no split.
 - Order: S1 (tokens, fonts, header, notices) -> S2 (month) -> S5 test anchors and system spec scaffold (so re-anchored helpers exist before S3/S4 rows change) -> S3 -> S4 -> S5 screenshots last.
+- **Boundary:** C1-C54 closed at `0d0606d` (feature base `fc0d56b`, branch `visual-identity`); screenshots for C49-C53 under `tmp/screenshots/` after `bin/rspec spec/system/screens_spec.rb`

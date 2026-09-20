@@ -205,10 +205,10 @@ the tokens and fonts in the Tailwind entry file, month names in the locale, and 
 
 1. request -> controller (exists) - loads the same instance variables as today
 2. `app/views/layouts/application.html.erb` (exists) - renders `layouts/_header` (new, no door - placement per conventions) from `current_account` / `focused_organization` (exist), then `yield`
-3. screen ERB (exists) - ledger rows with `data-row` / `data-status` hooks, `<details>` folds, token utilities; error messages through the `data-notice` paragraph
-4. `app/assets/tailwind/application.css` (exists) - `@theme` tokens (door 2) and `@font-face` (door 1); `bin/rails tailwindcss:build` writes `app/assets/builds/tailwind.css` (exists), served by Propshaft (exists)
-5. `config/locales/pt-BR.yml` (exists) - `date.month_names` for the month title
-6. `spec/support/*_helpers.rb` (exist) - locate rows through `data-row` (door 3); `spec/system/screens_spec.rb` (new, door 4) - signs in through the OmniAuth mock (exists) and saves screenshots
+3. screen ERB (exists) - ledger rows with `data-row` / `data-status` hooks, `<details>` folds, token utilities; error messages through `shared/_notice` (new, no door - one `data-notice` paragraph rendered by the four screens); the statement upload form is `months/_statement_form` (new, no door - rendered inline or inside `Substituir extrato`)
+4. `app/assets/tailwind/application.css` (exists) - `@theme` tokens (door 2) and `@font-face` (door 1) pointing at `app/assets/fonts/*.woff2` (new); `bin/rails tailwindcss:build` writes `app/assets/builds/tailwind.css` (exists), Propshaft (exists) rewrites the `url()` to the digested `/assets/` path when it serves the file
+5. `config/locales/pt-BR.yml` (exists) - `date.month_names` and `date.formats.month_title` for the month title; `ApplicationHelper` (exists) gains `month_title`, `payment_status` (the `data-status` dispatch) and `format_chave` (groups of four)
+6. `spec/support/page_helpers.rb` (new, door 3) - `row` / `rows_html` / `error_notice_text` locators over `data-*`; `match_helpers.rb` (exists) delegates to them; `spec/system/screens_spec.rb` (new, door 4) - signs in through the OmniAuth mock (exists) and saves screenshots
 7. out: the same HTML routes, the same statuses, restyled
 
 ## Relations
@@ -237,7 +237,7 @@ None - nothing consumed outside; every route, parameter, and status is unchanged
 | domain | no new term; the UI adopts `Aberto` / `Fechado` for a month's state on `home` and reuses `documento faltante`, `extrato`, `conta ativa` from `CONTEXT.md` in the summary sentences |
 | domain | existing term: `Documento faltante` still means the payment status; the month summary says `pagamentos com documento faltante` (lowercase) so `Documento faltante` appears only on rows - specs that assert its absence keep their meaning |
 | stored data | nothing to migrate |
-| locale | `config/locales/pt-BR.yml` gains `date.month_names` (13 entries, index 0 nil) |
-| tests | `spec/support/match_helpers.rb` and the four request specs that scan `<li class=...>` / `<p class="mb-6">` re-anchor on `data-*` (door 3); assertions unchanged. `Gemfile` test group gains `capybara` and `cuprite` (door 4); `spec/system/` is created |
-| assets | `public/icon.svg` and `public/icon.png` replaced by the ledger mark; `app/assets/fonts/` created with four woff2 files (about 120 KB total) |
+| locale | `config/locales/pt-BR.yml` gains `date.month_names` (13 entries, index 0 nil) and `date.formats.month_title` (`%B de %Y`) |
+| tests | `spec/support/match_helpers.rb` and the four request specs that scan `<li class=...>` / `<p class="mb-6">` re-anchor on `data-*` (door 3); assertions unchanged. Three `supporting_documents_spec.rb` examples also matched raw adjacency (`</time>\s*R$ 155,00\s*Recibo\s*Padaria Central`) - no wrapped amount cell can satisfy that, so they now locate the `document` row and assert the same date, amount, kind and payee inside it. `Gemfile` test group gains `capybara` and `cuprite` (door 4); `spec/system/`, `spec/assets/` and `spec/config/ci_workflow_spec.rb` are created |
+| assets | `public/icon.svg` and `public/icon.png` replaced by the ledger mark; `app/assets/fonts/` created with four woff2 files (fontsource 5.3.0 Latin subset, about 86 KB total) and the two OFL texts |
 | CI | `bin/rspec` now runs one system spec; `ubuntu-latest` ships Chrome. `.github/workflows/ci.yml` gains a `bin/rails tailwindcss:build` step before `bin/rspec`: the build output is gitignored and nothing in CI produces it today (`stylesheet_link_tag :app` globs, so the missing file was silent) |
