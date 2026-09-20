@@ -53,7 +53,8 @@ module PhotoSymbols
       end
 
       code_chave = forty_four(code128_payload(image)) unless qr_chave
-      Symbols.new(chave: qr_chave || code_chave, qr_url:)
+      printed_chave = forty_four(PhotoOcr.text(bytes)) unless qr_chave || code_chave
+      Symbols.new(chave: qr_chave || code_chave || printed_chave, qr_url:)
     rescue ChunkyPNG::Exception, PureJPEG::DecodeError, ArgumentError, URI::InvalidURIError
       Symbols.new(chave: nil, qr_url: nil)
     end
@@ -72,8 +73,8 @@ module PhotoSymbols
         image = ChunkyPNG::Image.new(jpeg.width, jpeg.height)
         jpeg.height.times do |y|
           jpeg.width.times do |x|
-            r, g, b = jpeg[x, y]
-            image[x, y] = ChunkyPNG::Color.rgb(r, g, b)
+            pixel = jpeg[x, y]
+            image[x, y] = ChunkyPNG::Color.rgb(pixel.r, pixel.g, pixel.b)
           end
         end
         image

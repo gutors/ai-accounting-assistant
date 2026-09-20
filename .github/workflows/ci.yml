@@ -65,6 +65,9 @@ jobs:
         with:
           bundler-cache: true
 
+      - name: Install Tesseract
+        run: sudo apt-get update -qq && sudo apt-get install --no-install-recommends -y tesseract-ocr tesseract-ocr-por
+
       - name: Prepare database
         run: bin/rails db:prepare
 

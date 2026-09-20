@@ -9,6 +9,10 @@ RSpec.describe PhotoSymbols, type: :model do
     "43260511222333000181550010000000011123456781"
   end
 
+  def ocr_fixture(name)
+    Rails.root.join("spec/fixtures/files/ocr", name).binread
+  end
+
   def nfce_chave
     "43260511222333000181650010000000011123456781"
   end
@@ -33,5 +37,49 @@ RSpec.describe PhotoSymbols, type: :model do
 
     expect(result.chave).to eq(nfce_chave)
     expect(result.qr_url).to eq(nfce_qr_url)
+  end
+
+  it "Real printed-digit PNG returns chave 43260511222333000181550010000000011123456781" do
+    png = ocr_fixture("printed_chave.png")
+
+    result = PhotoSymbols::Real.new.scan(bytes: png, filename: "printed.png")
+
+    expect(result.chave).to eq(nfe_chave)
+    expect(result.qr_url).to be_nil
+  end
+
+  it "Real printed-digit JPEG returns chave 43260511222333000181550010000000011123456781" do
+    jpeg = ocr_fixture("printed_chave.jpg")
+
+    result = PhotoSymbols::Real.new.scan(bytes: jpeg, filename: "printed.jpg")
+
+    expect(result.chave).to eq(nfe_chave)
+    expect(result.qr_url).to be_nil
+  end
+
+  it "Real printed-digit PNG without 44 digits returns chave nil" do
+    png = ocr_fixture("blank.png")
+
+    result = PhotoSymbols::Real.new.scan(bytes: png, filename: "blank-chave.png")
+
+    expect(result.chave).to be_nil
+  end
+
+  it "Real scan misses when tesseract binary is missing" do
+    PhotoOcr.binary = "/nonexistent/tesseract-missing-for-spec"
+    png = ocr_fixture("printed_chave.png")
+
+    result = PhotoSymbols::Real.new.scan(bytes: png, filename: "printed.png")
+
+    expect(result.chave).to be_nil
+  end
+
+  it "Real scan misses when tesseract subprocess errors" do
+    PhotoOcr.binary = "/bin/false"
+    png = ocr_fixture("printed_chave.png")
+
+    result = PhotoSymbols::Real.new.scan(bytes: png, filename: "printed.png")
+
+    expect(result.chave).to be_nil
   end
 end

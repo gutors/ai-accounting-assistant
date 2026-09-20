@@ -85,6 +85,7 @@ RSpec.configure do |config|
     SefazConsulta.reset!
     PhotoSymbols.reset!
     PhotoFields.reset!
+    PhotoOcr.reset!
     PublicNfceConsulta.reset!
     OmniAuth.config.test_mode = true
     OmniAuth.config.mock_auth[:google_oauth2] = nil

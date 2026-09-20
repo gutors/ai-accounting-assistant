@@ -46,4 +46,20 @@ RSpec.describe "Application config" do
     expect(gemfile).to include("google-apis-drive_v3")
     expect(gemfile).to include("googleauth")
   end
+
+  it "production runtime image installs tesseract-ocr and tesseract-ocr-por" do
+    dockerfile = Rails.root.join("Dockerfile").read
+    base, = dockerfile.split("FROM base AS build", 2)
+
+    expect(base).to include("tesseract-ocr")
+    expect(base).to include("tesseract-ocr-por")
+  end
+
+  it "CI test job installs tesseract-ocr and tesseract-ocr-por before rspec" do
+    ci = Rails.root.join(".github/workflows/ci.yml").read
+    test_job = ci[/  test:.*?(?=\n  lint:|\z)/m]
+
+    expect(test_job.index("tesseract-ocr")).to be < test_job.index("bin/rspec")
+    expect(test_job.index("tesseract-ocr-por")).to be < test_job.index("bin/rspec")
+  end
 end
