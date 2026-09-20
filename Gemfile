@@ -69,6 +69,12 @@ group :development, :test do
   gem "rspec-rails"
 end
 
+group :test do
+  # Screen proofs: Capybara drives Chrome over CDP (no chromedriver download).
+  gem "capybara"
+  gem "cuprite"
+end
+
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem "web-console"
