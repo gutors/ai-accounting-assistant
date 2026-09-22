@@ -2,10 +2,11 @@
 
 ## Handoff
 
-**Feature**: visual-identity
-**Where**: round-2 scoped verification PASS at `612c08d` (`.specs/features/visual-identity/verification.md`, profile `ui`); C1–C57 proven, `validate_verification.py` exits 0
+**Feature**: administration-intake
+**Where**: planned in `.tasks/administration-intake.md`. Screen `administration` in `.design/administration-intake.md` is binding. Not built. A human has not confirmed the task.
 **In progress**: none
-**Next step**: none for this feature — independent Verifier passed. PR to `main` is a separate go-ahead: needs a GitHub issue (`Closes #N`), `/open-pr`, then `the-judge`; local `main` is behind `origin/main` (PR #55), rebase `visual-identity` first
-**Blockers**: none
-**Uncommitted**: none
-**Branch**: visual-identity
+**Next step**: human confirms the task, then tlc-implement. Profile `ui` because the task names the binding screen `administration`.
+**Blockers**: none for the build. Real mail waits on the mailbox in #63.
+**Uncommitted**: `AGENTS.md` — the post-plan issue instruction, separate from this feature
+**Branch**: administration-intake
+**Issues**: #62 feature, #63 the questions the task leaves open
