@@ -1,0 +1,7 @@
+{
+  "files": ["app/views/layouts/application.html.erb"],
+  "exclude": ["app/views/layouts/mailer.html.erb"],
+  "insertBefore": "</body>",
+  "commentSyntax": "html",
+  "cspChecked": true
+}
