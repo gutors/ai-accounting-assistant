@@ -1,5 +1,7 @@
 <% content_for :title, "Entrar" %>
 
-<h1 class="text-2xl font-semibold mb-6">Fechamento mensal</h1>
-
-<%= button_to "Entrar com Google", "/auth/google_oauth2", method: :post, data: { turbo: false }, class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+<div class="mt-14 max-w-md">
+  <h1 class="text-2xl leading-7 font-semibold tracking-[-0.01em]">Fechamento mensal</h1>
+  <p class="mt-4">Feche o mês da sua organização: extratos, documentos, casamentos e o pacote para o contador.</p>
+  <%= button_to "Entrar com Google", "/auth/google_oauth2", method: :post, data: { turbo: false }, form_class: "mt-8", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+</div>

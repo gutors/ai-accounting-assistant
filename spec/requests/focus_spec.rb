@@ -16,6 +16,21 @@ RSpec.describe "Focus", type: :request do
     expect(response.body).to include("ONG Sul")
   end
 
+  it "focused organization button carries aria-current" do
+    account, org_a = plant_coordinator(email: "coord@example.com", organization_name: "ONG Norte")
+    org_b = Organization.create!(name: "ONG Sul")
+    Access.create!(account: account, organization: org_b, kind: :coordinator)
+    sign_in_as(account, organization: org_a)
+
+    get "/"
+
+    buttons = page_doc(response.body).css('nav[aria-label="Organizações"] button')
+    norte = buttons.find { |button| button.text.strip == "ONG Norte" }
+    sul = buttons.find { |button| button.text.strip == "ONG Sul" }
+    expect(norte["aria-current"]).to eq("true")
+    expect(sul.has_attribute?("aria-current")).to eq(false)
+  end
+
   it "POST /focus without Access returns 404" do
     account, org_a = plant_coordinator(email: "coord@example.com", organization_name: "ONG Norte")
     outsider = Organization.create!(name: "ONG Outra")

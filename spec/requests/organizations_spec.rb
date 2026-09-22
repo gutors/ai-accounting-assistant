@@ -150,4 +150,55 @@ RSpec.describe "Organization home", type: :request do
     expect(response.body).not_to include("Configuração")
     expect(response.body).not_to include("Convidar coordenador")
   end
+
+  it "home h1 is Meses and an open month row says Aberto" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    Month.open(organization: organization, year_month: "2026-05")
+
+    get "/"
+
+    expect(page_doc(response.body).at_css("h1").text.strip).to eq("Meses")
+    month_rows = rows(response.body, "month")
+    expect(month_rows.size).to eq(1)
+    expect(month_rows.first.at_css('a[href="/months/2026-05"]')).not_to be_nil
+    expect(month_rows.first.text).to include("Aberto")
+    expect(month_rows.first.text).not_to include("Fechado")
+  end
+
+  it "home has a Pessoas h2" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    get "/"
+
+    headings = page_doc(response.body).css("h2").map { |h2| h2.text.strip }
+    expect(headings).to include("Pessoas")
+  end
+
+  it "closed month row says Fechado" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    month = Month.open(organization: organization, year_month: "2026-05")
+    month.update!(closed: true)
+
+    get "/"
+
+    month_row = rows(response.body, "month").first
+    expect(month_row.at_css('a[href="/months/2026-05"]')).not_to be_nil
+    expect(month_row.text).to include("Fechado")
+    expect(month_row.text).not_to include("Aberto")
+  end
+
+  it "submitter home says Inicio and points to Documentos" do
+    account, organization = plant_submitter
+    sign_in_as(account, organization: organization)
+
+    get "/"
+
+    expect(page_doc(response.body).at_css("h1").text.strip).to eq("Início")
+    expect(response.body).to include("Inclua e acompanhe seus documentos de suporte em")
+    expect(page_doc(response.body).at_css('main a[href="/supporting_documents"]')).not_to be_nil
+    expect(response.body).not_to include("Meses")
+  end
 end

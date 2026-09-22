@@ -1,0 +1,23 @@
+<header class="border-b border-rule bg-paper">
+  <div class="mx-auto flex min-h-14 max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-5 py-3 md:px-8">
+    <p class="flex items-center gap-2 font-medium">
+      <svg class="size-5 shrink-0" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
+        <rect width="512" height="512" rx="96" fill="#2e6b4e" />
+        <rect x="96" y="208" width="320" height="28" fill="#f3f5f1" />
+        <rect x="96" y="304" width="320" height="28" fill="#f3f5f1" />
+        <rect x="152" y="96" width="28" height="320" fill="#b4372a" />
+      </svg>
+      <span><%= focused_organization&.name || "Fechamento mensal" %></span>
+    </p>
+    <% if focused_organization %>
+      <nav aria-label="Principal" class="flex flex-wrap items-center gap-x-5 gap-y-1 sm:ml-auto">
+        <%= link_to "Início", "/", class: "text-ink hover:underline underline-offset-2" %>
+        <%= link_to "Documentos", "/supporting_documents", class: "text-ink hover:underline underline-offset-2" %>
+        <% if coordinator_on_focus? %>
+          <%= link_to "Configuração", "/setup", class: "text-ink hover:underline underline-offset-2" %>
+        <% end %>
+        <%= button_to "Sair", "/session", method: :delete, class: "text-caixa underline underline-offset-2" %>
+      </nav>
+    <% end %>
+  </div>
+</header>

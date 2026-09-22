@@ -55,7 +55,7 @@ RSpec.describe "Document exceptions", type: :request do
     post "/months/2026-05/payments/#{payment.id}/document_exception", params: { kind: "doacao" }
 
     expect(response).to have_http_status(:unprocessable_content)
-    expect(response.body).to include('<p class="mb-6">Informe um tipo de exceção permitido</p>')
+    expect(error_notice_text(response.body)).to eq("Informe um tipo de exceção permitido")
     expect(payment.reload.document_exception_kind).to be_nil
   end
 
@@ -192,7 +192,7 @@ RSpec.describe "Document exceptions", type: :request do
     expect(response).to have_http_status(:found)
     expect(payment.reload.extra_exception_kind_id).to be_nil
     get "/months/2026-05"
-    row = response.body[%r{<li class="mb-2">.*?</li>}m]
+    row = rows_html(response.body, "payment").first
     status = row.split("<form").first
     expect(status).to include("Documento faltante")
     expect(status).not_to include("Doação")
@@ -335,5 +335,36 @@ RSpec.describe "Document exceptions", type: :request do
     expect(status).to include("Tarifa bancária")
     expect(status).not_to include("Sugestão de exceção")
     expect(status).not_to include("Documento faltante")
+  end
+
+  it "payment row data-status is bank_fee" do
+    _account, _organization, _month, statement = signed_month
+    payment = plant_payment(statement, 15500)
+    payment.mark_document_exception("bank_fee")
+
+    get "/months/2026-05"
+
+    expect(row(response.body, "payment", payment_id: payment.id, status: "bank_fee")).not_to be_nil
+  end
+
+  it "payment row data-status is accountant_fee" do
+    _account, _organization, _month, statement = signed_month
+    payment = plant_payment(statement, 15500)
+    payment.mark_document_exception("accountant_fee")
+
+    get "/months/2026-05"
+
+    expect(row(response.body, "payment", payment_id: payment.id, status: "accountant_fee")).not_to be_nil
+  end
+
+  it "payment row data-status is extra" do
+    _account, organization, _month, statement = signed_month
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    payment = plant_payment(statement, 15500)
+    payment.mark_document_exception(extra_exception_kind_id: kind.id)
+
+    get "/months/2026-05"
+
+    expect(row(response.body, "payment", payment_id: payment.id, status: "extra")).not_to be_nil
   end
 end

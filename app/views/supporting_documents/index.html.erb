@@ -1,155 +1,186 @@
 <% content_for :title, "Documentos de suporte" %>
 
-<div class="flex items-start justify-between gap-4 mb-8">
-  <h1 class="text-2xl font-semibold">Documentos de suporte</h1>
-  <div class="flex items-center gap-4">
-    <%= link_to "Início", "/", class: "text-sm underline" %>
-    <%= button_to "Sair", "/session", method: :delete, class: "text-sm underline" %>
-  </div>
-</div>
+<h1 class="text-2xl leading-7 font-semibold tracking-[-0.01em]">Documentos de suporte</h1>
 
 <% if @document_error.present? %>
-  <p class="mb-6"><%= @document_error %></p>
+  <div class="mt-6"><%= render "shared/notice", message: @document_error %></div>
 <% end %>
 
-<section class="mb-10">
-  <h2 class="text-lg font-medium mb-3">Incluir documento</h2>
-  <%= form_with url: "/supporting_documents", method: :post, multipart: true do %>
-    <label for="kind" class="block mb-1">Tipo</label>
-    <%= select_tag :kind, options_for_select([ [ "Nota fiscal", "nota_fiscal" ], [ "Recibo", "recibo" ] ]), id: "kind", class: "border rounded px-2 py-1 mb-3" %>
-
-    <label for="amount" class="block mb-1">Valor</label>
-    <%= text_field_tag :amount, nil, id: "amount", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "off" %>
-
-    <label for="date" class="block mb-1">Data</label>
-    <%= date_field_tag :date, nil, id: "date", class: "border rounded px-2 py-1 mb-3", autocomplete: "off" %>
-
-    <label for="payee" class="block mb-1">Favorecido</label>
-    <%= text_field_tag :payee, nil, id: "payee", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "off" %>
-
-    <label for="chave" class="block mb-1">Chave de acesso</label>
-    <%= text_field_tag :chave, nil, id: "chave", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "off" %>
-
-    <label for="observation" class="block mb-1">Observação</label>
-    <%= text_area_tag :observation, nil, id: "observation", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", rows: 3 %>
-
-    <label for="photo" class="block mb-1">Foto</label>
-    <%= file_field_tag :photo, id: "photo", class: "mb-3" %>
-
-    <label for="xml" class="block mb-1">XML</label>
-    <%= file_field_tag :xml, id: "xml", class: "mb-3" %>
-
-    <%= submit_tag "Incluir documento", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
-  <% end %>
-</section>
-
-<section>
-  <h2 class="text-lg font-medium mb-3">Sem mês</h2>
-  <% if @documents.empty? %>
-    <p>Nenhum documento</p>
-  <% else %>
-    <ul>
-      <% @documents.each do |document| %>
-        <li class="border rounded p-3 mb-3">
-          <time datetime="<%= document.document_on.iso8601 %>"><%= l(document.document_on) %></time>
-          <%= format_reais(document.amount_cents) %>
-          <%= document.recibo? ? "Recibo" : "Nota fiscal" %>
-          <%= document.payee %>
-          <% if document.chave.present? %>
-            <p class="text-sm"><%= document.chave %></p>
-          <% end %>
-          <% if coordinator_on_focus? && document.month %>
-            <% if document.match_id? %>
-              Casado em <%= document.month.year_month %>
-            <% else %>
-              Sem casamento em <%= document.month.year_month %>
-            <% end %>
-          <% end %>
-          <% if document.photo.attached? %>
-            <p class="text-sm"><%= document.photo.filename %></p>
-          <% end %>
-          <% if document.xml.attached? %>
-            <p class="text-sm"><%= document.xml.filename %></p>
-          <% end %>
-          <% if document.observation.present? %>
-            <p class="text-sm mb-3"><%= document.observation %></p>
-          <% end %>
-          <% if document.sefaz_confirm_pending? %>
-            <%= button_to "Usar dados da SEFAZ", "/supporting_documents/#{document.id}/sefaz_confirm", method: :post, class: "rounded bg-zinc-900 text-white px-4 py-2 mb-3" %>
-          <% end %>
-          <%= form_with url: "/supporting_documents/#{document.id}", method: :patch, multipart: true do %>
-            <label for="kind_<%= document.id %>" class="block mb-1">Tipo</label>
-            <%= select_tag :kind, options_for_select([ [ "Nota fiscal", "nota_fiscal" ], [ "Recibo", "recibo" ] ], document.kind), id: "kind_#{document.id}", class: "border rounded px-2 py-1 mb-3" %>
-
-            <% unless document.fields_locked? %>
-            <label for="amount_<%= document.id %>" class="block mb-1">Valor</label>
-            <%= text_field_tag :amount, format_reais(document.amount_cents).delete_prefix("R$ ").strip, id: "amount_#{document.id}", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "off" %>
-
-            <label for="date_<%= document.id %>" class="block mb-1">Data</label>
-            <%= date_field_tag :date, document.document_on.iso8601, id: "date_#{document.id}", class: "border rounded px-2 py-1 mb-3", autocomplete: "off" %>
-
-            <label for="payee_<%= document.id %>" class="block mb-1">Favorecido</label>
-            <%= text_field_tag :payee, document.payee, id: "payee_#{document.id}", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "off" %>
-            <% end %>
-
-            <label for="chave_<%= document.id %>" class="block mb-1">Chave de acesso</label>
-            <%= text_field_tag :chave, document.chave, id: "chave_#{document.id}", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "off" %>
-
-            <label for="observation_<%= document.id %>" class="block mb-1">Observação</label>
-            <%= text_area_tag :observation, document.observation, id: "observation_#{document.id}", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", rows: 3 %>
-
-            <label for="photo_<%= document.id %>" class="block mb-1">Foto</label>
-            <%= file_field_tag :photo, id: "photo_#{document.id}", class: "mb-3" %>
-
-            <label for="xml_<%= document.id %>" class="block mb-1">XML</label>
-            <%= file_field_tag :xml, id: "xml_#{document.id}", class: "mb-3" %>
-
-            <%= submit_tag "Salvar documento", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
-          <% end %>
-          <% if document.month_id.nil? && (coordinator_on_focus? || document.account_id == current_account.id) %>
-            <%= button_to "Excluir", "/supporting_documents/#{document.id}", method: :delete, form: { data: { turbo_confirm: "Excluir este documento?" } }, class: "text-sm underline mt-3" %>
-          <% end %>
-        </li>
-      <% end %>
-    </ul>
-  <% end %>
-</section>
-
-<section class="mt-10">
-  <h2 class="text-lg font-medium mb-3">Justificativas</h2>
-  <% if @justifications.empty? %>
-    <p class="mb-3">Nenhuma justificativa</p>
-  <% else %>
-    <ul class="mb-6">
-      <% @justifications.each do |justification| %>
-        <li class="border rounded p-3 mb-3">
-          <%= format_reais(justification.amount_cents) %>
-          <% justification.supporting_documents.each do |document| %>
-            <%= document.payee %>
-          <% end %>
-          <% if !coordinator_on_focus? && justification.supporting_documents.all? { |document| document.month_id.nil? } %>
-            <%= form_with url: "/justifications/#{justification.id}", method: :patch do %>
-              <label for="justification_amount_<%= justification.id %>" class="block mb-1">Valor gasto</label>
-              <%= text_field_tag :amount, format_reais(justification.amount_cents).delete_prefix("R$ ").strip, id: "justification_amount_#{justification.id}", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "off" %>
-              <%= submit_tag "Salvar justificativa", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
-            <% end %>
-          <% end %>
-        </li>
-      <% end %>
-    </ul>
-  <% end %>
-
-  <% unless coordinator_on_focus? %>
-    <%= form_with url: "/justifications", method: :post do %>
-      <label for="justification_amount" class="block mb-1">Valor gasto</label>
-      <%= text_field_tag :amount, nil, id: "justification_amount", class: "border rounded px-2 py-1 mb-3 w-full max-w-md", autocomplete: "off" %>
-      <% @documents.select { |document| document.month_id.nil? && document.justification_id.nil? }.each do |document| %>
-        <label for="supporting_document_<%= document.id %>" class="block mb-2">
-          <%= check_box_tag "supporting_document_ids[]", document.id, false, id: "supporting_document_#{document.id}" %>
-          <%= document.payee %>
-        </label>
-      <% end %>
-      <%= submit_tag "Justificar", class: "rounded bg-zinc-900 text-white px-4 py-2" %>
+<div class="mt-10 space-y-12">
+  <section>
+    <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Incluir documento</h2>
+    <%= form_with url: "/supporting_documents", method: :post, multipart: true, class: "grid max-w-3xl gap-4 md:grid-cols-2" do %>
+      <div>
+        <label for="kind" class="mb-1 block font-medium">Tipo</label>
+        <%= select_tag :kind, options_for_select([ [ "Nota fiscal", "nota_fiscal" ], [ "Recibo", "recibo" ] ]), id: "kind", class: "w-full rounded border border-rule bg-sheet px-3 py-2" %>
+      </div>
+      <div>
+        <label for="amount" class="mb-1 block font-medium">Valor</label>
+        <%= text_field_tag :amount, nil, id: "amount", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
+      </div>
+      <div>
+        <label for="date" class="mb-1 block font-medium">Data</label>
+        <%= date_field_tag :date, nil, id: "date", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
+      </div>
+      <div>
+        <label for="payee" class="mb-1 block font-medium">Favorecido</label>
+        <%= text_field_tag :payee, nil, id: "payee", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
+      </div>
+      <div class="md:col-span-2">
+        <label for="chave" class="mb-1 block font-medium">Chave de acesso</label>
+        <%= text_field_tag :chave, nil, id: "chave", class: "w-full rounded border border-rule bg-sheet px-3 py-2 font-mono text-meta", autocomplete: "off" %>
+      </div>
+      <div class="md:col-span-2">
+        <label for="observation" class="mb-1 block font-medium">Observação</label>
+        <%= text_area_tag :observation, nil, id: "observation", class: "w-full rounded border border-rule bg-sheet px-3 py-2", rows: 3 %>
+      </div>
+      <div>
+        <label for="photo" class="mb-1 block font-medium">Foto</label>
+        <%= file_field_tag :photo, id: "photo", class: "block w-full max-w-full text-meta" %>
+      </div>
+      <div>
+        <label for="xml" class="mb-1 block font-medium">XML</label>
+        <%= file_field_tag :xml, id: "xml", class: "block w-full max-w-full text-meta" %>
+      </div>
+      <div class="md:col-span-2">
+        <%= submit_tag "Incluir documento", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+      </div>
     <% end %>
-  <% end %>
-</section>
+  </section>
+
+  <section>
+    <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Sem mês</h2>
+    <% if @documents.empty? %>
+      <p>Nenhum documento</p>
+    <% else %>
+      <ul>
+        <% @documents.each do |document| %>
+          <li data-row="document" data-document-id="<%= document.id %>" class="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-x-4 gap-y-1 border-b border-rule py-3 md:grid-cols-[5.5rem_minmax(0,1fr)_8rem]">
+            <time datetime="<%= document.document_on.iso8601 %>" class="col-start-1 row-start-1 tabular-nums"><%= l(document.document_on) %></time>
+            <div class="col-span-2 row-start-2 min-w-0 md:col-span-1 md:col-start-2 md:row-start-1">
+              <p class="font-medium"><%= document.payee %></p>
+              <p class="text-meta text-ink-soft"><%= document.recibo? ? "Recibo" : "Nota fiscal" %></p>
+              <% if document.chave.present? %>
+                <p data-chave class="font-mono text-meta break-words"><%= format_chave(document.chave) %></p>
+              <% end %>
+              <% if document.photo.attached? || document.xml.attached? %>
+                <p class="text-meta text-ink-soft break-all"><%= [ document.photo.attached? ? document.photo.filename : nil, document.xml.attached? ? document.xml.filename : nil ].compact.join(", ") %></p>
+              <% end %>
+              <% if document.observation.present? %>
+                <p class="text-meta text-ink-soft"><%= document.observation %></p>
+              <% end %>
+              <% if coordinator_on_focus? && document.month %>
+                <p class="text-meta text-ink-soft">
+                  <% if document.match_id? %>
+                    Casado em <%= document.month.year_month %>
+                  <% else %>
+                    Sem casamento em <%= document.month.year_month %>
+                  <% end %>
+                </p>
+              <% end %>
+              <% if document.sefaz_confirm_pending? %>
+                <%= button_to "Usar dados da SEFAZ", "/supporting_documents/#{document.id}/sefaz_confirm", method: :post, form_class: "mt-2", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+              <% end %>
+              <details class="mt-1">
+                <summary class="cursor-pointer font-medium text-caixa">Editar</summary>
+                <div class="mt-3 max-w-3xl space-y-4 rounded border border-rule bg-sheet p-4">
+                  <%= form_with url: "/supporting_documents/#{document.id}", method: :patch, multipart: true, class: "grid gap-4 md:grid-cols-2" do %>
+                    <div>
+                      <label for="kind_<%= document.id %>" class="mb-1 block font-medium">Tipo</label>
+                      <%= select_tag :kind, options_for_select([ [ "Nota fiscal", "nota_fiscal" ], [ "Recibo", "recibo" ] ], document.kind), id: "kind_#{document.id}", class: "w-full rounded border border-rule bg-sheet px-3 py-2" %>
+                    </div>
+                    <% unless document.fields_locked? %>
+                      <div>
+                        <label for="amount_<%= document.id %>" class="mb-1 block font-medium">Valor</label>
+                        <%= text_field_tag :amount, format_reais(document.amount_cents).delete_prefix("R$ ").strip, id: "amount_#{document.id}", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
+                      </div>
+                      <div>
+                        <label for="date_<%= document.id %>" class="mb-1 block font-medium">Data</label>
+                        <%= date_field_tag :date, document.document_on.iso8601, id: "date_#{document.id}", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
+                      </div>
+                      <div>
+                        <label for="payee_<%= document.id %>" class="mb-1 block font-medium">Favorecido</label>
+                        <%= text_field_tag :payee, document.payee, id: "payee_#{document.id}", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
+                      </div>
+                    <% end %>
+                    <div class="md:col-span-2">
+                      <label for="chave_<%= document.id %>" class="mb-1 block font-medium">Chave de acesso</label>
+                      <%= text_field_tag :chave, document.chave, id: "chave_#{document.id}", class: "w-full rounded border border-rule bg-sheet px-3 py-2 font-mono text-meta", autocomplete: "off" %>
+                    </div>
+                    <div class="md:col-span-2">
+                      <label for="observation_<%= document.id %>" class="mb-1 block font-medium">Observação</label>
+                      <%= text_area_tag :observation, document.observation, id: "observation_#{document.id}", class: "w-full rounded border border-rule bg-sheet px-3 py-2", rows: 3 %>
+                    </div>
+                    <div>
+                      <label for="photo_<%= document.id %>" class="mb-1 block font-medium">Foto</label>
+                      <%= file_field_tag :photo, id: "photo_#{document.id}", class: "block w-full max-w-full text-meta" %>
+                    </div>
+                    <div>
+                      <label for="xml_<%= document.id %>" class="mb-1 block font-medium">XML</label>
+                      <%= file_field_tag :xml, id: "xml_#{document.id}", class: "block w-full max-w-full text-meta" %>
+                    </div>
+                    <div class="md:col-span-2">
+                      <%= submit_tag "Salvar documento", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+                    </div>
+                  <% end %>
+                  <% if document.month_id.nil? && (coordinator_on_focus? || document.account_id == current_account.id) %>
+                    <%= button_to "Excluir", "/supporting_documents/#{document.id}", method: :delete, form: { data: { turbo_confirm: "Excluir este documento?" } }, class: "text-margem underline underline-offset-2" %>
+                  <% end %>
+                </div>
+              </details>
+            </div>
+            <p data-cell="amount" class="col-start-2 row-start-1 text-right font-medium tabular-nums md:col-start-3"><%= format_reais(document.amount_cents) %></p>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+  </section>
+
+  <section>
+    <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Justificativas</h2>
+    <% if @justifications.empty? %>
+      <p class="mb-4">Nenhuma justificativa</p>
+    <% else %>
+      <ul class="mb-6">
+        <% @justifications.each do |justification| %>
+          <li data-row="justification" data-justification-id="<%= justification.id %>" class="grid grid-cols-[8rem_minmax(0,1fr)] gap-x-4 gap-y-1 border-b border-rule py-3">
+            <p data-cell="amount" class="text-right font-medium tabular-nums"><%= format_reais(justification.amount_cents) %></p>
+            <div class="min-w-0">
+              <p><%= justification.supporting_documents.map(&:payee).join(", ") %></p>
+              <% if !coordinator_on_focus? && justification.supporting_documents.all? { |document| document.month_id.nil? } %>
+                <details class="mt-1">
+                  <summary class="cursor-pointer font-medium text-caixa">Editar</summary>
+                  <%= form_with url: "/justifications/#{justification.id}", method: :patch, class: "mt-3 flex max-w-md flex-wrap items-end gap-3 rounded border border-rule bg-sheet p-4" do %>
+                    <div class="min-w-0 grow">
+                      <label for="justification_amount_<%= justification.id %>" class="mb-1 block font-medium">Valor gasto</label>
+                      <%= text_field_tag :amount, format_reais(justification.amount_cents).delete_prefix("R$ ").strip, id: "justification_amount_#{justification.id}", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
+                    </div>
+                    <%= submit_tag "Salvar justificativa", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+                  <% end %>
+                </details>
+              <% end %>
+            </div>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+
+    <% unless coordinator_on_focus? %>
+      <%= form_with url: "/justifications", method: :post, class: "max-w-3xl space-y-4" do %>
+        <div class="max-w-md">
+          <label for="justification_amount" class="mb-1 block font-medium">Valor gasto</label>
+          <%= text_field_tag :amount, nil, id: "justification_amount", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
+        </div>
+        <div class="flex flex-wrap gap-x-4 gap-y-2">
+          <% @documents.select { |document| document.month_id.nil? && document.justification_id.nil? }.each do |document| %>
+            <label for="supporting_document_<%= document.id %>" class="inline-flex items-center gap-2">
+              <%= check_box_tag "supporting_document_ids[]", document.id, false, id: "supporting_document_#{document.id}" %>
+              <%= document.payee %>
+            </label>
+          <% end %>
+        </div>
+        <%= submit_tag "Justificar", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+      <% end %>
+    <% end %>
+  </section>
+</div>

@@ -49,7 +49,7 @@ module MatchHelpers
   end
 
   def payment_row_html(body, history:)
-    pagamentos_html(body).scan(%r{<li class="mb-2">.*?</li>}m).find { |li| li.include?(history) }
+    rows_html(body, "payment").find { |li| li.include?(history) }
   end
 
   def payment_status_html(body, history:)

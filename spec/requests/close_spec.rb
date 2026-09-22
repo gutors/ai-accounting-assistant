@@ -37,6 +37,31 @@ RSpec.describe "Close for send", type: :request do
     expect(month.reload.closed?).to eq(false)
   end
 
+  it "closed month shows the stamp and no details" do
+    _account, _organization, _month, statement = signed_ready
+    attach_statement_files(statement)
+    plant_payment(statement, 15500, history: "Tarifa").mark_document_exception("bank_fee")
+    post_close
+
+    get "/months/2026-05"
+
+    expect(response).to have_http_status(:ok)
+    stamp = page_doc(response.body).at_css('[data-stamp="closed"]')
+    expect(stamp).not_to be_nil
+    expect(stamp.text.strip).to eq("Mês fechado")
+    expect(response.body).not_to include("<details")
+  end
+
+  it "month error renders as a data-notice error alert" do
+    _account, _organization, _month, statement = signed_ready
+    plant_payment(statement, 22000)
+
+    post_close
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(error_notice_text(response.body)).to eq("Há documento faltante")
+  end
+
   it "POST close with missing document 22000 cents returns 422 Ha documento faltante" do
     _account, organization, month, statement = signed_ready
     plant_payment(statement, 22000)

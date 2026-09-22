@@ -255,7 +255,19 @@ RSpec.describe "Extra exception kinds", type: :request do
     expect(ExtraExceptionKind.find(kind.id)).to eq(kind)
   end
 
+  it "extra exception kind row carries data-row hook" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+
+    get "/setup"
+
+    kind_row = row(response.body, "extra-exception-kind", extra_exception_kind_id: kind.id)
+    expect(kind_row).not_to be_nil
+    expect(kind_row.text).to include("Doação")
+  end
+
   def extra_kind_row(body, name)
-    body.scan(%r{<li class="border rounded p-3 mb-3">.*?</li>}m).find { |li| li.include?(name) && !li.include?("extrato-") }
+    rows_html(body, "extra-exception-kind").find { |li| li.include?(name) }
   end
 end

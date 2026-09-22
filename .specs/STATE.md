@@ -2,10 +2,10 @@
 
 ## Handoff
 
-**Feature**: close-for-send
-**Where**: round-2 verification PASS at `6041140` (`.specs/features/close-for-send/verification.md`); C1–C78 proven
+**Feature**: visual-identity
+**Where**: round-2 scoped verification PASS at `612c08d` (`.specs/features/visual-identity/verification.md`, profile `ui`); C1–C57 proven, `validate_verification.py` exits 0
 **In progress**: none
-**Next step**: none for this feature — independent Verifier passed; PR is a separate go-ahead
+**Next step**: none for this feature — independent Verifier passed. PR to `main` is a separate go-ahead: needs a GitHub issue (`Closes #N`), `/open-pr`, then `the-judge`; local `main` is behind `origin/main` (PR #55), rebase `visual-identity` first
 **Blockers**: none
 **Uncommitted**: none
-**Branch**: coordinator-access
+**Branch**: visual-identity
