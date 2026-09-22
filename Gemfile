@@ -33,6 +33,11 @@ gem "csv"
 gem "google-apis-drive_v3"
 gem "googleauth"
 
+# In-process DANFE photo decode (QR / CODE-128). No cloud vision vendor.
+gem "chunky_png"
+gem "pure_jpeg"
+gem "qrio"
+
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 # gem "bcrypt", "~> 3.1.7"
 
@@ -67,6 +72,10 @@ group :development, :test do
   gem "erb_lint", require: false
 
   gem "rspec-rails"
+
+  # Fixture PNGs for Real CODE-128 / QR proofs (C12, C13).
+  gem "barby"
+  gem "rqrcode"
 end
 
 group :test do

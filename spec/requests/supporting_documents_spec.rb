@@ -1627,4 +1627,653 @@ RSpec.describe "Supporting documents", type: :request do
     expect(SupportingDocument.find(document.id)).to be_persisted
     expect(document.reload.month_id).to be_present
   end
+
+  it "POST photo chave with consulta XML fills fields and redirects" do
+    _account, organization = signed_in
+    stub_photo_symbols("danfe.jpg", chave: nfe_chave)
+    install_a1(organization)
+    stub_xml_consulta
+
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("danfe.jpg") }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/supporting_documents")
+    doc = SupportingDocument.last
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.document_on).to eq(Date.new(2026, 5, 11))
+    expect(doc.payee).to eq("Padaria Central")
+    expect(doc.chave).to eq(nfe_chave)
+    expect(doc.xml).to be_attached
+    get "/supporting_documents"
+    expect(response.body).to include("R$ 155,00")
+    expect(response.body).to include("11/05/2026")
+    expect(response.body).to include("Padaria Central")
+    expect(response.body).to include(nfe_chave)
+  end
+
+  it "submitter POST photo chave with consulta XML persists and omits certificate" do
+    coord, organization = plant_coordinator
+    stub_photo_symbols("danfe.jpg", chave: nfe_chave)
+    install_a1(organization)
+    stub_xml_consulta
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(submitter, organization: organization)
+
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("danfe.jpg") }
+
+    expect(SupportingDocument.last.amount_cents).to eq(15500)
+    expect(SupportingDocument.last.xml).to be_attached
+    get "/supporting_documents"
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("R$ 155,00")
+    expect(response.body).not_to include("11.222.333/0001-81")
+    expect(response.body).not_to include("Válido até")
+    expect(response.body).not_to include("passphrase-secreta")
+    expect(coord).to be_present
+  end
+
+  it "POST pdf photo chave with consulta XML redirects" do
+    _account, organization = signed_in
+    stub_photo_symbols("foto.pdf", chave: nfe_chave)
+    install_a1(organization)
+    stub_xml_consulta
+
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_with_ext("pdf") }
+
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.last.chave).to eq(nfe_chave)
+    expect(SupportingDocument.last.xml).to be_attached
+  end
+
+  it "POST printed-digit chave with consulta XML persists chave" do
+    _account, organization = signed_in
+    stub_photo_symbols("printed.jpg", chave: nfe_chave)
+    install_a1(organization)
+    stub_xml_consulta
+
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("printed.jpg") }
+
+    expect(SupportingDocument.last.chave).to eq(nfe_chave)
+    expect(SupportingDocument.last.amount_cents).to eq(15500)
+    expect(SupportingDocument.last.xml).to be_attached
+  end
+
+  it "POST photo chave wins over typed chave" do
+    _account, organization = signed_in
+    stub_photo_symbols("danfe.jpg", chave: nfe_chave)
+    install_a1(organization)
+    stub_xml_consulta
+    stub_xml_consulta(other_chave, vnf: "100.00")
+
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("danfe.jpg"), chave: other_chave }
+
+    expect(SupportingDocument.last.chave).to eq(nfe_chave)
+    expect(SupportingDocument.last.amount_cents).to eq(15500)
+  end
+
+  it "POST non-44 photo decode falls through to typed chave" do
+    _account, organization = signed_in
+    stub_photo_symbols("bad.jpg", chave: "123")
+    install_a1(organization)
+    stub_xml_consulta
+
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("bad.jpg"), chave: nfe_chave }
+
+    expect(SupportingDocument.last.chave).to eq(nfe_chave)
+    expect(SupportingDocument.last.xml).to be_attached
+  end
+
+  it "POST recibo ignores photo chave and PATCH payee redirects" do
+    signed_in
+    stub_photo_symbols("recibo.jpg", chave: nfe_chave)
+    post "/supporting_documents", params: recibo_params
+    id = SupportingDocument.last.id
+
+    expect(SupportingDocument.find(id).kind).to eq("recibo")
+    expect(SupportingDocument.find(id).chave).to be_nil
+    expect(SupportingDocument.find(id).xml).not_to be_attached
+    patch "/supporting_documents/#{id}", params: { payee: "Mercado Silva" }
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.find(id).payee).to eq("Mercado Silva")
+  end
+
+  it "POST uploaded XML chave wins over photo chave" do
+    signed_in
+    stub_photo_symbols("danfe.jpg", chave: other_chave)
+
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("danfe.jpg"), xml: authorized_xml }
+
+    expect(SupportingDocument.last.amount_cents).to eq(15500)
+    expect(SupportingDocument.last.chave).to eq(nfe_chave)
+  end
+
+  it "POST photo chave without certificate stays correctable" do
+    signed_in
+    stub_photo_symbols("danfe.jpg", chave: nfe_chave)
+    post "/supporting_documents", params: nota_params(photo: photo_jpg("danfe.jpg"))
+    id = SupportingDocument.last.id
+
+    expect(SupportingDocument.find(id).chave).to eq(nfe_chave)
+    expect(SupportingDocument.find(id).amount_cents).to eq(15500)
+    patch "/supporting_documents/#{id}", params: { payee: "Mercado Silva" }
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.find(id).payee).to eq("Mercado Silva")
+  end
+
+  it "POST photo chave when consulta errors stays typed" do
+    _account, organization = signed_in
+    stub_photo_symbols("danfe.jpg", chave: nfe_chave)
+    install_a1(organization)
+    SefazConsulta.current.set(nfe_chave, SefazConsulta::Error.new)
+    post "/supporting_documents", params: nota_params(photo: photo_jpg("danfe.jpg"))
+    id = SupportingDocument.last.id
+    patch "/supporting_documents/#{id}", params: { payee: "Mercado Silva" }
+
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.find(id).payee).to eq("Mercado Silva")
+  end
+
+  it "POST photo chave with resumo locks fields without xml" do
+    _account, organization = signed_in
+    stub_photo_symbols("danfe.jpg", chave: nfe_chave)
+    install_a1(organization)
+    stub_resumo_consulta
+
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("danfe.jpg") }
+
+    doc = SupportingDocument.last
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.photo).to be_attached
+    expect(doc.xml).not_to be_attached
+    patch "/supporting_documents/#{doc.id}", params: { amount: "200,00" }
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Valor, data e favorecido vêm da nota e não podem ser alterados")
+  end
+
+  it "POST NFC-e QR public consulta fills fields and PATCH amount redirects" do
+    signed_in
+    stub_photo_symbols("nfce.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
+    stub_public_fields(nfce_qr_url)
+
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("nfce.jpg") }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/supporting_documents")
+    doc = SupportingDocument.last
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.document_on).to eq(Date.new(2026, 5, 11))
+    expect(doc.payee).to eq("Padaria Central")
+    expect(doc.chave).to eq(nfce_chave)
+    expect(doc.xml).not_to be_attached
+    get "/supporting_documents"
+    expect(response.body).to include("R$ 155,00")
+    expect(response.body).to include("11/05/2026")
+    expect(response.body).to include("Padaria Central")
+    expect(response.body).to include(nfce_chave)
+    patch "/supporting_documents/#{doc.id}", params: { amount: "200,00" }
+    expect(response).to have_http_status(:found)
+    expect(doc.reload.amount_cents).to eq(20000)
+  end
+
+  it "POST NFC-e QR public consulta with blank wrap key PATCH amount redirects" do
+    _account, organization = signed_in
+    stub_photo_symbols("nfce.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
+    stub_public_fields(nfce_qr_url)
+    install_a1(organization)
+    stub_xml_consulta(nfce_chave, vnf: "100.00")
+    with_env("SEFAZ_WRAP_KEY" => nil) do
+      post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("nfce.jpg") }
+    end
+    id = SupportingDocument.last.id
+    patch "/supporting_documents/#{id}", params: { amount: "200,00" }
+
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.find(id).amount_cents).to eq(20000)
+  end
+
+  it "POST NFC-e QR public consulta with expired certificate PATCH amount redirects" do
+    _account, organization = signed_in
+    stub_photo_symbols("nfce.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
+    stub_public_fields(nfce_qr_url)
+    travel_to Date.new(2026, 5, 11) do
+      organization.install_sefaz_certificate(
+        file: sefaz_pfx(not_after: Date.new(2026, 5, 11), name: "exp.pfx"),
+        passphrase: "passphrase-secreta"
+      )
+    end
+    travel_to Date.new(2026, 5, 12) do
+      stub_xml_consulta(nfce_chave, vnf: "100.00")
+      post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("nfce.jpg") }
+      id = SupportingDocument.last.id
+      patch "/supporting_documents/#{id}", params: { amount: "200,00" }
+      expect(response).to have_http_status(:found)
+      expect(SupportingDocument.find(id).amount_cents).to eq(20000)
+    end
+  end
+
+  it "POST NFC-e QR public consulta when identified errors PATCH amount redirects" do
+    _account, organization = signed_in
+    stub_photo_symbols("nfce.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
+    stub_public_fields(nfce_qr_url)
+    install_a1(organization)
+    SefazConsulta.current.set(nfce_chave, SefazConsulta::Error.new)
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("nfce.jpg") }
+    id = SupportingDocument.last.id
+    patch "/supporting_documents/#{id}", params: { amount: "200,00" }
+
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.find(id).amount_cents).to eq(20000)
+  end
+
+  it "POST NFC-e QR public consulta when identified not found PATCH amount redirects" do
+    _account, organization = signed_in
+    stub_photo_symbols("nfce.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
+    stub_public_fields(nfce_qr_url)
+    install_a1(organization)
+    [ SefazConsulta::NotFound.new, SefazConsulta::WindowExpired.new ].each do |result|
+      SefazConsulta.reset!
+      PhotoSymbols.reset!
+      PhotoFields.reset!
+      PublicNfceConsulta.reset!
+      stub_photo_symbols("nfce.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
+      stub_public_fields(nfce_qr_url)
+      SefazConsulta.current.set(nfce_chave, result)
+      post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("nfce.jpg") }
+      id = SupportingDocument.last.id
+      patch "/supporting_documents/#{id}", params: { amount: "200,00" }
+      expect(response).to have_http_status(:found)
+      expect(SupportingDocument.find(id).amount_cents).to eq(20000)
+    end
+  end
+
+  it "POST NFC-e QR identified XML wins over public consulta" do
+    _account, organization = signed_in
+    stub_photo_symbols("nfce.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
+    stub_public_fields(nfce_qr_url, amount_cents: 20000, payee: "Mercado Silva")
+    install_a1(organization)
+    stub_xml_consulta(nfce_chave)
+
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("nfce.jpg") }
+
+    doc = SupportingDocument.last
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.xml).to be_attached
+    patch "/supporting_documents/#{doc.id}", params: { amount: "200,00" }
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Valor, data e favorecido vêm da nota e não podem ser alterados")
+  end
+
+  it "POST CODE-128 without QR URL does not call public consulta" do
+    signed_in
+    stub_photo_symbols("code128.jpg", chave: nfe_chave)
+    stub_public_fields("https://www.sefaz.rs.gov.br/anywhere", payee: "Mercado Silva")
+
+    post "/supporting_documents", params: nota_params(photo: photo_jpg("code128.jpg"))
+
+    expect(SupportingDocument.last.payee).to eq("Padaria Central")
+  end
+
+  it "POST QR 127.0.0.1 does not fetch and keeps typed payee" do
+    signed_in
+    stub_photo_symbols("ssrf.jpg", chave: nfe_chave, qr_url: "http://127.0.0.1/nfce")
+
+    post "/supporting_documents", params: nota_params(photo: photo_jpg("ssrf.jpg"))
+
+    expect(SupportingDocument.last.payee).to eq("Padaria Central")
+    expect(SupportingDocument.last.xml).not_to be_attached
+  end
+
+  it "POST QR example.com does not fetch and keeps typed payee" do
+    signed_in
+    stub_photo_symbols("ex.jpg", chave: nfe_chave, qr_url: "https://example.com/nfce")
+
+    post "/supporting_documents", params: nota_params(photo: photo_jpg("ex.jpg"))
+
+    expect(SupportingDocument.last.payee).to eq("Padaria Central")
+    expect(SupportingDocument.last.xml).not_to be_attached
+  end
+
+  it "POST NFC-e QR when public consulta errors keeps typed payee" do
+    signed_in
+    stub_photo_symbols("nfce.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
+    PublicNfceConsulta.current.set(nfce_qr_url, PublicNfceConsulta::Error.new)
+
+    post "/supporting_documents", params: nota_params(photo: photo_jpg("nfce.jpg"))
+
+    expect(SupportingDocument.last.payee).to eq("Padaria Central")
+  end
+
+  it "POST NFC-e QR public partial three keeps typed payee" do
+    signed_in
+    stub_photo_symbols("nfce.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
+    PublicNfceConsulta.current.set(
+      nfce_qr_url,
+      PublicNfceConsulta::Fields.new(amount_cents: 15500, payee: nil, document_on: nil)
+    )
+
+    post "/supporting_documents", params: nota_params(photo: photo_jpg("nfce.jpg"))
+
+    expect(SupportingDocument.last.payee).to eq("Padaria Central")
+  end
+
+  it "POST NFC-e QR public consulta payee is emitente not destinatario" do
+    signed_in
+    stub_photo_symbols("nfce.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
+    stub_public_fields(nfce_qr_url)
+
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("nfce.jpg") }
+
+    expect(SupportingDocument.last.payee).to eq("Padaria Central")
+    expect(SupportingDocument.last.payee).not_to include("ONG Destinataria")
+  end
+
+  it "POST photo field reading fills emitente and PATCH payee redirects" do
+    signed_in
+    stub_photo_fields("fields.jpg")
+
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("fields.jpg") }
+
+    expect(response).to have_http_status(:found)
+    get "/supporting_documents"
+    expect(response.body).to include("R$ 155,00")
+    expect(response.body).to include("Padaria Central")
+    expect(response.body).not_to include("ONG Destinataria")
+    id = SupportingDocument.last.id
+    patch "/supporting_documents/#{id}", params: { payee: "Mercado Silva" }
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.find(id).payee).to eq("Mercado Silva")
+  end
+
+  it "POST CODE-128 when identified errors uses field reading" do
+    _account, organization = signed_in
+    stub_photo_symbols("code128.jpg", chave: nfe_chave)
+    stub_photo_fields("code128.jpg")
+    install_a1(organization)
+    SefazConsulta.current.set(nfe_chave, SefazConsulta::Error.new)
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("code128.jpg") }
+    id = SupportingDocument.last.id
+    patch "/supporting_documents/#{id}", params: { payee: "Mercado Silva" }
+
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.find(id).amount_cents).to eq(15500)
+    expect(SupportingDocument.find(id).payee).to eq("Mercado Silva")
+  end
+
+  it "POST NFC-e QR when public errors uses field reading" do
+    signed_in
+    stub_photo_symbols("nfce.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
+    PublicNfceConsulta.current.set(nfce_qr_url, PublicNfceConsulta::Error.new)
+    stub_photo_fields("nfce.jpg")
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("nfce.jpg") }
+    id = SupportingDocument.last.id
+    patch "/supporting_documents/#{id}", params: { payee: "Mercado Silva" }
+
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.find(id).amount_cents).to eq(15500)
+  end
+
+  it "POST photo field reading partial three uses typed amount" do
+    signed_in
+    PhotoFields.current.set("partial.jpg", amount_cents: 15500, document_on: nil, payee: nil)
+
+    post "/supporting_documents", params: nota_params(photo: photo_jpg("partial.jpg"), amount: "100,00")
+
+    expect(SupportingDocument.last.amount_cents).to eq(10000)
+    expect(SupportingDocument.last.payee).to eq("Padaria Central")
+  end
+
+  it "POST nota photo with all extracts missing returns 422" do
+    _account, organization = signed_in
+
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("empty.jpg") }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Informe valor, data e favorecido")
+    expect(SupportingDocument.where(organization: organization).count).to eq(0)
+  end
+
+  it "POST recibo ignores photo field reading" do
+    signed_in
+    stub_photo_fields("recibo.jpg", payee: "Mercado Silva")
+
+    post "/supporting_documents", params: recibo_params
+
+    expect(SupportingDocument.last.payee).to eq("Padaria Central")
+  end
+
+  it "POST photo field reading wins over typed payee" do
+    signed_in
+    stub_photo_fields("fields.jpg")
+
+    post "/supporting_documents", params: nota_params(photo: photo_jpg("fields.jpg"), payee: "Mercado Silva")
+
+    expect(SupportingDocument.last.payee).to eq("Padaria Central")
+  end
+
+  it "POST unreadable XML does not fall through to photo field reading" do
+    _account, organization = signed_in
+    stub_photo_fields("danfe.jpg")
+
+    post "/supporting_documents", params: {
+      kind: "nota_fiscal", photo: photo_jpg("danfe.jpg"), xml: xml_file("nota.xml", "<nfe><")
+    }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("O XML da nota fiscal não pôde ser lido")
+    expect(SupportingDocument.where(organization: organization).count).to eq(0)
+  end
+
+  it "PATCH chave on photo-filled nota keeps 15500 and includes Usar dados da SEFAZ" do
+    _account, organization = signed_in
+    stub_photo_fields("fields.jpg")
+    install_a1(organization)
+    stub_xml_consulta(vnf: "100.00")
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("fields.jpg") }
+    id = SupportingDocument.last.id
+
+    patch "/supporting_documents/#{id}", params: { chave: nfe_chave }
+
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.find(id).amount_cents).to eq(15500)
+    get "/supporting_documents"
+    expect(response.body).to include("Usar dados da SEFAZ")
+  end
+
+  it "confirm identified SEFAZ on photo-filled nota persists 10000" do
+    _account, organization = signed_in
+    stub_photo_fields("fields.jpg")
+    install_a1(organization)
+    stub_xml_consulta(vnf: "100.00")
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("fields.jpg") }
+    id = SupportingDocument.last.id
+    patch "/supporting_documents/#{id}", params: { chave: nfe_chave }
+
+    post "/supporting_documents/#{id}/sefaz_confirm"
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/supporting_documents")
+    get "/supporting_documents"
+    expect(response.body).to include("R$ 100,00")
+    expect(response.body).not_to include("R$ 155,00")
+    patch "/supporting_documents/#{id}", params: { amount: "200,00" }
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Valor, data e favorecido vêm da nota e não podem ser alterados")
+  end
+
+  it "PATCH chave on public-filled nota keeps 15500 and includes Usar dados da SEFAZ" do
+    _account, organization = signed_in
+    stub_photo_symbols("nfce.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
+    stub_public_fields(nfce_qr_url)
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("nfce.jpg") }
+    id = SupportingDocument.last.id
+    install_a1(organization)
+    stub_xml_consulta(nfce_chave, vnf: "100.00")
+
+    patch "/supporting_documents/#{id}", params: { chave: nfce_chave }
+
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.find(id).amount_cents).to eq(15500)
+    get "/supporting_documents"
+    expect(response.body).to include("Usar dados da SEFAZ")
+  end
+
+  it "confirm identified SEFAZ on public-filled nota persists 10000" do
+    _account, organization = signed_in
+    stub_photo_symbols("nfce.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
+    stub_public_fields(nfce_qr_url)
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("nfce.jpg") }
+    id = SupportingDocument.last.id
+    install_a1(organization)
+    stub_xml_consulta(nfce_chave, vnf: "100.00")
+    patch "/supporting_documents/#{id}", params: { chave: nfce_chave }
+
+    post "/supporting_documents/#{id}/sefaz_confirm"
+
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.find(id).amount_cents).to eq(10000)
+    patch "/supporting_documents/#{id}", params: { amount: "200,00" }
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Valor, data e favorecido vêm da nota e não podem ser alterados")
+  end
+
+  it "PATCH kind nota_fiscal on recibo reads existing photo chave" do
+    _account, organization = signed_in
+    stub_photo_symbols("recibo.jpg", chave: nfe_chave)
+    install_a1(organization)
+    stub_xml_consulta(vnf: "100.00", emit: "Mercado Silva", dhemi: "2026-05-12T10:00:00-03:00")
+    post "/supporting_documents", params: recibo_params
+    id = SupportingDocument.last.id
+
+    patch "/supporting_documents/#{id}", params: { kind: "nota_fiscal" }
+
+    doc = SupportingDocument.find(id)
+    expect(doc.amount_cents).to eq(10000)
+    expect(doc.payee).to eq("Mercado Silva")
+    expect(doc.document_on).to eq(Date.new(2026, 5, 12))
+    expect(doc.xml).to be_attached
+    patch "/supporting_documents/#{id}", params: { amount: "200,00" }
+    expect(response).to have_http_status(:unprocessable_content)
+  end
+
+  it "PATCH kind recibo on photo-filled nota drops chave and unlocks" do
+    signed_in
+    stub_photo_fields("fields.jpg")
+    stub_photo_symbols("fields.jpg", chave: nfe_chave)
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("fields.jpg") }
+    id = SupportingDocument.last.id
+
+    patch "/supporting_documents/#{id}", params: { kind: "recibo" }
+
+    doc = SupportingDocument.find(id)
+    expect(doc.kind).to eq("recibo")
+    expect(doc.chave).to be_nil
+    expect(doc.amount_cents).to eq(15500)
+    patch "/supporting_documents/#{id}", params: { payee: "Mercado Silva" }
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.find(id).payee).to eq("Mercado Silva")
+  end
+
+  it "install A1 after photo-filled chave does not retro-consult" do
+    _account, organization = signed_in
+    stub_photo_fields("fields.jpg")
+    stub_photo_symbols("fields.jpg", chave: nfe_chave)
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("fields.jpg") }
+    id = SupportingDocument.last.id
+    install_a1(organization)
+    stub_xml_consulta(vnf: "100.00")
+
+    patch "/supporting_documents/#{id}", params: { payee: "Mercado Silva" }
+
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.find(id).amount_cents).to eq(15500)
+    expect(SupportingDocument.find(id).payee).to eq("Mercado Silva")
+  end
+
+  it "PATCH chave on closed-month photo-filled document returns 422" do
+    _account, organization = signed_in
+    stub_photo_fields("fields.jpg")
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("fields.jpg") }
+    document = SupportingDocument.last
+    month, statement = plant_month(organization)
+    payment = plant_payment(statement, 15500)
+    Match.confirm(month: month, payments: [ payment ], supporting_documents: [ document ])
+    month.update!(closed: true)
+
+    patch "/supporting_documents/#{document.id}", params: { chave: nfe_chave }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Mês fechado")
+    expect(document.reload.chave).to be_nil
+  end
+
+  it "unauthenticated POST nota photo responds 302 to /login" do
+    stub_photo_fields("fields.jpg")
+
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("fields.jpg") }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/login")
+    expect(SupportingDocument.count).to eq(0)
+  end
+
+  it "submitter PATCH chave on another Account photo-filled document returns 404" do
+    coord, organization = plant_coordinator
+    stub_photo_fields("fields.jpg")
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(coord, organization: organization)
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("fields.jpg") }
+    id = SupportingDocument.last.id
+    sign_in_as(submitter, organization: organization)
+
+    patch "/supporting_documents/#{id}", params: { chave: nfe_chave }
+
+    expect(response).to have_http_status(:not_found)
+    expect(SupportingDocument.find(id).chave).to be_nil
+  end
+
+  it "POST duplicate photo chave persists two SupportingDocuments" do
+    _account, organization = signed_in
+    stub_photo_symbols("a.jpg", chave: nfe_chave)
+    stub_photo_symbols("b.jpg", chave: nfe_chave)
+    install_a1(organization)
+    stub_xml_consulta
+
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_named("a.jpg") }
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_named("b.jpg") }
+
+    expect(SupportingDocument.where(organization: organization, chave: nfe_chave).count).to eq(2)
+  end
+
+  it "POST nota photo all extracts missing keeps include form fields" do
+    signed_in
+
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("empty.jpg") }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Informe valor, data e favorecido")
+    expect(response.body).to include('id="amount"')
+    expect(response.body).to include('id="date"')
+    expect(response.body).to include('id="payee"')
+    expect(response.body).to include('id="chave"')
+    expect(response.body).to include('id="photo"')
+  end
+
+  it "confirm identified SEFAZ on photo-filled nota when consulta errors returns 422" do
+    _account, organization = signed_in
+    stub_photo_fields("fields.jpg")
+    install_a1(organization)
+    stub_xml_consulta(vnf: "100.00")
+    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("fields.jpg") }
+    id = SupportingDocument.last.id
+    patch "/supporting_documents/#{id}", params: { chave: nfe_chave }
+    SefazConsulta.current.set(nfe_chave, SefazConsulta::Error.new)
+
+    post "/supporting_documents/#{id}/sefaz_confirm"
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Não foi possível consultar a SEFAZ")
+    expect(SupportingDocument.find(id).amount_cents).to eq(15500)
+    patch "/supporting_documents/#{id}", params: { payee: "Mercado Silva" }
+    expect(response).to have_http_status(:found)
+  end
 end
