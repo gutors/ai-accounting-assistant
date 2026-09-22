@@ -6,10 +6,11 @@ Web app for a financial **Coordinator** to close a month for one or more **Organ
 
 1. A new feature uses **tlc-plan**, then **tlc-implement**. Open that skill. GitHub issue #1 is the product map; it is not a build source.
 2. tlc-plan writes `.tasks/<name>.md`. A human confirms that task before implementation. tlc-implement extracts `.checks/<feature>.md` from it and builds from that checklist.
-3. A builder reports and stops. The orchestrator — never the builder — dispatches a fresh Verifier (`.cursor/agents/tlc-verifier.md`) over `<feature base>..HEAD` with every check. Author is not verifier.
-4. Project memory: `.specs/STATE.md` is the **handoff** snapshot only. Decisions that constrain later features live in `docs/adr/` (start from ADR-0001). Do not start a second log in STATE.md. Features that already have `.specs/features/<name>/` stay there. New tasks and checklists go to `.tasks/` and `.checks/`.
-5. Do not paste tlc-plan or tlc-implement `references/` into this file.
-6. A feature that already has `.specs/features/<name>/checks.md` continues with **tlc-spec-lean**. A new feature does not get a folder there.
+3. When tlc-plan finishes, ask whether to open a GitHub issue for the planned feature when none exists yet. Create it only after the user agrees. When `Unresolved` still holds questions this session will not settle, suggest a second issue for those, created only after the feature issue and only if the user agrees.
+4. A builder reports and stops. The orchestrator — never the builder — dispatches a fresh Verifier (`.cursor/agents/tlc-verifier.md`) over `<feature base>..HEAD` with every check. Author is not verifier.
+5. Project memory: `.specs/STATE.md` is the **handoff** snapshot only. Decisions that constrain later features live in `docs/adr/` (start from ADR-0001). Do not start a second log in STATE.md. Features that already have `.specs/features/<name>/` stay there. New tasks and checklists go to `.tasks/` and `.checks/`.
+6. Do not paste tlc-plan or tlc-implement `references/` into this file.
+7. A feature that already has `.specs/features/<name>/checks.md` continues with **tlc-spec-lean**. A new feature does not get a folder there.
 
 ## tlc-implement
 
