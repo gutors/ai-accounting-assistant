@@ -4,18 +4,19 @@ Web app for a financial **Coordinator** to close a month for one or more **Organ
 
 ## How to work
 
-1. Feature work uses **tlc-spec-lean** (Plan → Checks → Build → Verify). Open that skill, then the named reference. Do not implement from GitHub issue #1.
-2. A human confirms `plan.md` before any check exists. Under roughly three files with no one-way door, skip `plan.md` and write `## Intent` in `checks.md`. Do not start product code without approved checks.
+1. A new feature uses **tlc-plan**, then **tlc-implement**. Open that skill. GitHub issue #1 is the product map; it is not a build source.
+2. tlc-plan writes `.tasks/<name>.md`. A human confirms that task before implementation. tlc-implement extracts `.checks/<feature>.md` from it and builds from that checklist.
 3. A builder reports and stops. The orchestrator — never the builder — dispatches a fresh Verifier (`.cursor/agents/tlc-verifier.md`) over `<feature base>..HEAD` with every check. Author is not verifier.
-4. Project memory: `.specs/STATE.md` is the **handoff** snapshot only. Decisions that constrain later features live in `docs/adr/` (start from ADR-0001). Do not start a second log in STATE.md. Load only the current feature under `.specs/features/<name>/`.
-5. Do not paste tlc-spec-lean `references/` into this file.
+4. Project memory: `.specs/STATE.md` is the **handoff** snapshot only. Decisions that constrain later features live in `docs/adr/` (start from ADR-0001). Do not start a second log in STATE.md. Features that already have `.specs/features/<name>/` stay there. New tasks and checklists go to `.tasks/` and `.checks/`.
+5. Do not paste tlc-plan or tlc-implement `references/` into this file.
+6. A feature that already has `.specs/features/<name>/checks.md` continues with **tlc-spec-lean**. A new feature does not get a folder there.
 
-## tlc-spec-lean
+## tlc-implement
 
 profile: standard
-budget: 150k
+handoff: on
 
-Raise to `ui` when the plan names a binding screen or design source. Say so in one line; do not silently exceed this floor.
+Raise to `ui` when the task names a binding screen or design source. Say so in one line; do not silently exceed this floor.
 
 ## Stack
 
@@ -42,9 +43,11 @@ Parallel local agents: one git worktree per agent; distinct `PORT` and `DATABASE
 | `config/` | Rails config (create on first feature) |
 | `db/` | Migrations and schema (create on first feature) |
 | `spec/` | RSpec (create on first feature) |
-| `.specs/` | Handoff (`STATE.md`) and `features/<name>/` (plan, checks, verification) |
+| `.specs/` | Handoff (`STATE.md`) and features already specified with tlc-spec-lean |
+| `.tasks/` | tlc-plan tasks for new features |
+| `.checks/` | tlc-implement checklists and verification reports |
 | `.cursor/rules/` | Stack conventions (glob-scoped) |
-| `.cursor/skills/tlc-spec-lean/` | Feature planning/execution skill |
+| `.cursor/skills/tlc-spec-lean/` | Skill for a feature that already has `.specs/features/<name>/checks.md` |
 | `.cursor/commands/` | Human-triggered slash commands (`/open-pr`, `/worktree`) |
 | `.cursor/agents/` | Project subagents (`tlc-verifier`) |
 
@@ -53,7 +56,7 @@ If a folder is missing, create it as part of the planned feature — do not scaf
 ## Language
 
 - **UI, user-facing copy, product docs:** Portuguese (Brazil).
-- **Code, comments, commit messages,** `.specs` **technical artifacts:** English.
+- **Code, comments, commit messages, and technical artifacts** (`.specs`, `.tasks`, `.checks`): English.
 - Domain words: `CONTEXT.md`.
 
 ## Commit messages
@@ -82,7 +85,8 @@ When `Gemfile` exists, use `bin/rails`, `bin/rspec`, and other `bin/` wrappers. 
 - Put close-for-send or A1/SEFAZ mTLS in short-lived functions (Lambda, Vercel Hobby timeouts) as the home of that work.
 - Treat the container filesystem as durable storage for photos, XML, or statements.
 - Implement Open Finance consent, a BCB receptor, NF-e issuance, accountant login, or organization CNPJ as a setup field.
-- Start product code without approved checks (and an approved `plan.md`, unless the three-file escape applies).
+- Start product code before a human has confirmed the `.tasks/<name>.md` task and tlc-implement has extracted `.checks/<feature>.md`.
+- Plan a new feature with tlc-spec-lean. That skill stays for a feature that already has `.specs/features/<name>/checks.md`.
 - Dispatch the Verifier from a builder, or treat a self-check as verification.
 
 ## Agent skills

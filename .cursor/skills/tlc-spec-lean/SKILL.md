@@ -1,6 +1,6 @@
 ---
 name: tlc-spec-lean
-description: 'Spec-driven feature work that freezes obligations instead of the plan: one human-reviewed plan with EARS criteria, path, entities, interface and one-way doors, then proof-backed checks, then build, then an independent Verifier. Use when the user says "tlc-spec-lean", "plan feature", "specify feature", "write the checks", "build this plan", or "verify work". Do NOT use for standalone design documents unattached to a feature, architecture decomposition analysis, or work that already has a task list or checklist to execute.'
+description: 'Legacy spec flow for a feature that already has `.specs/features/<name>/checks.md`. Use only when the user explicitly says "tlc-spec-lean", or when continuing that existing feature. New features in this repo use tlc-plan (`.tasks/`) then tlc-implement (`.checks/`). Do NOT use for a new feature, "plan feature", "write the task", "write the checks", "build this plan", or "verify work" on work that has a `.tasks/` or `.checks/` artifact.'
 license: CC-BY-4.0
 metadata:
   author: Tech Leads Club - github.com/tech-leads-club
@@ -8,6 +8,8 @@ metadata:
 ---
 
 # Tech Lead's Club - Spec, Lean
+
+In this repository, a new feature uses **tlc-plan** (`.tasks/<name>.md`) and then **tlc-implement** (`.checks/<feature>.md`). Use this skill when the user names tlc-spec-lean, or when the feature already has `.specs/features/<feature>/checks.md`. `.specs/` stays for the handoff (`STATE.md`) and those existing features.
 
 Freeze the obligations. Free the plan. Prove it with someone who did not build it. Derived from tlc-spec-driven 3.3.0 (Felipe Rodrigues), tlc-plan, and tlc-implement.
 

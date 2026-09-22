@@ -37,7 +37,7 @@ Vocabulário canônico: [`CONTEXT.md`](CONTEXT.md).
 > [!NOTE]
 > App Rails 8 neste repositório. Local: PostgreSQL, `bundle install`, `bin/rails db:setup`, `bin/rails server`. O primeiro coordenador entra com `bin/rails coordinator:bootstrap` (`ORGANIZATION_NAME`, `COORDINATOR_EMAIL`) e Google (`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`).
 
-As decisões de produto estão no [mapa do fechamento mensal](https://github.com/gutors/ai-accounting-assistant/issues/1). Código de produto começa na primeira feature com plano e checks aprovados (`tlc-spec-lean`), não a partir do mapa.
+As decisões de produto estão no [mapa do fechamento mensal](https://github.com/gutors/ai-accounting-assistant/issues/1). Uma feature nova parte de uma tarefa (`tlc-plan`) e do checklist (`tlc-implement`). O mapa não é a especificação a implementar.
 
 ## Plataforma (v1)
 
