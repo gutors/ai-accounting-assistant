@@ -7,7 +7,7 @@ class ApplicationController < ActionController::Base
 
   before_action :require_account
 
-  helper_method :current_account, :focused_organization, :coordinator_on_focus?
+  helper_method :current_account, :focused_organization, :coordinator_on_focus?, :administrator?
 
   private
 
@@ -27,6 +27,11 @@ class ApplicationController < ActionController::Base
     return false unless current_account && focused_organization
 
     current_account.coordinator_accesses.exists?(organization_id: focused_organization.id)
+  end
+
+  def administrator?
+    allow = NormalizedEmail.normalize(ENV["ADMINISTRATOR_EMAIL"])
+    allow.present? && current_account&.email == allow
   end
 
   def require_account

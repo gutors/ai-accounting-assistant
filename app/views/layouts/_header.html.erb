@@ -16,8 +16,13 @@
         <% if coordinator_on_focus? %>
           <%= link_to "Configuração", "/setup", class: "text-ink hover:underline underline-offset-2" %>
         <% end %>
+        <% if administrator? %>
+          <%= link_to "Administração", "/administration", class: "text-ink hover:underline underline-offset-2" %>
+        <% end %>
         <%= button_to "Sair", "/session", method: :delete, class: "text-caixa underline underline-offset-2" %>
       </nav>
+    <% elsif current_account %>
+      <%= button_to "Sair", "/session", method: :delete, class: "text-caixa underline underline-offset-2" %>
     <% end %>
   </div>
 </header>
