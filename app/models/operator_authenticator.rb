@@ -24,6 +24,9 @@ class OperatorAuthenticator
       pending.each { |invite| invite.accept!(account) }
     elsif account&.accesses&.any?
       assign_uid!(account)
+    elsif administrator?(email)
+      account ||= Account.create!(email: email, google_uid: uid.presence)
+      assign_uid!(account)
     else
       return Result.new(status: :denied, account: account)
     end
@@ -37,6 +40,11 @@ class OperatorAuthenticator
 
   def focus_for(account)
     account.coordinator_organizations.first || account.organizations.first
+  end
+
+  def administrator?(email)
+    allow = NormalizedEmail.normalize(ENV["ADMINISTRATOR_EMAIL"])
+    allow.present? && allow == email
   end
 
   def email_verified?

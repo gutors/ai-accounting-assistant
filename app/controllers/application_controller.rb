@@ -122,6 +122,6 @@ class ApplicationController < ActionController::Base
   def sign_in(account, organization:)
     reset_session
     session[:account_id] = account.id
-    session[:organization_id] = organization.id
+    session[:organization_id] = organization&.id
   end
 end
