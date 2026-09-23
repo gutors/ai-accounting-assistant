@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_18_220000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_22_210000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -172,6 +172,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_220000) do
     t.text "sefaz_pkcs12_ciphertext"
     t.string "sefaz_titular_cnpj"
     t.datetime "updated_at", null: false
+    t.index "lower((name)::text)", name: "index_organizations_on_lower_name", unique: true
   end
 
   create_table "payments", force: :cascade do |t|

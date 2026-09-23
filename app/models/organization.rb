@@ -16,6 +16,23 @@ class Organization < ApplicationRecord
   has_many :extra_exception_kinds, dependent: :restrict_with_exception
 
   validates :name, presence: true
+
+  def self.register_coordinator(name:, email:)
+    transaction do
+      organization = create!(name: name.to_s.strip)
+      normalized = NormalizedEmail.normalize(email)
+      account = Account.find_by(email: normalized) || Account.create!(email: normalized)
+      Access.create!(account: account, organization: organization, kind: :coordinator)
+      organization
+    end
+  end
+
+  def self.name_taken?(name)
+    stripped = name.to_s.strip
+    return false if stripped.blank?
+
+    where("lower((name)::text) = ?", stripped.downcase).exists?
+  end
   validate :accountant_shape, on: :accountant
 
   def update_accountant(params)
