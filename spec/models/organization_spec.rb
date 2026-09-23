@@ -71,8 +71,8 @@ RSpec.describe Organization, type: :model do
       { legal_name: "Contábil LTDA" },
       { pix_key: "x" },
       { destination_email: "ana@example.com" }
-    ].each do |attrs|
-      organization = Organization.create!(name: "ONG")
+    ].each_with_index do |attrs, index|
+      organization = Organization.create!(name: "ONG #{index}")
       expect(organization.update_accountant(attrs)).to be(false)
       organization.reload
       expect(organization.accountant_tax_id).to be_nil
