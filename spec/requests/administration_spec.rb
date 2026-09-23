@@ -22,6 +22,13 @@ RSpec.describe "Administration intake", type: :request do
     Nokogiri::HTML(response.body)
   end
 
+  def administration_column
+    column = page.css("main div").find { |node| node["class"].to_s.split.include?("max-w-[28rem]") }
+    expect(column).not_to be_nil
+    expect(column["class"]).not_to include("mx-auto")
+    column
+  end
+
   def expect_empty_form
     expect(response).to have_http_status(:ok)
     expect(page.at_css("h1").text.strip).to eq("Administração")
@@ -181,6 +188,22 @@ RSpec.describe "Administration intake", type: :request do
     end
   end
 
+  it "confirmation column is 28rem and shows the record labels" do
+    as_seller do
+      post "/administration", params: { name: "ONG Norte", email: "coordenador@exemplo.org" }
+
+      column = page.at_css("main div")
+      expect(column["class"]).to include("max-w-[28rem]")
+      expect(column["class"]).not_to include("mx-auto")
+      ruled = page.at_css("main .border-b.border-rule")
+      expect(ruled.text).to include("Nome da organização")
+      expect(ruled.text).to include("ONG Norte")
+      email_row = ruled.next_element
+      expect(email_row.text).to include("E-mail do coordenador")
+      expect(email_row.text).to include("coordenador@exemplo.org")
+    end
+  end
+
   it "GET /administration with pending fills the form" do
     as_seller do
       post "/administration", params: { name: "ONG Norte", email: "coordenador@exemplo.org" }
@@ -217,9 +240,19 @@ RSpec.describe "Administration intake", type: :request do
       expect(page.at_css("h1").text.strip).to eq("Administração")
       expect(response.body).to include("E-mail enviado para coordenador@exemplo.org.")
       expect(response.body).not_to include("Cadastre a organização e o coordenador que vai fechá-la.")
-      ruled = page.at_css("main .border-b.border-rule")
+      column = administration_column
+      sentence = column.css("p").find { |node| node.text.include?("E-mail enviado para coordenador@exemplo.org.") }
+      expect(sentence).not_to be_nil
+      ruled = sentence.next_element
+      expect(ruled["class"]).to include("border-b")
+      expect(ruled["class"]).to include("border-rule")
+      expect(ruled.text).not_to include("E-mail enviado para")
+      expect(ruled.text).to include("Nome da organização")
       expect(ruled.text).to include("ONG Norte")
-      expect(response.body).to include("coordenador@exemplo.org")
+      email_row = ruled.next_element
+      expect(email_row.text).to include("E-mail do coordenador")
+      expect(email_row.text).to include("coordenador@exemplo.org")
+      expect(email_row.text).not_to include("E-mail enviado para")
       expect(page.css("[data-notice='error']")).to be_empty
       button = page.at_css("main button")
       expect(button.text.strip).to eq("Cadastrar outra organização")
@@ -312,9 +345,13 @@ RSpec.describe "Administration intake", type: :request do
 
       follow_redirect!
       expect(page.at_css("h1").text.strip).to eq("Administração")
-      notice = page.at_css("[data-notice='error']")
+      column = administration_column
+      notice = column.at_css("[data-notice='error']")
       expect(notice.text.strip).to eq("O cadastro foi gravado, mas o e-mail não saiu.")
       expect(response.body.index("Administração")).to be < response.body.index(notice.text.strip)
+      ruled = notice.next_element
+      expect(ruled["class"]).to include("border-b")
+      expect(ruled["class"]).to include("border-rule")
       expect(response.body).not_to include("E-mail enviado para")
       group = page.at_css("main .flex-wrap")
       expect(group.css("button").map { |button| button.text.strip }).to eq([
@@ -328,6 +365,26 @@ RSpec.describe "Administration intake", type: :request do
       expect(other["class"]).to include("border")
       expect(other["class"]).to include("border-ink")
       expect(other.ancestors("form").first["action"]).to eq("/administration/another")
+    end
+  end
+
+  it "mail failure shows the saved record" do
+    as_seller do
+      post "/administration", params: { name: "ONG Norte", email: "coordenador@exemplo.org" }
+      raise_delivery
+      post "/administration/confirm"
+      follow_redirect!
+
+      column = administration_column
+      notice = column.at_css("[data-notice='error']")
+      ruled = notice.next_element
+      expect(ruled["class"]).to include("border-b")
+      expect(ruled["class"]).to include("border-rule")
+      expect(ruled.text).to include("Nome da organização")
+      expect(ruled.text).to include("ONG Norte")
+      email_row = ruled.next_element
+      expect(email_row.text).to include("E-mail do coordenador")
+      expect(email_row.text).to include("coordenador@exemplo.org")
     end
   end
 
@@ -468,6 +525,23 @@ RSpec.describe "Administration intake", type: :request do
       ])
       expect(page.at_css('input[name="name"]')["value"]).to eq("  ong norte  ")
       expect(page.at_css('input[name="email"]')["value"]).to eq("coordenador@exemplo.org")
+      expect(session[:administration_pending]).to be_nil
+    end
+  end
+
+  it "taken name ONG NORTE with surrounding spaces re-renders 422" do
+    Organization.create!(name: "ONG Norte")
+    as_seller do
+      expect {
+        post "/administration", params: { name: "  ONG NORTE  ", email: "outro@exemplo.org" }
+      }.not_to change { [ Organization.count, Account.count, Access.count ] }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(page.css("[data-notice='error']").map { |notice| notice.text.strip }).to eq([
+        "Já existe uma organização com esse nome."
+      ])
+      expect(page.at_css('input[name="name"]')["value"]).to eq("  ONG NORTE  ")
+      expect(page.at_css('input[name="email"]')["value"]).to eq("outro@exemplo.org")
       expect(session[:administration_pending]).to be_nil
     end
   end

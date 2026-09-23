@@ -375,4 +375,18 @@ RSpec.describe Organization, type: :model do
     expect(ActionMailer::Base.deliveries.size).to eq(deliveries)
     expect(Account.where("email LIKE ?", "outro%@exemplo.org")).to be_empty
   end
+
+  it "register_coordinator rejects a padded uppercase name" do
+    Organization.create!(name: "ONG Norte")
+    counts = [ Organization.count, Account.count, Access.count ]
+    deliveries = ActionMailer::Base.deliveries.size
+
+    expect {
+      Organization.register_coordinator(name: "  ONG NORTE  ", email: "outro@exemplo.org")
+    }.to raise_error(ActiveRecord::RecordNotUnique)
+
+    expect([ Organization.count, Account.count, Access.count ]).to eq(counts)
+    expect(ActionMailer::Base.deliveries.size).to eq(deliveries)
+    expect(Account.find_by(email: "outro@exemplo.org")).to be_nil
+  end
 end

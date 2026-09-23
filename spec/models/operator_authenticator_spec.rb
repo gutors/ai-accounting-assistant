@@ -113,6 +113,16 @@ RSpec.describe OperatorAuthenticator, type: :model do
     expect(Invite.find_by(email: "seller@example.com")).to be_nil
   end
 
+  it "verified email outside the allowlist is denied" do
+    result = with_env("ADMINISTRATOR_EMAIL" => "seller@example.com") do
+      described_class.call(auth_hash(email: "other@example.com", uid: "uid-other"))
+    end
+
+    expect(result.status).to eq(:denied)
+    expect(Account.find_by(email: "other@example.com")).to be_nil
+    expect(Organization.count).to eq(0)
+  end
+
   it "unverified allowlisted email is unverified" do
     result = with_env("ADMINISTRATOR_EMAIL" => "seller@example.com") do
       described_class.call(auth_hash(email: "seller@example.com", verified: false, uid: "uid-seller"))

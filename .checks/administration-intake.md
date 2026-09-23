@@ -81,6 +81,9 @@ Proof: `bin/rspec spec/models/operator_authenticator_spec.rb -e "allowlisted ema
 **C4** - Given `ADMINISTRATOR_EMAIL` is `seller@example.com` and a verified Google auth is `other@example.com` with no Invite and no Access, when the callback runs, then no Account is persisted for `other@example.com` and the response is `302` to `/denied`, and the denied page body includes `Você não foi convidado a usar este sistema.`
 Proof: `bin/rspec spec/requests/omniauth_callbacks_spec.rb -e "uninvited callback persists no Account and the denied page names the refusal"`
 
+**C49** - Given `ADMINISTRATOR_EMAIL` is `seller@example.com` and a verified auth for `other@example.com` has no Account, no Access, and no Invite, when `OperatorAuthenticator.call` runs, then the status is `:denied` and no Account is persisted for `other@example.com`
+Proof: `bin/rspec spec/models/operator_authenticator_spec.rb -e "verified email outside the allowlist is denied"`
+
 **C5** - Given `ADMINISTRATOR_EMAIL` is `seller@example.com` and the Google auth for that email is not verified (`email_verified` is not `true` and not `"true"`), when the callback runs, then no Account is persisted and the response is `302` to `/login`
 Proof: `bin/rspec spec/requests/omniauth_callbacks_spec.rb -e "unverified allowlisted callback persists no Account and redirects to /login"`
 Proof: `bin/rspec spec/models/operator_authenticator_spec.rb -e "unverified allowlisted email is unverified"`
@@ -123,10 +126,13 @@ Proof: `bin/rspec spec/requests/administration_spec.rb -e "blank name and invali
 **C14** - Given the allowlisted Account is signed in, when `POST /administration` submits name `  ONG Norte  ` and email ` Coordenador@Exemplo.ORG `, then the status is `200`, the `h1` is `Confirmar cadastro`, the body shows `ONG Norte` and `coordenador@exemplo.org`, and it does not include `Cadastre a organização e o coordenador que vai fechá-la.`. The name value sits in an element whose class includes `border-b` and `border-rule`, and the email value follows that element. The buttons are `Confirmar` and `Corrigir` in that order inside one element whose class includes `flex-wrap`. `Confirmar` is a submit whose class includes `bg-caixa` and whose form posts to `/administration/confirm`. `Corrigir` is an `a` to `/administration` whose class includes `border` and `border-ink`. No Organization, Account, or Access is written, and `session[:administration_pending]` is `{ "name" => "ONG Norte", "email" => "coordenador@exemplo.org" }`
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "valid POST stores pending and renders confirmation"`
 
+**C46** - Given the allowlisted Account is signed in, when `POST /administration` submits name `ONG Norte` and email `coordenador@exemplo.org`, then the confirmation column is a `div` whose class includes `max-w-[28rem]` and does not include `mx-auto`. The label `Nome da organização` and the value `ONG Norte` sit in an element whose class includes `border-b` and `border-rule`. The following element contains the label `E-mail do coordenador` and the value `coordenador@exemplo.org`
+Proof: `bin/rspec spec/requests/administration_spec.rb -e "confirmation column is 28rem and shows the record labels"`
+
 **C15** - Given `session[:administration_pending]` is `{ "name" => "ONG Norte", "email" => "coordenador@exemplo.org" }` and `session[:administration_result]` is absent, when `GET /administration` runs, then the status is `200`, the `h1` is `Administração`, and the fields show `ONG Norte` and `coordenador@exemplo.org`
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "GET /administration with pending fills the form"`
 
-**C16** - Given pending `{ "name" => "ONG Norte", "email" => "coordenador@exemplo.org" }` and that email has no Account, when `POST /administration/confirm` runs and delivery succeeds, then the response is `302` to `/administration`, the following `GET` is `200` with `h1` `Administração`, body `E-mail enviado para coordenador@exemplo.org.`, the record `ONG Norte` and `coordenador@exemplo.org` with the name inside an element whose class includes `border-b` and `border-rule`, button `Cadastrar outra organização` whose class includes `border` and `border-ink` and whose form posts to `/administration/another`, and no `[data-notice="error"]`. The body does not include `Cadastre a organização e o coordenador que vai fechá-la.`. One Organization named `ONG Norte`, one Account `coordenador@exemplo.org`, one Access of kind `coordinator`, and no Invite exist. `session[:administration_pending]` is absent. `session[:administration_result]` is `{ "organization_id" => that id, "mail_sent" => true }`
+**C16** - Given pending `{ "name" => "ONG Norte", "email" => "coordenador@exemplo.org" }` and that email has no Account, when `POST /administration/confirm` runs and delivery succeeds, then the response is `302` to `/administration`, the following `GET` is `200` with `h1` `Administração` and the sentence `E-mail enviado para coordenador@exemplo.org.`. That sentence is a `p` inside a `div` whose class includes `max-w-[28rem]` and does not include `mx-auto`. That `p` is not inside the ruled element. The `p`'s next element is the element whose class includes `border-b` and `border-rule`. That element contains the label `Nome da organização` and the value `ONG Norte` and does not contain `E-mail enviado para`. The following element contains the label `E-mail do coordenador` and the value `coordenador@exemplo.org`. The button `Cadastrar outra organização` has a class that includes `border` and `border-ink` and its form posts to `/administration/another`. There is no `[data-notice="error"]`. The body does not include `Cadastre a organização e o coordenador que vai fechá-la.`. One Organization named `ONG Norte`, one Account `coordenador@exemplo.org`, one Access of kind `coordinator`, and no Invite exist. `session[:administration_pending]` is absent. `session[:administration_result]` is `{ "organization_id" => that id, "mail_sent" => true }`
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "confirm creates the organization and shows the sent mail"`
 Proof: `bin/rspec spec/models/organization_spec.rb -e "register_coordinator creates Organization Account and coordinator Access"`
 
@@ -143,8 +149,11 @@ Proof: `bin/rspec spec/requests/administration_spec.rb -e "confirm of another em
 **C20** - Given `session[:administration_pending]` is absent, when `POST /administration/confirm` runs, then no Organization, Account, or Access is written, an existing `session[:administration_result]` is unchanged, and the response is `302` to `/administration`
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "confirm without pending writes nothing and keeps the result"`
 
-**C21** - Given a pending registration, when `POST /administration/confirm` runs and `deliver_now` raises, then the Organization, Account, and coordinator Access from that transaction remain, no Invite exists, `session[:administration_pending]` is absent, `session[:administration_result]["mail_sent"]` is false, and the following `GET` shows `[data-notice="error"]` `O cadastro foi gravado, mas o e-mail não saiu.` after the `h1`, buttons `Reenviar e-mail` and `Cadastrar outra organização` in that order inside one element whose class includes `flex-wrap`, `Reenviar e-mail` includes class `bg-caixa` and posts to `/administration/mail`, `Cadastrar outra organização` includes classes `border` and `border-ink` and posts to `/administration/another`, and the body does not include `E-mail enviado para`. The rows remain because delivery runs after the transaction commits and the delivery error is rescued
+**C21** - Given a pending registration, when `POST /administration/confirm` runs and `deliver_now` raises, then the Organization, Account, and coordinator Access from that transaction remain, no Invite exists, `session[:administration_pending]` is absent, `session[:administration_result]["mail_sent"]` is false, and the following `GET` shows `[data-notice="error"]` `O cadastro foi gravado, mas o e-mail não saiu.` after the `h1`. That notice sits inside a `div` whose class includes `max-w-[28rem]` and does not include `mx-auto`, and the notice's next element is the element whose class includes `border-b` and `border-rule`. The buttons are `Reenviar e-mail` and `Cadastrar outra organização` in that order inside one element whose class includes `flex-wrap`, `Reenviar e-mail` includes class `bg-caixa` and posts to `/administration/mail`, `Cadastrar outra organização` includes classes `border` and `border-ink` and posts to `/administration/another`, and the body does not include `E-mail enviado para`. The rows remain because delivery runs after the transaction commits and the delivery error is rescued
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "confirm keeps the rows when deliver_now raises"`
+
+**C47** - Given a pending registration of `ONG Norte` / `coordenador@exemplo.org`, when `POST /administration/confirm` runs and `deliver_now` raises, then the following `GET` shows the label `Nome da organização` and the value `ONG Norte` inside an element whose class includes `border-b` and `border-rule`. That element is inside a `div` whose class includes `max-w-[28rem]` and does not include `mx-auto`, and it is the next element of the `[data-notice="error"]` in that column. The element after it contains the label `E-mail do coordenador` and the value `coordenador@exemplo.org`
+Proof: `bin/rspec spec/requests/administration_spec.rb -e "mail failure shows the saved record"`
 
 **C22** - Given `session[:administration_result]` has `mail_sent` false for an organization, when `POST /administration/mail` runs and delivery succeeds, then `Organization.count` is unchanged, one more welcome message is delivered, `mail_sent` is true, and the following `GET` includes `E-mail enviado para` that coordinator email
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "resend delivers another welcome message"`
@@ -175,6 +184,10 @@ Proof: `bin/rspec spec/requests/administration_spec.rb -e "saved registration sc
 
 **C29** - Given an Organization named `ONG Norte` exists and the allowlisted Account is signed in, when `POST /administration` submits name `  ong norte  ` and email `coordenador@exemplo.org`, then the status is `422`, the notice is `Já existe uma organização com esse nome.`, the fields keep those typed values, no Organization, Account, or Access is written, and `session[:administration_pending]` is not set
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "taken organization name re-renders 422 and stores no pending"`
+
+**C48** - Given an Organization named `ONG Norte` exists, when `POST /administration` submits name `  ONG NORTE  ` and email `outro@exemplo.org`, then the status is `422`, the notice is `Já existe uma organização com esse nome.`, the fields keep those typed values, no Organization, Account, or Access is written, and `session[:administration_pending]` is not set. `Organization.register_coordinator` with name `  ONG NORTE  ` and email `outro@exemplo.org` raises `ActiveRecord::RecordNotUnique`, leaves `Organization.count`, `Account.count`, and `Access.count` unchanged, and delivers no welcome message
+Proof: `bin/rspec spec/requests/administration_spec.rb -e "taken name ONG NORTE with surrounding spaces re-renders 422"`
+Proof: `bin/rspec spec/models/organization_spec.rb -e "register_coordinator rejects a padded uppercase name"`
 
 **C30** - Given no Organization named `ONG Norte` yet, when two overlapping `POST /administration/confirm` requests still hold pending names `ONG Norte` and `ong norte` for `coordenador@exemplo.org`, then exactly one Organization exists for that name. The request that loses the insert writes no Account and no Access, sends no mail, leaves `session[:administration_result]` unset, and responds `422` with notice `Já existe uma organização com esse nome.` The unique index on `lower((name)::text)` is what keeps the second insert from committing
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "concurrent confirms of the same name leave one organization"`
@@ -228,9 +241,9 @@ Proof: `bin/rspec spec/config/mailer_environment_spec.rb -e "README setup note n
 | --- | --- | --- | --- |
 | administration empty | `h1` `Administração`, sentence, labels, empty inputs, `Continuar` C10 | column `div.max-w-[28rem]` without `mx-auto`; label then input; inputs `w-full border border-rule bg-sheet`; `Continuar` `bg-caixa`; `main` has no `svg` C10 | spacing, colour, type weight |
 | administration invalid | notices C11, C12, C13, C29; typed values stay | `[data-notice="error"]` after `h1` and before the sentence; name notice then email notice C13 | spacing, colour, type weight |
-| administration confirmation | `h1` `Confirmar cadastro`, stripped name, normalized email, `Confirmar`, `Corrigir` C14 | name inside `.border-b.border-rule`, email follows; `flex-wrap` group with `Confirmar` (`bg-caixa`, posts `/administration/confirm`) then `Corrigir` (`a` to `/administration`, `border-ink`) C14 | spacing, colour, type weight |
-| administration success | `E-mail enviado para …`, record, `Cadastrar outra organização` C16; no name/email inputs C28 | record under the sentence; name inside `.border-b.border-rule`; no `[data-notice="error"]`; button posts `/administration/another` with `border-ink` C16 | spacing, colour, type weight |
-| administration mail failure | notice `O cadastro foi gravado, mas o e-mail não saiu.`, record, `Reenviar e-mail`, `Cadastrar outra organização` C21; no name/email inputs C28 | `[data-notice="error"]` after `h1`; `flex-wrap` group with `Reenviar e-mail` (`bg-caixa`, posts `/administration/mail`) then `Cadastrar outra organização` (`border-ink`, posts `/administration/another`) C21 | spacing, colour, type weight |
+| administration confirmation | `h1` `Confirmar cadastro`, stripped name, normalized email, labels `Nome da organização` and `E-mail do coordenador`, `Confirmar`, `Corrigir` C14 C46 | column `div.max-w-[28rem]` without `mx-auto` C46; label `Nome da organização` and the name inside `.border-b.border-rule`, label `E-mail do coordenador` and the email follow C46; `flex-wrap` group with `Confirmar` (`bg-caixa`, posts `/administration/confirm`) then `Corrigir` (`a` to `/administration`, `border-ink`) C14 | spacing, colour, type weight |
+| administration success | `E-mail enviado para …`, labels `Nome da organização` and `E-mail do coordenador`, record, `Cadastrar outra organização` C16; no name/email inputs C28 | sentence `p` inside `div.max-w-[28rem]` without `mx-auto`, and that `p`'s next element is `.border-b.border-rule`; the ruled element does not contain the sentence; email label and `coordenador@exemplo.org` follow C16; no `[data-notice="error"]`; button posts `/administration/another` with `border-ink` C16 | spacing, colour, type weight |
+| administration mail failure | notice `O cadastro foi gravado, mas o e-mail não saiu.`, record labels and values C47, `Reenviar e-mail`, `Cadastrar outra organização` C21; no name/email inputs C28 | notice inside `div.max-w-[28rem]` without `mx-auto`, and its next element is `.border-b.border-rule` C21; name label and `ONG Norte` inside that ruled element; email label and `coordenador@exemplo.org` follow C47; `flex-wrap` group with `Reenviar e-mail` (`bg-caixa`, posts `/administration/mail`) then `Cadastrar outra organização` (`border-ink`, posts `/administration/another`) C21 | spacing, colour, type weight |
 | header, no focused organization | `Fechamento mensal`, one `Sair`, none of `Início` `Documentos` `Configuração` `Administração` C34 | `Sair` submits `DELETE /session` and includes `text-caixa` C34 | spacing, colour, type weight; the 640px wrap breakpoint |
 | header, administrator coordinator | `Administração` after `Configuração`, one `Sair` C35 | `a[href="/administration"]` includes `text-ink` and follows the `/setup` link; ancestor includes `flex-wrap` C35 | spacing, colour, type weight; the 640px wrap breakpoint |
 | header, administrator submitter | `Início`, `Documentos`, `Administração`, `Sair`; no `Configuração` C37 | `Administração` follows the `/supporting_documents` link C37 | spacing, colour, type weight; the 640px wrap breakpoint |
@@ -241,7 +254,7 @@ Proof: `bin/rspec spec/config/mailer_environment_spec.rb -e "README setup note n
 - validation: C11, C12, C13, C29
 - failure modes: C21, C26, C27
 - idempotency and retry: C20, C22, C43
-- authorization: C1, C4, C6, C8, C9, C44, C45
+- authorization: C1, C4, C6, C8, C9, C44, C45, C49
 - concurrency and ordering: C30
 - data lifecycle: C24, C25, C28
 - external-dependency failure: C21, C23 - SMTP. Google unverified and OmniAuth failure stay on `/login` (C5, existing `OmniauthCallbacksController#failure`)
@@ -252,7 +265,7 @@ Proof: `bin/rspec spec/config/mailer_environment_spec.rb -e "README setup note n
 
 | Set (size) | Member -> proof | Unproven |
 | --- | --- | --- |
-| OperatorAuthenticator outcomes this cut adds (7) | no Account allowlisted C1 · coordinator Access allowlisted C2 · pending Invite allowlisted C3 · other email C4 · unverified allowlisted C5 · blank env C6 · existing Account zero Access allowlisted C45 | - |
+| OperatorAuthenticator outcomes this cut adds (7) | no Account allowlisted C1 · coordinator Access allowlisted C2 · pending Invite allowlisted C3 · other email C4 C49 · unverified allowlisted C5 · blank env C6 · existing Account zero Access allowlisted C45 | - |
 | allowlist env spelling (2) | exact `seller@example.com` C1 · mixed-case `Seller@Example.com` C44 | - |
 | `ADMINISTRATOR_EMAIL` blank forms (2) | unset C6 · `""` C6 | - |
 | administration routes when signed out (5) | `GET /administration` C8 · `POST /administration` C8 · `POST /administration/confirm` C8 · `POST /administration/mail` C8 · `POST /administration/another` C8 | - |
@@ -260,7 +273,7 @@ Proof: `bin/rspec spec/config/mailer_environment_spec.rb -e "README setup note n
 | `POST /administration` rejection notices (4) | blank name C11 · invalid email C12 · both, name then email C13 · taken name C29 | - |
 | confirm outcomes (7) | new Account C16 · existing Account C17 · own email focuses new org C18 · other email leaves focus C19 · no pending C20 · `deliver_now` raises C21 · lost unique name C30 | - |
 | `register_coordinator` (4) | new Account C16 · existing Account C17 · raise before commit C26 · duplicate lower name C27 | - |
-| duplicate name spellings (2) | `ONG Norte` C27 · `ong norte` C27 | - |
+| duplicate name spellings (3) | `ONG Norte` C27 · `ong norte` C27 · `  ONG NORTE  ` C48 | - |
 | resend outcomes (3) | delivery succeeds C22 · `deliver_now` raises C23 · no result C43 | - |
 | sign-out session keys (2) | pending, no Organization C25 · result, Organization remains C25 | - |
 | welcome sentences (2) | one coordinator Access C32 · two or more C33 | - |
@@ -268,9 +281,9 @@ Proof: `bin/rspec spec/config/mailer_environment_spec.rb -e "README setup note n
 | SMTP settings (3) | address and port C39 · address and blank port `587` C39 · blank address, settings absent C39 | - |
 | mail host assemblies (3) | `config/environments/development.rb` C40 · `config/environments/production.rb` C40 · booted test process C38 | - |
 | `raise_delivery_errors` assemblies (2) | development C38 · production C38 | - |
-| designed screens (9) | administration empty C10 · invalid C11 C12 C13 C29 · confirmation C14 · success C16 · mail failure C21 · header no focus C34 · header administrator coordinator C35 · header administrator submitter C37 · header coordinator C36 | - |
+| designed screens (9) | administration empty C10 · invalid C11 C12 C13 C29 · confirmation C14 C46 · success C16 · mail failure C21 C47 · header no focus C34 · header administrator coordinator C35 · header administrator submitter C37 · header coordinator C36 | - |
 
-- Claims naming a status code, route, or response shape: C1–C9, C11–C16, C18–C25, C29, C30, C43, C44, C45 - each has a request-spec proof that crosses the boundary
+- Claims naming a status code, route, or response shape: C1–C9, C11–C16, C18–C25, C29, C30, C43, C44, C45, C48 - each has a request-spec proof that crosses the boundary
 - No other check claims more than the single case its proof exercises
 
 ## Handoff
@@ -278,3 +291,7 @@ Proof: `bin/rspec spec/config/mailer_environment_spec.rb -e "README setup note n
 S1 ~5k + S2 ~9k + S3 ~6k + S4 ~1k + S5 ~1k + S6 ~4k = ~26k token floor, plus the task and the design already read (~13k). All six slices stay under 150k. No split. One batch.
 
 Batch closed. Checks C1–C45 are on `5e8e030..HEAD`. No mid-build clarification. Nothing abandoned.
+
+After verification round 1 the user asked to locate the C16 record email, and to add C46 (confirmation column and labels), C47 (mail-failure record), C48 (Landing spelling `  ONG NORTE  `), and C49 (non-allowlisted email at the authenticator).
+
+After verification round 2 the user asked to keep the success sentence outside the ruled block and inside the 28rem column (C16), and to put the mail-failure notice immediately before that record inside the same column (C21, C47).
