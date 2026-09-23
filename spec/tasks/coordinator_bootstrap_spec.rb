@@ -58,4 +58,33 @@ RSpec.describe "coordinator:bootstrap" do
 
     expect(Organization.find_by(name: "ONG Nova")).to be_nil
   end
+
+  it "bootstrap with a case-different organization name persists nothing and exits non-zero" do
+    Organization.create!(name: "ONG Norte")
+    counts = [ Organization.count, Account.count, Access.count ]
+    source = Rails.root.join("lib/tasks/coordinator.rake").read
+    expect(source).to include('abort "an Account already exists for that email"')
+    expect(source).to include("Organization.create!")
+    expect(source).not_to include("rescue")
+
+    status = 0
+    with_env(
+      "ORGANIZATION_NAME" => "ong norte",
+      "COORDINATOR_EMAIL" => "novo@exemplo.org"
+    ) do
+      begin
+        Rake::Task["coordinator:bootstrap"].reenable
+        Rake::Task["coordinator:bootstrap"].invoke
+      rescue SystemExit => e
+        status = e.status || 1
+      rescue StandardError
+        status = 1
+      end
+    end
+
+    expect(status).not_to eq(0)
+    expect([ Organization.count, Account.count, Access.count ]).to eq(counts)
+    expect(Account.find_by(email: "novo@exemplo.org")).to be_nil
+    expect(Organization.where("lower((name)::text) = ?", "ong norte").count).to eq(1)
+  end
 end

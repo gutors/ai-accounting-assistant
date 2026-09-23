@@ -2,10 +2,10 @@
 
 ## Handoff
 
-**Feature**: visual-identity
-**Where**: round-2 scoped verification PASS at `612c08d` (`.specs/features/visual-identity/verification.md`, profile `ui`); C1–C57 proven, `validate_verification.py` exits 0
+**Feature**: administration-intake
+**Where**: built on `administration-intake` (`5e8e030..HEAD`). Checks in `.checks/administration-intake.md`. Screen `administration` is binding. Not verified.
 **In progress**: none
-**Next step**: none for this feature — independent Verifier passed. PR to `main` is a separate go-ahead: needs a GitHub issue (`Closes #N`), `/open-pr`, then `the-judge`; local `main` is behind `origin/main` (PR #55), rebase `visual-identity` first
-**Blockers**: none
-**Uncommitted**: none
-**Branch**: visual-identity
+**Next step**: a fresh Verifier over `5e8e030..HEAD` with every check. Profile `ui`.
+**Blockers**: none for verification. Real mail waits on the mailbox in #63.
+**Branch**: administration-intake
+**Issues**: #62 feature, #63 the questions the task leaves open

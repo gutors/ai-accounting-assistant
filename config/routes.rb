@@ -5,6 +5,12 @@ Rails.application.routes.draw do
   delete "/session", to: "sessions#destroy"
   get "/denied", to: "sessions#denied", as: :denied
 
+  get "/administration", to: "administration#show", as: :administration
+  post "/administration", to: "administration#create"
+  post "/administration/confirm", to: "administration#confirm"
+  post "/administration/mail", to: "administration#mail"
+  post "/administration/another", to: "administration#another"
+
   get "/auth/google_oauth2/callback", to: "omniauth_callbacks#google_oauth2"
   get "/auth/failure", to: "omniauth_callbacks#failure"
 

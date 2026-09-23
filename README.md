@@ -35,7 +35,7 @@ Vocabulário canônico: [`CONTEXT.md`](CONTEXT.md).
 ## Estado
 
 > [!NOTE]
-> App Rails 8 neste repositório. Local: PostgreSQL, `bundle install`, `bin/rails db:setup`, `bin/rails server`. `bin/rails db:seed` em development persiste a organização `ONG Exemplo` e a conta coordenadora `gutors@gmail.com`. Outro e-mail ou outro nome continua em `bin/rails coordinator:bootstrap` (`ORGANIZATION_NAME`, `COORDINATOR_EMAIL`). O login Google usa `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET`.
+> App Rails 8 neste repositório. Local: PostgreSQL, `bundle install`, `bin/rails db:setup`, `bin/rails server`. `bin/rails db:seed` em development persiste a organização `ONG Exemplo` e a conta coordenadora `gutors@gmail.com`. Outro e-mail ou outro nome continua em `bin/rails coordinator:bootstrap` (`ORGANIZATION_NAME`, `COORDINATOR_EMAIL`). O login Google usa `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET`. O vendedor entra com `ADMINISTRATOR_EMAIL`. O correio usa `MAIL_FROM`, `MAILER_HOST`, `SMTP_ADDRESS`, `SMTP_PORT`, `SMTP_USER_NAME` e `SMTP_PASSWORD`.
 
 As decisões de produto estão no [mapa do fechamento mensal](https://github.com/gutors/ai-accounting-assistant/issues/1). Uma feature nova parte de uma tarefa (`tlc-plan`) e do checklist (`tlc-implement`). O mapa não é a especificação a implementar.
 

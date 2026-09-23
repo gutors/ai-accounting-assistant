@@ -1,0 +1,8 @@
+<div class="max-w-[28rem]">
+  <h1 class="text-2xl leading-7 font-semibold tracking-[-0.01em]">Confirmar cadastro</h1>
+  <%= render "administration/record", name: @pending["name"], email: @pending["email"] %>
+  <div class="mt-6 flex flex-wrap items-center gap-3">
+    <%= button_to "Confirmar", "/administration/confirm", method: :post, class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+    <%= link_to "Corrigir", "/administration", class: "rounded border border-ink px-4 py-2 text-ink" %>
+  </div>
+</div>

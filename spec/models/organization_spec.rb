@@ -71,8 +71,8 @@ RSpec.describe Organization, type: :model do
       { legal_name: "Contábil LTDA" },
       { pix_key: "x" },
       { destination_email: "ana@example.com" }
-    ].each do |attrs|
-      organization = Organization.create!(name: "ONG")
+    ].each_with_index do |attrs, index|
+      organization = Organization.create!(name: "ONG #{index}")
       expect(organization.update_accountant(attrs)).to be(false)
       organization.reload
       expect(organization.accountant_tax_id).to be_nil
@@ -317,5 +317,76 @@ RSpec.describe Organization, type: :model do
     ensure
       truncate_product_tables
     end
+  end
+
+  it "register_coordinator creates Organization Account and coordinator Access" do
+    expect {
+      organization = Organization.register_coordinator(name: "  ONG Norte  ", email: " Coordenador@Exemplo.ORG ")
+
+      expect(organization.name).to eq("ONG Norte")
+      account = Account.find_by!(email: "coordenador@exemplo.org")
+      access = organization.accesses.find_by!(account: account)
+      expect(access.kind).to eq("coordinator")
+      expect(Invite.where(email: "coordenador@exemplo.org")).to be_empty
+    }.to change(Organization, :count).by(1)
+      .and change(Account, :count).by(1)
+      .and change(Access, :count).by(1)
+      .and change { ActionMailer::Base.deliveries.size }.by(0)
+  end
+
+  it "register_coordinator reuses an existing Account" do
+    Account.create!(email: "coordenador@exemplo.org")
+
+    expect {
+      organization = Organization.register_coordinator(name: "ONG Norte", email: "coordenador@exemplo.org")
+      account = Account.find_by!(email: "coordenador@exemplo.org")
+
+      expect(organization.accesses.find_by!(account: account).kind).to eq("coordinator")
+      expect(Invite.count).to eq(0)
+    }.to change(Organization, :count).by(1)
+      .and change(Account, :count).by(0)
+      .and change(Access, :count).by(1)
+      .and change { ActionMailer::Base.deliveries.size }.by(0)
+  end
+
+  it "register_coordinator rolls back when it raises before commit" do
+    expect {
+      Organization.register_coordinator(name: "ONG Sul", email: "nao-e-email")
+    }.to raise_error(ActiveRecord::RecordInvalid)
+
+    expect(Organization.find_by(name: "ONG Sul")).to be_nil
+    expect(Account.count).to eq(0)
+    expect(Access.count).to eq(0)
+    expect(ActionMailer::Base.deliveries).to be_empty
+  end
+
+  it "register_coordinator rejects a name that differs only by case" do
+    Organization.create!(name: "ONG Norte")
+    counts = [ Organization.count, Account.count, Access.count ]
+    deliveries = ActionMailer::Base.deliveries.size
+
+    [ "ONG Norte", "ong norte" ].each do |name|
+      expect {
+        Organization.register_coordinator(name: name, email: "outro#{name.length}@exemplo.org")
+      }.to raise_error(ActiveRecord::RecordNotUnique)
+    end
+
+    expect([ Organization.count, Account.count, Access.count ]).to eq(counts)
+    expect(ActionMailer::Base.deliveries.size).to eq(deliveries)
+    expect(Account.where("email LIKE ?", "outro%@exemplo.org")).to be_empty
+  end
+
+  it "register_coordinator rejects a padded uppercase name" do
+    Organization.create!(name: "ONG Norte")
+    counts = [ Organization.count, Account.count, Access.count ]
+    deliveries = ActionMailer::Base.deliveries.size
+
+    expect {
+      Organization.register_coordinator(name: "  ONG NORTE  ", email: "outro@exemplo.org")
+    }.to raise_error(ActiveRecord::RecordNotUnique)
+
+    expect([ Organization.count, Account.count, Access.count ]).to eq(counts)
+    expect(ActionMailer::Base.deliveries.size).to eq(deliveries)
+    expect(Account.find_by(email: "outro@exemplo.org")).to be_nil
   end
 end

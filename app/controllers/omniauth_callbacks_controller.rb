@@ -8,7 +8,7 @@ class OmniauthCallbacksController < ApplicationController
     case result.status
     when :signed_in
       sign_in(result.account, organization: result.organization)
-      redirect_to root_path, status: :found
+      redirect_to(result.organization ? root_path : "/administration", status: :found)
     when :denied
       redirect_to denied_path, status: :found
     else
