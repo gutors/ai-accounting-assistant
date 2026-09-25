@@ -9,7 +9,7 @@ class CoordinatorWelcomeMailer < ApplicationMailer
 
     mail(
       to: account.email,
-      subject: "Cadastro da organização #{organization.name}",
+      subject: "Fechamento Mensal - Cadastro da Organização #{organization.name}",
       content_type: "text/plain",
       body: sentence
     )

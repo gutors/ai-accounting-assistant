@@ -319,6 +319,38 @@ RSpec.describe Organization, type: :model do
     end
   end
 
+  it "coordinator_emails are ordered by accounts.email and omit submitters" do
+    organization = Organization.create!(name: "ONG Norte")
+    zoe = Account.create!(email: "zoe@exemplo.org")
+    ana = Account.create!(email: "ana@exemplo.org")
+    submitter = Account.create!(email: "submitter@exemplo.org")
+    Access.create!(account: zoe, organization: organization, kind: :coordinator)
+    Access.create!(account: ana, organization: organization, kind: :coordinator)
+    Access.create!(account: submitter, organization: organization, kind: :submitter)
+
+    expect(organization.coordinator_emails).to eq([ "ana@exemplo.org", "zoe@exemplo.org" ])
+  end
+
+  it "name_taken? ignores the organization being corrected" do
+    norte = Organization.create!(name: "ONG Norte")
+    Organization.create!(name: "ONG Sul")
+
+    expect(Organization.name_taken?("ong sul", except: norte)).to be(true)
+    expect(Organization.name_taken?("ong norte", except: norte)).to be(false)
+  end
+
+  it "updating onto a taken lower name raises RecordNotUnique and keeps the previous name" do
+    norte = Organization.create!(name: "ONG Norte")
+    sul = Organization.create!(name: "ONG Sul")
+
+    expect {
+      norte.update!(name: "ong sul")
+    }.to raise_error(ActiveRecord::RecordNotUnique)
+
+    expect(norte.reload.name).to eq("ONG Norte")
+    expect(sul.reload.name).to eq("ONG Sul")
+  end
+
   it "register_coordinator creates Organization Account and coordinator Access" do
     expect {
       organization = Organization.register_coordinator(name: "  ONG Norte  ", email: " Coordenador@Exemplo.ORG ")

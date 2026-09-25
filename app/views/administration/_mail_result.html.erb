@@ -1,0 +1,10 @@
+<% if @result_organization&.id == organization.id %>
+  <% if @result["mail_sent"] %>
+    <p class="w-full">E-mail enviado para <%= organization.coordinator_emails.first %>.</p>
+  <% else %>
+    <div class="w-full">
+      <%= render "shared/notice", message: "O cadastro foi gravado, mas o e-mail não saiu." %>
+      <%= button_to "Reenviar e-mail", "/administration/mail", method: :post, class: "mt-4 rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+    </div>
+  <% end %>
+<% end %>

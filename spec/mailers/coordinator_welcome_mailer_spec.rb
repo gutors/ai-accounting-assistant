@@ -20,7 +20,7 @@ RSpec.describe CoordinatorWelcomeMailer, type: :mailer do
       "A organização ONG Norte está pronta. Entre com o Google usando coordenador@exemplo.org, pelo botão Entrar com Google."
     )
     expect(message.from).to eq([ "venda@example.com" ])
-    expect(message.subject).to eq("Cadastro da organização ONG Norte")
+    expect(message.subject).to eq("Fechamento Mensal - Cadastro da Organização ONG Norte")
     expect(ActionMailer::Base.deliveries.size).to eq(1)
   end
 
@@ -38,6 +38,6 @@ RSpec.describe CoordinatorWelcomeMailer, type: :mailer do
       "A organização ONG Norte foi adicionada à sua conta. Entre com o Google usando coordenador@exemplo.org, pelo botão Entrar com Google."
     )
     expect(message.from).to eq([ "venda@example.com" ])
-    expect(message.subject).to eq("Cadastro da organização ONG Norte")
+    expect(message.subject).to eq("Fechamento Mensal - Cadastro da Organização ONG Norte")
   end
 end

@@ -27,12 +27,19 @@ class Organization < ApplicationRecord
     end
   end
 
-  def self.name_taken?(name)
+  def self.name_taken?(name, except: nil)
     stripped = name.to_s.strip
     return false if stripped.blank?
 
-    where("lower((name)::text) = ?", stripped.downcase).exists?
+    scope = where("lower((name)::text) = ?", stripped.downcase)
+    scope = scope.where.not(id: except.id) if except
+    scope.exists?
   end
+
+  def coordinator_emails
+    accesses.coordinator.joins(:account).order("accounts.email").pluck("accounts.email")
+  end
+
   validate :accountant_shape, on: :accountant
 
   def update_accountant(params)

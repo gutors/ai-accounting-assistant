@@ -1,0 +1,30 @@
+<div data-organization-id="<%= organization.id %>" class="mt-4 flex flex-wrap border-b border-rule pb-4">
+  <% if @name_organization&.id == organization.id && @name_phase == :confirm %>
+    <div class="w-full">
+      <p class="font-medium">Nome da organização</p>
+      <p><%= @name_value %></p>
+      <p>Nenhum e-mail será enviado.</p>
+    </div>
+    <div class="mt-4 flex flex-wrap items-center gap-3">
+      <%= button_to "Confirmar", "/administration/name/confirm", method: :post, params: { organization_id: organization.id }, class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+      <%= link_to "Corrigir", "/administration", class: "rounded border border-ink px-4 py-2 text-ink" %>
+    </div>
+  <% elsif @name_organization&.id == organization.id && @name_phase == :field %>
+    <%= form_with url: "/administration/name/continue", method: :post, class: "w-full" do %>
+      <%= label_tag "name_correction", "Nome da organização", class: "block font-medium" %>
+      <%= text_field_tag :name, @name_value, id: "name_correction", class: "mt-1 w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "organization" %>
+      <%= submit_tag "Continuar", class: "mt-4 rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+    <% end %>
+    <%= button_to "Cancelar", "/administration/name/cancel", method: :post, class: "text-caixa underline underline-offset-2" %>
+    <% organization.coordinator_emails.each do |email| %>
+      <p class="w-full"><%= email %></p>
+    <% end %>
+  <% else %>
+    <p class="w-full font-medium"><%= organization.name %></p>
+    <%= button_to "Corrigir nome", "/administration/name", method: :post, params: { organization_id: organization.id }, class: "text-caixa underline underline-offset-2" %>
+    <% organization.coordinator_emails.each do |email| %>
+      <p class="w-full"><%= email %></p>
+    <% end %>
+    <%= render "administration/mail_result", organization: organization %>
+  <% end %>
+</div>
