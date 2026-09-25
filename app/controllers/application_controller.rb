@@ -67,6 +67,19 @@ class ApplicationController < ActionController::Base
     @invites = @organization.invites.order(:email)
     @focusable_organizations = current_account.organizations.order(:name)
     @months = @organization.months.order(year_month: :desc)
+    @invite_mail_failed = session[:invite_mail_failed]
+  end
+
+  def deliver_invite(invite)
+    message = if invite.submitter?
+      InviteMailer.submitter_invite(invite)
+    else
+      InviteMailer.coordinator_invite(invite)
+    end
+    message.deliver_now
+    true
+  rescue StandardError
+    false
   end
 
   def load_month_page

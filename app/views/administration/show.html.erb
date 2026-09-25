@@ -5,16 +5,11 @@
     <%= render "shared/notice", message: message %>
   <% end %>
 
-  <% if @result && @organization %>
-    <% if @result["mail_sent"] %>
-      <p class="mt-4">E-mail enviado para <%= @coordinator_email %>.</p>
-    <% end %>
-    <%= render "administration/record", name: @organization.name, email: @coordinator_email %>
+  <% if @registration_confirmation %>
+    <%= render "administration/record", name: @pending["name"], email: @pending["email"] %>
     <div class="mt-6 flex flex-wrap items-center gap-3">
-      <% unless @result["mail_sent"] %>
-        <%= button_to "Reenviar e-mail", "/administration/mail", method: :post, class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
-      <% end %>
-      <%= button_to "Cadastrar outra organização", "/administration/another", method: :post, class: "rounded border border-ink px-4 py-2 text-ink" %>
+      <%= button_to "Confirmar", "/administration/confirm", method: :post, class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+      <%= button_to "Corrigir", "/administration/correct", method: :post, class: "rounded border border-ink px-4 py-2 text-ink" %>
     </div>
   <% else %>
     <p class="mt-4">Cadastre a organização e o coordenador que vai fechá-la.</p>
@@ -28,6 +23,13 @@
         <%= email_field_tag :email, @email, class: "mt-1 w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "email" %>
       </div>
       <%= submit_tag "Continuar", class: "mt-6 rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+    <% end %>
+  <% end %>
+
+  <% if @organizations.any? %>
+    <h2 class="mt-8 border-b border-rule pb-2 font-medium">Organizações</h2>
+    <% @organizations.each do |organization| %>
+      <%= render "administration/organization", organization: organization %>
     <% end %>
   <% end %>
 </div>

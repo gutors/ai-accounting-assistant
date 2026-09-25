@@ -27,12 +27,47 @@ class Organization < ApplicationRecord
     end
   end
 
-  def self.name_taken?(name)
+  def self.name_taken?(name, except: nil)
     stripped = name.to_s.strip
     return false if stripped.blank?
 
-    where("lower((name)::text) = ?", stripped.downcase).exists?
+    scope = where("lower((name)::text) = ?", stripped.downcase)
+    scope = scope.where.not(id: except.id) if except
+    scope.exists?
   end
+
+  def coordinator_emails
+    accesses.coordinator.joins(:account).order("accounts.email").pluck("accounts.email")
+  end
+
+  def replace_coordinator(access:, email:)
+    normalized = NormalizedEmail.normalize(email)
+    return access.account if access.account.email == normalized
+
+    transaction do
+      account = Account.find_by(email: normalized) || Account.create!(email: normalized)
+      Access.create!(account: account, organization: self, kind: :coordinator)
+      invites.where(email: normalized).delete_all
+      access.destroy!
+      account
+    end
+  end
+
+  def remove
+    if bank_accounts.exists? || months.exists? || supporting_documents.exists? ||
+        justifications.exists? || extra_exception_kinds.exists?
+      errors.add(:base, "Esta organização já tem dados de fechamento e não pode ser removida.")
+      return false
+    end
+
+    transaction do
+      Access.where(organization_id: id).delete_all
+      Invite.where(organization_id: id).delete_all
+      destroy!
+    end
+    true
+  end
+
   validate :accountant_shape, on: :accountant
 
   def update_accountant(params)

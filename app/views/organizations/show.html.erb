@@ -15,6 +15,9 @@
 
 <% if coordinator_on_focus? %>
   <h1 class="text-2xl leading-7 font-semibold tracking-[-0.01em]">Meses</h1>
+  <% if @invite_mail_failed %>
+    <%= render "shared/notice", message: "O convite foi gravado, mas o e-mail não saiu." %>
+  <% end %>
 
   <div class="mt-6 space-y-12">
     <section>
@@ -95,11 +98,14 @@
           <% @invites.each do |invite| %>
             <li class="flex items-center justify-between gap-3 border-b border-rule py-2">
               <span class="min-w-0 break-all"><%= invite.email %></span>
-              <% if invite.submitter? %>
-                <%= button_to "Cancelar", "/submitter_invites/#{invite.id}", method: :delete, class: "text-margem underline underline-offset-2" %>
-              <% else %>
-                <%= button_to "Cancelar", "/coordinator_invites/#{invite.id}", method: :delete, class: "text-margem underline underline-offset-2" %>
-              <% end %>
+              <span class="flex flex-wrap items-center gap-3">
+                <%= button_to "Reenviar e-mail", "/#{invite.submitter? ? "submitter" : "coordinator"}_invites/#{invite.id}/mail", method: :post, class: "text-caixa underline underline-offset-2" %>
+                <% if invite.submitter? %>
+                  <%= button_to "Cancelar", "/submitter_invites/#{invite.id}", method: :delete, class: "text-margem underline underline-offset-2" %>
+                <% else %>
+                  <%= button_to "Cancelar", "/coordinator_invites/#{invite.id}", method: :delete, class: "text-margem underline underline-offset-2" %>
+                <% end %>
+              </span>
             </li>
           <% end %>
         </ul>
