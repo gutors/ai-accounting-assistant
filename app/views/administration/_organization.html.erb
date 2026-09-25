@@ -21,12 +21,47 @@
     <% organization.coordinator_emails.each do |email| %>
       <p class="w-full"><%= email %></p>
     <% end %>
+  <% elsif @email_organization&.id == organization.id && @email_phase == :confirm %>
+    <div class="w-full border-b border-rule pb-4">
+      <p class="font-medium">Nome da organização</p>
+      <p><%= organization.name %></p>
+    </div>
+    <div class="mt-4 w-full">
+      <p class="font-medium">E-mail do coordenador</p>
+      <p><%= @email_value %></p>
+    </div>
+    <div class="mt-4 flex flex-wrap items-center gap-3">
+      <%= button_to "Confirmar", "/administration/email/confirm", method: :post, params: { organization_id: organization.id }, class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+      <%= link_to "Corrigir", "/administration", class: "rounded border border-ink px-4 py-2 text-ink" %>
+    </div>
+  <% elsif @email_organization&.id == organization.id && @email_phase == :field %>
+    <p class="w-full font-medium"><%= organization.name %></p>
+    <%= form_with url: "/administration/email/continue", method: :post, id: "email_correction_form", class: "w-full" do %>
+      <%= label_tag "email_correction", "E-mail do coordenador", class: "block font-medium" %>
+      <%= email_field_tag :email, @email_value, id: "email_correction", class: "mt-1 w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "email" %>
+    <% end %>
+    <div class="mt-4 flex w-full flex-wrap items-center gap-3">
+      <%= submit_tag "Continuar", form: "email_correction_form", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+      <%= button_to "Cancelar", "/administration/email/cancel", method: :post, class: "text-caixa underline underline-offset-2" %>
+    </div>
+    <% organization.coordinator_emails.each do |email| %>
+      <% next if email == @email_from %>
+      <p class="w-full"><%= email %></p>
+      <%= button_to "Corrigir", "/administration/email", method: :post, params: { organization_id: organization.id, email: email }, class: "text-caixa underline underline-offset-2" %>
+    <% end %>
   <% else %>
     <p class="w-full font-medium"><%= organization.name %></p>
     <%= button_to "Corrigir nome", "/administration/name", method: :post, params: { organization_id: organization.id }, class: "text-caixa underline underline-offset-2" %>
     <% organization.coordinator_emails.each do |email| %>
       <p class="w-full"><%= email %></p>
+      <%= button_to "Corrigir", "/administration/email", method: :post, params: { organization_id: organization.id, email: email }, class: "text-caixa underline underline-offset-2" %>
     <% end %>
+    <%= button_to "Remover", "/administration", method: :delete, params: { organization_id: organization.id }, form: { data: { turbo_confirm: "Remover a organização #{organization.name}?" } }, class: "text-margem underline underline-offset-2" %>
     <%= render "administration/mail_result", organization: organization %>
+    <% if @removal_organization&.id == organization.id %>
+      <div class="w-full">
+        <%= render "shared/notice", message: @removal_organization.errors[:base].first %>
+      </div>
+    <% end %>
   <% end %>
 </div>

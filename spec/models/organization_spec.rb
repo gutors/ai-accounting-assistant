@@ -421,4 +421,151 @@ RSpec.describe Organization, type: :model do
     expect(ActionMailer::Base.deliveries.size).to eq(deliveries)
     expect(Account.find_by(email: "outro@exemplo.org")).to be_nil
   end
+
+  it "replace_coordinator keeps the Access when the email is unchanged" do
+    organization = Organization.create!(name: "ONG Norte")
+    account = Account.create!(email: "coordenador@exemplo.org")
+    access = Access.create!(account: account, organization: organization, kind: :coordinator)
+
+    expect {
+      result = organization.replace_coordinator(access: access, email: " Coordenador@Exemplo.ORG ")
+      expect(result).to eq(account)
+    }.not_to change(Access, :count)
+
+    expect(account.reload.email).to eq("coordenador@exemplo.org")
+    expect(organization.accesses.coordinator.find_by!(account: account)).to eq(access)
+  end
+
+  it "replace_coordinator inserts the new Access then destroys the old and deletes the matching Invite" do
+    norte = Organization.create!(name: "ONG Norte")
+    sul = Organization.create!(name: "ONG Sul")
+    old = Account.create!(email: "coordenador@exemplo.org")
+    access = Access.create!(account: old, organization: norte, kind: :coordinator)
+    Invite.create!(organization: norte, email: "novo@exemplo.org", kind: :coordinator)
+    Invite.create!(organization: sul, email: "novo@exemplo.org", kind: :coordinator)
+
+    expect {
+      norte.replace_coordinator(access: access, email: " Novo@Exemplo.ORG ")
+    }.to change(Account, :count).by(1)
+
+    expect(old.reload.email).to eq("coordenador@exemplo.org")
+    expect(norte.accesses.coordinator.count).to eq(1)
+    expect(norte.accesses.coordinator.first.account.email).to eq("novo@exemplo.org")
+    expect(Invite.find_by(organization: norte, email: "novo@exemplo.org")).to be_nil
+    expect(Invite.find_by(organization: sul, email: "novo@exemplo.org")).to be_present
+    expect(ActionMailer::Base.deliveries).to be_empty
+  end
+
+  it "replace_coordinator reuses an existing Account" do
+    sul_account = Account.create!(email: "sul@exemplo.org")
+    sul = Organization.create!(name: "ONG Sul")
+    Access.create!(account: sul_account, organization: sul, kind: :coordinator)
+    norte = Organization.create!(name: "ONG Norte")
+    old = Account.create!(email: "coordenador@exemplo.org")
+    access = Access.create!(account: old, organization: norte, kind: :coordinator)
+
+    expect {
+      norte.replace_coordinator(access: access, email: "sul@exemplo.org")
+    }.not_to change(Account, :count)
+
+    expect(old.reload.email).to eq("coordenador@exemplo.org")
+    expect(norte.accesses.coordinator.first.account).to eq(sul_account)
+  end
+
+  it "replace_coordinator rolls back when the write raises before commit" do
+    norte = Organization.create!(name: "ONG Norte")
+    old = Account.create!(email: "coordenador@exemplo.org")
+    access = Access.create!(account: old, organization: norte, kind: :coordinator)
+    Invite.create!(organization: norte, email: "novo@exemplo.org", kind: :coordinator)
+
+    allow(Access).to receive(:create!).and_raise(ActiveRecord::RecordInvalid.new(Access.new))
+
+    expect {
+      norte.replace_coordinator(access: access, email: "novo@exemplo.org")
+    }.to raise_error(ActiveRecord::RecordInvalid)
+
+    expect(Access.count).to eq(1)
+    expect(Access.find(access.id)).to eq(access)
+    expect(Account.find_by(email: "novo@exemplo.org")).to be_nil
+    expect(Invite.find_by(organization: norte, email: "novo@exemplo.org")).to be_present
+    expect(ActionMailer::Base.deliveries).to be_empty
+  end
+
+  it "remove deletes Accesses and Invites including the last coordinator" do
+    norte = Organization.create!(name: "ONG Norte")
+    coordinator = Account.create!(email: "coordenador@exemplo.org")
+    submitter = Account.create!(email: "submitter@exemplo.org")
+    Access.create!(account: coordinator, organization: norte, kind: :coordinator)
+    Access.create!(account: submitter, organization: norte, kind: :submitter)
+    Invite.create!(organization: norte, email: "pessoa@exemplo.org", kind: :coordinator)
+
+    expect(norte.remove).to be(true)
+
+    expect(Organization.find_by(id: norte.id)).to be_nil
+    expect(Access.where(organization_id: norte.id)).to be_empty
+    expect(Invite.where(organization_id: norte.id)).to be_empty
+    expect(Account.find(coordinator.id)).to eq(coordinator)
+    expect(Account.find(submitter.id)).to eq(submitter)
+  end
+
+  it "remove refuses when a BankAccount exists" do
+    norte = Organization.create!(name: "ONG Norte")
+    Access.create!(account: Account.create!(email: "coordenador@exemplo.org"), organization: norte, kind: :coordinator)
+    BankAccount.create_for(organization: norte, name: "Conta Principal", compe: "001")
+
+    expect(norte.remove).to be(false)
+    expect(norte.errors[:base]).to eq([ "Esta organização já tem dados de fechamento e não pode ser removida." ])
+    expect(Organization.find(norte.id)).to eq(norte)
+    expect(norte.accesses.count).to eq(1)
+    expect(BankAccount.where(organization: norte).count).to eq(1)
+  end
+
+  it "remove refuses when a Month exists" do
+    norte = Organization.create!(name: "ONG Norte")
+    Access.create!(account: Account.create!(email: "coordenador@exemplo.org"), organization: norte, kind: :coordinator)
+    Month.open(organization: norte, year_month: "2026-05")
+
+    expect(norte.remove).to be(false)
+    expect(Organization.find(norte.id)).to eq(norte)
+    expect(norte.months.count).to eq(1)
+  end
+
+  it "remove refuses when a SupportingDocument exists" do
+    norte = Organization.create!(name: "ONG Norte")
+    account = Account.create!(email: "coordenador@exemplo.org")
+    Access.create!(account: account, organization: norte, kind: :coordinator)
+    SupportingDocument.create!(
+      organization: norte,
+      account: account,
+      kind: "recibo",
+      amount_cents: 100,
+      document_on: Date.new(2026, 5, 11),
+      payee: "Padaria"
+    )
+
+    expect(norte.remove).to be(false)
+    expect(Organization.find(norte.id)).to eq(norte)
+    expect(norte.supporting_documents.count).to eq(1)
+  end
+
+  it "remove refuses when a Justification exists" do
+    norte = Organization.create!(name: "ONG Norte")
+    account = Account.create!(email: "coordenador@exemplo.org")
+    Access.create!(account: account, organization: norte, kind: :coordinator)
+    Justification.create!(organization: norte, account: account, amount_cents: 100)
+
+    expect(norte.remove).to be(false)
+    expect(Organization.find(norte.id)).to eq(norte)
+    expect(norte.justifications.count).to eq(1)
+  end
+
+  it "remove refuses when an ExtraExceptionKind exists" do
+    norte = Organization.create!(name: "ONG Norte")
+    Access.create!(account: Account.create!(email: "coordenador@exemplo.org"), organization: norte, kind: :coordinator)
+    ExtraExceptionKind.create_for(organization: norte, name: "Doação")
+
+    expect(norte.remove).to be(false)
+    expect(Organization.find(norte.id)).to eq(norte)
+    expect(norte.extra_exception_kinds.count).to eq(1)
+  end
 end

@@ -19,6 +19,23 @@ RSpec.describe "Submitter invites", type: :request do
     expect(response.body).to include("guest@example.com")
   end
 
+  it "POST /submitter_invites delivers the submitter invite" do
+    account, organization = plant_coordinator(organization_name: "ONG Norte")
+    sign_in_as(account, organization: organization)
+    ActionMailer::Base.deliveries.clear
+
+    with_env("MAIL_FROM" => "venda@example.com") do
+      post "/submitter_invites", params: { email: "docs@exemplo.org" }
+    end
+
+    expect(Invite.find_by!(email: "docs@exemplo.org", organization: organization).kind).to eq("submitter")
+    message = ActionMailer::Base.deliveries.last
+    expect(message.subject).to eq("Fechamento Mensal - Convite para ONG Norte")
+    expect(message.body.decoded).to eq(
+      "Você foi convidado a enviar documentos da organização ONG Norte. Entre com o Google usando docs@exemplo.org, pelo botão Entrar com Google."
+    )
+  end
+
   it "rejected submitter invite emails return 422" do
     account, organization = plant_coordinator(email: "coord@example.com")
     standing_coord = Account.create!(email: "standing-coord@example.com", google_uid: "uid-standing-coord")
@@ -32,19 +49,21 @@ RSpec.describe "Submitter invites", type: :request do
       "standing-coord@example.com",
       "standing-sub@example.com",
       "pending@example.com",
-      "not-an-email"
+      "nao-e-email"
     ].each do |email|
+      ActionMailer::Base.deliveries.clear
       expect do
         post "/submitter_invites", params: { email: email }
       end.not_to change(Invite, :count)
       expect(response).to have_http_status(:unprocessable_content)
+      expect(ActionMailer::Base.deliveries).to be_empty
     end
   end
 
   it "unauthenticated POST /submitter_invites responds 302 to /login" do
     expect do
       post "/submitter_invites", params: { email: "guest@example.com" }
-    end.not_to change(Invite, :count)
+    end.not_to change { [ Invite.count, ActionMailer::Base.deliveries.size ] }
 
     expect(response).to have_http_status(:found)
     expect(response).to redirect_to("/login")

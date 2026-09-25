@@ -3,16 +3,13 @@ class AdministrationController < ApplicationController
   before_action :prepare_administration
 
   def show
-    load_registration
-    load_name_draft
-    return unless request.get? && @name_phase == :confirm
-
-    session[:administration_name]["confirming"] = false
-    @name_phase = :field
+    load_page
+    demote_get_confirmations
   end
 
   def create
     session.delete(:administration_name)
+    session.delete(:administration_email)
     @name = params[:name].to_s
     @email = params[:email].to_s
     @notices = registration_notices(@name, @email)
@@ -39,12 +36,10 @@ class AdministrationController < ApplicationController
     end
 
     organization = Organization.register_coordinator(name: pending["name"], email: pending["email"])
+    account = Account.find_by!(email: pending["email"])
     session.delete(:administration_pending)
     session[:organization_id] = organization.id if current_account.email == pending["email"]
-    session[:administration_result] = {
-      "organization_id" => organization.id,
-      "mail_sent" => deliver_welcome(organization)
-    }
+    session[:administration_result] = registration_result_for(organization, account, deliver_welcome(organization, account))
     redirect_to administration_path, status: :found
   rescue ActiveRecord::RecordNotUnique => error
     raise unless error.message.include?("index_organizations_on_lower_name")
@@ -62,11 +57,14 @@ class AdministrationController < ApplicationController
       return
     end
 
-    organization = Organization.find(result["organization_id"])
-    session[:administration_result] = {
-      "organization_id" => organization.id,
-      "mail_sent" => deliver_welcome(organization)
-    }
+    organization = Organization.find_by(id: result["organization_id"])
+    account = Account.find_by(email: result["email"])
+    unless organization && account
+      redirect_to administration_path, status: :found
+      return
+    end
+
+    session[:administration_result] = result.merge("mail_sent" => deliver_welcome(organization, account))
     redirect_to administration_path, status: :found
   end
 
@@ -83,13 +81,13 @@ class AdministrationController < ApplicationController
     end
 
     session.delete(:administration_pending)
+    session.delete(:administration_email)
     session[:administration_name] = {
       "organization_id" => organization.id,
       "name" => organization.name,
       "confirming" => false
     }
-    load_registration
-    load_name_draft
+    load_page
     render :show
   end
 
@@ -107,8 +105,7 @@ class AdministrationController < ApplicationController
       "name" => @notices.any? ? typed : typed.strip,
       "confirming" => @notices.empty?
     }
-    load_registration
-    load_name_draft
+    load_page
     status = @notices.any? ? :unprocessable_content : :ok
     render :show, status: status
   end
@@ -139,9 +136,94 @@ class AdministrationController < ApplicationController
 
     session[:administration_name]["confirming"] = false
     @notices = [ "Já existe uma organização com esse nome." ]
-    load_registration
-    load_name_draft
+    load_page
     render :show, status: :unprocessable_content
+  end
+
+  def email_open
+    organization = Organization.find_by(id: params[:organization_id])
+    access = coordinator_access_for(organization, params[:email])
+    unless access
+      head :not_found
+      return
+    end
+
+    session.delete(:administration_pending)
+    session.delete(:administration_name)
+    session[:administration_email] = {
+      "organization_id" => organization.id,
+      "from_email" => access.account.email,
+      "email" => access.account.email,
+      "confirming" => false
+    }
+    load_page
+    render :show
+  end
+
+  def email_continue
+    organization = email_draft_organization
+    unless organization
+      redirect_to administration_path, status: :found
+      return
+    end
+
+    typed = params[:email].to_s
+    @notices = email_notices(typed, organization, except_email: email_draft_session["from_email"])
+    session[:administration_email] = email_draft_session.merge(
+      "email" => @notices.any? ? typed : NormalizedEmail.normalize(typed),
+      "confirming" => @notices.empty?
+    )
+    load_page
+    status = @notices.any? ? :unprocessable_content : :ok
+    render :show, status: status
+  end
+
+  def email_cancel
+    session.delete(:administration_email)
+    redirect_to administration_path, status: :found
+  end
+
+  def email_confirm
+    organization = Organization.find_by(id: params[:organization_id])
+    unless organization
+      head :not_found
+      return
+    end
+
+    draft = email_draft_session
+    access = coordinator_access_for(organization, draft&.dig("from_email"))
+    unless email_confirmation_for?(draft, organization) && access
+      redirect_to administration_path, status: :found
+      return
+    end
+
+    account = organization.replace_coordinator(access: access, email: draft["email"])
+    session.delete(:administration_email)
+    session[:organization_id] = organization.id if current_account.email == account.email
+    session[:administration_result] = {
+      "organization_id" => organization.id,
+      "mail_sent" => deliver_welcome(organization, account),
+      "email" => account.email,
+      "kind" => "correction"
+    }
+    redirect_to administration_path, status: :found
+  end
+
+  def destroy
+    organization = Organization.find_by(id: params[:organization_id])
+    unless organization
+      head :not_found
+      return
+    end
+
+    unless organization.remove
+      @removal_organization = organization
+      load_page
+      render :show, status: :unprocessable_content
+      return
+    end
+
+    redirect_to administration_path, status: :found
   end
 
   private
@@ -155,6 +237,25 @@ class AdministrationController < ApplicationController
     @notices = []
     @name = ""
     @email = ""
+  end
+
+  def load_page
+    load_registration
+    load_name_draft
+    load_email_draft
+  end
+
+  def demote_get_confirmations
+    return unless request.get?
+
+    if @name_phase == :confirm
+      session[:administration_name]["confirming"] = false
+      @name_phase = :field
+    end
+    return unless @email_phase == :confirm
+
+    session[:administration_email]["confirming"] = false
+    @email_phase = :field
   end
 
   def load_registration
@@ -177,8 +278,26 @@ class AdministrationController < ApplicationController
     @name_phase = draft["confirming"] ? :confirm : :field
   end
 
+  def load_email_draft
+    draft = email_draft_session
+    @email_organization = Organization.find_by(id: draft["organization_id"]) if draft
+    unless @email_organization
+      @email_phase = nil
+      return
+    end
+
+    @email_from = draft["from_email"].to_s
+    @email_value = draft["email"].to_s
+    @email_phase = draft["confirming"] ? :confirm : :field
+  end
+
   def name_draft_organization
     draft = name_draft_session
+    Organization.find_by(id: draft["organization_id"]) if draft
+  end
+
+  def email_draft_organization
+    draft = email_draft_session
     Organization.find_by(id: draft["organization_id"]) if draft
   end
 
@@ -187,8 +306,20 @@ class AdministrationController < ApplicationController
       draft["organization_id"].to_s == organization.id.to_s
   end
 
+  def email_confirmation_for?(draft, organization)
+    draft && draft["confirming"] && draft["email"].present? &&
+      draft["organization_id"].to_s == organization.id.to_s
+  end
+
   def name_draft_session
     draft = session[:administration_name]
+    return unless draft.is_a?(Hash) && draft["organization_id"].present?
+
+    draft
+  end
+
+  def email_draft_session
+    draft = session[:administration_email]
     return unless draft.is_a?(Hash) && draft["organization_id"].present?
 
     draft
@@ -208,6 +339,24 @@ class AdministrationController < ApplicationController
     result
   end
 
+  def registration_result_for(organization, account, mail_sent)
+    {
+      "organization_id" => organization.id,
+      "mail_sent" => mail_sent,
+      "email" => account.email,
+      "kind" => "registration"
+    }
+  end
+
+  def coordinator_access_for(organization, email)
+    return unless organization
+
+    normalized = NormalizedEmail.normalize(email)
+    return if normalized.blank?
+
+    organization.accesses.coordinator.joins(:account).find_by(accounts: { email: normalized })
+  end
+
   def registration_notices(name, email)
     notices = []
     notices << "Informe o nome da organização." if name.strip.blank?
@@ -225,8 +374,23 @@ class AdministrationController < ApplicationController
     notices
   end
 
-  def deliver_welcome(organization)
-    CoordinatorWelcomeMailer.welcome(organization).deliver_now
+  def email_notices(email, organization, except_email:)
+    notices = []
+    unless NormalizedEmail.valid?(email)
+      notices << "Informe um e-mail válido."
+      return notices
+    end
+
+    normalized = NormalizedEmail.normalize(email)
+    except = NormalizedEmail.normalize(except_email)
+    if normalized != except && organization.accesses.joins(:account).exists?(accounts: { email: normalized })
+      notices << "Esse e-mail já tem acesso a esta organização."
+    end
+    notices
+  end
+
+  def deliver_welcome(organization, account)
+    CoordinatorWelcomeMailer.welcome(organization, account).deliver_now
     true
   rescue StandardError
     false

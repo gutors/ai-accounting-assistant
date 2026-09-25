@@ -201,4 +201,24 @@ RSpec.describe "Organization home", type: :request do
     expect(page_doc(response.body).at_css('main a[href="/supporting_documents"]')).not_to be_nil
     expect(response.body).not_to include("Meses")
   end
+
+  it "GET / does not deliver mail for an already pending Invite" do
+    account, organization = plant_coordinator
+    Invite.create!(organization: organization, email: "guest@example.com", kind: :coordinator)
+    sign_in_as(account, organization: organization)
+    ActionMailer::Base.deliveries.clear
+
+    expect { get "/" }.not_to change { ActionMailer::Base.deliveries.size }
+  end
+
+  it "submitter home omits invite resend" do
+    account, organization = plant_submitter
+    sign_in_as(account, organization: organization)
+
+    get "/"
+
+    expect(page_doc(response.body).at_css("h1").text.strip).to eq("Início")
+    expect(response.body).not_to include("Reenviar e-mail")
+    expect(response.body).not_to include("O convite foi gravado, mas o e-mail não saiu.")
+  end
 end

@@ -14,13 +14,20 @@ Rails.application.routes.draw do
   post "/administration/name/continue", to: "administration#name_continue"
   post "/administration/name/cancel", to: "administration#name_cancel"
   post "/administration/name/confirm", to: "administration#name_confirm"
+  post "/administration/email/continue", to: "administration#email_continue"
+  post "/administration/email/cancel", to: "administration#email_cancel"
+  post "/administration/email/confirm", to: "administration#email_confirm"
+  post "/administration/email", to: "administration#email_open"
+  delete "/administration", to: "administration#destroy"
 
   get "/auth/google_oauth2/callback", to: "omniauth_callbacks#google_oauth2"
   get "/auth/failure", to: "omniauth_callbacks#failure"
 
   post "/coordinator_invites", to: "coordinator_invites#create"
+  post "/coordinator_invites/:id/mail", to: "coordinator_invites#mail"
   delete "/coordinator_invites/:id", to: "coordinator_invites#destroy"
   post "/submitter_invites", to: "submitter_invites#create"
+  post "/submitter_invites/:id/mail", to: "submitter_invites#mail"
   delete "/submitter_invites/:id", to: "submitter_invites#destroy"
 
   delete "/accesses/:id", to: "accesses#destroy"
