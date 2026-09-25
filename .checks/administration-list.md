@@ -239,3 +239,5 @@ Proof: `bin/rspec spec/requests/administration_spec.rb -e "a valid registration 
 ## Handoff
 
 S1 ~11k + S2 ~9k + S3 ~1k + S4 ~11k + S5 ~7k = ~39k token floor, counting shared files again. Read once, the controller, the administration views, the request spec, the organization model, and the mailer are under 30k. The design was opened during extract (~5k). All five slices stay under 150k, and they share `AdministrationController`. No split. One batch.
+
+Batch closed. Checks C1–C38 are in `914f965`. No mid-build clarification. Nothing abandoned.
