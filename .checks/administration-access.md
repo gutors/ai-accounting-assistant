@@ -69,7 +69,7 @@ Email-correction posts, which the task left unnamed: `POST /administration/email
 
 ### S1 - Email controls · 4 files · 52 KB · ~13k
 
-**C1** - Given the list from `.tasks/administration-list.md` is showing `ONG Norte` with coordinators `ana@exemplo.org` and `zoe@exemplo.org` and a submitter `submitter@exemplo.org`, when `GET /administration` runs, then each email has `Corrigir` (`text-caixa underline underline-offset-2`) and the organization has `Remover` (`text-margem underline underline-offset-2`). `Corrigir nome` is still there. The body does not include `submitter@exemplo.org`. Those actions sit in a `flex-wrap` group inside the `max-w-[28rem]` column. Emails stay ordered by `accounts.email` ascending
+**C1** - Given the list from `.tasks/administration-list.md` is showing `ONG Norte` with coordinators `ana@exemplo.org` and `zoe@exemplo.org` and a submitter `submitter@exemplo.org`, when `GET /administration` runs, then each email has `Corrigir` (`text-caixa underline underline-offset-2`) and the organization has `Remover` (`text-margem underline underline-offset-2`). `Corrigir nome` is still there. The body does not include `submitter@exemplo.org`. Those actions sit in a `flex-wrap` group inside the `max-w-[28rem]` column. In that row the order is the name, `Corrigir nome`, `ana@exemplo.org`, `Corrigir`, `zoe@exemplo.org`, `Corrigir`, `Remover`. Emails stay ordered by `accounts.email` ascending
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "GET /administration shows Corrigir on each coordinator email and Remover"`
 
 **C2** - Given no signed-in Account, when the request starts or confirms an email correction or removes an organization, then the response is `302` to `/login`, and `Organization.count`, `Account.count`, `Access.count`, `Invite.count`, and `ActionMailer::Base.deliveries` are unchanged
@@ -80,7 +80,7 @@ Proof: `bin/rspec spec/requests/administration_spec.rb -e "non-administrator and
 
 ### S2 - Email correction · 8 files · 84 KB · ~21k
 
-**C4** - Given `ONG Norte` has coordinators `ana@exemplo.org` and `zoe@exemplo.org`, when `Corrigir` is used on `zoe@exemplo.org`, then that address is in one field, the name and `ana@exemplo.org` with its `Corrigir` stay, `Continuar` is `bg-caixa`, `Cancelar` is `text-caixa underline underline-offset-2`, nothing is written, and no message is delivered
+**C4** - Given `ONG Norte` has coordinators `ana@exemplo.org` and `zoe@exemplo.org`, when `Corrigir` is used on `zoe@exemplo.org`, then that address is in one field, the name and `ana@exemplo.org` with its `Corrigir` stay, `Continuar` is `bg-caixa`, `Cancelar` is `text-caixa underline underline-offset-2`, `Continuar` then `Cancelar` sit in one `flex-wrap` group, nothing is written, and no message is delivered
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "Corrigir opens the coordinator email"`
 
 **C5** - Given that field is open with a typed value `novo@exemplo.org`, when `Cancelar` is used, then the row is at rest with `zoe@exemplo.org`, Access and Account rows are unchanged, and no message is delivered
@@ -102,7 +102,7 @@ Proof: `bin/rspec spec/requests/administration_spec.rb -e "the same coordinator 
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "confirming the same coordinator email sends the welcome and writes no Access"`
 Proof: `bin/rspec spec/models/organization_spec.rb -e "replace_coordinator keeps the Access when the email is unchanged"`
 
-**C11** - Given `Continuar` on `zoe@exemplo.org` submitted ` Novo@Exemplo.ORG ` and `ana@exemplo.org` is the other coordinator, when the confirmation is shown, then the status is `200`, it shows the stored name `ONG Norte` and `novo@exemplo.org`, `Confirmar` and `Corrigir`, it does not show `ana@exemplo.org`, and nothing is written
+**C11** - Given `Continuar` on `zoe@exemplo.org` submitted ` Novo@Exemplo.ORG ` and `ana@exemplo.org` is the other coordinator, when the confirmation is shown, then the status is `200`, it shows label `Nome da organização` then the stored name `ONG Norte`, then `E-mail do coordenador` then `novo@exemplo.org`, then `Confirmar` then `Corrigir`, it does not show `ana@exemplo.org`, and nothing is written
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "a new coordinator email asks for confirmation"`
 
 **C12** - Given that confirmation, when `Corrigir` is used, then the field shows `novo@exemplo.org`, nothing is written, and no message is delivered
@@ -303,4 +303,6 @@ Proof: `bin/rspec spec/requests/coordinator_invites_spec.rb -e "a later invite s
 S1 ~13k + S2 ~21k + S3 ~13k + S4 ~20k + S5 ~7k = ~74k token floor, counting shared files again. Read once, the administration controller, the administration views, the request spec, the organization model, the invite controllers, the home, and the mailers are under 40k. The design was opened during extract (~5k). All five slices stay under 150k. S5 enters the home, a different surface, but still fits. No split. One batch.
 
 Batch closed. Checks C1–C52 are in `d79a538`. No mid-build clarification. Abandoned: mutating `session[:administration_result]` in a request spec does not change the next request's cookie, so C39 deletes the organization instead; `association#delete_all` nullified `accesses.organization_id`, so removal uses `Access.where(organization_id:).delete_all`; a blank `MAIL_FROM` raises on `deliver_now`, so successful invite sends set it.
+
+Round 2 after FAIL: C1, C4, and C11 now claim and prove the designed confirmation labels and interleaved rest-row Corrigir. No mid-build clarification. Abandoned: none.
 

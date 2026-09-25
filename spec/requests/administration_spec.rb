@@ -1048,13 +1048,19 @@ RSpec.describe "Administration", type: :request do
       row = organization_row(norte)
       expect(column.css("[data-organization-id='#{norte.id}']").size).to eq(1)
       expect(row["class"]).to include("flex-wrap")
+      expect(row.css("p, button").map { |node| node.text.strip }).to eq([
+        "ONG Norte",
+        "Corrigir nome",
+        "ana@exemplo.org",
+        "Corrigir",
+        "zoe@exemplo.org",
+        "Corrigir",
+        "Remover"
+      ])
       buttons = row.css("button").map { |button| button.text.strip }
       expect(buttons).to include("Corrigir nome")
       expect(buttons.count("Corrigir")).to eq(2)
       expect(buttons).to include("Remover")
-      html = row.inner_html
-      expect(html.index("Corrigir nome")).to be < html.index("ana@exemplo.org")
-      expect(html.index("ana@exemplo.org")).to be < html.index("zoe@exemplo.org")
       corrects = row.css("button").select { |button| button.text.strip == "Corrigir" }
       expect(corrects.size).to eq(2)
       corrects.each do |button|
@@ -1062,14 +1068,12 @@ RSpec.describe "Administration", type: :request do
         expect(button["class"]).to include("underline")
         expect(button["class"]).to include("underline-offset-2")
       end
-      expect(html.index("ana@exemplo.org")).to be < html.index("zoe@exemplo.org")
       ana_correct = corrects.first
       expect(ana_correct.ancestors("form").first["action"]).to eq("/administration/email")
       remover = row.css("button").find { |button| button.text.strip == "Remover" }
       expect(remover["class"]).to include("text-margem")
       expect(remover["class"]).to include("underline")
       expect(remover["class"]).to include("underline-offset-2")
-      expect(html.index("zoe@exemplo.org")).to be < html.index("Remover")
       form = remover.ancestors("form").first
       expect(form["data-turbo-confirm"]).to eq("Remover a organização ONG Norte?")
       expect(form["action"]).to eq("/administration")
@@ -1100,6 +1104,9 @@ RSpec.describe "Administration", type: :request do
       expect(submit["class"]).to include("bg-caixa")
       group = submit.parent
       expect(group["class"]).to include("flex-wrap")
+      expect(group.css("input[type='submit'], button").map { |node| node["value"] || node.text.strip }).to eq([
+        "Continuar", "Cancelar"
+      ])
       cancel = row.css("button").find { |button| button.text.strip == "Cancelar" }
       expect(cancel["class"]).to include("text-caixa")
       expect(cancel["class"]).to include("underline")
@@ -1240,8 +1247,14 @@ RSpec.describe "Administration", type: :request do
 
       expect(response).to have_http_status(:ok)
       row = organization_row(norte)
-      expect(row.text).to include("ONG Norte")
-      expect(row.text).to include("novo@exemplo.org")
+      html = row.inner_html
+      expect(html.index("Nome da organização")).to be < html.index("ONG Norte")
+      expect(html.index("ONG Norte")).to be < html.index("E-mail do coordenador")
+      expect(html.index("E-mail do coordenador")).to be < html.index("novo@exemplo.org")
+      name_label = row.css("p").find { |node| node.text.strip == "Nome da organização" }
+      expect(name_label.next_element.text.strip).to eq("ONG Norte")
+      email_label = row.css("p").find { |node| node.text.strip == "E-mail do coordenador" }
+      expect(email_label.next_element.text.strip).to eq("novo@exemplo.org")
       expect(row.text).not_to include("ana@exemplo.org")
       group = row.css("div").find { |node| node["class"].to_s.include?("flex-wrap") && node.text.include?("Confirmar") }
       expect(group.css("button, a").map { |node| node.text.strip }).to eq([ "Confirmar", "Corrigir" ])
