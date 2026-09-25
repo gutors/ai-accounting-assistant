@@ -579,6 +579,25 @@ RSpec.describe "Administration", type: :request do
     end
   end
 
+  it "taken name and invalid email re-render both notices" do
+    listed = Organization.create!(name: "ONG Norte")
+    as_seller do
+      expect {
+        post "/administration", params: { name: "  ong norte  ", email: "nao-e-email" }
+      }.not_to change { [ Organization.count, Account.count, Access.count ] }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(page.css("[data-notice='error']").map { |notice| notice.text.strip }).to eq([
+        "Informe um e-mail válido.",
+        "Já existe uma organização com esse nome."
+      ])
+      expect(page.at_css('input[name="name"]')["value"]).to eq("  ong norte  ")
+      expect(page.at_css('input[name="email"]')["value"]).to eq("nao-e-email")
+      expect(organization_row(listed).text).to include("ONG Norte")
+      expect(session[:administration_pending]).to be_nil
+    end
+  end
+
   it "GET /administration lists organizations in stored-name order" do
     _account, sul = plant_coordinator(email: "sul@exemplo.org", organization_name: "ONG Sul", google_uid: "uid-sul")
     norte = Organization.create!(name: "ONG Norte")
@@ -604,12 +623,17 @@ RSpec.describe "Administration", type: :request do
       form_index = children.index { |node| node.name == "form" }
       heading_index = children.index { |node| node.name == "h2" }
       expect(form_index).to be < heading_index
-      expect(children[heading_index].text.strip).to eq("Organizações")
+      heading = children[heading_index]
+      expect(heading.text.strip).to eq("Organizações")
+      expect(heading["class"]).to include("border-b")
+      expect(heading["class"]).to include("border-rule")
       expect(page.css("[data-organization-id]").map { |node| node["data-organization-id"].to_i }).to eq([
         ama.id, norte.id, sul.id
       ])
       row = organization_row(norte)
       expect(row["class"]).to include("flex-wrap")
+      expect(row["class"]).to include("border-b")
+      expect(row["class"]).to include("border-rule")
       expect(column.css("[data-organization-id='#{norte.id}']").size).to eq(1)
       html = row.inner_html
       expect(html.index("ONG Norte")).to be < html.index("Corrigir nome")
@@ -667,14 +691,27 @@ RSpec.describe "Administration", type: :request do
 
       expect(ActionMailer::Base.deliveries).to be_empty
       row = organization_row(organization)
-      expect(row.at_css('input[name="name"]')["value"]).to eq("ONG Norte")
+      field = row.at_css('input[name="name"]')
+      expect(field["value"]).to eq("ONG Norte")
+      label = row.at_css("label")
+      expect(label.text.strip).to eq("Nome da organização")
+      expect(label["for"]).to eq(field["id"])
+      form = row.at_css("form#name_correction_form")
+      expect(form.at_css('input[name="name"]')).to eq(field)
       submit = row.at_css('input[type="submit"]')
       expect(submit["value"]).to eq("Continuar")
       expect(submit["class"]).to include("bg-caixa")
+      expect(submit["form"]).to eq("name_correction_form")
+      group = submit.parent
+      expect(group["class"]).to include("flex-wrap")
+      expect(group.css("input[type='submit'], button").map { |node| node["value"] || node.text.strip }).to eq([
+        "Continuar", "Cancelar"
+      ])
       cancel = row.css("button").find { |button| button.text.strip == "Cancelar" }
       expect(cancel["class"]).to include("text-caixa")
       expect(cancel["class"]).to include("underline")
       expect(cancel["class"]).to include("underline-offset-2")
+      expect(row.inner_html.index("Cancelar")).to be < row.inner_html.index("coordenador@exemplo.org")
       expect(row.text).to include("coordenador@exemplo.org")
       expect(row.at_css('input[type="email"]')).to be_nil
     end
@@ -753,7 +790,10 @@ RSpec.describe "Administration", type: :request do
       expect(response).to have_http_status(:ok)
       expect(page.css("[data-notice='error']")).to be_empty
       row = organization_row(organization)
-      expect(row.text).to include("ong norte")
+      html = row.inner_html
+      expect(html.index("Nome da organização")).to be < html.index("ong norte")
+      expect(html.index("ong norte")).to be < html.index("Nenhum e-mail será enviado.")
+      expect(row.text).not_to include("coordenador@exemplo.org")
       sentence = row.css("p").find { |node| node.text.include?("Nenhum e-mail será enviado.") }
       expect(sentence["data-notice"]).to be_nil
       group = row.at_css(".flex-wrap")

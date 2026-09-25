@@ -10,12 +10,14 @@
       <%= link_to "Corrigir", "/administration", class: "rounded border border-ink px-4 py-2 text-ink" %>
     </div>
   <% elsif @name_organization&.id == organization.id && @name_phase == :field %>
-    <%= form_with url: "/administration/name/continue", method: :post, class: "w-full" do %>
+    <%= form_with url: "/administration/name/continue", method: :post, id: "name_correction_form", class: "w-full" do %>
       <%= label_tag "name_correction", "Nome da organização", class: "block font-medium" %>
       <%= text_field_tag :name, @name_value, id: "name_correction", class: "mt-1 w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "organization" %>
-      <%= submit_tag "Continuar", class: "mt-4 rounded bg-caixa px-4 py-2 font-semibold text-white" %>
     <% end %>
-    <%= button_to "Cancelar", "/administration/name/cancel", method: :post, class: "text-caixa underline underline-offset-2" %>
+    <div class="mt-4 flex w-full flex-wrap items-center gap-3">
+      <%= submit_tag "Continuar", form: "name_correction_form", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+      <%= button_to "Cancelar", "/administration/name/cancel", method: :post, class: "text-caixa underline underline-offset-2" %>
+    </div>
     <% organization.coordinator_emails.each do |email| %>
       <p class="w-full"><%= email %></p>
     <% end %>

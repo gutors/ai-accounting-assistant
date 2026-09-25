@@ -66,7 +66,7 @@ Name-correction posts, which the task left unnamed: `POST /administration/name` 
 **C1** - Given the allowlisted Account is signed in, no Organization exists, and `session[:administration_pending]` and `session[:administration_result]` are absent, when `GET /administration` runs, then the status is `200`, the `h1` is `Administração`, the body includes `Cadastre a organização e o coordenador que vai fechá-la.`, labels `Nome da organização` and `E-mail do coordenador` with empty fields, a submit `Continuar`, no heading `Organizações`, no `Cadastrar outra organização`, and the column is a `div` whose class includes `max-w-[28rem]` and does not include `mx-auto`
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "GET /administration renders the empty registration form"`
 
-**C2** - Given the allowlisted Account `seller@example.com` is signed in, and three organizations exist — `AMA` with coordinator `ana@exemplo.org`, `ONG Norte` with coordinators `zoe@exemplo.org` and `ana@exemplo.org` plus a submitter `submitter@exemplo.org`, and `ONG Sul` with coordinator `sul@exemplo.org` — when `GET /administration` runs, then the status is `200`, the form from C1 is still there, a heading `Organizações` follows the form, and the names appear in stored-name order `AMA`, `ONG Norte`, `ONG Sul`. The `ONG Norte` row shows `Corrigir nome` (class includes `text-caixa`, `underline`, and `underline-offset-2`), then `ana@exemplo.org`, then `zoe@exemplo.org`. The body does not include `submitter@exemplo.org`, a control whose text is `Corrigir`, or `Remover`. The row is an element whose class includes `flex-wrap`, inside the `max-w-[28rem]` column. `Organization#coordinator_emails` returns those coordinator emails in `accounts.email` order and omits the submitter
+**C2** - Given the allowlisted Account `seller@example.com` is signed in, and three organizations exist — `AMA` with coordinator `ana@exemplo.org`, `ONG Norte` with coordinators `zoe@exemplo.org` and `ana@exemplo.org` plus a submitter `submitter@exemplo.org`, and `ONG Sul` with coordinator `sul@exemplo.org` — when `GET /administration` runs, then the status is `200`, the form from C1 is still there, a heading `Organizações` follows the form, and the names appear in stored-name order `AMA`, `ONG Norte`, `ONG Sul`. The heading's class includes `border-b` and `border-rule`. The `ONG Norte` row shows `Corrigir nome` (class includes `text-caixa`, `underline`, and `underline-offset-2`), then `ana@exemplo.org`, then `zoe@exemplo.org`. The body does not include `submitter@exemplo.org`, a control whose text is `Corrigir`, or `Remover`. The row is an element whose class includes `flex-wrap`, `border-b`, and `border-rule`, inside the `max-w-[28rem]` column. `Organization#coordinator_emails` returns those coordinator emails in `accounts.email` order and omits the submitter
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "GET /administration lists organizations in stored-name order"`
 Proof: `bin/rspec spec/models/organization_spec.rb -e "coordinator_emails are ordered by accounts.email and omit submitters"`
 
@@ -89,6 +89,9 @@ Proof: `bin/rspec spec/requests/administration_spec.rb -e "blank name and invali
 
 **C8** - Given an Organization named `ONG Norte` exists, when `POST /administration` submits name `  ong norte  ` and email `coordenador@exemplo.org`, then the status is `422`, the notice is `Já existe uma organização com esse nome.`, the fields keep those values, the list stays, nothing is written, and `session[:administration_pending]` is not set
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "taken organization name re-renders 422 and stores no pending"`
+
+**C39** - Given an Organization named `ONG Norte` exists, when `POST /administration` submits name `  ong norte  ` and email `nao-e-email`, then the status is `422`, the notices are `Informe um e-mail válido.` and then `Já existe uma organização com esse nome.`, the fields keep those values, the list stays, nothing is written, and `session[:administration_pending]` is not set
+Proof: `bin/rspec spec/requests/administration_spec.rb -e "taken name and invalid email re-render both notices"`
 
 **C9** - Given `ONG Sul` is already listed, when `POST /administration` submits name `  ONG Norte  ` and email ` Coordenador@Exemplo.ORG `, then the status is `200`, the `h1` is `Administração`, the body does not include `Confirmar cadastro` or `Cadastre a organização e o coordenador que vai fechá-la.`, it shows `ONG Norte` and `coordenador@exemplo.org` with `Confirmar` (class includes `bg-caixa`) and `Corrigir` (class includes `border-ink`), `ONG Sul` stays at rest with `Corrigir nome`, nothing is written, no message is delivered, and `session[:administration_pending]` is `{ "name" => "ONG Norte", "email" => "coordenador@exemplo.org" }`. The label `Nome da organização` and the value sit in an element whose class includes `border-b` and `border-rule`, and the email label follows. `Confirmar` posts to `/administration/confirm`. `Corrigir` is an `a` to `/administration`. Those two controls sit in an element whose class includes `flex-wrap`, in that order
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "valid POST stores pending and renders confirmation"`
@@ -148,7 +151,7 @@ Proof: `bin/rspec spec/mailers/coordinator_welcome_mailer_spec.rb -e "welcome ma
 
 ### S4 - Name correction · 6 files · 43 KB · ~11k
 
-**C26** - Given `ONG Norte` has coordinator `coordenador@exemplo.org`, when `Corrigir nome` is used, then that row shows the stored name in one field, `Continuar` (class includes `bg-caixa`), and `Cancelar` (class includes `text-caixa`, `underline`, and `underline-offset-2`), the email line stays as text, nothing is written, and no message is delivered
+**C26** - Given `ONG Norte` has coordinator `coordenador@exemplo.org`, when `Corrigir nome` is used, then that row shows the label `Nome da organização` on the stored name in one field, `Continuar` (class includes `bg-caixa`), and `Cancelar` (class includes `text-caixa`, `underline`, and `underline-offset-2`). `Continuar` then `Cancelar` sit in that order in an element whose class includes `flex-wrap`, and `Continuar` submits the form that contains the name field. The email follows that group as text, nothing is written, and no message is delivered
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "Corrigir nome opens the stored name"`
 
 **C27** - Given that field is open and the typed value is `ONG Norte Nova`, when `Cancelar` is used, then the row is at rest with `ONG Norte`, the name is unchanged, and no message is delivered
@@ -161,7 +164,7 @@ Proof: `bin/rspec spec/requests/administration_spec.rb -e "blank name correction
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "taken name correction re-renders 422"`
 Proof: `bin/rspec spec/models/organization_spec.rb -e "name_taken? ignores the organization being corrected"`
 
-**C30** - Given the stored name is `ONG Norte`, when `Continuar` submits `ong norte`, then the status is `200`, the row is replaced by `ong norte` and the sentence `Nenhum e-mail será enviado.` which is not `[data-notice="error"]`, other rows stay at rest, the collision notice is absent, and nothing is written. `Confirmar` (class includes `bg-caixa`, posts `/administration/name/confirm`) and `Corrigir` (class includes `border-ink`, links to `/administration`) sit in that order in an element whose class includes `flex-wrap`
+**C30** - Given the stored name is `ONG Norte`, when `Continuar` submits `ong norte`, then the status is `200`, the row is replaced by the label `Nome da organização`, then `ong norte`, then the sentence `Nenhum e-mail será enviado.` which is not `[data-notice="error"]`. The coordinator email is absent from that row. Other rows stay at rest, the collision notice is absent, and nothing is written. `Confirmar` (class includes `bg-caixa`, posts `/administration/name/confirm`) and `Corrigir` (class includes `border-ink`, links to `/administration`) sit in that order in an element whose class includes `flex-wrap`
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "a lower-case spelling of the same name asks for confirmation"`
 
 **C31** - Given `ONG Norte` has a closed Month with a `month_folder_id`, and `Continuar` submitted `  ong norte  ` so the confirmation shows `ong norte`, when that confirmation is confirmed, then the stored name is `ong norte`, no message is delivered, `PackageArchiveWriter` is not called, `month_folder_id` is unchanged, the row shows `ong norte`, and the body does not include `Nenhum e-mail será enviado.`
@@ -196,17 +199,17 @@ Proof: `bin/rspec spec/requests/administration_spec.rb -e "a valid registration 
 | Screen | Copy and elements (selector) | Arrangement (selector) | Visual unproven |
 | --- | --- | --- | --- |
 | administration, rest, no organizations | `h1` `Administração`, lead sentence, labels, empty inputs, `Continuar`; no heading `Organizações`; no `Cadastrar outra organização` C1 | column `div.max-w-[28rem]` without `mx-auto` C1 | spacing, colour, type weight |
-| administration, rest, with organizations | form from C1, heading `Organizações`, stored names, `Corrigir nome`, coordinator emails; no `Corrigir` control, no `Remover`, no submitter email C2 | heading follows the form; names `AMA`, `ONG Norte`, `ONG Sul`; `ONG Norte` row is `flex-wrap` inside the column, then `Corrigir nome` (`text-caixa underline underline-offset-2`), then `ana@exemplo.org`, then `zoe@exemplo.org` C2 | spacing, colour, type weight |
-| administration, invalid registration | notices C5, C6, C7, C8; typed values stay; the list stays | the only `[data-notice="error"]` sits under the `h1` C5; name notice then email notice C7 | spacing, colour, type weight |
+| administration, rest, with organizations | form from C1, heading `Organizações`, stored names, `Corrigir nome`, coordinator emails; no `Corrigir` control, no `Remover`, no submitter email C2 | heading follows the form and its class includes `border-b` and `border-rule`; names `AMA`, `ONG Norte`, `ONG Sul`; `ONG Norte` row is `flex-wrap` with `border-b` and `border-rule` inside the column, then `Corrigir nome` (`text-caixa underline underline-offset-2`), then `ana@exemplo.org`, then `zoe@exemplo.org` C2 | spacing, colour, type weight |
+| administration, invalid registration | notices C5, C6, C7, C8, C39; typed values stay; the list stays | the only `[data-notice="error"]` sits under the `h1` C5; name notice then email notice C7; email notice then taken-name notice C39 | spacing, colour, type weight |
 | administration, registration confirmation | `h1` `Administração`; no `Confirmar cadastro`; no lead sentence; stripped name; normalized email; `Confirmar`; `Corrigir`; listed rows stay at rest with `Corrigir nome` C9 | labels and values inside `.border-b.border-rule` then the email block; `flex-wrap` group with `Confirmar` (`bg-caixa`, posts `/administration/confirm`) then `Corrigir` (`a` to `/administration`, `border-ink`) C9 | spacing, colour, type weight |
 | administration, row sent | empty form, lead sentence, `E-mail enviado para {email}.` on that row; no `Reenviar e-mail`; no `Cadastrar outra organização` C12 | the sentence is a `p` inside the organization's `flex-wrap` row and is not `[data-notice="error"]` C12 | spacing, colour, type weight |
 | administration, row failed | notice `O cadastro foi gravado, mas o e-mail não saiu.` and `Reenviar e-mail` on that row only C17 | `[data-notice="error"]` inside the `ONG Norte` row; `Reenviar e-mail` includes `bg-caixa`, `font-semibold`, `text-white` and posts `/administration/mail`; `ONG Sul` has no `Reenviar e-mail` C17 | spacing, colour, type weight |
-| administration, name field | stored name in one field, `Continuar`, `Cancelar`, email as text C26 | `Continuar` includes `bg-caixa`; `Cancelar` includes `text-caixa underline underline-offset-2`; the email is not an input C26 | spacing, colour, type weight |
-| administration, name confirmation | new name, `Nenhum e-mail será enviado.`, `Confirmar`, `Corrigir`; other rows at rest C30 | the sentence is not `[data-notice="error"]`; `flex-wrap` group with `Confirmar` (`bg-caixa`, posts `/administration/name/confirm`) then `Corrigir` (`border-ink`, links `/administration`) C30 | spacing, colour, type weight |
+| administration, name field | label `Nome da organização`, stored name in one field, `Continuar`, `Cancelar`, email as text C26 | `flex-wrap` group with `Continuar` (`bg-caixa`, submits the form that contains the name field) then `Cancelar` (`text-caixa underline underline-offset-2`); the email follows that group and is not an input C26 | spacing, colour, type weight |
+| administration, name confirmation | label `Nome da organização`, new name, `Nenhum e-mail será enviado.`, `Confirmar`, `Corrigir`; coordinator email absent; other rows at rest C30 | label, then the new name, then the sentence, which is not `[data-notice="error"]`; `flex-wrap` group with `Confirmar` (`bg-caixa`, posts `/administration/name/confirm`) then `Corrigir` (`border-ink`, links `/administration`) C30 | spacing, colour, type weight |
 
 ## Swept
 
-- validation: C5, C6, C7, C8, C28, C29, C30
+- validation: C5, C6, C7, C8, C39, C28, C29, C30
 - failure modes: C17, C19
 - idempotency and retry: C18, C20
 - authorization: C3, C4
@@ -222,7 +225,7 @@ Proof: `bin/rspec spec/requests/administration_spec.rb -e "a valid registration 
 | --- | --- | --- |
 | administration routes when signed out (9) | `GET /administration` C3 · `POST /administration` C3 · `POST /administration/confirm` C3 · `POST /administration/mail` C3 · `POST /administration/another` C3 · `POST /administration/name` C3 · `POST /administration/name/continue` C3 · `POST /administration/name/cancel` C3 · `POST /administration/name/confirm` C3 | - |
 | administration routes when not the administrator (2 callers × 9 routes) | other email C4 · blank env C4, each over the nine routes in C3 | - |
-| `POST /administration` rejection notices (4) | blank name C5 · invalid email C6 · both, name then email C7 · taken name C8 | - |
+| `POST /administration` rejection notices (5) | blank name C5 · invalid email C6 · blank name then invalid email C7 · taken name C8 · taken name with invalid email C39 | - |
 | confirm outcomes (8) | new Account C12 · existing Account C13 · own email focuses new org C14 · other email leaves focus C15 · no pending C16 · `deliver_now` raises C17 · lost unique name C21 · a later confirm replaces the failure C22 | - |
 | resend outcomes (3) | delivery succeeds C18 · `deliver_now` raises C19 · no result C20 | - |
 | welcome sentences (2) | one coordinator Access C24 · two or more C25 | - |
@@ -233,7 +236,7 @@ Proof: `bin/rspec spec/requests/administration_spec.rb -e "a valid registration 
 | designed screen states this stage builds (8) | rest empty C1 · rest list C2 · invalid C5 · registration confirmation C9 · row sent C12 · row failed C17 · name field C26 · name confirmation C30 | - |
 | drawings in `.design/administration-list.md` this stage does not build (3) | — | email correction, removal, and screen `home` invites — next stage, named in Out of scope |
 
-- Claims naming a status code, route, or response shape: C1–C21, C26–C31, C34–C36 - each has a request-spec proof that crosses the boundary
+- Claims naming a status code, route, or response shape: C1–C21, C26–C31, C34–C36, C39 - each has a request-spec proof that crosses the boundary
 - No other check claims more than the single case its proof exercises
 
 ## Handoff

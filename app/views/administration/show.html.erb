@@ -27,7 +27,7 @@
   <% end %>
 
   <% if @organizations.any? %>
-    <h2 class="mt-8 font-medium">Organizações</h2>
+    <h2 class="mt-8 border-b border-rule pb-2 font-medium">Organizações</h2>
     <% @organizations.each do |organization| %>
       <%= render "administration/organization", organization: organization %>
     <% end %>
