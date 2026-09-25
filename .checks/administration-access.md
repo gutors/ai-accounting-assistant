@@ -70,7 +70,7 @@ Email-correction posts, which the task left unnamed: `POST /administration/email
 ### S1 - Email controls · 4 files · 52 KB · ~13k
 
 **C1** - Given the list from `.tasks/administration-list.md` is showing `ONG Norte` with coordinators `ana@exemplo.org` and `zoe@exemplo.org` and a submitter `submitter@exemplo.org`, when `GET /administration` runs, then each email has `Corrigir` (`text-caixa underline underline-offset-2`) and the organization has `Remover` (`text-margem underline underline-offset-2`). `Corrigir nome` is still there. The body does not include `submitter@exemplo.org`. Those actions sit in a `flex-wrap` group inside the `max-w-[28rem]` column. In that row the order is the name, `Corrigir nome`, `ana@exemplo.org`, `Corrigir`, `zoe@exemplo.org`, `Corrigir`, `Remover`. Emails stay ordered by `accounts.email` ascending
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "GET /administration shows Corrigir on each coordinator email and Remover"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "GET /administration shows Corrigir on each coordinator email and Remover"`
 
 **C2** - Given no signed-in Account, when the request starts or confirms an email correction or removes an organization, then the response is `302` to `/login`, and `Organization.count`, `Account.count`, `Access.count`, `Invite.count`, and `ActionMailer::Base.deliveries` are unchanged
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "signed-out administration routes redirect to /login"`
@@ -81,53 +81,53 @@ Proof: `bin/rspec spec/requests/administration_spec.rb -e "non-administrator and
 ### S2 - Email correction · 8 files · 84 KB · ~21k
 
 **C4** - Given `ONG Norte` has coordinators `ana@exemplo.org` and `zoe@exemplo.org`, when `Corrigir` is used on `zoe@exemplo.org`, then that address is in one field, the name and `ana@exemplo.org` with its `Corrigir` stay, `Continuar` is `bg-caixa`, `Cancelar` is `text-caixa underline underline-offset-2`, `Continuar` then `Cancelar` sit in one `flex-wrap` group, nothing is written, and no message is delivered
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "Corrigir opens the coordinator email"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "Corrigir opens the coordinator email"`
 
 **C5** - Given that field is open with a typed value `novo@exemplo.org`, when `Cancelar` is used, then the row is at rest with `zoe@exemplo.org`, Access and Account rows are unchanged, and no message is delivered
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "Cancelar on the email field restores the row"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "Cancelar on the email field restores the row"`
 
 **C6** - Given the email field is open, when `Continuar` submits `nao-e-email`, then the status is `422`, the notice under the `h1` is `Informe um e-mail válido.`, the field keeps `nao-e-email`, the row does not become a confirmation, and Access rows are unchanged
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "invalid email correction re-renders 422"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "invalid email correction re-renders 422"`
 
 **C7** - Given `ana@exemplo.org` already has coordinator Access on `ONG Norte`, when `Continuar` on `zoe@exemplo.org` submits `Ana@Exemplo.ORG`, then the status is `422`, the notice is `Esse e-mail já tem acesso a esta organização.`, the field keeps that value, and Access rows are unchanged
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "taken coordinator email correction re-renders 422"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "taken coordinator email correction re-renders 422"`
 
 **C8** - Given `submitter@exemplo.org` has submitter Access on `ONG Norte`, when `Continuar` on the coordinator email submits that address, then the status is `422`, the notice is `Esse e-mail já tem acesso a esta organização.`, and Access rows are unchanged
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "taken submitter email correction re-renders 422"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "taken submitter email correction re-renders 422"`
 
 **C9** - Given the coordinator being corrected is `coordenador@exemplo.org`, when `Continuar` submits ` Coordenador@Exemplo.ORG `, then the status is `200`, the row shows the stored name and `coordenador@exemplo.org`, the access notice is absent, and nothing is written. Until Unresolved 2 is answered, the access being corrected does not count as a collision with itself
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "the same coordinator email asks for confirmation"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "the same coordinator email asks for confirmation"`
 
 **C10** - Given that confirmation, when `Confirmar` runs and delivery succeeds, then `Access.count` for that organization is unchanged, that Account's `email` is still `coordenador@exemplo.org`, one `text/plain` welcome is delivered to `coordenador@exemplo.org` with subject `Fechamento Mensal - Cadastro da Organização ONG Norte` and body `A organização ONG Norte está pronta. Entre com o Google usando coordenador@exemplo.org, pelo botão Entrar com Google.`, and the row shows `E-mail enviado para coordenador@exemplo.org.` The existing Access stays because `(account_id, organization_id)` is unique, so a second Access is not inserted. Until Unresolved 2 is answered, this is the write
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "confirming the same coordinator email sends the welcome and writes no Access"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "confirming the same coordinator email sends the welcome and writes no Access"`
 Proof: `bin/rspec spec/models/organization_spec.rb -e "replace_coordinator keeps the Access when the email is unchanged"`
 
 **C11** - Given `Continuar` on `zoe@exemplo.org` submitted ` Novo@Exemplo.ORG ` and `ana@exemplo.org` is the other coordinator, when the confirmation is shown, then the status is `200`, it shows label `Nome da organização` then the stored name `ONG Norte`, then `E-mail do coordenador` then `novo@exemplo.org`, then `Confirmar` then `Corrigir`, it does not show `ana@exemplo.org`, and nothing is written
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "a new coordinator email asks for confirmation"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "a new coordinator email asks for confirmation"`
 
 **C12** - Given that confirmation, when `Corrigir` is used, then the field shows `novo@exemplo.org`, nothing is written, and no message is delivered
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "Corrigir on the email confirmation returns the typed email"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "Corrigir on the email confirmation returns the typed email"`
 
 **C13** - Given `ONG Norte` has exactly one coordinator, `coordenador@exemplo.org`, that email's Account has no other Access, `novo@exemplo.org` has no Account, and a pending Invite for `novo@exemplo.org` exists on `ONG Norte` and another on `ONG Sul`, when the email confirmation for ` Novo@Exemplo.ORG ` is confirmed and delivery succeeds, then a new Account `novo@exemplo.org` exists, the old Account's `email` is still `coordenador@exemplo.org`, `ONG Norte` has exactly one coordinator Access and it belongs to `novo@exemplo.org`, the `ONG Norte` Invite for `novo@exemplo.org` is gone, the `ONG Sul` Invite remains, and one `text/plain` message is delivered to `novo@exemplo.org` with subject `Fechamento Mensal - Cadastro da Organização ONG Norte` and body `A organização ONG Norte está pronta. Entre com o Google usando novo@exemplo.org, pelo botão Entrar com Google.` No message contains `Você foi convidado`. The row shows `E-mail enviado para novo@exemplo.org.` The new Access is inserted before the old one is destroyed, in one transaction, which is why `Access#destroy` does not refuse this sole coordinator. Mail runs after that transaction commits
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "confirming a new coordinator email moves Access and sends the welcome"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "confirming a new coordinator email moves Access and sends the welcome"`
 Proof: `bin/rspec spec/models/organization_spec.rb -e "replace_coordinator inserts the new Access then destroys the old and deletes the matching Invite"`
 
 **C14** - Given `sul@exemplo.org` already has an Account that coordinates `ONG Sul`, and `ONG Norte` has exactly one coordinator `coordenador@exemplo.org`, when the move to `sul@exemplo.org` delivers, then `Account.count` is unchanged, the old Account's `email` is still `coordenador@exemplo.org`, `ONG Norte`'s coordinator Access belongs to that Account, and the delivered body is `A organização ONG Norte foi adicionada à sua conta. Entre com o Google usando sul@exemplo.org, pelo botão Entrar com Google.`
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "moving Access onto an existing coordinator Account keeps Account.count"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "moving Access onto an existing coordinator Account keeps Account.count"`
 Proof: `bin/rspec spec/models/organization_spec.rb -e "replace_coordinator reuses an existing Account"`
 
 **C15** - Given `ana@exemplo.org` was created before `zoe@exemplo.org` on `ONG Norte`, when `zoe@exemplo.org` is moved to `novo@exemplo.org` and delivery succeeds, then `ana@exemplo.org` still has coordinator Access, `zoe@exemplo.org` does not, and the delivered message's `to` is `novo@exemplo.org`, not `ana@exemplo.org`
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "the welcome after an email move addresses the new email"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "the welcome after an email move addresses the new email"`
 Proof: `bin/rspec spec/mailers/coordinator_welcome_mailer_spec.rb -e "welcome mail addresses the given Account"`
 
 **C16** - Given the move in C13, when `deliver_now` raises, then the new Access and the new Account remain, the old Access is gone, the old Account's `email` is unchanged, the `ONG Norte` Invite for the new email is gone, and the following `GET` shows `[data-notice="error"]` `A correção foi gravada, mas o e-mail não saiu.` and primary `Reenviar e-mail` on that row, and does not include `E-mail enviado para`. The correction remains because delivery runs after the transaction commits and the delivery error is rescued
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "email confirm keeps the move when deliver_now raises"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "email confirm keeps the move when deliver_now raises"`
 
 **C17** - Given that correction failure, and `ana@exemplo.org` is the other coordinator, when `POST /administration/mail` runs and delivery succeeds, then one more welcome is delivered to `novo@exemplo.org` and not to `ana@exemplo.org`, with subject `Fechamento Mensal - Cadastro da Organização ONG Norte`, and the following `GET` shows `E-mail enviado para novo@exemplo.org.` and no `Reenviar e-mail`
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "correction resend delivers to the new email"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "correction resend delivers to the new email"`
 
 **C18** - Given that correction failure, when `POST /administration/mail` runs and `deliver_now` raises, then Access rows are unchanged and the following `GET` still shows `A correção foi gravada, mas o e-mail não saiu.`
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "correction resend keeps the correction notice when deliver_now raises"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "correction resend keeps the correction notice when deliver_now raises"`
 
 **C19** - Given a row is showing `O cadastro foi gravado, mas o e-mail não saiu.` from a registration, when `POST /administration/mail` runs and delivery succeeds, then the row shows `E-mail enviado para` that coordinator and does not show `A correção foi gravada, mas o e-mail não saiu.`
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "resend delivers another welcome message"`
@@ -136,13 +136,13 @@ Proof: `bin/rspec spec/requests/administration_spec.rb -e "resend delivers anoth
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "resend keeps mail_sent false when deliver_now raises"`
 
 **C21** - Given the signed-in Account is the administrator and the new email is that administrator's email, when the email confirmation delivers, then `session[:organization_id]` is that Organization id
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "confirm of the signed-in email on a correction focuses the organization"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "confirm of the signed-in email on a correction focuses the organization"`
 
 **C22** - Given the new email is not the signed-in administrator, when the email confirmation delivers, then `session[:organization_id]` is unchanged
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "confirm of another email on a correction leaves the focused organization"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "confirm of another email on a correction leaves the focused organization"`
 
 **C23** - When an email confirmation is submitted for an organization id that does not exist, then the response is `404`, no Access is written, and no message is delivered
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "email confirmation for a missing organization responds 404"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "email confirmation for a missing organization responds 404"`
 
 **C24** - If the email move raises before its transaction commits, then `Access.count` is unchanged, the old Access remains, no new Access exists, a pending Invite for the new email on that organization remains, and no message is delivered. The new Access, the Invite delete, and the old Access destroy share one transaction, and mail runs only after commit
 Proof: `bin/rspec spec/models/organization_spec.rb -e "replace_coordinator rolls back when the write raises before commit"`
@@ -150,59 +150,59 @@ Proof: `bin/rspec spec/models/organization_spec.rb -e "replace_coordinator rolls
 ### S3 - One unwritten flow · 2 files · 53 KB · ~13k
 
 **C25** - Given the name confirmation `Nenhum e-mail será enviado.` is unwritten, when `Corrigir` starts on a coordinator email, then the stored name is unchanged, the email field is open with that address, and `Nenhum e-mail será enviado.` is absent
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "Corrigir on an email discards an unwritten name confirmation"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "Corrigir on an email discards an unwritten name confirmation"`
 
 **C26** - Given an email confirmation for `novo@exemplo.org` is unwritten, when `Corrigir nome` starts or `POST /administration` submits a valid registration, then Access rows are unchanged, the email confirmation is gone, and no welcome is delivered
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "Corrigir nome discards an unwritten email confirmation"`
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "a valid registration discards an unwritten email confirmation"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "Corrigir nome discards an unwritten email confirmation"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "a valid registration discards an unwritten email confirmation"`
 
 ### S4 - Removal · 5 files · 79 KB · ~20k
 
 **C27** - Given the row `ONG Norte`, the `Remover` control carries `data-turbo-confirm` `Remover a organização ONG Norte?`, the same `turbo_confirm` mechanism as `Revogar`
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "GET /administration shows Corrigir on each coordinator email and Remover"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "GET /administration shows Corrigir on each coordinator email and Remover"`
 
 **C28** - Given `ONG Norte` has one coordinator Access, one submitter Access, one pending Invite, `accountant_presentation_name` set, `package_archive_folder_id` set, and `sefaz_pkcs12_ciphertext` set, and it has no BankAccount, Month, SupportingDocument, Justification, or ExtraExceptionKind, when removal is confirmed, then the response is `302` to `/administration`, that Organization is gone, its Accesses and Invite are gone, both Accounts remain, and the following `GET` does not include `ONG Norte`. The last-coordinator refusal does not veto this delete
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "removing an organization with no close data deletes it"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "removing an organization with no close data deletes it"`
 Proof: `bin/rspec spec/models/organization_spec.rb -e "remove deletes Accesses and Invites including the last coordinator"`
 
 **C29** - Given that removed organization was `session[:organization_id]` and the administrator's only Access, when the following `GET /administration` runs, then the status is `200`, `session[:organization_id]` is still that id, and the header text is `Fechamento mensal`, because `focused_organization` resolves only an organization the Account still has an Access to
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "GET /administration after removing the focused organization keeps the session id"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "GET /administration after removing the focused organization keeps the session id"`
 
 **C30** - Given the administrator is focused on `ONG Sul` and removes `ONG Norte`, which they do not coordinate, then `session[:organization_id]` stays `ONG Sul` and the header still shows `ONG Sul`
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "removing another organization leaves the focused organization"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "removing another organization leaves the focused organization"`
 
 **C31** - Given another organization still has exactly one coordinator, when `DELETE /accesses/:id` runs for that Access, then the response is `422` and the Access remains, because `Access#destroy` adds `:last_coordinator` and returns false. Removal in C28 does not go through that refusal
 Proof: `bin/rspec spec/requests/accesses_spec.rb -e "DELETE last coordinator Access returns 422"`
 Proof: `bin/rspec spec/models/access_spec.rb -e "destroy is rejected when it is the last coordinator Access"`
 
 **C32** - Given `ONG Norte` has a BankAccount and no Month, SupportingDocument, Justification, or ExtraExceptionKind, when removal is confirmed, then the status is `422`, `[data-notice="error"]` on that row is `Esta organização já tem dados de fechamento e não pode ser removida.`, and Organization, Access, Invite, and BankAccount counts for it are unchanged. The check runs before any delete
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "removing an organization with a BankAccount re-renders 422"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "removing an organization with a BankAccount re-renders 422"`
 Proof: `bin/rspec spec/models/organization_spec.rb -e "remove refuses when a BankAccount exists"`
 
 **C33** - Given `ONG Norte` has a Month and none of the other four close-data rows, when removal is confirmed, then the status is `422`, the same notice is on that row, and nothing is deleted
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "removing an organization with a Month re-renders 422"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "removing an organization with a Month re-renders 422"`
 Proof: `bin/rspec spec/models/organization_spec.rb -e "remove refuses when a Month exists"`
 
 **C34** - Given `ONG Norte` has a SupportingDocument and none of the other four, when removal is confirmed, then the status is `422`, the same notice is on that row, and nothing is deleted
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "removing an organization with a SupportingDocument re-renders 422"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "removing an organization with a SupportingDocument re-renders 422"`
 Proof: `bin/rspec spec/models/organization_spec.rb -e "remove refuses when a SupportingDocument exists"`
 
 **C35** - Given `ONG Norte` has a Justification and none of the other four, when removal is confirmed, then the status is `422`, the same notice is on that row, and nothing is deleted
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "removing an organization with a Justification re-renders 422"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "removing an organization with a Justification re-renders 422"`
 Proof: `bin/rspec spec/models/organization_spec.rb -e "remove refuses when a Justification exists"`
 
 **C36** - Given `ONG Norte` has an ExtraExceptionKind and none of the other four, when removal is confirmed, then the status is `422`, the same notice is on that row, and nothing is deleted
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "removing an organization with an ExtraExceptionKind re-renders 422"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "removing an organization with an ExtraExceptionKind re-renders 422"`
 Proof: `bin/rspec spec/models/organization_spec.rb -e "remove refuses when an ExtraExceptionKind exists"`
 
 **C37** - When removal is confirmed for an organization id that does not exist, then the response is `404` and every other Organization remains
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "removing a missing organization responds 404"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "removing a missing organization responds 404"`
 
 **C38** - Given the registration result names `ONG Norte` and that organization is then removed, when `GET /administration` runs, then the status is `200`, the form is shown, and the body does not include a mail sentence or the failure notice for `ONG Norte`
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "GET /administration after removing the result organization shows the empty form"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "GET /administration after removing the result organization shows the empty form"`
 
 **C39** - Given the registration result names an organization id that does not exist, when `POST /administration/mail` runs, then the response is `302` to `/administration`, no message is delivered, and no Organization, Account, or Access is written
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "resend for a missing result organization redirects and delivers nothing"`
+Proof: `bin/rspec spec/requests/administration_access_spec.rb -e "resend for a missing result organization redirects and delivers nothing"`
 
 ### S5 - Invite mail · 8 files · 26 KB · ~7k
 

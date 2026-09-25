@@ -246,7 +246,7 @@ class AdministrationController < ApplicationController
   end
 
   def demote_get_confirmations
-    return unless request.get?
+    return unless request.get? || request.head?
 
     if @name_phase == :confirm
       session[:administration_name]["confirming"] = false
