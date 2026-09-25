@@ -117,6 +117,12 @@ RSpec.describe "Administration", type: :request do
         post "/administration", params: { name: "  ONG Norte  ", email: " Coordenador@Exemplo.ORG " }
       }.not_to change { [ Organization.count, Account.count, Access.count, ActionMailer::Base.deliveries.size ] }
 
+      expect(session[:administration_pending]).to eq(
+        "name" => "ONG Norte",
+        "email" => "coordenador@exemplo.org",
+        "confirming" => true
+      )
+      follow_administration
       expect(response).to have_http_status(:ok)
       expect(page.at_css("h1").text.strip).to eq("Administração")
       expect(response.body).to include("ONG Norte")
@@ -129,24 +135,21 @@ RSpec.describe "Administration", type: :request do
       expect(ruled.next_element.text).to include("coordenador@exemplo.org")
       group = page.at_css("main .flex-wrap")
       expect(group["class"]).to include("flex-wrap")
-      expect(group.css("button, a").map { |node| node.text.strip }).to eq([ "Confirmar", "Corrigir" ])
-      confirm = group.at_css("button")
+      expect(group.css("button").map { |node| node.text.strip }).to eq([ "Confirmar", "Corrigir" ])
+      confirm = group.css("button").find { |button| button.text.strip == "Confirmar" }
       expect(confirm["class"]).to include("bg-caixa")
       expect(confirm.ancestors("form").first["action"]).to eq("/administration/confirm")
-      correct = group.at_css("a")
-      expect(correct["href"]).to eq("/administration")
+      correct = group.css("button").find { |button| button.text.strip == "Corrigir" }
+      expect(correct.ancestors("form").first["action"]).to eq("/administration/correct")
       expect(correct["class"]).to include("border")
       expect(correct["class"]).to include("border-ink")
-      expect(session[:administration_pending]).to eq(
-        "name" => "ONG Norte",
-        "email" => "coordenador@exemplo.org"
-      )
     end
   end
 
   it "confirmation column is 28rem and shows the record labels" do
     as_seller do
       post "/administration", params: { name: "ONG Norte", email: "coordenador@exemplo.org" }
+      follow_administration
 
       column = page.at_css("main div")
       expect(column["class"]).to include("max-w-[28rem]")
@@ -160,18 +163,18 @@ RSpec.describe "Administration", type: :request do
     end
   end
 
-  it "GET /administration with pending fills the form" do
+  it "GET /administration with pending keeps the confirmation" do
     sul = Organization.create!(name: "ONG Sul")
     as_seller do
       post "/administration", params: { name: "ONG Norte", email: "coordenador@exemplo.org" }
+      follow_administration
       get "/administration"
 
       expect(response).to have_http_status(:ok)
       expect(page.at_css("h1").text.strip).to eq("Administração")
-      expect(response.body).to include("Cadastre a organização e o coordenador que vai fechá-la.")
-      expect(page.at_css('input[name="name"]')["value"]).to eq("ONG Norte")
-      expect(page.at_css('input[name="email"]')["value"]).to eq("coordenador@exemplo.org")
-      expect(page.at_css('form[action="/administration/confirm"]')).to be_nil
+      expect(response.body).not_to include("Cadastre a organização e o coordenador que vai fechá-la.")
+      expect(page.at_css('form[action="/administration/confirm"]')).not_to be_nil
+      expect(page.at_css('form[action="/administration"] input[name="name"]')).to be_nil
       expect(organization_row(sul).text).to include("Corrigir nome")
       expect(organization_row(sul).at_css('input[name="name"]')).to be_nil
     end
@@ -180,11 +183,13 @@ RSpec.describe "Administration", type: :request do
   it "Corrigir on the registration confirmation returns the filled form" do
     sul = Organization.create!(name: "ONG Sul")
     as_seller do
+      post "/administration", params: { name: "  ONG Norte  ", email: " Coordenador@Exemplo.ORG " }
+      follow_administration
       expect {
-        post "/administration", params: { name: "  ONG Norte  ", email: " Coordenador@Exemplo.ORG " }
-        get page.at_css('main a[href="/administration"]')["href"]
+        post "/administration/correct"
       }.not_to change { [ Organization.count, Account.count, Access.count ] }
 
+      follow_administration
       expect(page.at_css('input[name="name"]')["value"]).to eq("ONG Norte")
       expect(page.at_css('input[name="email"]')["value"]).to eq("coordenador@exemplo.org")
       expect(response.body).to include("Cadastre a organização e o coordenador que vai fechá-la.")
@@ -628,6 +633,7 @@ RSpec.describe "Administration", type: :request do
         post "/administration/name", params: { organization_id: organization.id }
       }.not_to change { organization.reload.name }
 
+      follow_administration
       expect(ActionMailer::Base.deliveries).to be_empty
       row = organization_row(organization)
       field = row.at_css('input[name="name"]')
@@ -726,6 +732,7 @@ RSpec.describe "Administration", type: :request do
         post "/administration/name/continue", params: { name: "ong norte" }
       }.not_to change { organization.reload.name }
 
+      follow_administration
       expect(response).to have_http_status(:ok)
       expect(page.css("[data-notice='error']")).to be_empty
       row = organization_row(organization)
@@ -736,12 +743,12 @@ RSpec.describe "Administration", type: :request do
       sentence = row.css("p").find { |node| node.text.include?("Nenhum e-mail será enviado.") }
       expect(sentence["data-notice"]).to be_nil
       group = row.at_css(".flex-wrap")
-      expect(group.css("button, a").map { |node| node.text.strip }).to eq([ "Confirmar", "Corrigir" ])
-      confirm = group.at_css("button")
+      expect(group.css("button").map { |node| node.text.strip }).to eq([ "Confirmar", "Corrigir" ])
+      confirm = group.css("button").find { |button| button.text.strip == "Confirmar" }
       expect(confirm["class"]).to include("bg-caixa")
       expect(confirm.ancestors("form").first["action"]).to eq("/administration/name/confirm")
-      correct = group.at_css("a")
-      expect(correct["href"]).to eq("/administration")
+      correct = group.css("button").find { |button| button.text.strip == "Corrigir" }
+      expect(correct.ancestors("form").first["action"]).to eq("/administration/correct")
       expect(correct["class"]).to include("border-ink")
       expect(organization_row(sul).text).to include("Corrigir nome")
     end
@@ -755,6 +762,7 @@ RSpec.describe "Administration", type: :request do
       ActionMailer::Base.deliveries.clear
       post "/administration/name", params: { organization_id: organization.id }
       post "/administration/name/continue", params: { name: "  ong norte  " }
+      follow_administration
       expect(organization_row(organization).text).to include("ong norte")
       expect(PackageArchiveWriter).not_to receive(:current)
 
@@ -828,28 +836,16 @@ RSpec.describe "Administration", type: :request do
       ActionMailer::Base.deliveries.clear
       post "/administration/name", params: { organization_id: organization.id }
       post "/administration/name/continue", params: { name: "ONG Norte Nova" }
+      follow_administration
       expect(organization_row(organization).text).to include("Nenhum e-mail será enviado.")
 
       expect {
-        get organization_row(organization).at_css('a[href="/administration"]')["href"]
+        post "/administration/correct"
       }.not_to change { organization.reload.name }
 
+      follow_administration
       expect(ActionMailer::Base.deliveries).to be_empty
       expect(organization_row(organization).at_css('input[name="name"]')["value"]).to eq("ONG Norte Nova")
-    end
-  end
-
-  it "HEAD /administration demotes a name confirmation to the field" do
-    _account, organization = plant_coordinator(email: "coordenador@exemplo.org", organization_name: "ONG Norte")
-    as_seller do
-      post "/administration/name", params: { organization_id: organization.id }
-      post "/administration/name/continue", params: { name: "ONG Norte Nova" }
-      expect(session[:administration_name]["confirming"]).to eq(true)
-
-      head "/administration"
-
-      expect(response).to have_http_status(:ok)
-      expect(session[:administration_name]["confirming"]).to eq(false)
     end
   end
 
@@ -873,6 +869,7 @@ RSpec.describe "Administration", type: :request do
       expect(session[:administration_pending]["name"]).to eq("ONG Nova")
 
       post "/administration/name", params: { organization_id: existing.id }
+      follow_administration
 
       expect(Organization.find_by(name: "ONG Nova")).to be_nil
       form = page.at_css('form[action="/administration"]')
@@ -893,6 +890,7 @@ RSpec.describe "Administration", type: :request do
       }
 
       post "/administration", params: { name: "ONG Sul", email: "sul@exemplo.org" }
+      follow_administration
 
       expect(norte.reload.name).to eq("ONG Norte")
       expect(page.at_css('form[action="/administration/confirm"]')).not_to be_nil

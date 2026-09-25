@@ -11,6 +11,7 @@ module AdministrationHelpers
       [ :get, "/administration" ],
       [ :post, "/administration" ],
       [ :post, "/administration/confirm" ],
+      [ :post, "/administration/correct" ],
       [ :post, "/administration/mail" ],
       [ :post, "/administration/another" ],
       [ :post, "/administration/name" ],
@@ -23,6 +24,12 @@ module AdministrationHelpers
       [ :post, "/administration/email/confirm" ],
       [ :delete, "/administration" ]
     ]
+  end
+
+  def follow_administration
+    expect(response).to have_http_status(:see_other)
+    expect(response).to redirect_to("/administration")
+    follow_redirect!
   end
 
   def organization_row(organization)

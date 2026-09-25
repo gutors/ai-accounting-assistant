@@ -4,7 +4,6 @@ class AdministrationController < ApplicationController
 
   def show
     load_page
-    demote_get_confirmations
   end
 
   def create
@@ -20,12 +19,10 @@ class AdministrationController < ApplicationController
 
     session[:administration_pending] = {
       "name" => @name.strip,
-      "email" => NormalizedEmail.normalize(@email)
+      "email" => NormalizedEmail.normalize(@email),
+      "confirming" => true
     }
-    @pending = session[:administration_pending]
-    @registration_confirmation = true
-    @notices = []
-    render :show
+    redirect_to_administration
   end
 
   def confirm
@@ -48,6 +45,11 @@ class AdministrationController < ApplicationController
     @email = pending["email"]
     @notices = [ "Já existe uma organização com esse nome." ]
     render :show, status: :unprocessable_content
+  end
+
+  def correct
+    demote_confirmations
+    redirect_to_administration
   end
 
   def mail
@@ -87,8 +89,7 @@ class AdministrationController < ApplicationController
       "name" => organization.name,
       "confirming" => false
     }
-    load_page
-    render :show
+    redirect_to_administration
   end
 
   def name_continue
@@ -105,9 +106,13 @@ class AdministrationController < ApplicationController
       "name" => @notices.any? ? typed : typed.strip,
       "confirming" => @notices.empty?
     }
-    load_page
-    status = @notices.any? ? :unprocessable_content : :ok
-    render :show, status: status
+    if @notices.any?
+      load_page
+      render :show, status: :unprocessable_content
+      return
+    end
+
+    redirect_to_administration
   end
 
   def name_cancel
@@ -156,8 +161,7 @@ class AdministrationController < ApplicationController
       "email" => access.account.email,
       "confirming" => false
     }
-    load_page
-    render :show
+    redirect_to_administration
   end
 
   def email_continue
@@ -173,9 +177,13 @@ class AdministrationController < ApplicationController
       "email" => @notices.any? ? typed : NormalizedEmail.normalize(typed),
       "confirming" => @notices.empty?
     )
-    load_page
-    status = @notices.any? ? :unprocessable_content : :ok
-    render :show, status: status
+    if @notices.any?
+      load_page
+      render :show, status: :unprocessable_content
+      return
+    end
+
+    redirect_to_administration
   end
 
   def email_cancel
@@ -245,17 +253,15 @@ class AdministrationController < ApplicationController
     load_email_draft
   end
 
-  def demote_get_confirmations
-    return unless request.get? || request.head?
+  def redirect_to_administration
+    redirect_to administration_path, status: :see_other
+  end
 
-    if @name_phase == :confirm
-      session[:administration_name]["confirming"] = false
-      @name_phase = :field
+  def demote_confirmations
+    [ :administration_pending, :administration_name, :administration_email ].each do |key|
+      draft = session[key]
+      draft["confirming"] = false if draft.is_a?(Hash)
     end
-    return unless @email_phase == :confirm
-
-    session[:administration_email]["confirming"] = false
-    @email_phase = :field
   end
 
   def load_registration
@@ -264,6 +270,7 @@ class AdministrationController < ApplicationController
     @result_organization = Organization.find_by(id: @result["organization_id"]) if @result
     @name = @pending&.dig("name").to_s
     @email = @pending&.dig("email").to_s
+    @registration_confirmation = @pending&.dig("confirming")
   end
 
   def load_name_draft

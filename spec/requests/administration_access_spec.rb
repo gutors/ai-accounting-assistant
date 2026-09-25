@@ -67,6 +67,7 @@ RSpec.describe "Administration access", type: :request do
         post "/administration/email", params: { organization_id: norte.id, email: "zoe@exemplo.org" }
       }.not_to change { [ Access.count, Account.count, ActionMailer::Base.deliveries.size ] }
 
+      follow_administration
       row = organization_row(norte)
       expect(row.text).to include("ONG Norte")
       field = row.at_css('input[type="email"]')
@@ -172,6 +173,7 @@ RSpec.describe "Administration access", type: :request do
         post "/administration/email/continue", params: { email: " Coordenador@Exemplo.ORG " }
       }.not_to change { [ Access.count, Account.count ] }
 
+      follow_administration
       expect(response).to have_http_status(:ok)
       expect(page.css("[data-notice='error']")).to be_empty
       row = organization_row(norte)
@@ -217,6 +219,7 @@ RSpec.describe "Administration access", type: :request do
         post "/administration/email/continue", params: { email: " Novo@Exemplo.ORG " }
       }.not_to change { [ Access.count, Account.count ] }
 
+      follow_administration
       expect(response).to have_http_status(:ok)
       row = organization_row(norte)
       html = row.inner_html
@@ -229,7 +232,7 @@ RSpec.describe "Administration access", type: :request do
       expect(email_label.next_element.text.strip).to eq("novo@exemplo.org")
       expect(row.text).not_to include("ana@exemplo.org")
       group = row.css("div").find { |node| node["class"].to_s.include?("flex-wrap") && node.text.include?("Confirmar") }
-      expect(group.css("button, a").map { |node| node.text.strip }).to eq([ "Confirmar", "Corrigir" ])
+      expect(group.css("button").map { |node| node.text.strip }).to eq([ "Confirmar", "Corrigir" ])
     end
   end
 
@@ -241,10 +244,12 @@ RSpec.describe "Administration access", type: :request do
       ActionMailer::Base.deliveries.clear
       post "/administration/email", params: { organization_id: norte.id, email: "zoe@exemplo.org" }
       post "/administration/email/continue", params: { email: " Novo@Exemplo.ORG " }
+      follow_administration
       expect {
-        get organization_row(norte).at_css('a[href="/administration"]')["href"]
+        post "/administration/correct"
       }.not_to change { [ Access.count, Account.count ] }
 
+      follow_administration
       expect(ActionMailer::Base.deliveries).to be_empty
       expect(organization_row(norte).at_css('input[name="email"]')["value"]).to eq("novo@exemplo.org")
     end
@@ -444,9 +449,11 @@ RSpec.describe "Administration access", type: :request do
     as_seller do
       post "/administration/name", params: { organization_id: norte.id }
       post "/administration/name/continue", params: { name: "ONG Norte Nova" }
+      follow_administration
       expect(organization_row(norte).text).to include("Nenhum e-mail será enviado.")
 
       post "/administration/email", params: { organization_id: norte.id, email: "coordenador@exemplo.org" }
+      follow_administration
 
       expect(norte.reload.name).to eq("ONG Norte")
       expect(response.body).not_to include("Nenhum e-mail será enviado.")
@@ -460,12 +467,14 @@ RSpec.describe "Administration access", type: :request do
       ActionMailer::Base.deliveries.clear
       post "/administration/email", params: { organization_id: norte.id, email: "coordenador@exemplo.org" }
       post "/administration/email/continue", params: { email: "novo@exemplo.org" }
+      follow_administration
       expect(organization_row(norte).text).to include("novo@exemplo.org")
 
       expect {
         post "/administration/name", params: { organization_id: norte.id }
       }.not_to change(Access, :count)
 
+      follow_administration
       expect(ActionMailer::Base.deliveries).to be_empty
       expect(organization_row(norte).text).not_to include("novo@exemplo.org")
       expect(organization_row(norte).at_css('input[name="name"]')["value"]).to eq("ONG Norte")
@@ -483,6 +492,7 @@ RSpec.describe "Administration access", type: :request do
         post "/administration", params: { name: "ONG Sul", email: "sul@exemplo.org" }
       }.not_to change(Access, :count)
 
+      follow_administration
       expect(ActionMailer::Base.deliveries).to be_empty
       expect(page.at_css('form[action="/administration/confirm"]')).not_to be_nil
       expect(organization_row(norte).text).not_to include("novo@exemplo.org")

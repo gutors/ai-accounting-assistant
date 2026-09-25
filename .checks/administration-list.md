@@ -59,7 +59,7 @@ Cost: a model example for `coordinator_emails` and for `name_taken?` excluding t
 
 ## Checks
 
-Name-correction posts, which the task left unnamed: `POST /administration/name` starts `Corrigir nome` (`organization_id`). `POST /administration/name/continue` is `Continuar` (`name`). `POST /administration/name/cancel` is `Cancelar`. `POST /administration/name/confirm` confirms the name (`organization_id`). `Corrigir` on that confirmation is `GET /administration`.
+Name-correction posts, which the task left unnamed: `POST /administration/name` starts `Corrigir nome` (`organization_id`). `POST /administration/name/continue` is `Continuar` (`name`). `POST /administration/name/cancel` is `Cancelar`. `POST /administration/name/confirm` confirms the name (`organization_id`). `Corrigir` on that confirmation is `POST /administration/correct`, which stores `confirming` false and redirects `303` to `GET /administration`. Valid `POST /administration` and valid `POST /administration/name/continue` also redirect `303` to that GET, which renders the confirmation while `confirming` is true.
 
 ### S1 - Registry · 7 files · 43 KB · ~11k
 
@@ -70,7 +70,7 @@ Proof: `bin/rspec spec/requests/administration_spec.rb -e "GET /administration r
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "GET /administration lists organizations in stored-name order"`
 Proof: `bin/rspec spec/models/organization_spec.rb -e "coordinator_emails are ordered by accounts.email and omit submitters"`
 
-**C3** - Given no signed-in Account, when the request is `GET /administration`, `POST /administration`, `POST /administration/confirm`, `POST /administration/mail`, `POST /administration/another`, `POST /administration/name`, `POST /administration/name/continue`, `POST /administration/name/cancel`, or `POST /administration/name/confirm`, then the response is `302` to `/login`, and `Organization.count`, `Account.count`, `Access.count`, `Invite.count`, and `ActionMailer::Base.deliveries` are unchanged
+**C3** - Given no signed-in Account, when the request is `GET /administration`, `POST /administration`, `POST /administration/confirm`, `POST /administration/correct`, `POST /administration/mail`, `POST /administration/another`, `POST /administration/name`, `POST /administration/name/continue`, `POST /administration/name/cancel`, or `POST /administration/name/confirm`, then the response is `302` to `/login`, and `Organization.count`, `Account.count`, `Access.count`, `Invite.count`, and `ActionMailer::Base.deliveries` are unchanged
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "signed-out administration routes redirect to /login"`
 
 **C4** - Given a signed-in Account whose email is not the normalized `ADMINISTRATOR_EMAIL`, including when that env is unset or blank, when the request is any route in C3, then the status is `404`, the body is empty, and the counts and deliveries in C3 are unchanged
@@ -93,13 +93,13 @@ Proof: `bin/rspec spec/requests/administration_spec.rb -e "taken organization na
 **C39** - Given an Organization named `ONG Norte` exists, when `POST /administration` submits name `  ong norte  ` and email `nao-e-email`, then the status is `422`, the notices are `Informe um e-mail válido.` and then `Já existe uma organização com esse nome.`, the fields keep those values, the list stays, nothing is written, and `session[:administration_pending]` is not set
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "taken name and invalid email re-render both notices"`
 
-**C9** - Given `ONG Sul` is already listed, when `POST /administration` submits name `  ONG Norte  ` and email ` Coordenador@Exemplo.ORG `, then the status is `200`, the `h1` is `Administração`, the body does not include `Confirmar cadastro` or `Cadastre a organização e o coordenador que vai fechá-la.`, it shows `ONG Norte` and `coordenador@exemplo.org` with `Confirmar` (class includes `bg-caixa`) and `Corrigir` (class includes `border-ink`), `ONG Sul` stays at rest with `Corrigir nome`, nothing is written, no message is delivered, and `session[:administration_pending]` is `{ "name" => "ONG Norte", "email" => "coordenador@exemplo.org" }`. The label `Nome da organização` and the value sit in an element whose class includes `border-b` and `border-rule`, and the email label follows. `Confirmar` posts to `/administration/confirm`. `Corrigir` is an `a` to `/administration`. Those two controls sit in an element whose class includes `flex-wrap`, in that order
+**C9** - Given `ONG Sul` is already listed, when `POST /administration` submits name `  ONG Norte  ` and email ` Coordenador@Exemplo.ORG `, then the response is `303` to `/administration`, nothing is written, no message is delivered, and `session[:administration_pending]` is `{ "name" => "ONG Norte", "email" => "coordenador@exemplo.org", "confirming" => true }`. The following `GET` is `200`, the `h1` is `Administração`, the body does not include `Confirmar cadastro` or `Cadastre a organização e o coordenador que vai fechá-la.`, it shows `ONG Norte` and `coordenador@exemplo.org` with `Confirmar` (class includes `bg-caixa`) and `Corrigir` (class includes `border-ink`), and `ONG Sul` stays at rest with `Corrigir nome`. The label `Nome da organização` and the value sit in an element whose class includes `border-b` and `border-rule`, and the email label follows. `Confirmar` posts to `/administration/confirm`. `Corrigir` posts to `/administration/correct`. Those two controls sit in an element whose class includes `flex-wrap`, in that order
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "valid POST stores pending and renders confirmation"`
 
-**C10** - Given that pending and no result, when `GET /administration` runs, then the status is `200`, the `h1` is `Administração`, the fields show `ONG Norte` and `coordenador@exemplo.org`, the lead sentence is present, the list stays at rest, and the page is not the confirmation in C9
-Proof: `bin/rspec spec/requests/administration_spec.rb -e "GET /administration with pending fills the form"`
+**C10** - Given that pending with `confirming` true and no result, when `GET /administration` runs, then the status is `200`, the `h1` is `Administração`, the page is the confirmation in C9, and the list stays at rest
+Proof: `bin/rspec spec/requests/administration_spec.rb -e "GET /administration with pending keeps the confirmation"`
 
-**C11** - Given the confirmation in C9, when `Corrigir` is followed, then the form shows `ONG Norte` and `coordenador@exemplo.org`, the list stays at rest, and nothing is written
+**C11** - Given the confirmation in C9, when `Corrigir` is used, then the response is `303` to `/administration`, the following `GET` shows the form with `ONG Norte` and `coordenador@exemplo.org`, the list stays at rest, and nothing is written
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "Corrigir on the registration confirmation returns the filled form"`
 
 **C12** - Given pending `{ "name" => "ONG Norte", "email" => "coordenador@exemplo.org" }` and that email has no Account, when `POST /administration/confirm` runs and delivery succeeds, then the response is `302` to `/administration`. The following `GET` is `200` with an empty form, the lead sentence, and on the `ONG Norte` row the text `E-mail enviado para coordenador@exemplo.org.` which is not `[data-notice="error"]`. That row has no `Reenviar e-mail`. The body has no `Cadastrar outra organização`. One Organization `ONG Norte`, one Account `coordenador@exemplo.org`, one coordinator Access, and no Invite exist. `session[:administration_pending]` is absent. `session[:administration_result]` is `{ "organization_id" => that id, "mail_sent" => true }`. One message is delivered to `coordenador@exemplo.org` with the subject and body in C24
@@ -164,7 +164,7 @@ Proof: `bin/rspec spec/requests/administration_spec.rb -e "blank name correction
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "taken name correction re-renders 422"`
 Proof: `bin/rspec spec/models/organization_spec.rb -e "name_taken? ignores the organization being corrected"`
 
-**C30** - Given the stored name is `ONG Norte`, when `Continuar` submits `ong norte`, then the status is `200`, the row is replaced by the label `Nome da organização`, then `ong norte`, then the sentence `Nenhum e-mail será enviado.` which is not `[data-notice="error"]`. The coordinator email is absent from that row. Other rows stay at rest, the collision notice is absent, and nothing is written. `Confirmar` (class includes `bg-caixa`, posts `/administration/name/confirm`) and `Corrigir` (class includes `border-ink`, links to `/administration`) sit in that order in an element whose class includes `flex-wrap`
+**C30** - Given the stored name is `ONG Norte`, when `Continuar` submits `ong norte`, then the response is `303` to `/administration`. The following `GET` is `200`, the row is replaced by the label `Nome da organização`, then `ong norte`, then the sentence `Nenhum e-mail será enviado.` which is not `[data-notice="error"]`. The coordinator email is absent from that row. Other rows stay at rest, the collision notice is absent, and nothing is written. `Confirmar` (class includes `bg-caixa`, posts `/administration/name/confirm`) and `Corrigir` (class includes `border-ink`, posts `/administration/correct`) sit in that order in an element whose class includes `flex-wrap`
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "a lower-case spelling of the same name asks for confirmation"`
 
 **C31** - Given `ONG Norte` has a closed Month with a `month_folder_id`, and `Continuar` submitted `  ong norte  ` so the confirmation shows `ong norte`, when that confirmation is confirmed, then the stored name is `ong norte`, no message is delivered, `PackageArchiveWriter` is not called, `month_folder_id` is unchanged, the row shows `ong norte`, and the body does not include `Nenhum e-mail será enviado.`
@@ -180,7 +180,7 @@ Proof: `bin/rspec spec/requests/administration_spec.rb -e "renaming another orga
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "concurrent name confirms of the same name leave one rename"`
 Proof: `bin/rspec spec/models/organization_spec.rb -e "updating onto a taken lower name raises RecordNotUnique and keeps the previous name"`
 
-**C35** - Given the name confirmation is showing `ONG Norte Nova` and `Nenhum e-mail será enviado.`, when `Corrigir` is used, then the field shows `ONG Norte Nova`, nothing is written, and no message is delivered
+**C35** - Given the name confirmation is showing `ONG Norte Nova` and `Nenhum e-mail será enviado.`, when `Corrigir` is used, then the response is `303` to `/administration`, the following `GET` shows the field `ONG Norte Nova`, nothing is written, and no message is delivered
 Proof: `bin/rspec spec/requests/administration_spec.rb -e "Corrigir on the name confirmation returns the typed name"`
 
 **C36** - When a name confirmation is submitted for an organization id that does not exist, then the response is `404`, every Organization name is unchanged, and no message is delivered
@@ -223,8 +223,8 @@ Proof: `bin/rspec spec/requests/administration_spec.rb -e "a valid registration 
 
 | Set (size) | Member -> proof | Unproven |
 | --- | --- | --- |
-| administration routes when signed out (9) | `GET /administration` C3 · `POST /administration` C3 · `POST /administration/confirm` C3 · `POST /administration/mail` C3 · `POST /administration/another` C3 · `POST /administration/name` C3 · `POST /administration/name/continue` C3 · `POST /administration/name/cancel` C3 · `POST /administration/name/confirm` C3 | - |
-| administration routes when not the administrator (2 callers × 9 routes) | other email C4 · blank env C4, each over the nine routes in C3 | - |
+| administration routes when signed out (10) | `GET /administration` C3 · `POST /administration` C3 · `POST /administration/confirm` C3 · `POST /administration/correct` C3 · `POST /administration/mail` C3 · `POST /administration/another` C3 · `POST /administration/name` C3 · `POST /administration/name/continue` C3 · `POST /administration/name/cancel` C3 · `POST /administration/name/confirm` C3 | - |
+| administration routes when not the administrator (2 callers × 10 routes) | other email C4 · blank env C4, each over the ten routes in C3 | - |
 | `POST /administration` rejection notices (5) | blank name C5 · invalid email C6 · blank name then invalid email C7 · taken name C8 · taken name with invalid email C39 | - |
 | confirm outcomes (8) | new Account C12 · existing Account C13 · own email focuses new org C14 · other email leaves focus C15 · no pending C16 · `deliver_now` raises C17 · lost unique name C21 · a later confirm replaces the failure C22 | - |
 | resend outcomes (3) | delivery succeeds C18 · `deliver_now` raises C19 · no result C20 | - |

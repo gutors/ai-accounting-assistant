@@ -8,6 +8,7 @@ Rails.application.routes.draw do
   get "/administration", to: "administration#show", as: :administration
   post "/administration", to: "administration#create"
   post "/administration/confirm", to: "administration#confirm"
+  post "/administration/correct", to: "administration#correct"
   post "/administration/mail", to: "administration#mail"
   post "/administration/another", to: "administration#another"
   post "/administration/name", to: "administration#name_open"
