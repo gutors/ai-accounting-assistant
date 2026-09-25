@@ -301,3 +301,6 @@ Proof: `bin/rspec spec/requests/coordinator_invites_spec.rb -e "a later invite s
 ## Handoff
 
 S1 ~13k + S2 ~21k + S3 ~13k + S4 ~20k + S5 ~7k = ~74k token floor, counting shared files again. Read once, the administration controller, the administration views, the request spec, the organization model, the invite controllers, the home, and the mailers are under 40k. The design was opened during extract (~5k). All five slices stay under 150k. S5 enters the home, a different surface, but still fits. No split. One batch.
+
+Batch closed. Checks C1–C52 are in `d79a538`. No mid-build clarification. Abandoned: mutating `session[:administration_result]` in a request spec does not change the next request's cookie, so C39 deletes the organization instead; `association#delete_all` nullified `accesses.organization_id`, so removal uses `Access.where(organization_id:).delete_all`; a blank `MAIL_FROM` raises on `deliver_now`, so successful invite sends set it.
+
