@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-22T11:15:00-03:00",
+  "generatedAt": "2026-09-28T14:04:57-03:00",
   "title": "Design System: Fechamento mensal",
   "extensions": {
     "colorMeta": {
@@ -113,7 +113,7 @@
     "typographyMeta": {
       "display": {
         "displayName": "Display",
-        "purpose": "The month in words. Steps to 1.75rem below 768px."
+        "purpose": "The month in words (`maio de 2026`). Steps to 1.75rem below 768px; the token itself is the larger size."
       },
       "headline": {
         "displayName": "Headline",
@@ -121,31 +121,31 @@
       },
       "title": {
         "displayName": "Title",
-        "purpose": "Section headings on a ruling underline."
+        "purpose": "A section heading, sitting on a ruling underline."
       },
       "body": {
         "displayName": "Body",
-        "purpose": "Sentences and secondary buttons."
+        "purpose": "Sentences and secondary buttons. Prose stays within a 72-character measure."
       },
       "label": {
         "displayName": "Label",
-        "purpose": "Row primary text and visible field labels."
+        "purpose": "The history, payee, or account name on a row, and the visible label of a field."
       },
       "button": {
         "displayName": "Button",
-        "purpose": "Primary actions and the closed-month stamp."
+        "purpose": "Primary actions and the stamp. Secondary buttons stay at body weight."
       },
       "meta": {
         "displayName": "Meta",
-        "purpose": "Filenames, coordinates, slugs, in soft ink."
+        "purpose": "Filenames, coordinates, the month-folder slug, document kind, in soft ink."
       },
       "amount": {
         "displayName": "Amount",
-        "purpose": "Right-aligned money, tabular figures."
+        "purpose": "Right-aligned money, tabular figures. Dates on a row use the same tabular figures at body weight."
       },
       "chave": {
         "displayName": "Chave",
-        "purpose": "The access key only, in IBM Plex Mono, grouped in fours."
+        "purpose": "The 44-digit access key only, in IBM Plex Mono, shown as eleven groups of four."
       }
     },
     "shadows": [],
@@ -159,7 +159,7 @@
       {
         "name": "md",
         "value": "768px",
-        "purpose": "Wide gutter, four-track ledger rows, and two-column forms begin here."
+        "purpose": "Wide gutter, four-track ledger rows, two-column forms, and the people list begin here. Display type is the token size from this width; below it, 1.75rem."
       }
     ]
   },
@@ -168,9 +168,9 @@
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "The commit action. Ledger-green fill, sheet-white label, no hover recolor.",
+      "description": "The commit action. Ledger-green fill, sheet-white label, weight 600. No hover recolor.",
       "html": "<button class=\"ds-btn-primary\">Fechar para envio</button>",
-      "css": ".ds-btn-primary { background: var(--color-caixa); color: var(--color-sheet); padding: 8px 16px; border: none; border-radius: 4px; font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; font-size: 1rem; font-weight: 600; line-height: 1.5; cursor: pointer; } .ds-btn-primary:focus-visible { outline: 2px solid var(--color-caixa); outline-offset: 2px; }"
+      "css": ".ds-btn-primary { background: var(--color-caixa); color: var(--color-sheet); padding: 8px 16px; border: none; border-radius: 4px; font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; font-size: 1rem; font-weight: 600; line-height: 1.5; cursor: pointer; } .ds-btn-primary:hover { background: var(--color-caixa); } .ds-btn-primary:focus-visible { outline: 2px solid var(--color-caixa); outline-offset: 2px; }"
     },
     {
       "name": "Secondary Button",
@@ -178,7 +178,7 @@
       "refersTo": "button-secondary",
       "description": "An ink-bordered action at body weight. Reopen, restore, invite, mark an exception.",
       "html": "<button class=\"ds-btn-secondary\">Reabrir</button>",
-      "css": ".ds-btn-secondary { background: transparent; color: var(--color-ink); padding: 8px 16px; border: 1px solid var(--color-ink); border-radius: 4px; font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; font-size: 1rem; font-weight: 400; line-height: 1.5; cursor: pointer; } .ds-btn-secondary:focus-visible { outline: 2px solid var(--color-caixa); outline-offset: 2px; }"
+      "css": ".ds-btn-secondary { background: transparent; color: var(--color-ink); padding: 8px 16px; border: 1px solid var(--color-ink); border-radius: 4px; font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; font-size: 1rem; font-weight: 400; line-height: 1.5; cursor: pointer; } .ds-btn-secondary:hover { background: transparent; } .ds-btn-secondary:focus-visible { outline: 2px solid var(--color-caixa); outline-offset: 2px; }"
     },
     {
       "name": "Destructive Text Action",
@@ -186,29 +186,29 @@
       "refersTo": "action-destructive",
       "description": "A quiet underlined action in margin red. Revoke, delete, undo, deactivate.",
       "html": "<button class=\"ds-action-destructive\">Revogar</button>",
-      "css": ".ds-action-destructive { background: none; border: none; padding: 0; color: var(--color-margem); text-decoration: underline; text-underline-offset: 2px; font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; font-size: 1rem; font-weight: 400; line-height: 1.5; cursor: pointer; } .ds-action-destructive:focus-visible { outline: 2px solid var(--color-caixa); outline-offset: 2px; }"
+      "css": ".ds-action-destructive { background: none; border: none; padding: 0; color: var(--color-margem); text-decoration: underline; text-underline-offset: 2px; font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; font-size: 1rem; font-weight: 400; line-height: 1.5; cursor: pointer; } .ds-action-destructive:hover { text-decoration: underline; } .ds-action-destructive:focus-visible { outline: 2px solid var(--color-caixa); outline-offset: 2px; }"
     },
     {
       "name": "Text Field",
       "kind": "input",
       "refersTo": "input",
-      "description": "A sheet-white field with a ruling border. The label stays visible above it.",
+      "description": "A sheet-white field with a ruling border. The label stays visible above it. Error is a notice under the title, not a red field border.",
       "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Favorecido</span><input class=\"ds-input\" type=\"text\" value=\"Padaria Central\"></label>",
-      "css": ".ds-field { display: flex; flex-direction: column; gap: 4px; font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; color: var(--color-ink); max-width: 28rem; } .ds-field-label { font-size: 1rem; font-weight: 500; line-height: 1.5; } .ds-input { background: var(--color-sheet); color: var(--color-ink); border: 1px solid var(--color-rule); border-radius: 4px; padding: 8px 12px; width: 100%; font: inherit; font-weight: 400; } .ds-input:focus-visible { outline: 2px solid var(--color-caixa); outline-offset: 2px; }"
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 4px; font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; color: var(--color-ink); max-width: 28rem; } .ds-field-label { font-size: 1rem; font-weight: 500; line-height: 1.5; } .ds-input { background: var(--color-sheet); color: var(--color-ink); border: 1px solid var(--color-rule); border-radius: 4px; padding: 8px 12px; width: 100%; font: inherit; font-weight: 400; } .ds-input:hover { border-color: var(--color-rule); } .ds-input:focus-visible { outline: 2px solid var(--color-caixa); outline-offset: 2px; }"
     },
     {
       "name": "Header",
       "kind": "nav",
       "refersTo": "action-quiet",
-      "description": "Paper bar, mark, organization name, text links, and a quiet exit.",
-      "html": "<header class=\"ds-header\"><div class=\"ds-header-inner\"><p class=\"ds-brand\"><svg class=\"ds-mark\" viewBox=\"0 0 512 512\" aria-hidden=\"true\"><rect width=\"512\" height=\"512\" rx=\"96\" fill=\"#2e6b4e\"></rect><rect x=\"96\" y=\"208\" width=\"320\" height=\"28\" fill=\"#f3f5f1\"></rect><rect x=\"96\" y=\"304\" width=\"320\" height=\"28\" fill=\"#f3f5f1\"></rect><rect x=\"152\" y=\"96\" width=\"28\" height=\"320\" fill=\"#b4372a\"></rect></svg><span>ONG Norte</span></p><nav class=\"ds-nav\" aria-label=\"Principal\"><a class=\"ds-nav-link\" href=\"#\">Início</a><a class=\"ds-nav-link\" href=\"#\">Documentos</a><a class=\"ds-nav-link\" href=\"#\">Configuração</a><button class=\"ds-nav-exit\" type=\"button\">Sair</button></nav></div></header>",
-      "css": ".ds-header { background: var(--color-paper); border-bottom: 1px solid var(--color-rule); color: var(--color-ink); font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; } .ds-header-inner { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; min-height: 56px; padding: 12px 32px; max-width: 72rem; } .ds-brand { display: flex; align-items: center; gap: 8px; margin: 0; font-weight: 500; } .ds-mark { width: 20px; height: 20px; flex-shrink: 0; } .ds-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; margin-left: auto; } .ds-nav-link { color: var(--color-ink); text-decoration: none; text-underline-offset: 2px; } .ds-nav-link:hover { text-decoration: underline; } .ds-nav-link:focus-visible, .ds-nav-exit:focus-visible { outline: 2px solid var(--color-caixa); outline-offset: 2px; } .ds-nav-exit { background: none; border: none; padding: 0; color: var(--color-caixa); text-decoration: underline; text-underline-offset: 2px; font: inherit; cursor: pointer; }"
+      "description": "Paper bar, mark, organization name (or product name), text links, and a quiet exit. Login and the denied page have no navigation.",
+      "html": "<header class=\"ds-header\"><div class=\"ds-header-inner\"><p class=\"ds-brand\"><svg class=\"ds-mark\" viewBox=\"0 0 512 512\" aria-hidden=\"true\"><rect width=\"512\" height=\"512\" rx=\"96\" fill=\"#2e6b4e\"></rect><rect x=\"96\" y=\"208\" width=\"320\" height=\"28\" fill=\"#f3f5f1\"></rect><rect x=\"96\" y=\"304\" width=\"320\" height=\"28\" fill=\"#f3f5f1\"></rect><rect x=\"152\" y=\"96\" width=\"28\" height=\"320\" fill=\"#b4372a\"></rect></svg><span>ONG Norte</span></p><nav class=\"ds-nav\" aria-label=\"Principal\"><a class=\"ds-nav-link\" href=\"#\">Início</a><a class=\"ds-nav-link\" href=\"#\">Documentos</a><a class=\"ds-nav-link\" href=\"#\">Configuração</a><a class=\"ds-nav-link\" href=\"#\">Administração</a><button class=\"ds-nav-exit\" type=\"button\">Sair</button></nav></div></header>",
+      "css": ".ds-header { background: var(--color-paper); border-bottom: 1px solid var(--color-rule); color: var(--color-ink); font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; } .ds-header-inner { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; min-height: 56px; padding: 12px 32px; max-width: 72rem; } .ds-brand { display: flex; align-items: center; gap: 8px; margin: 0; font-weight: 500; } .ds-mark { width: 20px; height: 20px; flex-shrink: 0; } .ds-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; margin-left: auto; } .ds-nav-link { color: var(--color-ink); text-decoration: none; text-underline-offset: 2px; } .ds-nav-link:hover { text-decoration: underline; } .ds-nav-link:focus-visible, .ds-nav-exit:focus-visible { outline: 2px solid var(--color-caixa); outline-offset: 2px; } .ds-nav-exit { background: none; border: none; padding: 0; color: var(--color-caixa); text-decoration: underline; text-underline-offset: 2px; font: inherit; cursor: pointer; } .ds-nav-exit:hover { text-decoration: underline; }"
     },
     {
       "name": "Ledger Row",
       "kind": "custom",
       "refersTo": "notice",
-      "description": "A payment with a missing document: four tracks, tabular amount, red margin.",
+      "description": "A payment with a missing document: four tracks, tabular amount, red margin. Inflows have no status cell.",
       "html": "<ul class=\"ds-ledger\"><li class=\"ds-row\" data-status=\"missing\"><time class=\"ds-row-date\">11/05/2026</time><div><p class=\"ds-row-primary\">Pix enviado — Padaria Central</p><p class=\"ds-row-meta\">Conta Principal</p></div><p class=\"ds-row-amount\">R$ 220,00</p><p class=\"ds-row-status\">Documento faltante</p></li></ul>",
       "css": ".ds-ledger { list-style: none; margin: 0; padding: 0; font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; color: var(--color-ink); max-width: 72rem; } .ds-row { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr) 8rem 12rem; column-gap: 16px; row-gap: 4px; align-items: start; border-bottom: 1px solid var(--color-rule); padding: 12px 0; } .ds-row[data-status=\"missing\"] { border-left: 3px solid var(--color-margem); padding-left: 12px; } .ds-row-date { font-variant-numeric: tabular-nums; } .ds-row-primary { margin: 0; font-weight: 500; } .ds-row-meta { margin: 0; color: var(--color-ink-soft); font-size: 0.8125rem; line-height: 1.125rem; } .ds-row-amount { margin: 0; text-align: right; font-weight: 500; font-variant-numeric: tabular-nums; } .ds-row-status { margin: 0; color: var(--color-margem); }"
     },
@@ -216,7 +216,7 @@
       "name": "Closed-Month Stamp",
       "kind": "custom",
       "refersTo": "stamp",
-      "description": "The only boxed mark. Double-ruled ink around “Mês fechado”.",
+      "description": "The only boxed mark. Double-ruled ink around “Mês fechado”. Replaces the primary close action on a closed month.",
       "html": "<span class=\"ds-stamp\">Mês fechado</span>",
       "css": ".ds-stamp { display: inline-block; color: var(--color-ink); border: 2px solid var(--color-ink); border-radius: 2px; padding: 2px 8px; font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; font-size: 1rem; font-weight: 600; line-height: 1.5; outline: 1px solid var(--color-ink); outline-offset: 3px; }"
     },
@@ -232,17 +232,17 @@
       "name": "Disclosure",
       "kind": "custom",
       "refersTo": "disclosure",
-      "description": "Status stays on the row. The form opens in a sheet panel under a ledger-green summary.",
+      "description": "Status stays on the row. The form opens in a sheet panel under a ledger-green summary. Open on a payment row only when a suggestion is waiting.",
       "html": "<details class=\"ds-details\" open><summary class=\"ds-summary\">Resolver</summary><div class=\"ds-panel\"><button class=\"ds-btn-primary\" type=\"button\">Confirmar casamento</button></div></details>",
-      "css": ".ds-details { font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; color: var(--color-ink); max-width: 36rem; } .ds-summary { color: var(--color-caixa); font-weight: 500; cursor: pointer; } .ds-summary:focus-visible { outline: 2px solid var(--color-caixa); outline-offset: 2px; } .ds-panel { margin-top: 12px; background: var(--color-sheet); border: 1px solid var(--color-rule); border-radius: 4px; padding: 16px; } .ds-btn-primary { background: var(--color-caixa); color: var(--color-sheet); padding: 8px 16px; border: none; border-radius: 4px; font-family: inherit; font-size: 1rem; font-weight: 600; line-height: 1.5; cursor: pointer; } .ds-btn-primary:focus-visible { outline: 2px solid var(--color-caixa); outline-offset: 2px; }"
+      "css": ".ds-details { font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; color: var(--color-ink); max-width: 36rem; } .ds-summary { color: var(--color-caixa); font-weight: 500; cursor: pointer; } .ds-summary:hover { text-decoration: underline; text-underline-offset: 2px; } .ds-summary:focus-visible { outline: 2px solid var(--color-caixa); outline-offset: 2px; } .ds-panel { margin-top: 12px; background: var(--color-sheet); border: 1px solid var(--color-rule); border-radius: 4px; padding: 16px; } .ds-btn-primary { background: var(--color-caixa); color: var(--color-sheet); padding: 8px 16px; border: none; border-radius: 4px; font-family: inherit; font-size: 1rem; font-weight: 600; line-height: 1.5; cursor: pointer; } .ds-btn-primary:hover { background: var(--color-caixa); } .ds-btn-primary:focus-visible { outline: 2px solid var(--color-caixa); outline-offset: 2px; }"
     },
     {
       "name": "Organization Switcher",
       "kind": "chip",
       "refersTo": "button-org-current",
-      "description": "The focused organization is filled; the others keep an ink border.",
+      "description": "The focused organization is a primary fill with tighter padding and aria-current. The others keep an ink border.",
       "html": "<div class=\"ds-orgs\" role=\"navigation\" aria-label=\"Organizações\"><button class=\"ds-org ds-org-current\" type=\"button\" aria-current=\"true\">ONG Norte</button><button class=\"ds-org ds-org-idle\" type=\"button\">ONG Sul</button></div>",
-      "css": ".ds-orgs { display: flex; flex-wrap: wrap; gap: 8px; font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; } .ds-org { border-radius: 4px; padding: 4px 12px; font-size: 1rem; line-height: 1.5; cursor: pointer; } .ds-org:focus-visible { outline: 2px solid var(--color-caixa); outline-offset: 2px; } .ds-org-current { background: var(--color-caixa); color: var(--color-sheet); border: none; font-weight: 600; } .ds-org-idle { background: transparent; color: var(--color-ink); border: 1px solid var(--color-ink); font-weight: 400; }"
+      "css": ".ds-orgs { display: flex; flex-wrap: wrap; gap: 8px; font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; } .ds-org { border-radius: 4px; padding: 4px 12px; font-size: 1rem; line-height: 1.5; cursor: pointer; } .ds-org:focus-visible { outline: 2px solid var(--color-caixa); outline-offset: 2px; } .ds-org-current { background: var(--color-caixa); color: var(--color-sheet); border: none; font-weight: 600; } .ds-org-current:hover { background: var(--color-caixa); } .ds-org-idle { background: transparent; color: var(--color-ink); border: 1px solid var(--color-ink); font-weight: 400; } .ds-org-idle:hover { background: transparent; }"
     }
   ],
   "narrative": {

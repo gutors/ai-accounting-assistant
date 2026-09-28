@@ -6,6 +6,8 @@ Rails.application.routes.draw do
   get "/denied", to: "sessions#denied", as: :denied
 
   get "/administration", to: "administration#show", as: :administration
+  get "/administration/new", to: "administration#new", as: :new_administration
+  get "/administration/:id/edit", to: "administration#edit", as: :edit_administration
   post "/administration", to: "administration#create"
   post "/administration/confirm", to: "administration#confirm"
   post "/administration/correct", to: "administration#correct"

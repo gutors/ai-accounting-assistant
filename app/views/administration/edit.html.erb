@@ -1,0 +1,12 @@
+<div class="max-w-[28rem]">
+  <p>
+    <%= link_to "Administração", administration_path, class: "text-caixa underline underline-offset-2" %>
+  </p>
+  <h1 class="mt-4 text-2xl leading-7 font-semibold tracking-[-0.01em]">Editar organização</h1>
+
+  <% @notices.each do |message| %>
+    <%= render "shared/notice", message: message %>
+  <% end %>
+
+  <%= render "administration/organization", organization: @organization %>
+</div>

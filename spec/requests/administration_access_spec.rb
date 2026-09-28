@@ -3,7 +3,7 @@ require "rails_helper"
 RSpec.describe "Administration access", type: :request do
   include AdministrationHelpers
 
-  it "GET /administration shows Corrigir on each coordinator email and Remover" do
+  it "GET /administration lists the first coordinator, status, and Editar" do
     _account, sul = plant_coordinator(email: "sul@exemplo.org", organization_name: "ONG Sul", google_uid: "uid-sul")
     norte = Organization.create!(name: "ONG Norte")
     zoe = Account.create!(email: "zoe@exemplo.org")
@@ -16,10 +16,36 @@ RSpec.describe "Administration access", type: :request do
     as_seller do
       get "/administration"
 
+      row = organization_row(norte)
+      expect(row.css("a").find { |link| link.text.strip == "Editar" }["href"]).to eq("/administration/#{norte.id}/edit")
+      expect(row.text).to include("ONG Norte")
+      expect(row.text).to include("ana@exemplo.org")
+      expect(row.text).to include("Pendente")
+      expect(row.text).not_to include("zoe@exemplo.org")
+      expect(row.text).not_to include("Corrigir nome")
+      expect(row.text).not_to include("Remover")
+      expect(response.body).not_to include("submitter@exemplo.org")
+      expect(organization_row(sul).text).to include("Ativa")
+    end
+  end
+
+  it "GET /administration/:id/edit shows Corrigir on each coordinator email and Remover" do
+    plant_coordinator(email: "sul@exemplo.org", organization_name: "ONG Sul", google_uid: "uid-sul")
+    norte = Organization.create!(name: "ONG Norte")
+    zoe = Account.create!(email: "zoe@exemplo.org")
+    ana = Account.create!(email: "ana@exemplo.org")
+    submitter = Account.create!(email: "submitter@exemplo.org")
+    Access.create!(account: zoe, organization: norte, kind: :coordinator)
+    Access.create!(account: ana, organization: norte, kind: :coordinator)
+    Access.create!(account: submitter, organization: norte, kind: :submitter)
+
+    as_seller do
+      get "/administration/#{norte.id}/edit"
+
       column = administration_column
       row = organization_row(norte)
       expect(column.css("[data-organization-id='#{norte.id}']").size).to eq(1)
-      expect(row["class"]).to include("flex-wrap")
+      expect(page.at_css("h1").text.strip).to eq("Editar organização")
       expect(row.css("p, button").map { |node| node.text.strip }).to eq([
         "ONG Norte",
         "Corrigir nome",
@@ -51,7 +77,6 @@ RSpec.describe "Administration access", type: :request do
       expect(form["action"]).to eq("/administration")
       expect(form.at_css('input[name="_method"]')["value"]).to eq("delete")
       expect(response.body).not_to include("submitter@exemplo.org")
-      expect(organization_row(sul).text).to include("Corrigir nome")
     end
   end
 
@@ -67,7 +92,7 @@ RSpec.describe "Administration access", type: :request do
         post "/administration/email", params: { organization_id: norte.id, email: "zoe@exemplo.org" }
       }.not_to change { [ Access.count, Account.count, ActionMailer::Base.deliveries.size ] }
 
-      follow_administration
+      follow_administration("/administration/#{norte.id}/edit")
       row = organization_row(norte)
       expect(row.text).to include("ONG Norte")
       field = row.at_css('input[type="email"]')
@@ -173,7 +198,7 @@ RSpec.describe "Administration access", type: :request do
         post "/administration/email/continue", params: { email: " Coordenador@Exemplo.ORG " }
       }.not_to change { [ Access.count, Account.count ] }
 
-      follow_administration
+      follow_administration("/administration/#{norte.id}/edit")
       expect(response).to have_http_status(:ok)
       expect(page.css("[data-notice='error']")).to be_empty
       row = organization_row(norte)
@@ -219,7 +244,7 @@ RSpec.describe "Administration access", type: :request do
         post "/administration/email/continue", params: { email: " Novo@Exemplo.ORG " }
       }.not_to change { [ Access.count, Account.count ] }
 
-      follow_administration
+      follow_administration("/administration/#{norte.id}/edit")
       expect(response).to have_http_status(:ok)
       row = organization_row(norte)
       html = row.inner_html
@@ -244,12 +269,12 @@ RSpec.describe "Administration access", type: :request do
       ActionMailer::Base.deliveries.clear
       post "/administration/email", params: { organization_id: norte.id, email: "zoe@exemplo.org" }
       post "/administration/email/continue", params: { email: " Novo@Exemplo.ORG " }
-      follow_administration
+      follow_administration("/administration/#{norte.id}/edit")
       expect {
         post "/administration/correct"
       }.not_to change { [ Access.count, Account.count ] }
 
-      follow_administration
+      follow_administration("/administration/#{norte.id}/edit")
       expect(ActionMailer::Base.deliveries).to be_empty
       expect(organization_row(norte).at_css('input[name="email"]')["value"]).to eq("novo@exemplo.org")
     end
@@ -449,11 +474,11 @@ RSpec.describe "Administration access", type: :request do
     as_seller do
       post "/administration/name", params: { organization_id: norte.id }
       post "/administration/name/continue", params: { name: "ONG Norte Nova" }
-      follow_administration
+      follow_administration("/administration/#{norte.id}/edit")
       expect(organization_row(norte).text).to include("Nenhum e-mail será enviado.")
 
       post "/administration/email", params: { organization_id: norte.id, email: "coordenador@exemplo.org" }
-      follow_administration
+      follow_administration("/administration/#{norte.id}/edit")
 
       expect(norte.reload.name).to eq("ONG Norte")
       expect(response.body).not_to include("Nenhum e-mail será enviado.")
@@ -467,14 +492,14 @@ RSpec.describe "Administration access", type: :request do
       ActionMailer::Base.deliveries.clear
       post "/administration/email", params: { organization_id: norte.id, email: "coordenador@exemplo.org" }
       post "/administration/email/continue", params: { email: "novo@exemplo.org" }
-      follow_administration
+      follow_administration("/administration/#{norte.id}/edit")
       expect(organization_row(norte).text).to include("novo@exemplo.org")
 
       expect {
         post "/administration/name", params: { organization_id: norte.id }
       }.not_to change(Access, :count)
 
-      follow_administration
+      follow_administration("/administration/#{norte.id}/edit")
       expect(ActionMailer::Base.deliveries).to be_empty
       expect(organization_row(norte).text).not_to include("novo@exemplo.org")
       expect(organization_row(norte).at_css('input[name="name"]')["value"]).to eq("ONG Norte")
@@ -492,10 +517,11 @@ RSpec.describe "Administration access", type: :request do
         post "/administration", params: { name: "ONG Sul", email: "sul@exemplo.org" }
       }.not_to change(Access, :count)
 
-      follow_administration
+      follow_administration("/administration/new")
       expect(ActionMailer::Base.deliveries).to be_empty
       expect(page.at_css('form[action="/administration/confirm"]')).not_to be_nil
-      expect(organization_row(norte).text).not_to include("novo@exemplo.org")
+      expect(response.body).to include("ONG Sul")
+      expect(page.at_css("[data-organization-id]")).to be_nil
     end
   end
 
@@ -656,7 +682,7 @@ RSpec.describe "Administration access", type: :request do
     end
   end
 
-  it "GET /administration after removing the result organization shows the empty form" do
+  it "GET /administration after removing the result organization shows the empty list" do
     as_seller do
       post "/administration", params: { name: "ONG Norte", email: "coordenador@exemplo.org" }
       post "/administration/confirm"
@@ -665,7 +691,7 @@ RSpec.describe "Administration access", type: :request do
       get "/administration"
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include("Cadastre a organização e o coordenador que vai fechá-la.")
+      expect(page.css("a").find { |link| link.text.strip == "Adicionar organização" }).to be_present
       expect(response.body).not_to include("ONG Norte")
       expect(response.body).not_to include("E-mail enviado para")
       expect(response.body).not_to include("O cadastro foi gravado, mas o e-mail não saiu.")

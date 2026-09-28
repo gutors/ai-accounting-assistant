@@ -1,35 +1,27 @@
-<div class="max-w-[28rem]">
-  <h1 class="text-2xl leading-7 font-semibold tracking-[-0.01em]">Administração</h1>
+<div>
+  <div class="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
+    <h1 class="text-2xl leading-7 font-semibold tracking-[-0.01em]">Administração</h1>
+    <%= link_to "Adicionar organização", new_administration_path, class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+  </div>
 
   <% @notices.each do |message| %>
     <%= render "shared/notice", message: message %>
   <% end %>
 
-  <% if @registration_confirmation %>
-    <%= render "administration/record", name: @pending["name"], email: @pending["email"] %>
-    <div class="mt-6 flex flex-wrap items-center gap-3">
-      <%= button_to "Confirmar", "/administration/confirm", method: :post, class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
-      <%= button_to "Corrigir", "/administration/correct", method: :post, class: "rounded border border-ink px-4 py-2 text-ink" %>
+  <% if @organizations.any? %>
+  <div class="mt-10">
+      <h2 class="mb-4 text-lg font-semibold tracking-[-0.01em]">Organizações</h2>
+      <div class="hidden border-b border-rule pb-2 md:grid md:grid-cols-[minmax(0,1.2fr)_minmax(0,1.4fr)_7rem_4.5rem] md:gap-x-4">
+        <p class="font-medium">Nome</p>
+        <p class="font-medium">Email coordenador</p>
+        <p class="font-medium">Status</p>
+        <p class="font-medium">Editar</p>
+      </div>
+      <% @organizations.each do |organization| %>
+        <%= render "administration/organization_row", organization: organization %>
+      <% end %>
     </div>
   <% else %>
-    <p class="mt-4">Cadastre a organização e o coordenador que vai fechá-la.</p>
-    <%= form_with url: "/administration", method: :post do %>
-      <div class="mt-6">
-        <%= label_tag :name, "Nome da organização", class: "block font-medium" %>
-        <%= text_field_tag :name, @name, class: "mt-1 w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "organization" %>
-      </div>
-      <div class="mt-6">
-        <%= label_tag :email, "E-mail do coordenador", class: "block font-medium" %>
-        <%= email_field_tag :email, @email, class: "mt-1 w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "email" %>
-      </div>
-      <%= submit_tag "Continuar", class: "mt-6 rounded bg-caixa px-4 py-2 font-semibold text-white" %>
-    <% end %>
-  <% end %>
-
-  <% if @organizations.any? %>
-    <h2 class="mt-8 border-b border-rule pb-2 font-medium">Organizações</h2>
-    <% @organizations.each do |organization| %>
-      <%= render "administration/organization", organization: organization %>
-    <% end %>
+    <p class="mt-10">Nenhuma organização cadastrada.</p>
   <% end %>
 </div>

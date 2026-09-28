@@ -30,10 +30,16 @@ RSpec.describe "Administration", type: :request do
     end
   end
 
-  it "GET /administration renders the empty registration form" do
+  it "GET /administration renders the empty list and the add control" do
     as_seller { get "/administration" }
 
-    expect_empty_form
+    expect_empty_list
+  end
+
+  it "GET /administration/new renders the empty registration form" do
+    as_seller { get "/administration/new" }
+
+    expect_add_form
   end
 
   it "header without a focused organization shows the product name and Sair" do
@@ -63,9 +69,10 @@ RSpec.describe "Administration", type: :request do
       notices = page.css("[data-notice='error']").map { |notice| notice.text.strip }
       expect(notices).to eq([ "Informe o nome da organização." ])
       expect(response.body.index("Administração")).to be < response.body.index("Informe o nome da organização.")
+      expect(page.at_css("h1").text.strip).to eq("Adicionar organização")
       expect(page.at_css('input[name="name"]')["value"]).to eq("   ")
       expect(page.at_css('input[name="email"]')["value"]).to eq("coordenador@exemplo.org")
-      expect(organization_row(listed).text).to include("ONG Norte")
+      expect(listed.reload).to eq(listed)
       expect(session[:administration_pending]).to be_nil
     end
   end
@@ -82,7 +89,7 @@ RSpec.describe "Administration", type: :request do
       expect(notices).to eq([ "Informe um e-mail válido." ])
       expect(page.at_css('input[name="name"]')["value"]).to eq("ONG Sul")
       expect(page.at_css('input[name="email"]')["value"]).to eq("nao-e-email")
-      expect(organization_row(listed).text).to include("ONG Norte")
+      expect(listed.reload).to eq(listed)
       expect(session[:administration_pending]).to be_nil
     end
   end
@@ -105,7 +112,7 @@ RSpec.describe "Administration", type: :request do
         "Informe o nome da organização.",
         "Informe um e-mail válido."
       ])
-      expect(organization_row(listed).text).to include("ONG Norte")
+      expect(listed.reload).to eq(listed)
       expect(session[:administration_pending]).to be_nil
     end
   end
@@ -122,14 +129,14 @@ RSpec.describe "Administration", type: :request do
         "email" => "coordenador@exemplo.org",
         "confirming" => true
       )
-      follow_administration
+      follow_administration("/administration/new")
       expect(response).to have_http_status(:ok)
-      expect(page.at_css("h1").text.strip).to eq("Administração")
+      expect(page.at_css("h1").text.strip).to eq("Adicionar organização")
       expect(response.body).to include("ONG Norte")
       expect(response.body).to include("coordenador@exemplo.org")
       expect(response.body).not_to include("Confirmar cadastro")
       expect(response.body).not_to include("Cadastre a organização e o coordenador que vai fechá-la.")
-      expect(organization_row(sul).text).to include("Corrigir nome")
+      expect(page.at_css("[data-organization-id]")).to be_nil
       ruled = page.at_css("main .border-b.border-rule")
       expect(ruled.text).to include("ONG Norte")
       expect(ruled.next_element.text).to include("coordenador@exemplo.org")
@@ -149,7 +156,7 @@ RSpec.describe "Administration", type: :request do
   it "confirmation column is 28rem and shows the record labels" do
     as_seller do
       post "/administration", params: { name: "ONG Norte", email: "coordenador@exemplo.org" }
-      follow_administration
+      follow_administration("/administration/new")
 
       column = page.at_css("main div")
       expect(column["class"]).to include("max-w-[28rem]")
@@ -163,37 +170,40 @@ RSpec.describe "Administration", type: :request do
     end
   end
 
-  it "GET /administration with pending keeps the confirmation" do
+  it "GET /administration/new with pending keeps the confirmation" do
     sul = Organization.create!(name: "ONG Sul")
     as_seller do
       post "/administration", params: { name: "ONG Norte", email: "coordenador@exemplo.org" }
-      follow_administration
-      get "/administration"
+      follow_administration("/administration/new")
+      get "/administration/new"
 
       expect(response).to have_http_status(:ok)
-      expect(page.at_css("h1").text.strip).to eq("Administração")
+      expect(page.at_css("h1").text.strip).to eq("Adicionar organização")
       expect(response.body).not_to include("Cadastre a organização e o coordenador que vai fechá-la.")
       expect(page.at_css('form[action="/administration/confirm"]')).not_to be_nil
       expect(page.at_css('form[action="/administration"] input[name="name"]')).to be_nil
-      expect(organization_row(sul).text).to include("Corrigir nome")
+      get "/administration"
+      expect(organization_row(sul).text).to include("ONG Sul")
+      expect(organization_row(sul).text).to include("Editar")
+      expect(organization_row(sul).text).not_to include("Corrigir nome")
       expect(organization_row(sul).at_css('input[name="name"]')).to be_nil
     end
   end
 
   it "Corrigir on the registration confirmation returns the filled form" do
-    sul = Organization.create!(name: "ONG Sul")
+    Organization.create!(name: "ONG Sul")
     as_seller do
       post "/administration", params: { name: "  ONG Norte  ", email: " Coordenador@Exemplo.ORG " }
-      follow_administration
+      follow_administration("/administration/new")
       expect {
         post "/administration/correct"
       }.not_to change { [ Organization.count, Account.count, Access.count ] }
 
-      follow_administration
+      follow_administration("/administration/new")
+      expect(page.at_css("h1").text.strip).to eq("Adicionar organização")
       expect(page.at_css('input[name="name"]')["value"]).to eq("ONG Norte")
       expect(page.at_css('input[name="email"]')["value"]).to eq("coordenador@exemplo.org")
       expect(response.body).to include("Cadastre a organização e o coordenador que vai fechá-la.")
-      expect(organization_row(sul).text).to include("Corrigir nome")
     end
   end
 
@@ -227,9 +237,9 @@ RSpec.describe "Administration", type: :request do
       follow_redirect!
       expect(response).to have_http_status(:ok)
       expect(page.at_css("h1").text.strip).to eq("Administração")
-      expect(response.body).to include("Cadastre a organização e o coordenador que vai fechá-la.")
-      expect(page.at_css('input[name="name"]')["value"].to_s).to eq("")
-      expect(page.at_css('input[name="email"]')["value"].to_s).to eq("")
+      expect(page.css("a").find { |link| link.text.strip == "Adicionar organização" }).to be_present
+      expect(page.at_css('input[name="name"]')).to be_nil
+      expect(page.at_css('input[name="email"]')).to be_nil
       row = organization_row(organization)
       sentence = row.css("p").find { |node| node.text.include?("E-mail enviado para coordenador@exemplo.org.") }
       expect(sentence).not_to be_nil
@@ -422,8 +432,8 @@ RSpec.describe "Administration", type: :request do
       expect(Organization.find_by(id: organization.id)).to eq(organization)
 
       follow_redirect!
-      expect(page.at_css('input[name="name"]')["value"].to_s).to eq("")
-      expect(page.at_css('input[name="email"]')["value"].to_s).to eq("")
+      expect(page.css("a").find { |link| link.text.strip == "Adicionar organização" }).to be_present
+      expect(page.at_css('input[name="name"]')).to be_nil
       expect(organization_row(organization).text).to include("ONG Norte")
       expect(response.body).not_to include("E-mail enviado para")
     end
@@ -475,8 +485,7 @@ RSpec.describe "Administration", type: :request do
       post "/administration/confirm"
       follow_redirect!
 
-      expect(page.at_css('input[name="name"]')["value"].to_s).to eq("")
-      expect(page.at_css('input[name="email"]')["value"].to_s).to eq("")
+      expect(page.at_css('input[name="name"]')).to be_nil
       expect(Organization.find_by!(name: "ONG Norte").name).to eq("ONG Norte")
       expect(Account.find_by!(email: "coordenador@exemplo.org").email).to eq("coordenador@exemplo.org")
 
@@ -484,8 +493,7 @@ RSpec.describe "Administration", type: :request do
       post "/administration/mail"
       follow_redirect!
 
-      expect(page.at_css('input[name="name"]')["value"].to_s).to eq("")
-      expect(page.at_css('input[name="email"]')["value"].to_s).to eq("")
+      expect(page.at_css('input[name="name"]')).to be_nil
       expect(Organization.find_by!(name: "ONG Norte").name).to eq("ONG Norte")
       expect(Account.find_by!(email: "coordenador@exemplo.org").email).to eq("coordenador@exemplo.org")
     end
@@ -504,7 +512,7 @@ RSpec.describe "Administration", type: :request do
       ])
       expect(page.at_css('input[name="name"]')["value"]).to eq("  ong norte  ")
       expect(page.at_css('input[name="email"]')["value"]).to eq("coordenador@exemplo.org")
-      expect(page.at_css("h2").text.strip).to eq("Organizações")
+      expect(page.at_css("h1").text.strip).to eq("Adicionar organização")
       expect(session[:administration_pending]).to be_nil
     end
   end
@@ -540,7 +548,7 @@ RSpec.describe "Administration", type: :request do
       ])
       expect(page.at_css('input[name="name"]')["value"]).to eq("  ong norte  ")
       expect(page.at_css('input[name="email"]')["value"]).to eq("nao-e-email")
-      expect(organization_row(listed).text).to include("ONG Norte")
+      expect(listed.reload).to eq(listed)
       expect(session[:administration_pending]).to be_nil
     end
   end
@@ -562,34 +570,33 @@ RSpec.describe "Administration", type: :request do
 
       expect(response).to have_http_status(:ok)
       expect(page.at_css("h1").text.strip).to eq("Administração")
-      expect(response.body).to include("Cadastre a organização e o coordenador que vai fechá-la.")
-      expect(page.at_css('input[name="name"]')["value"].to_s).to eq("")
-      expect(page.at_css('input[type="submit"]')["value"]).to eq("Continuar")
-      column = administration_column
-      children = column.element_children
-      form_index = children.index { |node| node.name == "form" }
-      heading_index = children.index { |node| node.name == "h2" }
-      expect(form_index).to be < heading_index
-      heading = children[heading_index]
-      expect(heading.text.strip).to eq("Organizações")
-      expect(heading["class"]).to include("border-b")
-      expect(heading["class"]).to include("border-rule")
+      add = page.css("a").find { |link| link.text.strip == "Adicionar organização" }
+      expect(add["href"]).to eq("/administration/new")
+      expect(add["class"]).to include("bg-caixa")
+      expect(page.at_css('input[name="name"]')).to be_nil
+      expect(page.at_css('input[type="submit"]')).to be_nil
+      headers = page.css("main .font-medium").first(4).map { |node| node.text.strip }
+      expect(headers).to eq([ "Nome", "Email coordenador", "Status", "Editar" ])
       expect(page.css("[data-organization-id]").map { |node| node["data-organization-id"].to_i }).to eq([
         ama.id, norte.id, sul.id
       ])
       row = organization_row(norte)
-      expect(row["class"]).to include("flex-wrap")
       expect(row["class"]).to include("border-b")
       expect(row["class"]).to include("border-rule")
-      expect(column.css("[data-organization-id='#{norte.id}']").size).to eq(1)
       html = row.inner_html
-      expect(html.index("ONG Norte")).to be < html.index("Corrigir nome")
-      expect(html.index("Corrigir nome")).to be < html.index("ana@exemplo.org")
-      expect(html.index("ana@exemplo.org")).to be < html.index("zoe@exemplo.org")
-      correct = row.css("button").find { |button| button.text.strip == "Corrigir nome" }
-      expect(correct["class"]).to include("text-caixa")
-      expect(correct["class"]).to include("underline")
-      expect(correct["class"]).to include("underline-offset-2")
+      expect(html.index("ONG Norte")).to be < html.index("ana@exemplo.org")
+      expect(html.index("ana@exemplo.org")).to be < html.index("Pendente")
+      expect(html.index("Pendente")).to be < html.index("Editar")
+      expect(row.text).not_to include("zoe@exemplo.org")
+      expect(row.text).not_to include("Corrigir nome")
+      expect(row.text).not_to include("Remover")
+      edit = row.css("a").find { |link| link.text.strip == "Editar" }
+      expect(edit["href"]).to eq("/administration/#{norte.id}/edit")
+      expect(edit["class"]).to include("text-caixa")
+      expect(edit["class"]).to include("underline")
+      expect(edit["class"]).to include("underline-offset-2")
+      expect(organization_row(sul).text).to include("Ativa")
+      expect(organization_row(ama).text).to include("Pendente")
       expect(response.body).not_to include("submitter@exemplo.org")
     end
   end
@@ -633,8 +640,9 @@ RSpec.describe "Administration", type: :request do
         post "/administration/name", params: { organization_id: organization.id }
       }.not_to change { organization.reload.name }
 
-      follow_administration
+      follow_administration("/administration/#{organization.id}/edit")
       expect(ActionMailer::Base.deliveries).to be_empty
+      expect(page.at_css("h1").text.strip).to eq("Editar organização")
       row = organization_row(organization)
       field = row.at_css('input[name="name"]')
       expect(field["value"]).to eq("ONG Norte")
@@ -680,6 +688,7 @@ RSpec.describe "Administration", type: :request do
 
       follow_redirect!
       row = organization_row(organization)
+      expect(page.at_css("h1").text.strip).to eq("Editar organização")
       expect(row.text).to include("ONG Norte")
       expect(row.text).to include("Corrigir nome")
       expect(row.at_css('input[name="name"]')).to be_nil
@@ -697,7 +706,7 @@ RSpec.describe "Administration", type: :request do
       expect(page.css("[data-notice='error']").map { |notice| notice.text.strip }).to eq([
         "Informe o nome da organização."
       ])
-      expect(response.body.index("Administração")).to be < response.body.index("Informe o nome da organização.")
+      expect(response.body.index("Editar organização")).to be < response.body.index("Informe o nome da organização.")
       row = organization_row(organization)
       expect(row.at_css('input[name="name"]')["value"]).to eq("   ")
       expect(row.text).not_to include("Nenhum e-mail será enviado.")
@@ -732,9 +741,10 @@ RSpec.describe "Administration", type: :request do
         post "/administration/name/continue", params: { name: "ong norte" }
       }.not_to change { organization.reload.name }
 
-      follow_administration
+      follow_administration("/administration/#{organization.id}/edit")
       expect(response).to have_http_status(:ok)
       expect(page.css("[data-notice='error']")).to be_empty
+      expect(page.at_css("h1").text.strip).to eq("Editar organização")
       row = organization_row(organization)
       html = row.inner_html
       expect(html.index("Nome da organização")).to be < html.index("ong norte")
@@ -750,7 +760,10 @@ RSpec.describe "Administration", type: :request do
       correct = group.css("button").find { |button| button.text.strip == "Corrigir" }
       expect(correct.ancestors("form").first["action"]).to eq("/administration/correct")
       expect(correct["class"]).to include("border-ink")
-      expect(organization_row(sul).text).to include("Corrigir nome")
+      get "/administration"
+      expect(organization_row(sul).text).to include("ONG Sul")
+      expect(organization_row(sul).text).to include("Editar")
+      expect(organization_row(organization).text).not_to include("Nenhum e-mail será enviado.")
     end
   end
 
@@ -762,7 +775,7 @@ RSpec.describe "Administration", type: :request do
       ActionMailer::Base.deliveries.clear
       post "/administration/name", params: { organization_id: organization.id }
       post "/administration/name/continue", params: { name: "  ong norte  " }
-      follow_administration
+      follow_administration("/administration/#{organization.id}/edit")
       expect(organization_row(organization).text).to include("ong norte")
       expect(PackageArchiveWriter).not_to receive(:current)
 
@@ -836,14 +849,14 @@ RSpec.describe "Administration", type: :request do
       ActionMailer::Base.deliveries.clear
       post "/administration/name", params: { organization_id: organization.id }
       post "/administration/name/continue", params: { name: "ONG Norte Nova" }
-      follow_administration
+      follow_administration("/administration/#{organization.id}/edit")
       expect(organization_row(organization).text).to include("Nenhum e-mail será enviado.")
 
       expect {
         post "/administration/correct"
       }.not_to change { organization.reload.name }
 
-      follow_administration
+      follow_administration("/administration/#{organization.id}/edit")
       expect(ActionMailer::Base.deliveries).to be_empty
       expect(organization_row(organization).at_css('input[name="name"]')["value"]).to eq("ONG Norte Nova")
     end
@@ -869,13 +882,14 @@ RSpec.describe "Administration", type: :request do
       expect(session[:administration_pending]["name"]).to eq("ONG Nova")
 
       post "/administration/name", params: { organization_id: existing.id }
-      follow_administration
+      follow_administration("/administration/#{existing.id}/edit")
 
       expect(Organization.find_by(name: "ONG Nova")).to be_nil
-      form = page.at_css('form[action="/administration"]')
-      expect(form.at_css('input[name="name"]')["value"].to_s).to eq("")
-      expect(form.at_css('input[name="email"]')["value"].to_s).to eq("")
+      expect(page.at_css('form[action="/administration"]')).to be_nil
       expect(organization_row(existing).at_css('input[name="name"]')["value"]).to eq("ONG Norte")
+      get "/administration/new"
+      expect(page.at_css('input[name="name"]')["value"].to_s).to eq("")
+      expect(page.at_css('input[name="email"]')["value"].to_s).to eq("")
     end
   end
 
@@ -890,13 +904,13 @@ RSpec.describe "Administration", type: :request do
       }
 
       post "/administration", params: { name: "ONG Sul", email: "sul@exemplo.org" }
-      follow_administration
+      follow_administration("/administration/new")
 
       expect(norte.reload.name).to eq("ONG Norte")
       expect(page.at_css('form[action="/administration/confirm"]')).not_to be_nil
       expect(response.body).to include("ONG Sul")
       expect(response.body).to include("sul@exemplo.org")
-      expect(organization_row(norte).at_css('input[name="name"]')).to be_nil
+      expect(page.at_css("[data-organization-id]")).to be_nil
       expect(response.body).not_to include("Nenhum e-mail será enviado.")
     end
   end

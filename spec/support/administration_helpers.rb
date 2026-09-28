@@ -9,6 +9,8 @@ module AdministrationHelpers
   def administration_routes
     [
       [ :get, "/administration" ],
+      [ :get, "/administration/new" ],
+      [ :get, "/administration/1/edit" ],
       [ :post, "/administration" ],
       [ :post, "/administration/confirm" ],
       [ :post, "/administration/correct" ],
@@ -26,9 +28,9 @@ module AdministrationHelpers
     ]
   end
 
-  def follow_administration
+  def follow_administration(path = "/administration")
     expect(response).to have_http_status(:see_other)
-    expect(response).to redirect_to("/administration")
+    expect(response).to redirect_to(path)
     follow_redirect!
   end
 
@@ -47,9 +49,25 @@ module AdministrationHelpers
     column
   end
 
-  def expect_empty_form
+  def expect_empty_list
     expect(response).to have_http_status(:ok)
     expect(page.at_css("h1").text.strip).to eq("Administração")
+    add = page.css("a").find { |link| link.text.strip == "Adicionar organização" }
+    expect(add["href"]).to eq("/administration/new")
+    expect(add["class"]).to include("bg-caixa")
+    expect(add["class"]).to include("font-semibold")
+    expect(page.at_css('input[name="name"]')).to be_nil
+    expect(page.at_css('input[name="email"]')).to be_nil
+    expect(page.css("[data-organization-id]")).to be_empty
+    expect(response.body).to include("Nenhuma organização cadastrada.")
+    expect(response.body).not_to include("Cadastre a organização e o coordenador que vai fechá-la.")
+    expect(response.body).not_to include("Cadastrar outra organização")
+    expect(page.css("main svg")).to be_empty
+  end
+
+  def expect_add_form
+    expect(response).to have_http_status(:ok)
+    expect(page.at_css("h1").text.strip).to eq("Adicionar organização")
     expect(response.body).to include("Cadastre a organização e o coordenador que vai fechá-la.")
     expect(page.css("[data-notice='error']")).to be_empty
     column = page.at_css("main div")
@@ -67,7 +85,6 @@ module AdministrationHelpers
     expect(submit["value"]).to eq("Continuar")
     expect(submit["class"]).to include("bg-caixa")
     expect(page.css("main svg")).to be_empty
-    expect(page.css("h1, h2, h3").map { |heading| heading.text.strip }).to eq([ "Administração" ])
     expect(response.body).not_to include("Cadastrar outra organização")
   end
 

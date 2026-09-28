@@ -3,7 +3,23 @@ class AdministrationController < ApplicationController
   before_action :prepare_administration
 
   def show
-    load_page
+    load_registration
+  end
+
+  def new
+    load_registration
+  end
+
+  def edit
+    @organization = Organization.find_by(id: params[:id])
+    unless @organization
+      head :not_found
+      return
+    end
+
+    load_registration
+    load_name_draft
+    load_email_draft
   end
 
   def create
@@ -13,7 +29,7 @@ class AdministrationController < ApplicationController
     @email = params[:email].to_s
     @notices = registration_notices(@name, @email)
     if @notices.any?
-      render :show, status: :unprocessable_content
+      render :new, status: :unprocessable_content
       return
     end
 
@@ -22,7 +38,7 @@ class AdministrationController < ApplicationController
       "email" => NormalizedEmail.normalize(@email),
       "confirming" => true
     }
-    redirect_to_administration
+    redirect_to_new_administration
   end
 
   def confirm
@@ -44,12 +60,12 @@ class AdministrationController < ApplicationController
     @name = pending["name"]
     @email = pending["email"]
     @notices = [ "Já existe uma organização com esse nome." ]
-    render :show, status: :unprocessable_content
+    render :new, status: :unprocessable_content
   end
 
   def correct
     demote_confirmations
-    redirect_to_administration
+    redirect_after_correct
   end
 
   def mail
@@ -89,7 +105,7 @@ class AdministrationController < ApplicationController
       "name" => organization.name,
       "confirming" => false
     }
-    redirect_to_administration
+    redirect_to_edit(organization)
   end
 
   def name_continue
@@ -107,17 +123,20 @@ class AdministrationController < ApplicationController
       "confirming" => @notices.empty?
     }
     if @notices.any?
-      load_page
-      render :show, status: :unprocessable_content
+      @organization = organization
+      load_registration
+      load_name_draft
+      render :edit, status: :unprocessable_content
       return
     end
 
-    redirect_to_administration
+    redirect_to_edit(organization)
   end
 
   def name_cancel
+    organization = name_draft_organization
     session.delete(:administration_name)
-    redirect_to administration_path, status: :found
+    organization ? redirect_to_edit(organization) : redirect_to_administration
   end
 
   def name_confirm
@@ -141,8 +160,10 @@ class AdministrationController < ApplicationController
 
     session[:administration_name]["confirming"] = false
     @notices = [ "Já existe uma organização com esse nome." ]
-    load_page
-    render :show, status: :unprocessable_content
+    @organization = organization
+    load_registration
+    load_name_draft
+    render :edit, status: :unprocessable_content
   end
 
   def email_open
@@ -161,7 +182,7 @@ class AdministrationController < ApplicationController
       "email" => access.account.email,
       "confirming" => false
     }
-    redirect_to_administration
+    redirect_to_edit(organization)
   end
 
   def email_continue
@@ -178,17 +199,20 @@ class AdministrationController < ApplicationController
       "confirming" => @notices.empty?
     )
     if @notices.any?
-      load_page
-      render :show, status: :unprocessable_content
+      @organization = organization
+      load_registration
+      load_email_draft
+      render :edit, status: :unprocessable_content
       return
     end
 
-    redirect_to_administration
+    redirect_to_edit(organization)
   end
 
   def email_cancel
+    organization = email_draft_organization
     session.delete(:administration_email)
-    redirect_to administration_path, status: :found
+    organization ? redirect_to_edit(organization) : redirect_to_administration
   end
 
   def email_confirm
@@ -225,9 +249,12 @@ class AdministrationController < ApplicationController
     end
 
     unless organization.remove
+      @organization = organization
       @removal_organization = organization
-      load_page
-      render :show, status: :unprocessable_content
+      load_registration
+      load_name_draft
+      load_email_draft
+      render :edit, status: :unprocessable_content
       return
     end
 
@@ -241,20 +268,36 @@ class AdministrationController < ApplicationController
   end
 
   def prepare_administration
-    @organizations = Organization.order(:name)
+    @organizations = Organization.order(:name).includes(accesses: :account)
     @notices = []
     @name = ""
     @email = ""
   end
 
-  def load_page
-    load_registration
-    load_name_draft
-    load_email_draft
-  end
-
   def redirect_to_administration
     redirect_to administration_path, status: :see_other
+  end
+
+  def redirect_to_new_administration
+    redirect_to new_administration_path, status: :see_other
+  end
+
+  def redirect_to_edit(organization)
+    redirect_to edit_administration_path(organization), status: :see_other
+  end
+
+  def redirect_after_correct
+    name_org = name_draft_organization
+    email_org = email_draft_organization
+    if name_org
+      redirect_to_edit(name_org)
+    elsif email_org
+      redirect_to_edit(email_org)
+    elsif pending_registration
+      redirect_to_new_administration
+    else
+      redirect_to_administration
+    end
   end
 
   def demote_confirmations

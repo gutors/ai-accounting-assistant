@@ -1,0 +1,31 @@
+<div class="max-w-[28rem]">
+  <p>
+    <%= link_to "Voltar para administração", administration_path, class: "text-caixa underline underline-offset-2" %>
+  </p>
+  <h1 class="mt-4 text-2xl leading-7 font-semibold tracking-[-0.01em]">Adicionar organização</h1>
+
+  <% @notices.each do |message| %>
+    <%= render "shared/notice", message: message %>
+  <% end %>
+
+  <% if @registration_confirmation %>
+    <%= render "administration/record", name: @pending["name"], email: @pending["email"] %>
+    <div class="mt-6 flex flex-wrap items-center gap-3">
+      <%= button_to "Confirmar", "/administration/confirm", method: :post, class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+      <%= button_to "Corrigir", "/administration/correct", method: :post, class: "rounded border border-ink px-4 py-2 text-ink" %>
+    </div>
+  <% else %>
+    <p class="mt-4">Cadastre a organização e o coordenador que vai fechá-la.</p>
+    <%= form_with url: "/administration", method: :post do %>
+      <div class="mt-6">
+        <%= label_tag :name, "Nome da organização", class: "block font-medium" %>
+        <%= text_field_tag :name, @name, class: "mt-1 w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "organization" %>
+      </div>
+      <div class="mt-6">
+        <%= label_tag :email, "E-mail do coordenador", class: "block font-medium" %>
+        <%= email_field_tag :email, @email, class: "mt-1 w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "email" %>
+      </div>
+      <%= submit_tag "Continuar", class: "mt-6 rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+    <% end %>
+  <% end %>
+</div>

@@ -37,7 +37,19 @@ class Organization < ApplicationRecord
   end
 
   def coordinator_emails
-    accesses.coordinator.joins(:account).order("accounts.email").pluck("accounts.email")
+    listed_coordinator_accounts.map(&:email)
+  end
+
+  def listed_coordinator_account
+    listed_coordinator_accounts.first
+  end
+
+  def listed_coordinator_signed_in?
+    listed_coordinator_account&.google_uid.present?
+  end
+
+  def listed_coordinator_accounts
+    accesses.select(&:coordinator?).map(&:account).sort_by(&:email)
   end
 
   def replace_coordinator(access:, email:)

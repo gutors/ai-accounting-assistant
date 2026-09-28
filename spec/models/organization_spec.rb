@@ -329,6 +329,16 @@ RSpec.describe Organization, type: :model do
     Access.create!(account: submitter, organization: organization, kind: :submitter)
 
     expect(organization.coordinator_emails).to eq([ "ana@exemplo.org", "zoe@exemplo.org" ])
+    expect(organization.listed_coordinator_account.email).to eq("ana@exemplo.org")
+    expect(organization.listed_coordinator_signed_in?).to be(false)
+  end
+
+  it "listed_coordinator_signed_in? is true when the first coordinator has a google_uid" do
+    organization = Organization.create!(name: "ONG Norte")
+    signed_in = Account.create!(email: "ana@exemplo.org", google_uid: "uid-ana")
+    Access.create!(account: signed_in, organization: organization, kind: :coordinator)
+
+    expect(organization.listed_coordinator_signed_in?).to be(true)
   end
 
   it "name_taken? ignores the organization being corrected" do

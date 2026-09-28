@@ -1,8 +1,8 @@
 <% if @result_organization&.id == organization.id %>
   <% if @result["mail_sent"] %>
-    <p class="w-full">E-mail enviado para <%= @result["email"] %>.</p>
+    <p class="mt-3">E-mail enviado para <%= @result["email"] %>.</p>
   <% else %>
-    <div class="w-full">
+    <div class="mt-3">
       <%= render "shared/notice", message: @result["kind"] == "correction" ? "A correção foi gravada, mas o e-mail não saiu." : "O cadastro foi gravado, mas o e-mail não saiu." %>
       <%= button_to "Reenviar e-mail", "/administration/mail", method: :post, class: "mt-4 rounded bg-caixa px-4 py-2 font-semibold text-white" %>
     </div>
