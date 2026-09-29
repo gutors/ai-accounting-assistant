@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe Justification, type: :model do
   def organization
-    @organization ||= Organization.create!(name: "ONG")
+    @organization ||= create_organization!(name: "ONG")
   end
 
   def account
@@ -176,7 +176,7 @@ RSpec.describe Justification, type: :model do
 
     it "concurrent declare with the same document persists exactly one Justification" do
       truncate_product_tables
-      org = Organization.create!(name: "ONG")
+      org = create_organization!(name: "ONG")
       acct = Account.create!(email: "sub@example.com", google_uid: "uid-sub")
       document = SupportingDocument.insert(
         organization: org,

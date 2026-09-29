@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe Payment, type: :model do
   def organization
-    @organization ||= Organization.create!(name: "ONG")
+    @organization ||= create_organization!(name: "ONG")
   end
 
   def account

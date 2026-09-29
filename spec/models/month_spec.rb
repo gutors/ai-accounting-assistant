@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe Month, type: :model do
   def organization
-    @organization ||= Organization.create!(name: "ONG")
+    @organization ||= create_organization!(name: "ONG")
   end
 
   it "opens 2026-05 for the organization" do
@@ -34,7 +34,7 @@ RSpec.describe Month, type: :model do
 
     it "concurrent opens persist exactly one Month" do
       truncate_product_tables
-      org = Organization.create!(name: "ONG")
+      org = create_organization!(name: "ONG")
 
       run_in_parallel(2) do
         Month.open(organization: org, year_month: "2026-05")
@@ -50,7 +50,7 @@ RSpec.describe Month, type: :model do
 
   describe "close and reopen" do
     def organization
-      @organization ||= Organization.create!(
+      @organization ||= create_organization!(
         name: "ONG Norte",
         accountant_presentation_name: "Maria Contadora",
         package_archive_folder_id: CloseHelpers::ARCHIVE_FOLDER_ID
@@ -386,7 +386,7 @@ RSpec.describe Month, type: :model do
 
     it "concurrent closes persist closed once and write once" do
       truncate_product_tables
-      org = Organization.create!(
+      org = create_organization!(
         name: "ONG Norte",
         accountant_presentation_name: "Maria Contadora",
         package_archive_folder_id: CloseHelpers::ARCHIVE_FOLDER_ID
@@ -410,7 +410,7 @@ RSpec.describe Month, type: :model do
 
     it "concurrent close of two months with the same Padaria assigns one month_id" do
       truncate_product_tables
-      org = Organization.create!(
+      org = create_organization!(
         name: "ONG Norte",
         accountant_presentation_name: "Maria Contadora",
         package_archive_folder_id: CloseHelpers::ARCHIVE_FOLDER_ID
@@ -449,7 +449,7 @@ RSpec.describe Month, type: :model do
 
     it "concurrent restore_month_folder keeps closed and folder_id" do
       truncate_product_tables
-      org = Organization.create!(
+      org = create_organization!(
         name: "ONG Norte",
         accountant_presentation_name: "Maria Contadora",
         package_archive_folder_id: CloseHelpers::ARCHIVE_FOLDER_ID

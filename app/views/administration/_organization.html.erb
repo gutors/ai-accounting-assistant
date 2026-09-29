@@ -47,14 +47,15 @@
     <% organization.coordinator_emails.each do |email| %>
       <% next if email == @email_from %>
       <p class="mt-4"><%= email %></p>
-      <%= button_to "Corrigir", "/administration/email", method: :post, params: { organization_id: organization.id, email: email }, class: "text-caixa underline underline-offset-2" %>
     <% end %>
   <% else %>
     <p class="font-medium"><%= organization.name %></p>
     <%= button_to "Corrigir nome", "/administration/name", method: :post, params: { organization_id: organization.id }, class: "text-caixa underline underline-offset-2" %>
     <% organization.coordinator_emails.each do |email| %>
       <p class="mt-4"><%= email %></p>
-      <%= button_to "Corrigir", "/administration/email", method: :post, params: { organization_id: organization.id, email: email }, class: "text-caixa underline underline-offset-2" %>
+      <% if email == organization.listed_coordinator_account&.email %>
+        <%= button_to "Corrigir", "/administration/email", method: :post, params: { organization_id: organization.id, email: email }, class: "text-caixa underline underline-offset-2" %>
+      <% end %>
     <% end %>
     <%= button_to "Remover", "/administration", method: :delete, params: { organization_id: organization.id }, form: { data: { turbo_confirm: "Remover a organização #{organization.name}?" } }, class: "mt-4 text-margem underline underline-offset-2" %>
     <%= render "administration/mail_result", organization: organization %>

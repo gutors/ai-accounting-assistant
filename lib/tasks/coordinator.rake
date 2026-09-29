@@ -11,8 +11,8 @@ namespace :coordinator do
     abort "an Account already exists for that email" if Account.exists?(email: email)
 
     ActiveRecord::Base.transaction do
-      organization = Organization.create!(name: name)
       account = Account.create!(email: email)
+      organization = Organization.create!(name: name, principal_coordinator_account: account)
       Access.create!(account: account, organization: organization, kind: :coordinator)
     end
   end

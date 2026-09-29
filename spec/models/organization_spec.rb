@@ -4,14 +4,14 @@ RSpec.describe Organization, type: :model do
   include ActiveSupport::Testing::TimeHelpers
 
   it "persists trimmed accountant presentation name" do
-    organization = Organization.create!(name: "ONG")
+    organization = create_organization!(name: "ONG")
 
     expect(organization.update_accountant(presentation_name: "  Ana Contábil  ")).to be(true)
     expect(organization.accountant_presentation_name).to eq("Ana Contábil")
   end
 
   it "persists CNPJ digits and razao social" do
-    organization = Organization.create!(name: "ONG")
+    organization = create_organization!(name: "ONG")
 
     expect(organization.update_accountant(
       presentation_name: "Ana",
@@ -23,7 +23,7 @@ RSpec.describe Organization, type: :model do
   end
 
   it "persists CPF digits and no razao social" do
-    organization = Organization.create!(name: "ONG")
+    organization = create_organization!(name: "ONG")
 
     expect(organization.update_accountant(presentation_name: "Ana", tax_id: "390.533.447-05")).to be(true)
     expect(organization.accountant_tax_id).to eq("39053344705")
@@ -31,14 +31,14 @@ RSpec.describe Organization, type: :model do
   end
 
   it "persists destination email via NormalizedEmail" do
-    organization = Organization.create!(name: "ONG")
+    organization = create_organization!(name: "ONG")
 
     expect(organization.update_accountant(presentation_name: "Ana", destination_email: "Coord@Example.COM")).to be(true)
     expect(organization.package_destination_email).to eq("coord@example.com")
   end
 
   it "persists PIX of 1 and 77 characters" do
-    organization = Organization.create!(name: "ONG")
+    organization = create_organization!(name: "ONG")
 
     expect(organization.update_accountant(presentation_name: "Ana", pix_key: "x")).to be(true)
     expect(organization.accountant_pix_key).to eq("x")
@@ -49,7 +49,7 @@ RSpec.describe Organization, type: :model do
   end
 
   it "blank optional accountant fields clear them" do
-    organization = Organization.create!(name: "ONG")
+    organization = create_organization!(name: "ONG")
     organization.update_accountant(
       presentation_name: "Ana",
       tax_id: "11.222.333/0001-81",
@@ -72,7 +72,7 @@ RSpec.describe Organization, type: :model do
       { pix_key: "x" },
       { destination_email: "ana@example.com" }
     ].each_with_index do |attrs, index|
-      organization = Organization.create!(name: "ONG #{index}")
+      organization = create_organization!(name: "ONG #{index}")
       expect(organization.update_accountant(attrs)).to be(false)
       organization.reload
       expect(organization.accountant_tax_id).to be_nil
@@ -83,7 +83,7 @@ RSpec.describe Organization, type: :model do
   end
 
   it "rejects tax id length and check digits" do
-    organization = Organization.create!(name: "ONG")
+    organization = create_organization!(name: "ONG")
     organization.update_accountant(presentation_name: "Ana")
 
     [
@@ -97,7 +97,7 @@ RSpec.describe Organization, type: :model do
   end
 
   it "rejects CNPJ without razao social" do
-    organization = Organization.create!(name: "ONG")
+    organization = create_organization!(name: "ONG")
     organization.update_accountant(presentation_name: "Ana")
 
     expect(organization.update_accountant(presentation_name: "Ana", tax_id: "11222333000181")).to be(false)
@@ -105,7 +105,7 @@ RSpec.describe Organization, type: :model do
   end
 
   it "rejects CPF with razao social" do
-    organization = Organization.create!(name: "ONG")
+    organization = create_organization!(name: "ONG")
     organization.update_accountant(presentation_name: "Ana")
 
     expect(organization.update_accountant(
@@ -118,7 +118,7 @@ RSpec.describe Organization, type: :model do
   end
 
   it "rejects destination that fails NormalizedEmail" do
-    organization = Organization.create!(name: "ONG")
+    organization = create_organization!(name: "ONG")
     organization.update_accountant(presentation_name: "Ana", destination_email: "ana@example.com")
 
     expect(organization.update_accountant(presentation_name: "Ana", destination_email: "not-an-email")).to be(false)
@@ -126,7 +126,7 @@ RSpec.describe Organization, type: :model do
   end
 
   it "persists Drive folders URL and extracted folder id" do
-    organization = Organization.create!(name: "ONG")
+    organization = create_organization!(name: "ONG")
     url = "https://drive.google.com/drive/folders/15uNXeRBIhVvZJIhL4yTw4IsStMhUaaxl"
 
     expect(organization.update_package_archive(url)).to be(true)
@@ -135,7 +135,7 @@ RSpec.describe Organization, type: :model do
   end
 
   it "extracts folder id from drive/u/0/folders URL with query" do
-    organization = Organization.create!(name: "ONG")
+    organization = create_organization!(name: "ONG")
     url = "https://drive.google.com/drive/u/0/folders/15uNXeRBIhVvZJIhL4yTw4IsStMhUaaxl?usp=sharing"
 
     expect(organization.update_package_archive(url)).to be(true)
@@ -143,7 +143,7 @@ RSpec.describe Organization, type: :model do
   end
 
   it "blank archive URL clears url and folder id" do
-    organization = Organization.create!(name: "ONG")
+    organization = create_organization!(name: "ONG")
     organization.update_package_archive("https://drive.google.com/drive/folders/15uNXeRBIhVvZJIhL4yTw4IsStMhUaaxl")
 
     expect(organization.update_package_archive("")).to be(true)
@@ -152,7 +152,7 @@ RSpec.describe Organization, type: :model do
   end
 
   it "rejects http, wrong host, and missing folders segment" do
-    organization = Organization.create!(name: "ONG")
+    organization = create_organization!(name: "ONG")
     good = "https://drive.google.com/drive/folders/15uNXeRBIhVvZJIhL4yTw4IsStMhUaaxl"
     organization.update_package_archive(good)
 
@@ -169,7 +169,7 @@ RSpec.describe Organization, type: :model do
   end
 
   it "rejects Drive file URL" do
-    organization = Organization.create!(name: "ONG")
+    organization = create_organization!(name: "ONG")
     good = "https://drive.google.com/drive/folders/15uNXeRBIhVvZJIhL4yTw4IsStMhUaaxl"
     organization.update_package_archive(good)
 
@@ -179,7 +179,7 @@ RSpec.describe Organization, type: :model do
   end
 
   it "install pfx persists titular 11222333000181 and notAfter 2027-09-18" do
-    organization = Organization.create!(name: "ONG")
+    organization = create_organization!(name: "ONG")
 
     expect(organization.install_sefaz_certificate(file: sefaz_pfx, passphrase: "passphrase-secreta")).to be(true)
     expect(organization.sefaz_titular_cnpj).to eq("11222333000181")
@@ -189,14 +189,14 @@ RSpec.describe Organization, type: :model do
   end
 
   it "install p12 persists titular 11222333000181" do
-    organization = Organization.create!(name: "ONG")
+    organization = create_organization!(name: "ONG")
 
     expect(organization.install_sefaz_certificate(file: sefaz_p12, passphrase: "passphrase-secreta")).to be(true)
     expect(organization.sefaz_titular_cnpj).to eq("11222333000181")
   end
 
   it "install with passphrase errada persists no certificate" do
-    organization = Organization.create!(name: "ONG")
+    organization = create_organization!(name: "ONG")
 
     expect(organization.install_sefaz_certificate(file: sefaz_pfx, passphrase: "errada")).to be(false)
     expect(organization.errors[:base]).to include("Não foi possível abrir o certificado com essa senha")
@@ -204,7 +204,7 @@ RSpec.describe Organization, type: :model do
   end
 
   it "install e-CPF 39053344705 persists no certificate" do
-    organization = Organization.create!(name: "ONG")
+    organization = create_organization!(name: "ONG")
 
     expect(organization.install_sefaz_certificate(
       file: sefaz_pfx(titular: "39053344705"),
@@ -215,7 +215,7 @@ RSpec.describe Organization, type: :model do
   end
 
   it "install notAfter 2026-05-10 on 2026-05-11 persists no certificate" do
-    organization = Organization.create!(name: "ONG")
+    organization = create_organization!(name: "ONG")
 
     travel_to Date.new(2026, 5, 11) do
       expect(organization.install_sefaz_certificate(
@@ -228,7 +228,7 @@ RSpec.describe Organization, type: :model do
   end
 
   it "install txt persists no certificate" do
-    organization = Organization.create!(name: "ONG")
+    organization = create_organization!(name: "ONG")
 
     expect(organization.install_sefaz_certificate(
       file: sefaz_txt_certificate,
@@ -239,7 +239,7 @@ RSpec.describe Organization, type: :model do
   end
 
   it "install larger than 1048576 persists no certificate" do
-    organization = Organization.create!(name: "ONG")
+    organization = create_organization!(name: "ONG")
 
     expect(organization.install_sefaz_certificate(
       file: oversized_sefaz_pfx,
@@ -249,7 +249,7 @@ RSpec.describe Organization, type: :model do
   end
 
   it "install second A1 replaces titular 12345678000101" do
-    organization = Organization.create!(name: "ONG")
+    organization = create_organization!(name: "ONG")
     organization.install_sefaz_certificate(file: sefaz_pfx, passphrase: "passphrase-secreta")
 
     expect(organization.install_sefaz_certificate(
@@ -263,7 +263,7 @@ RSpec.describe Organization, type: :model do
   end
 
   it "remove_sefaz_certificate nulls the slot" do
-    organization = Organization.create!(name: "ONG")
+    organization = create_organization!(name: "ONG")
     organization.install_sefaz_certificate(file: sefaz_pfx, passphrase: "passphrase-secreta")
 
     organization.remove_sefaz_certificate
@@ -275,7 +275,7 @@ RSpec.describe Organization, type: :model do
   end
 
   it "install with blank wrap key persists no certificate" do
-    organization = Organization.create!(name: "ONG")
+    organization = create_organization!(name: "ONG")
 
     with_env("SEFAZ_WRAP_KEY" => nil) do
       expect(organization.install_sefaz_certificate(file: sefaz_pfx, passphrase: "passphrase-secreta")).to be(false)
@@ -285,7 +285,7 @@ RSpec.describe Organization, type: :model do
   end
 
   it "install while a month is closed still persists" do
-    organization = Organization.create!(name: "ONG")
+    organization = create_organization!(name: "ONG")
     month, _statement = plant_month(organization)
     month.update!(closed: true)
 
@@ -298,7 +298,7 @@ RSpec.describe Organization, type: :model do
 
     it "concurrent A1 installs leave one consistent pair" do
       truncate_product_tables
-      organization = Organization.create!(name: "ONG")
+      organization = create_organization!(name: "ONG")
       first = sefaz_pfx(titular: "11222333000181", passphrase: "senha-a", name: "a.pfx")
       second = sefaz_pfx(titular: "12345678000101", passphrase: "senha-b", name: "b.pfx")
       queue = Queue.new
@@ -320,38 +320,40 @@ RSpec.describe Organization, type: :model do
   end
 
   it "coordinator_emails are ordered by accounts.email and omit submitters" do
-    organization = Organization.create!(name: "ONG Norte")
+    organization = create_organization!(name: "ONG Norte")
     zoe = Account.create!(email: "zoe@exemplo.org")
     ana = Account.create!(email: "ana@exemplo.org")
     submitter = Account.create!(email: "submitter@exemplo.org")
     Access.create!(account: zoe, organization: organization, kind: :coordinator)
     Access.create!(account: ana, organization: organization, kind: :coordinator)
     Access.create!(account: submitter, organization: organization, kind: :submitter)
+    organization.reload
 
-    expect(organization.coordinator_emails).to eq([ "ana@exemplo.org", "zoe@exemplo.org" ])
-    expect(organization.listed_coordinator_account.email).to eq("ana@exemplo.org")
+    expect(organization.coordinator_emails).to eq([ "zoe@exemplo.org", "ana@exemplo.org" ])
+    expect(organization.listed_coordinator_account.email).to eq("zoe@exemplo.org")
     expect(organization.listed_coordinator_signed_in?).to be(false)
   end
 
   it "listed_coordinator_signed_in? is true when the first coordinator has a google_uid" do
-    organization = Organization.create!(name: "ONG Norte")
+    organization = create_organization!(name: "ONG Norte")
     signed_in = Account.create!(email: "ana@exemplo.org", google_uid: "uid-ana")
     Access.create!(account: signed_in, organization: organization, kind: :coordinator)
+    organization.reload
 
     expect(organization.listed_coordinator_signed_in?).to be(true)
   end
 
   it "name_taken? ignores the organization being corrected" do
-    norte = Organization.create!(name: "ONG Norte")
-    Organization.create!(name: "ONG Sul")
+    norte = create_organization!(name: "ONG Norte")
+    create_organization!(name: "ONG Sul")
 
     expect(Organization.name_taken?("ong sul", except: norte)).to be(true)
     expect(Organization.name_taken?("ong norte", except: norte)).to be(false)
   end
 
   it "updating onto a taken lower name raises RecordNotUnique and keeps the previous name" do
-    norte = Organization.create!(name: "ONG Norte")
-    sul = Organization.create!(name: "ONG Sul")
+    norte = create_organization!(name: "ONG Norte")
+    sul = create_organization!(name: "ONG Sul")
 
     expect {
       norte.update!(name: "ong sul")
@@ -403,7 +405,7 @@ RSpec.describe Organization, type: :model do
   end
 
   it "register_coordinator rejects a name that differs only by case" do
-    Organization.create!(name: "ONG Norte")
+    create_organization!(name: "ONG Norte")
     counts = [ Organization.count, Account.count, Access.count ]
     deliveries = ActionMailer::Base.deliveries.size
 
@@ -419,7 +421,7 @@ RSpec.describe Organization, type: :model do
   end
 
   it "register_coordinator rejects a padded uppercase name" do
-    Organization.create!(name: "ONG Norte")
+    create_organization!(name: "ONG Norte")
     counts = [ Organization.count, Account.count, Access.count ]
     deliveries = ActionMailer::Base.deliveries.size
 
@@ -433,13 +435,14 @@ RSpec.describe Organization, type: :model do
   end
 
   it "replace_coordinator keeps the Access when the email is unchanged" do
-    organization = Organization.create!(name: "ONG Norte")
+    organization = create_organization!(name: "ONG Norte")
     account = Account.create!(email: "coordenador@exemplo.org")
     access = Access.create!(account: account, organization: organization, kind: :coordinator)
 
     expect {
       result = organization.replace_coordinator(access: access, email: " Coordenador@Exemplo.ORG ")
-      expect(result).to eq(account)
+      expect(result.account).to eq(account)
+      expect(result.created_account).to be(false)
     }.not_to change(Access, :count)
 
     expect(account.reload.email).to eq("coordenador@exemplo.org")
@@ -447,20 +450,22 @@ RSpec.describe Organization, type: :model do
   end
 
   it "replace_coordinator inserts the new Access then destroys the old and deletes the matching Invite" do
-    norte = Organization.create!(name: "ONG Norte")
-    sul = Organization.create!(name: "ONG Sul")
+    norte = create_organization!(name: "ONG Norte")
+    sul = create_organization!(name: "ONG Sul")
     old = Account.create!(email: "coordenador@exemplo.org")
     access = Access.create!(account: old, organization: norte, kind: :coordinator)
     Invite.create!(organization: norte, email: "novo@exemplo.org", kind: :coordinator)
     Invite.create!(organization: sul, email: "novo@exemplo.org", kind: :coordinator)
 
     expect {
-      norte.replace_coordinator(access: access, email: " Novo@Exemplo.ORG ")
+      result = norte.replace_coordinator(access: access, email: " Novo@Exemplo.ORG ")
+      expect(result.created_account).to be(true)
     }.to change(Account, :count).by(1)
 
     expect(old.reload.email).to eq("coordenador@exemplo.org")
     expect(norte.accesses.coordinator.count).to eq(1)
     expect(norte.accesses.coordinator.first.account.email).to eq("novo@exemplo.org")
+    expect(norte.reload.principal_coordinator_account.email).to eq("novo@exemplo.org")
     expect(Invite.find_by(organization: norte, email: "novo@exemplo.org")).to be_nil
     expect(Invite.find_by(organization: sul, email: "novo@exemplo.org")).to be_present
     expect(ActionMailer::Base.deliveries).to be_empty
@@ -468,22 +473,26 @@ RSpec.describe Organization, type: :model do
 
   it "replace_coordinator reuses an existing Account" do
     sul_account = Account.create!(email: "sul@exemplo.org")
-    sul = Organization.create!(name: "ONG Sul")
+    sul = create_organization!(name: "ONG Sul")
     Access.create!(account: sul_account, organization: sul, kind: :coordinator)
-    norte = Organization.create!(name: "ONG Norte")
+    norte = create_organization!(name: "ONG Norte")
     old = Account.create!(email: "coordenador@exemplo.org")
     access = Access.create!(account: old, organization: norte, kind: :coordinator)
 
     expect {
-      norte.replace_coordinator(access: access, email: "sul@exemplo.org")
+      result = norte.replace_coordinator(access: access, email: "sul@exemplo.org")
+      expect(result.created_account).to be(false)
+      expect(result.account).to eq(sul_account)
     }.not_to change(Account, :count)
 
     expect(old.reload.email).to eq("coordenador@exemplo.org")
     expect(norte.accesses.coordinator.first.account).to eq(sul_account)
+    expect(norte.reload.principal_coordinator_account).to eq(sul_account)
+    expect(ActionMailer::Base.deliveries).to be_empty
   end
 
   it "replace_coordinator rolls back when the write raises before commit" do
-    norte = Organization.create!(name: "ONG Norte")
+    norte = create_organization!(name: "ONG Norte")
     old = Account.create!(email: "coordenador@exemplo.org")
     access = Access.create!(account: old, organization: norte, kind: :coordinator)
     Invite.create!(organization: norte, email: "novo@exemplo.org", kind: :coordinator)
@@ -496,13 +505,14 @@ RSpec.describe Organization, type: :model do
 
     expect(Access.count).to eq(1)
     expect(Access.find(access.id)).to eq(access)
+    expect(norte.reload.principal_coordinator_account).to eq(old)
     expect(Account.find_by(email: "novo@exemplo.org")).to be_nil
     expect(Invite.find_by(organization: norte, email: "novo@exemplo.org")).to be_present
     expect(ActionMailer::Base.deliveries).to be_empty
   end
 
   it "remove deletes Accesses and Invites including the last coordinator" do
-    norte = Organization.create!(name: "ONG Norte")
+    norte = create_organization!(name: "ONG Norte")
     coordinator = Account.create!(email: "coordenador@exemplo.org")
     submitter = Account.create!(email: "submitter@exemplo.org")
     Access.create!(account: coordinator, organization: norte, kind: :coordinator)
@@ -519,7 +529,7 @@ RSpec.describe Organization, type: :model do
   end
 
   it "remove refuses when a BankAccount exists" do
-    norte = Organization.create!(name: "ONG Norte")
+    norte = create_organization!(name: "ONG Norte")
     Access.create!(account: Account.create!(email: "coordenador@exemplo.org"), organization: norte, kind: :coordinator)
     BankAccount.create_for(organization: norte, name: "Conta Principal", compe: "001")
 
@@ -531,7 +541,7 @@ RSpec.describe Organization, type: :model do
   end
 
   it "remove refuses when a Month exists" do
-    norte = Organization.create!(name: "ONG Norte")
+    norte = create_organization!(name: "ONG Norte")
     Access.create!(account: Account.create!(email: "coordenador@exemplo.org"), organization: norte, kind: :coordinator)
     Month.open(organization: norte, year_month: "2026-05")
 
@@ -541,7 +551,7 @@ RSpec.describe Organization, type: :model do
   end
 
   it "remove refuses when a SupportingDocument exists" do
-    norte = Organization.create!(name: "ONG Norte")
+    norte = create_organization!(name: "ONG Norte")
     account = Account.create!(email: "coordenador@exemplo.org")
     Access.create!(account: account, organization: norte, kind: :coordinator)
     SupportingDocument.create!(
@@ -559,7 +569,7 @@ RSpec.describe Organization, type: :model do
   end
 
   it "remove refuses when a Justification exists" do
-    norte = Organization.create!(name: "ONG Norte")
+    norte = create_organization!(name: "ONG Norte")
     account = Account.create!(email: "coordenador@exemplo.org")
     Access.create!(account: account, organization: norte, kind: :coordinator)
     Justification.create!(organization: norte, account: account, amount_cents: 100)
@@ -570,12 +580,94 @@ RSpec.describe Organization, type: :model do
   end
 
   it "remove refuses when an ExtraExceptionKind exists" do
-    norte = Organization.create!(name: "ONG Norte")
+    norte = create_organization!(name: "ONG Norte")
     Access.create!(account: Account.create!(email: "coordenador@exemplo.org"), organization: norte, kind: :coordinator)
     ExtraExceptionKind.create_for(organization: norte, name: "Doação")
 
     expect(norte.remove).to be(false)
     expect(Organization.find(norte.id)).to eq(norte)
     expect(norte.extra_exception_kinds.count).to eq(1)
+  end
+
+  it "listed_coordinator_account is the principal coordinator" do
+    zoe = Account.create!(email: "zoe@exemplo.org")
+    organization = create_organization!(name: "ONG Norte", principal_coordinator_account: zoe)
+    ana = Account.create!(email: "ana@exemplo.org", google_uid: "uid-ana")
+    Access.create!(account: zoe, organization: organization, kind: :coordinator)
+    Access.create!(account: ana, organization: organization, kind: :coordinator)
+    Access.create!(account: Account.create!(email: "submitter@exemplo.org"), organization: organization, kind: :submitter)
+
+    expect(organization.listed_coordinator_account).to eq(zoe)
+    expect(organization.listed_coordinator_account.email).to eq("zoe@exemplo.org")
+  end
+
+  it "listed_coordinator_signed_in? follows the principal google_uid" do
+    zoe = Account.create!(email: "zoe@exemplo.org")
+    organization = create_organization!(name: "ONG Norte", principal_coordinator_account: zoe)
+    ana = Account.create!(email: "ana@exemplo.org", google_uid: "uid-ana")
+    Access.create!(account: zoe, organization: organization, kind: :coordinator)
+    Access.create!(account: ana, organization: organization, kind: :coordinator)
+
+    expect(organization.listed_coordinator_signed_in?).to be(false)
+
+    zoe.update!(google_uid: "uid-zoe")
+    expect(organization.reload.listed_coordinator_signed_in?).to be(true)
+  end
+
+  it "home coordinator Accesses list the principal first then accounts.email" do
+    zoe = Account.create!(email: "zoe@exemplo.org")
+    organization = create_organization!(name: "ONG Norte", principal_coordinator_account: zoe)
+    ana = Account.create!(email: "ana@exemplo.org")
+    bia = Account.create!(email: "bia@exemplo.org")
+    Access.create!(account: zoe, organization: organization, kind: :coordinator)
+    Access.create!(account: bia, organization: organization, kind: :coordinator)
+    Access.create!(account: ana, organization: organization, kind: :coordinator)
+
+    expect(organization.home_coordinator_accesses.map { |access| access.account.email }).to eq([
+      "zoe@exemplo.org", "ana@exemplo.org", "bia@exemplo.org"
+    ])
+  end
+
+  it "replace_coordinator promotes submitter Access then destroys the old principal" do
+    old = Account.create!(email: "coordenador@exemplo.org")
+    norte = create_organization!(name: "ONG Norte", principal_coordinator_account: old)
+    access = Access.create!(account: old, organization: norte, kind: :coordinator)
+    submitter = Account.create!(email: "submitter@exemplo.org")
+    standing = Access.create!(account: submitter, organization: norte, kind: :submitter)
+
+    result = nil
+    expect {
+      result = norte.replace_coordinator(access: access, email: " Submitter@Exemplo.ORG ")
+    }.not_to change(Account, :count)
+
+    expect(result.created_account).to be(false)
+    expect(standing.reload.kind).to eq("coordinator")
+    expect(norte.reload.principal_coordinator_account).to eq(submitter)
+    expect(Access.find_by(id: access.id)).to be_nil
+    expect(ActionMailer::Base.deliveries).to be_empty
+  end
+
+  it "replace_coordinator reuses an existing Account and does not mail" do
+    sul_account = Account.create!(email: "sul@exemplo.org")
+    sul = create_organization!(name: "ONG Sul", principal_coordinator_account: sul_account)
+    Access.create!(account: sul_account, organization: sul, kind: :coordinator)
+    old = Account.create!(email: "coordenador@exemplo.org")
+    norte = create_organization!(name: "ONG Norte", principal_coordinator_account: old)
+    access = Access.create!(account: old, organization: norte, kind: :coordinator)
+
+    expect {
+      result = norte.replace_coordinator(access: access, email: "sul@exemplo.org")
+      expect(result.created_account).to be(false)
+    }.not_to change(Account, :count)
+
+    expect(norte.reload.principal_coordinator_account).to eq(sul_account)
+    expect(ActionMailer::Base.deliveries).to be_empty
+  end
+
+  it "register_coordinator sets principal_coordinator_account_id" do
+    organization = Organization.register_coordinator(name: "ONG Norte", email: "coordenador@exemplo.org")
+    account = Account.find_by!(email: "coordenador@exemplo.org")
+
+    expect(organization.principal_coordinator_account).to eq(account)
   end
 end

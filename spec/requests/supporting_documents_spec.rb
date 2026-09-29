@@ -82,7 +82,7 @@ RSpec.describe "Supporting documents", type: :request do
 
   it "documents page does not include another organization payee" do
     account, org_a = plant_coordinator(email: "a@example.com", organization_name: "A")
-    org_b = Organization.create!(name: "B")
+    org_b = create_organization!(name: "B")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
     sign_in_as(account, organization: org_b)
     post "/supporting_documents", params: recibo_params(payee: "Only Org B")
@@ -457,7 +457,7 @@ RSpec.describe "Supporting documents", type: :request do
 
   it "PATCH supporting_document of another organization returns 404" do
     account, org_a = plant_coordinator(email: "a@example.com", organization_name: "A")
-    org_b = Organization.create!(name: "B")
+    org_b = create_organization!(name: "B")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
     sign_in_as(account, organization: org_b)
     post "/supporting_documents", params: recibo_params(payee: "Payee B")
@@ -617,7 +617,7 @@ RSpec.describe "Supporting documents", type: :request do
 
   it "submitter documents page does not include another organization payee" do
     account, org_a = plant_submitter(email: "sub@example.com", organization_name: "A")
-    org_b = Organization.create!(name: "B")
+    org_b = create_organization!(name: "B")
     Access.create!(account: account, organization: org_b, kind: :submitter)
     sign_in_as(account, organization: org_b)
     post "/supporting_documents", params: recibo_params(payee: "Only Org B")

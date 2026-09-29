@@ -34,6 +34,7 @@ RSpec.describe Access, type: :model do
     access = organization.accesses.coordinator.first
 
     expect(access.destroy).to be(false)
+    expect(access.errors.added?(:base, :last_coordinator)).to be(true)
     expect(access).to be_persisted
     expect(organization.accesses.coordinator.count).to eq(1)
   end
@@ -43,7 +44,7 @@ RSpec.describe Access, type: :model do
 
     it "concurrent destroy of last two persists exactly one" do
       truncate_product_tables
-      organization = Organization.create!(name: "ONG")
+      organization = create_organization!(name: "ONG")
       account_a = Account.create!(email: "a@example.com")
       account_b = Account.create!(email: "b@example.com")
       access_a = Access.create!(account: account_a, organization: organization, kind: :coordinator)

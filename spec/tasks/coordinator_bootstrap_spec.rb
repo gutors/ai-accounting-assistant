@@ -29,6 +29,7 @@ RSpec.describe "coordinator:bootstrap" do
     organization = Organization.find_by!(name: "ONG Plantada")
     access = Access.find_by!(account: account, organization: organization)
     expect(access.kind).to eq("coordinator")
+    expect(organization.principal_coordinator_account).to eq(account)
   end
 
   it "bootstrap rejects missing and invalid COORDINATOR_EMAIL" do
@@ -60,7 +61,7 @@ RSpec.describe "coordinator:bootstrap" do
   end
 
   it "bootstrap with a case-different organization name persists nothing and exits non-zero" do
-    Organization.create!(name: "ONG Norte")
+    create_organization!(name: "ONG Norte")
     counts = [ Organization.count, Account.count, Access.count ]
     source = Rails.root.join("lib/tasks/coordinator.rake").read
     expect(source).to include('abort "an Account already exists for that email"')

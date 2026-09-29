@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe MonthPackage, type: :model do
   def organization
-    @organization ||= Organization.create!(name: "ONG Norte")
+    @organization ||= create_organization!(name: "ONG Norte")
   end
 
   def account

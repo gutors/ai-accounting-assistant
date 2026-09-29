@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe BankStatement, type: :model do
   def organization
-    @organization ||= Organization.create!(name: "ONG")
+    @organization ||= create_organization!(name: "ONG")
   end
 
   def month
@@ -200,7 +200,7 @@ RSpec.describe BankStatement, type: :model do
 
     it "concurrent imports persist exactly one BankStatement" do
       truncate_product_tables
-      org = Organization.create!(name: "ONG")
+      org = create_organization!(name: "ONG")
       opened = Month.open(organization: org, year_month: "2026-05")
       account = BankAccount.create_for(organization: org, name: "Conta Principal", compe: "001")
 

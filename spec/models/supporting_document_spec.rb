@@ -3,7 +3,7 @@ require "rails_helper"
 RSpec.describe SupportingDocument, type: :model do
   include ActiveSupport::Testing::TimeHelpers
   def organization
-    @organization ||= Organization.create!(name: "ONG")
+    @organization ||= create_organization!(name: "ONG")
   end
 
   def account
@@ -280,7 +280,7 @@ RSpec.describe SupportingDocument, type: :model do
 
     it "concurrent recibo inserts persist two SupportingDocuments" do
       truncate_product_tables
-      org = Organization.create!(name: "ONG")
+      org = create_organization!(name: "ONG")
       inserter = Account.create!(email: "coord@example.com")
 
       run_in_parallel(2) do
@@ -1404,7 +1404,7 @@ RSpec.describe SupportingDocument, type: :model do
 
     it "return during re-close write keeps month_id" do
       truncate_product_tables
-      org = Organization.create!(
+      org = create_organization!(
         name: "ONG Norte",
         accountant_presentation_name: "Maria Contadora",
         package_archive_folder_id: CloseHelpers::ARCHIVE_FOLDER_ID

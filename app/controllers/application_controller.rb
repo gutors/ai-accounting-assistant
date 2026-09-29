@@ -62,7 +62,7 @@ class ApplicationController < ActionController::Base
 
   def load_home
     @organization = focused_organization
-    @coordinator_accesses = @organization.accesses.coordinator.includes(:account).order("accounts.email")
+    @coordinator_accesses = @organization.home_coordinator_accesses
     @submitter_accesses = @organization.accesses.submitter.includes(:account).order("accounts.email")
     @invites = @organization.invites.order(:email)
     @focusable_organizations = current_account.organizations.order(:name)

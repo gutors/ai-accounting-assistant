@@ -51,7 +51,9 @@
             <% @coordinator_accesses.each do |access| %>
               <li class="flex items-center justify-between gap-3 border-b border-rule py-2">
                 <span class="min-w-0 break-all"><%= access.account.email %></span>
-                <%= button_to "Revogar", "/accesses/#{access.id}", method: :delete, form: { data: { turbo_confirm: "Revogar o acesso deste coordenador?" } }, class: "text-margem underline underline-offset-2" %>
+                <% if @organization.principal_coordinator_account_id == current_account.id && access.account_id != current_account.id %>
+                  <%= button_to "Revogar", "/accesses/#{access.id}", method: :delete, form: { data: { turbo_confirm: "Revogar o acesso deste coordenador?" } }, class: "text-margem underline underline-offset-2" %>
+                <% end %>
               </li>
             <% end %>
           </ul>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_22_210000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_28_220000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -167,12 +167,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_210000) do
     t.string "package_archive_folder_id"
     t.string "package_archive_url"
     t.string "package_destination_email"
+    t.bigint "principal_coordinator_account_id", null: false
     t.date "sefaz_not_after"
     t.text "sefaz_passphrase_ciphertext"
     t.text "sefaz_pkcs12_ciphertext"
     t.string "sefaz_titular_cnpj"
     t.datetime "updated_at", null: false
     t.index "lower((name)::text)", name: "index_organizations_on_lower_name", unique: true
+    t.index ["principal_coordinator_account_id"], name: "index_organizations_on_principal_coordinator_account_id"
   end
 
   create_table "payments", force: :cascade do |t|
@@ -231,6 +233,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_210000) do
   add_foreign_key "justifications", "organizations"
   add_foreign_key "matches", "months"
   add_foreign_key "months", "organizations"
+  add_foreign_key "organizations", "accounts", column: "principal_coordinator_account_id", on_delete: :restrict
   add_foreign_key "payments", "bank_statements"
   add_foreign_key "payments", "extra_exception_kinds", on_delete: :restrict
   add_foreign_key "payments", "matches"

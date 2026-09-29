@@ -9,7 +9,7 @@ RSpec.describe InviteMailer, type: :mailer do
   end
 
   it "coordinator invite mail" do
-    organization = Organization.create!(name: "ONG Norte")
+    organization = create_organization!(name: "ONG Norte")
     invite = Invite.create!(organization: organization, email: "pessoa@exemplo.org", kind: :coordinator)
 
     message = deliver(:coordinator_invite, invite)
@@ -24,7 +24,7 @@ RSpec.describe InviteMailer, type: :mailer do
   end
 
   it "submitter invite mail" do
-    organization = Organization.create!(name: "ONG Norte")
+    organization = create_organization!(name: "ONG Norte")
     invite = Invite.create!(organization: organization, email: "docs@exemplo.org", kind: :submitter)
 
     message = deliver(:submitter_invite, invite)

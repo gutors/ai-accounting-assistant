@@ -414,7 +414,7 @@ RSpec.describe "Matches", type: :request do
 
   it "POST match with another organization payment returns 404" do
     account, org_a = plant_coordinator(email: "a@example.com", organization_name: "A")
-    org_b = Organization.create!(name: "B")
+    org_b = create_organization!(name: "B")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
     _month_b, statement_b = plant_month(org_b)
     foreign_payment = plant_payment(statement_b, 22000)
@@ -433,7 +433,7 @@ RSpec.describe "Matches", type: :request do
 
   it "POST match with another organization document returns 404" do
     account, org_a = plant_coordinator(email: "a@example.com", organization_name: "A")
-    org_b = Organization.create!(name: "B")
+    org_b = create_organization!(name: "B")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
     foreign_doc = plant_recibo(org_b, account, payee: "Only Org B", amount: "220,00")
     sign_in_as(account, organization: org_a)
@@ -451,7 +451,7 @@ RSpec.describe "Matches", type: :request do
 
   it "DELETE match of another organization returns 404" do
     account, org_a = plant_coordinator(email: "a@example.com", organization_name: "A")
-    org_b = Organization.create!(name: "B")
+    org_b = create_organization!(name: "B")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
     month_b, statement_b = plant_month(org_b)
     payment_b = plant_payment(statement_b, 22000)

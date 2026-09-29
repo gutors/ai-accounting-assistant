@@ -10,7 +10,7 @@ RSpec.describe CoordinatorWelcomeMailer, type: :mailer do
 
   it "welcome mail for the first organization" do
     account = Account.create!(email: "coordenador@exemplo.org")
-    organization = Organization.create!(name: "ONG Norte")
+    organization = create_organization!(name: "ONG Norte")
     Access.create!(account: account, organization: organization, kind: :coordinator)
 
     message = deliver(organization, account)
@@ -26,9 +26,9 @@ RSpec.describe CoordinatorWelcomeMailer, type: :mailer do
 
   it "welcome mail when the account already coordinates another organization" do
     account = Account.create!(email: "coordenador@exemplo.org")
-    other = Organization.create!(name: "ONG Sul")
+    other = create_organization!(name: "ONG Sul")
     Access.create!(account: account, organization: other, kind: :coordinator)
-    organization = Organization.create!(name: "ONG Norte")
+    organization = create_organization!(name: "ONG Norte")
     Access.create!(account: account, organization: organization, kind: :coordinator)
 
     message = deliver(organization, account)
@@ -44,7 +44,7 @@ RSpec.describe CoordinatorWelcomeMailer, type: :mailer do
   it "welcome mail addresses the given Account" do
     ana = Account.create!(email: "ana@exemplo.org")
     novo = Account.create!(email: "novo@exemplo.org")
-    organization = Organization.create!(name: "ONG Norte")
+    organization = create_organization!(name: "ONG Norte")
     Access.create!(account: ana, organization: organization, kind: :coordinator)
     Access.create!(account: novo, organization: organization, kind: :coordinator)
 

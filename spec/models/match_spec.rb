@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe Match, type: :model do
   def organization
-    @organization ||= Organization.create!(name: "ONG")
+    @organization ||= create_organization!(name: "ONG")
   end
 
   def account
@@ -228,7 +228,7 @@ RSpec.describe Match, type: :model do
 
     it "concurrent confirms sharing a document persist exactly one Match" do
       truncate_product_tables
-      org = Organization.create!(name: "ONG")
+      org = create_organization!(name: "ONG")
       coord = Account.create!(email: "coord@example.com", google_uid: "uid-coord")
       opened, stmt = plant_month(org)
       payment_a = plant_payment(stmt, 22000)
@@ -258,7 +258,7 @@ RSpec.describe Match, type: :model do
 
     it "concurrent confirms sharing a payment persist exactly one Match" do
       truncate_product_tables
-      org = Organization.create!(name: "ONG")
+      org = create_organization!(name: "ONG")
       coord = Account.create!(email: "coord@example.com", google_uid: "uid-coord")
       opened, stmt = plant_month(org)
       payment = plant_payment(stmt, 22000)

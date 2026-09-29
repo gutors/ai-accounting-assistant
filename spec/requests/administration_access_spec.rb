@@ -3,11 +3,11 @@ require "rails_helper"
 RSpec.describe "Administration access", type: :request do
   include AdministrationHelpers
 
-  it "GET /administration lists the first coordinator, status, and Editar" do
+  it "GET /administration lists the principal coordinator email Status and Editar" do
     _account, sul = plant_coordinator(email: "sul@exemplo.org", organization_name: "ONG Sul", google_uid: "uid-sul")
-    norte = Organization.create!(name: "ONG Norte")
     zoe = Account.create!(email: "zoe@exemplo.org")
-    ana = Account.create!(email: "ana@exemplo.org")
+    norte = create_organization!(name: "ONG Norte", principal_coordinator_account: zoe)
+    ana = Account.create!(email: "ana@exemplo.org", google_uid: "uid-ana")
     submitter = Account.create!(email: "submitter@exemplo.org")
     Access.create!(account: zoe, organization: norte, kind: :coordinator)
     Access.create!(account: ana, organization: norte, kind: :coordinator)
@@ -16,23 +16,52 @@ RSpec.describe "Administration access", type: :request do
     as_seller do
       get "/administration"
 
+      expect(response).to have_http_status(:ok)
+      expect(page.at_css("h1").text.strip).to eq("Administração")
+      add = page.css("a").find { |link| link.text.strip == "Adicionar organização" }
+      expect(add["href"]).to eq("/administration/new")
+      expect(add["class"]).to include("bg-caixa")
+      header_row = page.css("div").find { |div|
+        div["class"].to_s.include?("md:grid-cols-") && div.css("p").map { |p| p.text.strip } == [
+          "Nome", "Email coordenador", "Status", "Editar"
+        ]
+      }
+      expect(header_row).not_to be_nil
       row = organization_row(norte)
       expect(row.css("a").find { |link| link.text.strip == "Editar" }["href"]).to eq("/administration/#{norte.id}/edit")
+      editar = row.css("a").find { |link| link.text.strip == "Editar" }
+      expect(editar["class"]).to include("text-caixa")
+      expect(editar["class"]).to include("underline")
+      expect(editar["class"]).to include("underline-offset-2")
       expect(row.text).to include("ONG Norte")
-      expect(row.text).to include("ana@exemplo.org")
+      expect(row.text).to include("zoe@exemplo.org")
       expect(row.text).to include("Pendente")
-      expect(row.text).not_to include("zoe@exemplo.org")
-      expect(row.text).not_to include("Corrigir nome")
+      expect(row.text).not_to include("ana@exemplo.org")
+      expect(row.text).not_to include("Corrigir")
       expect(row.text).not_to include("Remover")
       expect(response.body).not_to include("submitter@exemplo.org")
       expect(organization_row(sul).text).to include("Ativa")
     end
   end
 
-  it "GET /administration/:id/edit shows Corrigir on each coordinator email and Remover" do
+  it "GET /administration Status is Ativa when the principal has google_uid" do
+    zoe = Account.create!(email: "zoe@exemplo.org", google_uid: "uid-zoe")
+    norte = create_organization!(name: "ONG Norte", principal_coordinator_account: zoe)
+    Access.create!(account: zoe, organization: norte, kind: :coordinator)
+    ana = Account.create!(email: "ana@exemplo.org")
+    Access.create!(account: ana, organization: norte, kind: :coordinator)
+
+    as_seller do
+      get "/administration"
+
+      expect(organization_row(norte).text).to include("Ativa")
+    end
+  end
+
+  it "GET /administration/:id/edit shows Corrigir only on the principal email" do
     plant_coordinator(email: "sul@exemplo.org", organization_name: "ONG Sul", google_uid: "uid-sul")
-    norte = Organization.create!(name: "ONG Norte")
     zoe = Account.create!(email: "zoe@exemplo.org")
+    norte = create_organization!(name: "ONG Norte", principal_coordinator_account: zoe)
     ana = Account.create!(email: "ana@exemplo.org")
     submitter = Account.create!(email: "submitter@exemplo.org")
     Access.create!(account: zoe, organization: norte, kind: :coordinator)
@@ -42,50 +71,38 @@ RSpec.describe "Administration access", type: :request do
     as_seller do
       get "/administration/#{norte.id}/edit"
 
-      column = administration_column
+      expect(response).to have_http_status(:ok)
       row = organization_row(norte)
-      expect(column.css("[data-organization-id='#{norte.id}']").size).to eq(1)
-      expect(page.at_css("h1").text.strip).to eq("Editar organização")
       expect(row.css("p, button").map { |node| node.text.strip }).to eq([
         "ONG Norte",
         "Corrigir nome",
-        "ana@exemplo.org",
-        "Corrigir",
         "zoe@exemplo.org",
         "Corrigir",
+        "ana@exemplo.org",
         "Remover"
       ])
-      buttons = row.css("button").map { |button| button.text.strip }
-      expect(buttons).to include("Corrigir nome")
-      expect(buttons.count("Corrigir")).to eq(2)
-      expect(buttons).to include("Remover")
       corrects = row.css("button").select { |button| button.text.strip == "Corrigir" }
-      expect(corrects.size).to eq(2)
-      corrects.each do |button|
-        expect(button["class"]).to include("text-caixa")
-        expect(button["class"]).to include("underline")
-        expect(button["class"]).to include("underline-offset-2")
-      end
-      ana_correct = corrects.first
-      expect(ana_correct.ancestors("form").first["action"]).to eq("/administration/email")
+      expect(corrects.size).to eq(1)
+      expect(corrects.first["class"]).to include("text-caixa")
+      expect(corrects.first["class"]).to include("underline")
+      expect(corrects.first["class"]).to include("underline-offset-2")
+      expect(corrects.first.ancestors("form").first.at_css('input[name="email"]')["value"]).to eq("zoe@exemplo.org")
       remover = row.css("button").find { |button| button.text.strip == "Remover" }
       expect(remover["class"]).to include("text-margem")
       expect(remover["class"]).to include("underline")
       expect(remover["class"]).to include("underline-offset-2")
       form = remover.ancestors("form").first
       expect(form["data-turbo-confirm"]).to eq("Remover a organização ONG Norte?")
-      expect(form["action"]).to eq("/administration")
-      expect(form.at_css('input[name="_method"]')["value"]).to eq("delete")
       expect(response.body).not_to include("submitter@exemplo.org")
     end
   end
 
   it "Corrigir opens the coordinator email" do
-    norte = Organization.create!(name: "ONG Norte")
-    ana = Account.create!(email: "ana@exemplo.org")
     zoe = Account.create!(email: "zoe@exemplo.org")
-    Access.create!(account: ana, organization: norte, kind: :coordinator)
+    norte = create_organization!(name: "ONG Norte", principal_coordinator_account: zoe)
+    ana = Account.create!(email: "ana@exemplo.org")
     Access.create!(account: zoe, organization: norte, kind: :coordinator)
+    Access.create!(account: ana, organization: norte, kind: :coordinator)
     as_seller do
       ActionMailer::Base.deliveries.clear
       expect {
@@ -110,12 +127,12 @@ RSpec.describe "Administration access", type: :request do
       expect(cancel["class"]).to include("underline")
       expect(cancel["class"]).to include("underline-offset-2")
       expect(row.text).to include("ana@exemplo.org")
-      expect(row.css("button").count { |button| button.text.strip == "Corrigir" }).to eq(1)
+      expect(row.css("button").count { |button| button.text.strip == "Corrigir" }).to eq(0)
     end
   end
 
   it "Cancelar on the email field restores the row" do
-    norte = Organization.create!(name: "ONG Norte")
+    norte = create_organization!(name: "ONG Norte")
     zoe = Account.create!(email: "zoe@exemplo.org")
     Access.create!(account: zoe, organization: norte, kind: :coordinator)
     as_seller do
@@ -135,7 +152,7 @@ RSpec.describe "Administration access", type: :request do
     end
   end
 
-  it "invalid email correction re-renders 422" do
+  it "invalid principal email correction re-renders 422" do
     _account, norte = plant_coordinator(email: "zoe@exemplo.org", organization_name: "ONG Norte")
     as_seller do
       post "/administration/email", params: { organization_id: norte.id, email: "zoe@exemplo.org" }
@@ -144,22 +161,23 @@ RSpec.describe "Administration access", type: :request do
       }.not_to change(Access, :count)
 
       expect(response).to have_http_status(:unprocessable_content)
+      expect(page.at_css("h1").text.strip).to eq("Editar organização")
       expect(page.css("[data-notice='error']").map { |notice| notice.text.strip }).to eq([
         "Informe um e-mail válido."
       ])
-      expect(response.body.index("Administração")).to be < response.body.index("Informe um e-mail válido.")
+      expect(response.body.index("Editar organização")).to be < response.body.index("Informe um e-mail válido.")
       row = organization_row(norte)
       expect(row.at_css('input[name="email"]')["value"]).to eq("nao-e-email")
       expect(row.at_css('form[action="/administration/email/confirm"]')).to be_nil
     end
   end
 
-  it "taken coordinator email correction re-renders 422" do
-    norte = Organization.create!(name: "ONG Norte")
-    ana = Account.create!(email: "ana@exemplo.org")
+  it "taken peer coordinator email correction re-renders 422" do
     zoe = Account.create!(email: "zoe@exemplo.org")
-    Access.create!(account: ana, organization: norte, kind: :coordinator)
+    norte = create_organization!(name: "ONG Norte", principal_coordinator_account: zoe)
+    ana = Account.create!(email: "ana@exemplo.org")
     Access.create!(account: zoe, organization: norte, kind: :coordinator)
+    Access.create!(account: ana, organization: norte, kind: :coordinator)
     as_seller do
       post "/administration/email", params: { organization_id: norte.id, email: "zoe@exemplo.org" }
       expect {
@@ -174,19 +192,64 @@ RSpec.describe "Administration access", type: :request do
     end
   end
 
-  it "taken submitter email correction re-renders 422" do
+  it "Continuar on a same-org submitter email is not a collision" do
     _account, norte = plant_coordinator(email: "coordenador@exemplo.org", organization_name: "ONG Norte")
     plant_submitter(email: "submitter@exemplo.org", organization: norte)
     as_seller do
       post "/administration/email", params: { organization_id: norte.id, email: "coordenador@exemplo.org" }
       expect {
-        post "/administration/email/continue", params: { email: "submitter@exemplo.org" }
+        post "/administration/email/continue", params: { email: " Submitter@Exemplo.ORG " }
       }.not_to change(Access, :count)
 
-      expect(response).to have_http_status(:unprocessable_content)
-      expect(page.css("[data-notice='error']").map { |notice| notice.text.strip }).to eq([
-        "Esse e-mail já tem acesso a esta organização."
-      ])
+      expect(response).not_to have_http_status(:unprocessable_content)
+      expect(response.body).not_to include("Esse e-mail já tem acesso a esta organização.")
+    end
+  end
+
+  it "confirming a same-org submitter promotes Access and sends no welcome" do
+    coordinator, norte = plant_coordinator(email: "coordenador@exemplo.org", organization_name: "ONG Norte")
+    submitter, _ = plant_submitter(email: "submitter@exemplo.org", organization: norte)
+    Invite.insert_all!([ {
+      organization_id: norte.id,
+      email: "submitter@exemplo.org",
+      kind: "coordinator",
+      created_at: Time.current,
+      updated_at: Time.current
+    } ])
+    as_seller do
+      ActionMailer::Base.deliveries.clear
+      post "/administration/email", params: { organization_id: norte.id, email: "coordenador@exemplo.org" }
+      post "/administration/email/continue", params: { email: " Submitter@Exemplo.ORG " }
+      expect {
+        post "/administration/email/confirm", params: { organization_id: norte.id }
+      }.not_to change(Account, :count)
+
+      expect(norte.accesses.find_by!(account: submitter).kind).to eq("coordinator")
+      expect(norte.reload.principal_coordinator_account).to eq(submitter)
+      expect(Access.find_by(account: coordinator, organization: norte)).to be_nil
+      expect(Invite.find_by(organization: norte, email: "submitter@exemplo.org")).to be_nil
+      expect(ActionMailer::Base.deliveries).to be_empty
+      follow_redirect!
+      get "/administration"
+      expect(organization_row(norte).text).to include("submitter@exemplo.org")
+      expect(organization_row(norte).text).not_to include("E-mail enviado para")
+      expect(organization_row(norte).text).not_to include("A correção foi gravada, mas o e-mail não saiu.")
+    end
+  end
+
+  it "POST /administration/email for a non-principal coordinator returns 404" do
+    zoe = Account.create!(email: "zoe@exemplo.org")
+    norte = create_organization!(name: "ONG Norte", principal_coordinator_account: zoe)
+    ana = Account.create!(email: "ana@exemplo.org")
+    Access.create!(account: zoe, organization: norte, kind: :coordinator)
+    Access.create!(account: ana, organization: norte, kind: :coordinator)
+    as_seller do
+      expect {
+        post "/administration/email", params: { organization_id: norte.id, email: "ana@exemplo.org" }
+      }.not_to change(Access, :count)
+
+      expect(response).to have_http_status(:not_found)
+      expect(response.body).to eq("")
     end
   end
 
@@ -208,7 +271,7 @@ RSpec.describe "Administration access", type: :request do
     end
   end
 
-  it "confirming the same coordinator email sends the welcome and writes no Access" do
+  it "confirming the current principal email writes nothing and sends nothing" do
     _account, norte = plant_coordinator(email: "coordenador@exemplo.org", organization_name: "ONG Norte")
     as_seller do
       ActionMailer::Base.deliveries.clear
@@ -216,28 +279,21 @@ RSpec.describe "Administration access", type: :request do
       post "/administration/email/continue", params: { email: " Coordenador@Exemplo.ORG " }
       expect {
         post "/administration/email/confirm", params: { organization_id: norte.id }
-      }.not_to change { norte.accesses.count }
+      }.not_to change { [ norte.accesses.count, Access.order(:id).pluck(:id, :account_id, :kind) ] }
 
-      expect(Account.find_by!(email: "coordenador@exemplo.org").email).to eq("coordenador@exemplo.org")
-      expect(ActionMailer::Base.deliveries.size).to eq(1)
-      message = ActionMailer::Base.deliveries.last
-      expect(message.mime_type).to eq("text/plain")
-      expect(message.to).to eq([ "coordenador@exemplo.org" ])
-      expect(message.subject).to eq("Fechamento Mensal - Cadastro da Organização ONG Norte")
-      expect(message.body.decoded).to eq(
-        "A organização ONG Norte está pronta. Entre com o Google usando coordenador@exemplo.org, pelo botão Entrar com Google."
-      )
+      expect(ActionMailer::Base.deliveries).to be_empty
       follow_redirect!
-      expect(organization_row(norte).text).to include("E-mail enviado para coordenador@exemplo.org.")
+      expect(organization_row(norte).text).to include("coordenador@exemplo.org")
+      expect(organization_row(norte).text).not_to include("E-mail enviado para")
     end
   end
 
   it "a new coordinator email asks for confirmation" do
-    norte = Organization.create!(name: "ONG Norte")
-    ana = Account.create!(email: "ana@exemplo.org")
     zoe = Account.create!(email: "zoe@exemplo.org")
-    Access.create!(account: ana, organization: norte, kind: :coordinator)
+    norte = create_organization!(name: "ONG Norte", principal_coordinator_account: zoe)
+    ana = Account.create!(email: "ana@exemplo.org")
     Access.create!(account: zoe, organization: norte, kind: :coordinator)
+    Access.create!(account: ana, organization: norte, kind: :coordinator)
     as_seller do
       post "/administration/email", params: { organization_id: norte.id, email: "zoe@exemplo.org" }
       expect {
@@ -262,7 +318,7 @@ RSpec.describe "Administration access", type: :request do
   end
 
   it "Corrigir on the email confirmation returns the typed email" do
-    norte = Organization.create!(name: "ONG Norte")
+    norte = create_organization!(name: "ONG Norte")
     zoe = Account.create!(email: "zoe@exemplo.org")
     Access.create!(account: zoe, organization: norte, kind: :coordinator)
     as_seller do
@@ -280,9 +336,9 @@ RSpec.describe "Administration access", type: :request do
     end
   end
 
-  it "confirming a new coordinator email moves Access and sends the welcome" do
-    norte = Organization.create!(name: "ONG Norte")
-    sul = Organization.create!(name: "ONG Sul")
+  it "confirming a new principal email creates the Account and sends the welcome" do
+    norte = create_organization!(name: "ONG Norte")
+    sul = create_organization!(name: "ONG Sul")
     old = Account.create!(email: "coordenador@exemplo.org")
     Access.create!(account: old, organization: norte, kind: :coordinator)
     Invite.create!(organization: norte, email: "novo@exemplo.org", kind: :coordinator)
@@ -313,9 +369,9 @@ RSpec.describe "Administration access", type: :request do
     end
   end
 
-  it "moving Access onto an existing coordinator Account keeps Account.count" do
+  it "confirming onto an existing Account sends no welcome" do
     _sul_account, _sul = plant_coordinator(email: "sul@exemplo.org", organization_name: "ONG Sul")
-    norte = Organization.create!(name: "ONG Norte")
+    norte = create_organization!(name: "ONG Norte")
     old = Account.create!(email: "coordenador@exemplo.org")
     Access.create!(account: old, organization: norte, kind: :coordinator)
     as_seller do
@@ -326,19 +382,22 @@ RSpec.describe "Administration access", type: :request do
       }.not_to change(Account, :count)
 
       expect(old.reload.email).to eq("coordenador@exemplo.org")
-      expect(norte.accesses.coordinator.first.account.email).to eq("sul@exemplo.org")
-      expect(ActionMailer::Base.deliveries.last.body.decoded).to eq(
-        "A organização ONG Norte foi adicionada à sua conta. Entre com o Google usando sul@exemplo.org, pelo botão Entrar com Google."
-      )
+      expect(norte.reload.principal_coordinator_account.email).to eq("sul@exemplo.org")
+      expect(norte.accesses.coordinator.find_by(account: Account.find_by!(email: "sul@exemplo.org"))).to be_present
+      expect(Access.find_by(account: old, organization: norte)).to be_nil
+      expect(ActionMailer::Base.deliveries).to be_empty
+      follow_redirect!
+      expect(organization_row(norte).text).to include("sul@exemplo.org")
+      expect(organization_row(norte).text).not_to include("E-mail enviado para")
     end
   end
 
   it "the welcome after an email move addresses the new email" do
-    norte = Organization.create!(name: "ONG Norte")
-    ana = Account.create!(email: "ana@exemplo.org")
     zoe = Account.create!(email: "zoe@exemplo.org")
-    Access.create!(account: ana, organization: norte, kind: :coordinator)
+    norte = create_organization!(name: "ONG Norte", principal_coordinator_account: zoe)
+    ana = Account.create!(email: "ana@exemplo.org")
     Access.create!(account: zoe, organization: norte, kind: :coordinator)
+    Access.create!(account: ana, organization: norte, kind: :coordinator)
     as_seller do
       ActionMailer::Base.deliveries.clear
       post "/administration/email", params: { organization_id: norte.id, email: "zoe@exemplo.org" }
@@ -353,8 +412,8 @@ RSpec.describe "Administration access", type: :request do
   end
 
   it "email confirm keeps the move when deliver_now raises" do
-    norte = Organization.create!(name: "ONG Norte")
-    sul = Organization.create!(name: "ONG Sul")
+    norte = create_organization!(name: "ONG Norte")
+    sul = create_organization!(name: "ONG Sul")
     old = Account.create!(email: "coordenador@exemplo.org")
     Access.create!(account: old, organization: norte, kind: :coordinator)
     Invite.create!(organization: norte, email: "novo@exemplo.org", kind: :coordinator)
@@ -381,11 +440,11 @@ RSpec.describe "Administration access", type: :request do
   end
 
   it "correction resend delivers to the new email" do
-    norte = Organization.create!(name: "ONG Norte")
-    ana = Account.create!(email: "ana@exemplo.org")
     zoe = Account.create!(email: "zoe@exemplo.org")
-    Access.create!(account: ana, organization: norte, kind: :coordinator)
+    norte = create_organization!(name: "ONG Norte", principal_coordinator_account: zoe)
+    ana = Account.create!(email: "ana@exemplo.org")
     Access.create!(account: zoe, organization: norte, kind: :coordinator)
+    Access.create!(account: ana, organization: norte, kind: :coordinator)
     as_seller do
       post "/administration/email", params: { organization_id: norte.id, email: "zoe@exemplo.org" }
       post "/administration/email/continue", params: { email: "novo@exemplo.org" }
@@ -405,7 +464,7 @@ RSpec.describe "Administration access", type: :request do
   end
 
   it "correction resend keeps the correction notice when deliver_now raises" do
-    norte = Organization.create!(name: "ONG Norte")
+    norte = create_organization!(name: "ONG Norte")
     old = Account.create!(email: "coordenador@exemplo.org")
     Access.create!(account: old, organization: norte, kind: :coordinator)
     as_seller do
@@ -425,7 +484,7 @@ RSpec.describe "Administration access", type: :request do
   end
 
   it "confirm of the signed-in email on a correction focuses the organization" do
-    norte = Organization.create!(name: "ONG Norte")
+    norte = create_organization!(name: "ONG Norte")
     old = Account.create!(email: "coordenador@exemplo.org")
     Access.create!(account: old, organization: norte, kind: :coordinator)
     as_seller do
@@ -443,7 +502,7 @@ RSpec.describe "Administration access", type: :request do
       organization_name: "ONG Sul",
       google_uid: "uid-seller"
     )
-    norte = Organization.create!(name: "ONG Norte")
+    norte = create_organization!(name: "ONG Norte")
     old = Account.create!(email: "coordenador@exemplo.org")
     Access.create!(account: old, organization: norte, kind: :coordinator)
     as_seller do
@@ -456,7 +515,7 @@ RSpec.describe "Administration access", type: :request do
   end
 
   it "email confirmation for a missing organization responds 404" do
-    Organization.create!(name: "ONG Norte")
+    create_organization!(name: "ONG Norte")
     missing_id = Organization.maximum(:id).to_i + 1
     as_seller do
       ActionMailer::Base.deliveries.clear
@@ -525,16 +584,30 @@ RSpec.describe "Administration access", type: :request do
     end
   end
 
-  it "removing an organization with no close data deletes it" do
-    norte = Organization.create!(
+  it "after invite accept the list column stays the principal email" do
+    organization = Organization.register_coordinator(name: "ONG Norte", email: "coordenador@exemplo.org")
+    invite = Invite.create!(organization: organization, email: "ana@exemplo.org", kind: :coordinator)
+    ana = Account.create!(email: "ana@exemplo.org", google_uid: "uid-ana")
+    invite.accept!(ana)
+    as_seller do
+      get "/administration"
+
+      expect(organization_row(organization).text).to include("coordenador@exemplo.org")
+      expect(organization_row(organization).text).not_to include("ana@exemplo.org")
+    end
+  end
+
+  it "removing an organization keeps Account rows including a coordinator who still accesses another organization" do
+    extra, sul = plant_coordinator(email: "extra@exemplo.org", organization_name: "ONG Sul", google_uid: "uid-extra")
+    principal = Account.create!(email: "coordenador@exemplo.org")
+    norte = create_organization!(
       name: "ONG Norte",
-      accountant_presentation_name: "Ana Contábil",
-      package_archive_folder_id: "folder-norte",
-      sefaz_pkcs12_ciphertext: "cipher"
+      principal_coordinator_account: principal,
+      accountant_presentation_name: "Ana Contábil"
     )
-    coordinator = Account.create!(email: "coordenador@exemplo.org")
+    Access.create!(account: principal, organization: norte, kind: :coordinator)
+    Access.create!(account: extra, organization: norte, kind: :coordinator)
     submitter = Account.create!(email: "submitter@exemplo.org")
-    Access.create!(account: coordinator, organization: norte, kind: :coordinator)
     Access.create!(account: submitter, organization: norte, kind: :submitter)
     Invite.create!(organization: norte, email: "pessoa@exemplo.org", kind: :coordinator)
     as_seller do
@@ -545,8 +618,10 @@ RSpec.describe "Administration access", type: :request do
       expect(Organization.find_by(id: norte.id)).to be_nil
       expect(Access.where(organization_id: norte.id)).to be_empty
       expect(Invite.where(organization_id: norte.id)).to be_empty
-      expect(Account.find_by(id: coordinator.id)).to eq(coordinator)
-      expect(Account.find_by(id: submitter.id)).to eq(submitter)
+      expect(Account.find(principal.id)).to eq(principal)
+      expect(Account.find(submitter.id)).to eq(submitter)
+      expect(Account.find(extra.id)).to eq(extra)
+      expect(Access.find_by(account: extra, organization: sul)).to be_present
       follow_redirect!
       expect(response.body).not_to include("ONG Norte")
     end
@@ -577,7 +652,7 @@ RSpec.describe "Administration access", type: :request do
       organization_name: "ONG Sul",
       google_uid: "uid-seller"
     )
-    norte = Organization.create!(name: "ONG Norte")
+    norte = create_organization!(name: "ONG Norte")
     other = Account.create!(email: "coordenador@exemplo.org")
     Access.create!(account: other, organization: norte, kind: :coordinator)
     as_seller do
@@ -672,7 +747,7 @@ RSpec.describe "Administration access", type: :request do
   end
 
   it "removing a missing organization responds 404" do
-    kept = Organization.create!(name: "ONG Sul")
+    kept = create_organization!(name: "ONG Sul")
     missing_id = Organization.maximum(:id).to_i + 1
     as_seller do
       delete "/administration", params: { organization_id: missing_id }

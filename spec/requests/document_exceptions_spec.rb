@@ -102,7 +102,7 @@ RSpec.describe "Document exceptions", type: :request do
 
   it "DELETE document_exception of another organization returns 404" do
     account, org_a = plant_coordinator(email: "a@example.com", organization_name: "A")
-    org_b = Organization.create!(name: "B")
+    org_b = create_organization!(name: "B")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
     _month_b, statement_b = plant_month(org_b)
     foreign = plant_payment(statement_b, 22000)
@@ -227,7 +227,7 @@ RSpec.describe "Document exceptions", type: :request do
 
   it "POST extra_exception_kind_id of another organization returns 404" do
     _account, organization, _month, statement = signed_month
-    other = Organization.create!(name: "B")
+    other = create_organization!(name: "B")
     foreign = ExtraExceptionKind.create_for(organization: other, name: "Doação")
     payment = plant_payment(statement, 22000)
 

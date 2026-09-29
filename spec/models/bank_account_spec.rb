@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe BankAccount, type: :model do
   def organization
-    @organization ||= Organization.create!(name: "ONG")
+    @organization ||= create_organization!(name: "ONG")
   end
 
   it "create with COMPE 001 persists active account and parameterized slug" do
@@ -95,7 +95,7 @@ RSpec.describe BankAccount, type: :model do
 
     it "concurrent creates persist exactly one BankAccount" do
       truncate_product_tables
-      org = Organization.create!(name: "ONG")
+      org = create_organization!(name: "ONG")
 
       run_in_parallel(2) do
         BankAccount.create_for(organization: org, name: "Principal", compe: "001")

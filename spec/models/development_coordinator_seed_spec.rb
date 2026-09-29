@@ -16,6 +16,7 @@ RSpec.describe DevelopmentCoordinatorSeed, type: :model do
     expect(Access.count).to eq(1)
     access = Access.find_by!(account: account, organization: organization)
     expect(access.kind).to eq("coordinator")
+    expect(organization.principal_coordinator_account).to eq(account)
     expect(Access.where(kind: "submitter").count).to eq(0)
     expect(Invite.count).to eq(0)
   end
