@@ -12,6 +12,10 @@ class Account < ApplicationRecord
   validate :email_must_be_well_formed
   validates :google_uid, uniqueness: true, allow_nil: true
 
+  def organization_for_focus
+    coordinator_organizations.first || organizations.first
+  end
+
   private
 
   def normalize_email

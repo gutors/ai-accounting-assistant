@@ -666,6 +666,8 @@ RSpec.describe "Administration", type: :request do
       expect(cancel["class"]).to include("underline-offset-2")
       expect(row.inner_html.index("Cancelar")).to be < row.inner_html.index("coordenador@exemplo.org")
       expect(row.text).to include("coordenador@exemplo.org")
+      expect(row.css("p").map { |node| node.text.strip }).to include("E-mail do coordenador principal")
+      expect(row.text).not_to include("Outros coordenadores")
       expect(row.at_css('input[type="email"]')).to be_nil
     end
   end

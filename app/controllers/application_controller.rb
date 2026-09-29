@@ -6,6 +6,8 @@ class ApplicationController < ActionController::Base
   stale_when_importmap_changes
 
   before_action :require_account
+  before_action :repair_stale_focus
+  after_action :repair_stale_focus
 
   helper_method :current_account, :focused_organization, :coordinator_on_focus?, :administrator?
 
@@ -36,6 +38,15 @@ class ApplicationController < ActionController::Base
 
   def require_account
     redirect_to login_path, status: :found unless current_account
+  end
+
+  def repair_stale_focus
+    return unless current_account
+    return if session[:organization_id].blank?
+    return if current_account.organizations.exists?(id: session[:organization_id])
+
+    session[:organization_id] = current_account.organization_for_focus&.id
+    @focused_organization = nil
   end
 
   def require_focused_organization

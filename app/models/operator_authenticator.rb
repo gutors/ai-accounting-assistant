@@ -39,7 +39,7 @@ class OperatorAuthenticator
   attr_reader :auth
 
   def focus_for(account)
-    account.coordinator_organizations.first || account.organizations.first
+    account.organization_for_focus
   end
 
   def administrator?(email)

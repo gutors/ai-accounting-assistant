@@ -74,10 +74,13 @@ RSpec.describe "Administration access", type: :request do
       expect(response).to have_http_status(:ok)
       row = organization_row(norte)
       expect(row.css("p, button").map { |node| node.text.strip }).to eq([
+        "Nome da organização",
         "ONG Norte",
         "Corrigir nome",
+        "E-mail do coordenador principal",
         "zoe@exemplo.org",
         "Corrigir",
+        "Outros coordenadores",
         "ana@exemplo.org",
         "Remover"
       ])
@@ -112,8 +115,10 @@ RSpec.describe "Administration access", type: :request do
       follow_administration("/administration/#{norte.id}/edit")
       row = organization_row(norte)
       expect(row.text).to include("ONG Norte")
+      expect(row.css("p").map { |node| node.text.strip }).to include("Nome da organização")
       field = row.at_css('input[type="email"]')
       expect(field["value"]).to eq("zoe@exemplo.org")
+      expect(row.at_css("label[for='#{field['id']}']").text.strip).to eq("E-mail do coordenador principal")
       submit = row.at_css('input[type="submit"]')
       expect(submit["value"]).to eq("Continuar")
       expect(submit["class"]).to include("bg-caixa")
@@ -127,6 +132,7 @@ RSpec.describe "Administration access", type: :request do
       expect(cancel["class"]).to include("underline")
       expect(cancel["class"]).to include("underline-offset-2")
       expect(row.text).to include("ana@exemplo.org")
+      expect(row.css("p").map { |node| node.text.strip }).to include("Outros coordenadores")
       expect(row.css("button").count { |button| button.text.strip == "Corrigir" }).to eq(0)
     end
   end
@@ -305,11 +311,11 @@ RSpec.describe "Administration access", type: :request do
       row = organization_row(norte)
       html = row.inner_html
       expect(html.index("Nome da organização")).to be < html.index("ONG Norte")
-      expect(html.index("ONG Norte")).to be < html.index("E-mail do coordenador")
-      expect(html.index("E-mail do coordenador")).to be < html.index("novo@exemplo.org")
+      expect(html.index("ONG Norte")).to be < html.index("E-mail do coordenador principal")
+      expect(html.index("E-mail do coordenador principal")).to be < html.index("novo@exemplo.org")
       name_label = row.css("p").find { |node| node.text.strip == "Nome da organização" }
       expect(name_label.next_element.text.strip).to eq("ONG Norte")
-      email_label = row.css("p").find { |node| node.text.strip == "E-mail do coordenador" }
+      email_label = row.css("p").find { |node| node.text.strip == "E-mail do coordenador principal" }
       expect(email_label.next_element.text.strip).to eq("novo@exemplo.org")
       expect(row.text).not_to include("ana@exemplo.org")
       group = row.css("div").find { |node| node["class"].to_s.include?("flex-wrap") && node.text.include?("Confirmar") }
@@ -514,6 +520,80 @@ RSpec.describe "Administration access", type: :request do
     end
   end
 
+  it "confirm of another email on the focused organization moves focus to another coordinator organization" do
+    seller, sul = plant_coordinator(
+      email: "seller@example.com",
+      organization_name: "ONG Sul",
+      google_uid: "uid-seller"
+    )
+    norte = create_organization!(name: "ONG Norte", principal_coordinator_account: seller)
+    Access.create!(account: seller, organization: norte, kind: :coordinator)
+    as_seller do
+      post "/focus", params: { organization_id: norte.id }
+      post "/administration/email", params: { organization_id: norte.id, email: "seller@example.com" }
+      post "/administration/email/continue", params: { email: "novo@exemplo.org" }
+      post "/administration/email/confirm", params: { organization_id: norte.id }
+
+      expect(session[:organization_id]).to eq(sul.id)
+      follow_redirect!
+      expect(response).to have_http_status(:ok)
+      header = page.at_css("header")
+      expect(header.text).to include("Fechamento Mensal - ONG Sul")
+      expect(header.css("nav a").map { |link| link.text.strip }).to eq([
+        "Início", "Documentos", "Configuração", "Administração"
+      ])
+      expect(header.css("button").map { |button| button.text.strip }).to include("Sair")
+    end
+  end
+
+  it "confirm of another email on the focused organization moves focus to a submitter organization" do
+    seller, norte = plant_coordinator(
+      email: "seller@example.com",
+      organization_name: "ONG Norte",
+      google_uid: "uid-seller"
+    )
+    leste = create_organization!(name: "ONG Leste")
+    Access.create!(account: seller, organization: leste, kind: :submitter)
+    as_seller do
+      expect(session[:organization_id]).to eq(norte.id)
+      post "/administration/email", params: { organization_id: norte.id, email: "seller@example.com" }
+      post "/administration/email/continue", params: { email: "novo@exemplo.org" }
+      post "/administration/email/confirm", params: { organization_id: norte.id }
+
+      expect(session[:organization_id]).to eq(leste.id)
+      follow_redirect!
+      header = page.at_css("header")
+      expect(header.text).to include("Fechamento Mensal - ONG Leste")
+      expect(header.css("nav a").map { |link| link.text.strip }).to eq([
+        "Início", "Documentos", "Administração"
+      ])
+      expect(header.text).not_to include("Configuração")
+    end
+  end
+
+  it "confirm of another email on the last focused organization clears focus" do
+    _seller, norte = plant_coordinator(
+      email: "seller@example.com",
+      organization_name: "ONG Norte",
+      google_uid: "uid-seller"
+    )
+    as_seller do
+      expect(session[:organization_id]).to eq(norte.id)
+      post "/administration/email", params: { organization_id: norte.id, email: "seller@example.com" }
+      post "/administration/email/continue", params: { email: "novo@exemplo.org" }
+      post "/administration/email/confirm", params: { organization_id: norte.id }
+
+      expect(session[:organization_id]).to be_nil
+      follow_redirect!
+      expect(response).to have_http_status(:ok)
+      header = page.at_css("header")
+      expect(header.text).to include("Fechamento Mensal")
+      expect(header.text).not_to include("ONG Norte")
+      expect(header.at_css("nav")).to be_nil
+      expect(header.css("button").map { |button| button.text.strip }).to eq([ "Sair" ])
+    end
+  end
+
   it "email confirmation for a missing organization responds 404" do
     create_organization!(name: "ONG Norte")
     missing_id = Organization.maximum(:id).to_i + 1
@@ -627,7 +707,27 @@ RSpec.describe "Administration access", type: :request do
     end
   end
 
-  it "GET /administration after removing the focused organization keeps the session id" do
+  it "GET /administration after removing the focused organization focuses another coordinator organization" do
+    seller, norte = plant_coordinator(
+      email: "seller@example.com",
+      organization_name: "ONG Norte",
+      google_uid: "uid-seller"
+    )
+    sul = create_organization!(name: "ONG Sul", principal_coordinator_account: seller)
+    Access.create!(account: seller, organization: sul, kind: :coordinator)
+    as_seller do
+      post "/focus", params: { organization_id: norte.id }
+      expect(session[:organization_id]).to eq(norte.id)
+      delete "/administration", params: { organization_id: norte.id }
+      follow_redirect!
+
+      expect(response).to have_http_status(:ok)
+      expect(session[:organization_id]).to eq(sul.id)
+      expect(page.at_css("header").text).to include("Fechamento Mensal - ONG Sul")
+    end
+  end
+
+  it "GET /administration after removing the last focused organization clears focus" do
     account, norte = plant_coordinator(
       email: "seller@example.com",
       organization_name: "ONG Norte",
@@ -635,13 +735,15 @@ RSpec.describe "Administration access", type: :request do
     )
     as_seller do
       expect(session[:organization_id]).to eq(norte.id)
-      deleted_id = norte.id
       delete "/administration", params: { organization_id: norte.id }
       follow_redirect!
 
       expect(response).to have_http_status(:ok)
-      expect(session[:organization_id]).to eq(deleted_id)
-      expect(page.at_css("header").text).to include("Fechamento Mensal")
+      expect(session[:organization_id]).to be_nil
+      header = page.at_css("header")
+      expect(header.text).to include("Fechamento Mensal")
+      expect(header.text).not_to include("ONG Norte")
+      expect(header.at_css("nav")).to be_nil
       expect(account.reload).to eq(account)
     end
   end

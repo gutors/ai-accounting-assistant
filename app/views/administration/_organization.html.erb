@@ -1,3 +1,5 @@
+<% principal_email = organization.listed_coordinator_account&.email %>
+<% peer_emails = organization.coordinator_emails.reject { |email| email == principal_email } %>
 <div data-organization-id="<%= organization.id %>" class="mt-6">
   <% if @name_organization&.id == organization.id && @name_phase == :confirm %>
     <div>
@@ -18,8 +20,19 @@
       <%= submit_tag "Continuar", form: "name_correction_form", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
       <%= button_to "Cancelar", "/administration/name/cancel", method: :post, class: "text-caixa underline underline-offset-2" %>
     </div>
-    <% organization.coordinator_emails.each do |email| %>
-      <p class="mt-4"><%= email %></p>
+    <% if principal_email %>
+      <div class="border-b border-rule pb-2 mb-2 mt-6">
+        <p class="font-medium">E-mail do coordenador principal</p>
+      </div>
+      <p class="mt-2"><%= principal_email %></p>
+    <% end %>
+    <% if peer_emails.any? %>
+      <div class="border-b border-rule pb-2 mb-2 mt-6">
+        <p class="font-medium">Outros coordenadores</p>
+      </div>
+      <% peer_emails.each do |email| %>
+        <p class="mt-2"><%= email %></p>
+      <% end %>
     <% end %>
   <% elsif @email_organization&.id == organization.id && @email_phase == :confirm %>
     <div class="border-b border-rule pb-4">
@@ -27,7 +40,7 @@
       <p><%= organization.name %></p>
     </div>
     <div class="mt-4">
-      <p class="font-medium">E-mail do coordenador</p>
+      <p class="font-medium">E-mail do coordenador principal</p>
       <p><%= @email_value %></p>
     </div>
     <div class="mt-4 flex flex-wrap items-center gap-3">
@@ -35,26 +48,45 @@
       <%= button_to "Corrigir", "/administration/correct", method: :post, class: "rounded border border-ink px-4 py-2 text-ink" %>
     </div>
   <% elsif @email_organization&.id == organization.id && @email_phase == :field %>
-    <p class="font-medium"><%= organization.name %></p>
+    <div class="border-b border-rule pb-2 mb-2">
+      <p class="font-medium">Nome da organização</p>
+    </div>
+    <p class="mt-2"><%= organization.name %></p>
     <%= form_with url: "/administration/email/continue", method: :post, id: "email_correction_form", class: "mt-4" do %>
-      <%= label_tag "email_correction", "E-mail do coordenador", class: "block font-medium" %>
+      <%= label_tag "email_correction", "E-mail do coordenador principal", class: "block font-medium" %>
       <%= email_field_tag :email, @email_value, id: "email_correction", class: "mt-1 w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "email" %>
     <% end %>
     <div class="mt-4 flex flex-wrap items-center gap-3">
       <%= submit_tag "Continuar", form: "email_correction_form", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
       <%= button_to "Cancelar", "/administration/email/cancel", method: :post, class: "text-caixa underline underline-offset-2" %>
     </div>
-    <% organization.coordinator_emails.each do |email| %>
-      <% next if email == @email_from %>
-      <p class="mt-4"><%= email %></p>
+    <% if peer_emails.any? %>
+      <div class="border-b border-rule pb-2 mb-2 mt-6">
+        <p class="font-medium">Outros coordenadores</p>
+      </div>
+      <% peer_emails.each do |email| %>
+        <p class="mt-2"><%= email %></p>
+      <% end %>
     <% end %>
   <% else %>
-    <p class="font-medium"><%= organization.name %></p>
+    <div class="border-b border-rule pb-2 mb-2">
+      <p class="font-medium">Nome da organização</p>
+    </div>
+    <p class="mt-2"><%= organization.name %></p>
     <%= button_to "Corrigir nome", "/administration/name", method: :post, params: { organization_id: organization.id }, class: "text-caixa underline underline-offset-2" %>
-    <% organization.coordinator_emails.each do |email| %>
-      <p class="mt-4"><%= email %></p>
-      <% if email == organization.listed_coordinator_account&.email %>
-        <%= button_to "Corrigir", "/administration/email", method: :post, params: { organization_id: organization.id, email: email }, class: "text-caixa underline underline-offset-2" %>
+    <div class="border-b border-rule pb-2 mb-2 mt-6">
+      <p class="font-medium">E-mail do coordenador principal</p>
+    </div>
+    <% if principal_email %>
+      <p class="mt-2"><%= principal_email %></p>
+      <%= button_to "Corrigir", "/administration/email", method: :post, params: { organization_id: organization.id, email: principal_email }, class: "text-caixa underline underline-offset-2" %>
+    <% end %>
+    <% if peer_emails.any? %>
+      <div class="border-b border-rule pb-2 mb-2 mt-6">
+        <p class="font-medium">Outros coordenadores</p>
+      </div>
+      <% peer_emails.each do |email| %>
+        <p class="mt-2"><%= email %></p>
       <% end %>
     <% end %>
     <%= button_to "Remover", "/administration", method: :delete, params: { organization_id: organization.id }, form: { data: { turbo_confirm: "Remover a organização #{organization.name}?" } }, class: "mt-4 text-margem underline underline-offset-2" %>
