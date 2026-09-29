@@ -52,11 +52,18 @@ bin/rails db:setup
 
 `db:setup` cria o banco, carrega o schema e roda o seed. Se o banco já existir, use `bin/rails db:migrate`. O seed em development é idempotente: não grava uma segunda `ONG Exemplo` quando a conta de exemplo já está lá.
 
-Crie um `.env` na raiz (o Git ignora esse arquivo) e preencha o cliente OAuth. Sem aspas e sem espaço em volta do `=`:
+Crie um `.env` na raiz (o Git ignora esse arquivo) e preencha o cliente OAuth e o correio. Sem aspas e sem espaço em volta do `=`:
 
 ```sh
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
+ADMINISTRATOR_EMAIL=
+MAIL_FROM=
+MAILER_HOST=localhost:3000
+SMTP_ADDRESS=
+SMTP_PORT=587
+SMTP_USER_NAME=
+SMTP_PASSWORD=
 ```
 
 No cliente OAuth do Google, tipo **Web application**, a redirect URI autorizada é `http://localhost:3000/auth/google_oauth2/callback`. O esquema, o host e a porta têm de ser os mesmos da barra do navegador.

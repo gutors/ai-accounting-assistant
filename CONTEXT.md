@@ -14,7 +14,11 @@ _Avoid_: role, permission, membership, authorization (when SEFAZ autorização i
 
 **Coordinator**:
 A person with coordinator access on an organization: runs monthly close and validates matches. An organization has one or more. Not the only person who can put documents in.
-_Avoid_: accountant (as the operator), business owner, bookkeeper
+_Avoid_: accountant (as the operator), business owner, bookkeeper, principal coordinator (when any coordinator is meant)
+
+**Principal coordinator**:
+The coordinator named for an organization at sale or on `/administration` edit (`Email coordenador`). An organization has one. Other coordinators are peers invited from the organization home. Not the alphabetically first coordinator email.
+_Avoid_: first coordinator (when sort order is meant), administrator, Account (the login row)
 
 **Invite**:
 A pending grant of coordinator or submitter access by email on one organization. It exists only while pending and is deleted when accepted or cancelled. User-facing copy is convite.
