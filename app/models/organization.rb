@@ -25,7 +25,7 @@ class Organization < ApplicationRecord
       account = Account.find_by(email: normalized)
       unless account
         begin
-          account = Account.create!(email: normalized)
+          account = transaction(requires_new: true) { Account.create!(email: normalized) }
         rescue ActiveRecord::RecordNotUnique
           account = Account.find_by!(email: normalized)
         end
@@ -81,8 +81,12 @@ class Organization < ApplicationRecord
     transaction do
       account = Account.find_by(email: normalized)
       unless account
-        account = Account.create!(email: normalized)
-        created_account = true
+        begin
+          account = transaction(requires_new: true) { Account.create!(email: normalized) }
+          created_account = true
+        rescue ActiveRecord::RecordNotUnique
+          account = Account.find_by!(email: normalized)
+        end
       end
       standing = accesses.find_by(account_id: account.id)
       if standing

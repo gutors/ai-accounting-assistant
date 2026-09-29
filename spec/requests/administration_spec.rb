@@ -46,7 +46,7 @@ RSpec.describe "Administration", type: :request do
     as_seller { get "/administration" }
 
     header = page.at_css("header")
-    expect(header.text).to include("Fechamento mensal")
+    expect(header.text).to include("Fechamento Mensal")
     sair = header.css("button").select { |button| button.text.strip == "Sair" }
     expect(sair.size).to eq(1)
     expect(sair.first["class"]).to include("text-caixa")
@@ -281,7 +281,7 @@ RSpec.describe "Administration", type: :request do
       expect(session[:organization_id]).to eq(created.id)
       expect(session[:organization_id]).not_to eq(previous.id)
       follow_redirect!
-      expect(page.at_css("header").text).to include("ONG Norte")
+      expect(page.at_css("header").text).to include("Fechamento Mensal - ONG Norte")
     end
   end
 

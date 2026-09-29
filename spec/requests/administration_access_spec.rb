@@ -641,7 +641,7 @@ RSpec.describe "Administration access", type: :request do
 
       expect(response).to have_http_status(:ok)
       expect(session[:organization_id]).to eq(deleted_id)
-      expect(page.at_css("header").text).to include("Fechamento mensal")
+      expect(page.at_css("header").text).to include("Fechamento Mensal")
       expect(account.reload).to eq(account)
     end
   end
@@ -661,7 +661,7 @@ RSpec.describe "Administration access", type: :request do
       follow_redirect!
 
       expect(session[:organization_id]).to eq(sul.id)
-      expect(page.at_css("header").text).to include("ONG Sul")
+      expect(page.at_css("header").text).to include("Fechamento Mensal - ONG Sul")
     end
   end
 

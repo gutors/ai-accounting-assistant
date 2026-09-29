@@ -14,7 +14,7 @@ RSpec.describe "Denied", type: :request do
     expect(response).to have_http_status(:ok)
     header = Nokogiri::HTML(response.body).at_css("header")
     expect(header).not_to be_nil
-    expect(header.text).to include("Fechamento mensal")
+    expect(header.text).to include("Fechamento Mensal")
     expect(header.at_css("nav")).to be_nil
     expect(response.body).to include("Você não foi convidado a usar este sistema.")
   end
