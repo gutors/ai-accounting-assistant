@@ -40,7 +40,7 @@ RSpec.describe OperatorAuthenticator, type: :model do
 
   it "coordinator of A accepts pending submitter Invite on B" do
     account, org_a = plant_coordinator(email: "mixed@example.com", organization_name: "A")
-    org_b = Organization.create!(name: "B")
+    org_b = create_organization!(name: "B")
     Invite.create!(organization: org_b, email: "mixed@example.com", kind: :submitter)
 
     result = described_class.call(auth_hash(email: "mixed@example.com", uid: account.google_uid))
@@ -97,7 +97,7 @@ RSpec.describe OperatorAuthenticator, type: :model do
   end
 
   it "allowlisted email with a pending Invite accepts the Invite" do
-    organization = Organization.create!(name: "ONG Norte")
+    organization = create_organization!(name: "ONG Norte")
     Invite.create!(organization: organization, email: "seller@example.com", kind: :coordinator)
 
     result = with_env("ADMINISTRATOR_EMAIL" => "seller@example.com") do

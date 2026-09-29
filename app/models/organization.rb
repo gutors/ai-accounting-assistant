@@ -7,6 +7,8 @@ class Organization < ApplicationRecord
   SEFAZ_NOT_ECNPJ = "O certificado deve ser e-CNPJ A1 vigente"
   SEFAZ_WRAP_FAILED = "O certificado não pôde ser guardado"
 
+  belongs_to :principal_coordinator_account, class_name: "Account"
+
   has_many :accesses, dependent: :restrict_with_exception
   has_many :invites, dependent: :destroy
   has_many :bank_accounts, dependent: :restrict_with_exception
@@ -19,9 +21,16 @@ class Organization < ApplicationRecord
 
   def self.register_coordinator(name:, email:)
     transaction do
-      organization = create!(name: name.to_s.strip)
       normalized = NormalizedEmail.normalize(email)
-      account = Account.find_by(email: normalized) || Account.create!(email: normalized)
+      account = Account.find_by(email: normalized)
+      unless account
+        begin
+          account = transaction(requires_new: true) { Account.create!(email: normalized) }
+        rescue ActiveRecord::RecordNotUnique
+          account = Account.find_by!(email: normalized)
+        end
+      end
+      organization = create!(name: name.to_s.strip, principal_coordinator_account: account)
       Access.create!(account: account, organization: organization, kind: :coordinator)
       organization
     end
@@ -41,7 +50,7 @@ class Organization < ApplicationRecord
   end
 
   def listed_coordinator_account
-    listed_coordinator_accounts.first
+    principal_coordinator_account
   end
 
   def listed_coordinator_signed_in?
@@ -49,20 +58,47 @@ class Organization < ApplicationRecord
   end
 
   def listed_coordinator_accounts
-    accesses.select(&:coordinator?).map(&:account).sort_by(&:email)
+    coordinators = accesses.coordinator.includes(:account).map(&:account)
+    principal = principal_coordinator_account
+    rest = coordinators.reject { |account| account.id == principal&.id }.sort_by(&:email)
+    [ principal ].compact + rest
   end
+
+  def home_coordinator_accesses
+    records = accesses.coordinator.includes(:account).to_a
+    principal, others = records.partition { |access| access.account_id == principal_coordinator_account_id }
+    principal + others.sort_by { |access| access.account.email }
+  end
+
+  PrincipalReplacement = Data.define(:account, :created_account)
 
   def replace_coordinator(access:, email:)
     normalized = NormalizedEmail.normalize(email)
-    return access.account if access.account.email == normalized
+    return PrincipalReplacement.new(account: access.account, created_account: false) if access.account.email == normalized
 
+    created_account = false
+    account = nil
     transaction do
-      account = Account.find_by(email: normalized) || Account.create!(email: normalized)
-      Access.create!(account: account, organization: self, kind: :coordinator)
+      account = Account.find_by(email: normalized)
+      unless account
+        begin
+          account = transaction(requires_new: true) { Account.create!(email: normalized) }
+          created_account = true
+        rescue ActiveRecord::RecordNotUnique
+          account = Account.find_by!(email: normalized)
+        end
+      end
+      standing = accesses.find_by(account_id: account.id)
+      if standing
+        standing.update!(kind: :coordinator) unless standing.coordinator?
+      else
+        Access.create!(account: account, organization: self, kind: :coordinator)
+      end
       invites.where(email: normalized).delete_all
-      access.destroy!
-      account
+      update!(principal_coordinator_account: account)
+      access.destroy! if access.account_id != account.id
     end
+    PrincipalReplacement.new(account: account, created_account: created_account)
   end
 
   def remove

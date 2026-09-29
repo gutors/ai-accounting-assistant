@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe Suggestion, type: :model do
   def organization
-    @organization ||= Organization.create!(name: "ONG")
+    @organization ||= create_organization!(name: "ONG")
   end
 
   def account
@@ -335,7 +335,7 @@ RSpec.describe Suggestion, type: :model do
 
   it "does not assign another organization document" do
     payment = plant_payment(statement, 22000, history: "Pix enviado — Mesmo valor")
-    other = Organization.create!(name: "B")
+    other = create_organization!(name: "B")
     other_account = Account.create!(email: "b@example.com", google_uid: "uid-b")
     document = plant_recibo(other, other_account, payee: "Padaria Beta Isolada", amount: "220,00")
 

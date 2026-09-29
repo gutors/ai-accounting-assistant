@@ -112,7 +112,7 @@ RSpec.describe "Coordinator invites", type: :request do
 
   it "DELETE /coordinator_invites/:id of another organization returns 404" do
     account, organization = plant_coordinator(email: "a@example.com", organization_name: "A")
-    other = Organization.create!(name: "B")
+    other = create_organization!(name: "B")
     invite = Invite.create!(organization: other, email: "guest@example.com", kind: :coordinator)
     sign_in_as(account, organization: organization)
 
@@ -209,7 +209,7 @@ RSpec.describe "Coordinator invites", type: :request do
 
   it "resend of another organization Invite returns 404" do
     account, organization = plant_coordinator(email: "a@example.com", organization_name: "A")
-    other = Organization.create!(name: "B")
+    other = create_organization!(name: "B")
     invite = Invite.create!(organization: other, email: "guest@example.com", kind: :coordinator)
     sign_in_as(account, organization: organization)
     ActionMailer::Base.deliveries.clear
@@ -221,7 +221,7 @@ RSpec.describe "Coordinator invites", type: :request do
   end
 
   it "unauthenticated invite resend responds 302 to /login" do
-    organization = Organization.create!(name: "ONG Norte")
+    organization = create_organization!(name: "ONG Norte")
     invite = Invite.create!(organization: organization, email: "pessoa@exemplo.org", kind: :coordinator)
     expect do
       post "/coordinator_invites/#{invite.id}/mail"

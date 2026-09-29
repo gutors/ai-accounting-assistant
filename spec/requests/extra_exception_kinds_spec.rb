@@ -28,7 +28,7 @@ RSpec.describe "Extra exception kinds", type: :request do
 
   it "POST /extra_exception_kinds on A leaves B Doacao in place" do
     account, org_a = plant_coordinator(email: "a@example.com", organization_name: "A")
-    org_b = Organization.create!(name: "B")
+    org_b = create_organization!(name: "B")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
     ExtraExceptionKind.create_for(organization: org_b, name: "Doação")
     sign_in_as(account, organization: org_a)
@@ -184,7 +184,7 @@ RSpec.describe "Extra exception kinds", type: :request do
 
   it "DELETE extra exception kind of another organization returns 404" do
     account, organization = plant_coordinator(email: "a@example.com", organization_name: "A")
-    other = Organization.create!(name: "B")
+    other = create_organization!(name: "B")
     kind = ExtraExceptionKind.create_for(organization: other, name: "Doação")
     sign_in_as(account, organization: organization)
 
@@ -196,7 +196,7 @@ RSpec.describe "Extra exception kinds", type: :request do
 
   it "PATCH extra exception kind of another organization returns 404" do
     account, organization = plant_coordinator(email: "a@example.com", organization_name: "A")
-    other = Organization.create!(name: "B")
+    other = create_organization!(name: "B")
     kind = ExtraExceptionKind.create_for(organization: other, name: "Doação")
     sign_in_as(account, organization: organization)
 

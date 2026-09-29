@@ -7,7 +7,7 @@
         <rect x="96" y="304" width="320" height="28" fill="#f3f5f1" />
         <rect x="152" y="96" width="28" height="320" fill="#b4372a" />
       </svg>
-      <span><%= focused_organization&.name || "Fechamento mensal" %></span>
+      <span>Fechamento Mensal<%= " - #{focused_organization.name}" if focused_organization %></span>
     </p>
     <% if focused_organization %>
       <nav aria-label="Principal" class="flex flex-wrap items-center gap-x-5 gap-y-1 sm:ml-auto">

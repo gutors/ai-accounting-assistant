@@ -46,7 +46,7 @@ RSpec.describe "Administration", type: :request do
     as_seller { get "/administration" }
 
     header = page.at_css("header")
-    expect(header.text).to include("Fechamento mensal")
+    expect(header.text).to include("Fechamento Mensal")
     sair = header.css("button").select { |button| button.text.strip == "Sair" }
     expect(sair.size).to eq(1)
     expect(sair.first["class"]).to include("text-caixa")
@@ -59,7 +59,7 @@ RSpec.describe "Administration", type: :request do
   end
 
   it "blank organization name re-renders 422 and writes nothing" do
-    listed = Organization.create!(name: "ONG Norte")
+    listed = create_organization!(name: "ONG Norte")
     as_seller do
       expect {
         post "/administration", params: { name: "   ", email: "coordenador@exemplo.org" }
@@ -68,7 +68,7 @@ RSpec.describe "Administration", type: :request do
       expect(response).to have_http_status(:unprocessable_content)
       notices = page.css("[data-notice='error']").map { |notice| notice.text.strip }
       expect(notices).to eq([ "Informe o nome da organização." ])
-      expect(response.body.index("Administração")).to be < response.body.index("Informe o nome da organização.")
+      expect(response.body.index("Adicionar organização")).to be < response.body.index("Informe o nome da organização.")
       expect(page.at_css("h1").text.strip).to eq("Adicionar organização")
       expect(page.at_css('input[name="name"]')["value"]).to eq("   ")
       expect(page.at_css('input[name="email"]')["value"]).to eq("coordenador@exemplo.org")
@@ -78,7 +78,7 @@ RSpec.describe "Administration", type: :request do
   end
 
   it "invalid coordinator email re-renders 422 and writes nothing" do
-    listed = Organization.create!(name: "ONG Norte")
+    listed = create_organization!(name: "ONG Norte")
     as_seller do
       expect {
         post "/administration", params: { name: "ONG Sul", email: "nao-e-email" }
@@ -95,7 +95,7 @@ RSpec.describe "Administration", type: :request do
   end
 
   it "blank name and invalid email re-render both notices" do
-    listed = Organization.create!(name: "ONG Norte")
+    listed = create_organization!(name: "ONG Norte")
     as_seller do
       expect {
         post "/administration", params: { name: "   ", email: "nao-e-email" }
@@ -106,7 +106,7 @@ RSpec.describe "Administration", type: :request do
       name_at = body.index("Informe o nome da organização.")
       email_at = body.index("Informe um e-mail válido.")
       expect(name_at).to be < email_at
-      expect(body.index("Administração")).to be < name_at
+      expect(body.index("Adicionar organização")).to be < name_at
       expect(email_at).to be < body.index("Cadastre a organização e o coordenador que vai fechá-la.")
       expect(page.css("[data-notice='error']").map { |notice| notice.text.strip }).to eq([
         "Informe o nome da organização.",
@@ -118,7 +118,7 @@ RSpec.describe "Administration", type: :request do
   end
 
   it "valid POST stores pending and renders confirmation" do
-    sul = Organization.create!(name: "ONG Sul")
+    sul = create_organization!(name: "ONG Sul")
     as_seller do
       expect {
         post "/administration", params: { name: "  ONG Norte  ", email: " Coordenador@Exemplo.ORG " }
@@ -171,7 +171,7 @@ RSpec.describe "Administration", type: :request do
   end
 
   it "GET /administration/new with pending keeps the confirmation" do
-    sul = Organization.create!(name: "ONG Sul")
+    sul = create_organization!(name: "ONG Sul")
     as_seller do
       post "/administration", params: { name: "ONG Norte", email: "coordenador@exemplo.org" }
       follow_administration("/administration/new")
@@ -191,7 +191,7 @@ RSpec.describe "Administration", type: :request do
   end
 
   it "Corrigir on the registration confirmation returns the filled form" do
-    Organization.create!(name: "ONG Sul")
+    create_organization!(name: "ONG Sul")
     as_seller do
       post "/administration", params: { name: "  ONG Norte  ", email: " Coordenador@Exemplo.ORG " }
       follow_administration("/administration/new")
@@ -281,7 +281,7 @@ RSpec.describe "Administration", type: :request do
       expect(session[:organization_id]).to eq(created.id)
       expect(session[:organization_id]).not_to eq(previous.id)
       follow_redirect!
-      expect(page.at_css("header").text).to include("ONG Norte")
+      expect(page.at_css("header").text).to include("Fechamento Mensal - ONG Norte")
     end
   end
 
@@ -317,7 +317,7 @@ RSpec.describe "Administration", type: :request do
   end
 
   it "confirm keeps the rows when deliver_now raises" do
-    sul = Organization.create!(name: "ONG Sul")
+    sul = create_organization!(name: "ONG Sul")
     as_seller do
       post "/administration", params: { name: "ONG Norte", email: "coordenador@exemplo.org" }
       raise_delivery
@@ -500,7 +500,7 @@ RSpec.describe "Administration", type: :request do
   end
 
   it "taken organization name re-renders 422 and stores no pending" do
-    Organization.create!(name: "ONG Norte")
+    create_organization!(name: "ONG Norte")
     as_seller do
       expect {
         post "/administration", params: { name: "  ong norte  ", email: "coordenador@exemplo.org" }
@@ -518,7 +518,7 @@ RSpec.describe "Administration", type: :request do
   end
 
   it "taken name ONG NORTE with surrounding spaces re-renders 422" do
-    Organization.create!(name: "ONG Norte")
+    create_organization!(name: "ONG Norte")
     as_seller do
       expect {
         post "/administration", params: { name: "  ONG NORTE  ", email: "outro@exemplo.org" }
@@ -535,7 +535,7 @@ RSpec.describe "Administration", type: :request do
   end
 
   it "taken name and invalid email re-render both notices" do
-    listed = Organization.create!(name: "ONG Norte")
+    listed = create_organization!(name: "ONG Norte")
     as_seller do
       expect {
         post "/administration", params: { name: "  ong norte  ", email: "nao-e-email" }
@@ -555,14 +555,14 @@ RSpec.describe "Administration", type: :request do
 
   it "GET /administration lists organizations in stored-name order" do
     _account, sul = plant_coordinator(email: "sul@exemplo.org", organization_name: "ONG Sul", google_uid: "uid-sul")
-    norte = Organization.create!(name: "ONG Norte")
     zoe = Account.create!(email: "zoe@exemplo.org")
     ana = Account.create!(email: "ana@exemplo.org")
     submitter = Account.create!(email: "submitter@exemplo.org")
+    norte = create_organization!(name: "ONG Norte", principal_coordinator_account: zoe)
     Access.create!(account: zoe, organization: norte, kind: :coordinator)
     Access.create!(account: ana, organization: norte, kind: :coordinator)
     Access.create!(account: submitter, organization: norte, kind: :submitter)
-    ama = Organization.create!(name: "AMA")
+    ama = create_organization!(name: "AMA", principal_coordinator_account: ana)
     Access.create!(account: ana, organization: ama, kind: :coordinator)
 
     as_seller do
@@ -584,10 +584,10 @@ RSpec.describe "Administration", type: :request do
       expect(row["class"]).to include("border-b")
       expect(row["class"]).to include("border-rule")
       html = row.inner_html
-      expect(html.index("ONG Norte")).to be < html.index("ana@exemplo.org")
-      expect(html.index("ana@exemplo.org")).to be < html.index("Pendente")
+      expect(html.index("ONG Norte")).to be < html.index("zoe@exemplo.org")
+      expect(html.index("zoe@exemplo.org")).to be < html.index("Pendente")
       expect(html.index("Pendente")).to be < html.index("Editar")
-      expect(row.text).not_to include("zoe@exemplo.org")
+      expect(row.text).not_to include("ana@exemplo.org")
       expect(row.text).not_to include("Corrigir nome")
       expect(row.text).not_to include("Remover")
       edit = row.css("a").find { |link| link.text.strip == "Editar" }
@@ -716,7 +716,7 @@ RSpec.describe "Administration", type: :request do
 
   it "taken name correction re-renders 422" do
     _account, organization = plant_coordinator(email: "coordenador@exemplo.org", organization_name: "ONG Norte")
-    Organization.create!(name: "ONG Sul")
+    create_organization!(name: "ONG Sul")
     as_seller do
       post "/administration/name", params: { organization_id: organization.id }
       post "/administration/name/continue", params: { name: "ong sul" }
@@ -734,7 +734,7 @@ RSpec.describe "Administration", type: :request do
 
   it "a lower-case spelling of the same name asks for confirmation" do
     _account, organization = plant_coordinator(email: "coordenador@exemplo.org", organization_name: "ONG Norte")
-    sul = Organization.create!(name: "ONG Sul")
+    sul = create_organization!(name: "ONG Sul")
     as_seller do
       post "/administration/name", params: { organization_id: organization.id }
       expect {
@@ -863,7 +863,7 @@ RSpec.describe "Administration", type: :request do
   end
 
   it "name confirmation for a missing organization responds 404" do
-    Organization.create!(name: "ONG Norte")
+    create_organization!(name: "ONG Norte")
     missing_id = Organization.maximum(:id).to_i + 1
     as_seller do
       ActionMailer::Base.deliveries.clear
@@ -957,8 +957,8 @@ RSpec.describe "Administration", type: :request do
       truncate_product_tables
       ActionMailer::Base.deliveries.clear
       account = Account.create!(email: "seller@example.com", google_uid: "uid-seller")
-      norte = Organization.create!(name: "ONG Norte")
-      sul = Organization.create!(name: "ONG Sul")
+      norte = create_organization!(name: "ONG Norte")
+      sul = create_organization!(name: "ONG Sul")
       headers = { "User-Agent" => ChromeUserAgent::CHROME }
 
       with_env("ADMINISTRATOR_EMAIL" => "seller@example.com", "MAIL_FROM" => "venda@example.com") do

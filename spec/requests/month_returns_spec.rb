@@ -91,7 +91,7 @@ RSpec.describe "Return unmatched-in-package document", type: :request do
 
   it "POST return of another organization document returns 404" do
     account, org_a = plant_coordinator(email: "a@example.com", organization_name: "A")
-    org_b = Organization.create!(name: "B")
+    org_b = create_organization!(name: "B")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
     ready_to_close!(org_b)
     month_b, _statement = plant_month(org_b)

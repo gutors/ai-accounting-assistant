@@ -151,7 +151,7 @@ RSpec.describe "Bank accounts", type: :request do
 
   it "PATCH /bank_accounts/:id of another organization returns 404" do
     account, organization = plant_coordinator(email: "a@example.com", organization_name: "A")
-    other = Organization.create!(name: "B")
+    other = create_organization!(name: "B")
     bank_account = BankAccount.create_for(organization: other, name: "Alheia", compe: "001")
     sign_in_as(account, organization: organization)
 

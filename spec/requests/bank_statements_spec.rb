@@ -197,7 +197,7 @@ RSpec.describe "Bank statements", type: :request do
 
   it "POST bank_statements of another organization returns 404" do
     account, org_a = plant_coordinator(email: "a@example.com", organization_name: "A")
-    org_b = Organization.create!(name: "B")
+    org_b = create_organization!(name: "B")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
     foreign = BankAccount.create_for(organization: org_b, name: "Alheia", compe: "001")
     sign_in_as(account, organization: org_a)
@@ -287,7 +287,7 @@ RSpec.describe "Bank statements", type: :request do
 
   it "month page does not include another organization Payment history" do
     account, org_a = plant_coordinator(email: "a@example.com", organization_name: "A")
-    org_b = Organization.create!(name: "B")
+    org_b = create_organization!(name: "B")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
     account_b = BankAccount.create_for(organization: org_b, name: "Conta B", compe: "001")
     sign_in_as(account, organization: org_b)

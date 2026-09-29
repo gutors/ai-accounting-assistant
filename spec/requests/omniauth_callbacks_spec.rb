@@ -135,7 +135,7 @@ RSpec.describe "OmniAuth callbacks", type: :request do
 
   it "callback accepts submitter Invite on B for coordinator of A" do
     account, _org_a = plant_coordinator(email: "mixed@example.com", organization_name: "A")
-    org_b = Organization.create!(name: "B")
+    org_b = create_organization!(name: "B")
     Invite.create!(organization: org_b, email: "mixed@example.com", kind: :submitter)
 
     expect do
@@ -222,7 +222,7 @@ RSpec.describe "OmniAuth callbacks", type: :request do
   end
 
   it "allowlisted callback with a pending Invite accepts the Invite and redirects home" do
-    organization = Organization.create!(name: "ONG Norte")
+    organization = create_organization!(name: "ONG Norte")
     Invite.create!(organization: organization, email: "seller@example.com", kind: :coordinator)
 
     with_env("ADMINISTRATOR_EMAIL" => "seller@example.com") do

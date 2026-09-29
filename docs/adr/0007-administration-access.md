@@ -17,5 +17,5 @@ accepted
 ## Consequences
 
 - Callers that look up an Account by email still find the Google identity that signed in.
-- `DELETE /accesses/:id` still returns `422` for the last coordinator.
+- `Access#destroy` of the last coordinator still returns false. `DELETE /accesses/:id` of a coordinator Access the caller may not revoke — including their own — answers `404` and does not call `destroy`.
 - A later feature that needs a readable removed organization has to reopen this ADR.

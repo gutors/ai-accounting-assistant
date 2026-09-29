@@ -509,7 +509,7 @@ RSpec.describe "Close for send", type: :request do
 
   it "POST close of another organization month returns 404" do
     account, org_a = plant_coordinator(email: "a@example.com", organization_name: "A")
-    org_b = Organization.create!(name: "B")
+    org_b = create_organization!(name: "B")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
     ready_to_close!(org_b)
     month_b, _statement = plant_month(org_b)
@@ -523,7 +523,7 @@ RSpec.describe "Close for send", type: :request do
 
   it "closed month page omits another organization accountant name" do
     account, org_a = plant_coordinator(email: "a@example.com", organization_name: "A")
-    org_b = Organization.create!(name: "B", accountant_presentation_name: "Contador Beta")
+    org_b = create_organization!(name: "B", accountant_presentation_name: "Contador Beta")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
     ready_to_close!(org_a)
     plant_month(org_a)
@@ -659,7 +659,7 @@ RSpec.describe "Close for send", type: :request do
     sign_in_as(account, organization: org_a)
     ready_to_close!(org_a)
     month_a, _statement = plant_month(org_a)
-    org_b = Organization.create!(name: "B")
+    org_b = create_organization!(name: "B")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
     padaria = plant_recibo(org_b, account, payee: "Padaria Central", amount: "155,00")
     calls = writer.calls.size

@@ -3,7 +3,7 @@ require "rails_helper"
 RSpec.describe "Focus", type: :request do
   it "POST /focus to an Access organization redirects" do
     account, org_a = plant_coordinator(email: "coord@example.com", organization_name: "ONG Norte")
-    org_b = Organization.create!(name: "ONG Sul")
+    org_b = create_organization!(name: "ONG Sul")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
     sign_in_as(account, organization: org_a)
 
@@ -18,7 +18,7 @@ RSpec.describe "Focus", type: :request do
 
   it "focused organization button carries aria-current" do
     account, org_a = plant_coordinator(email: "coord@example.com", organization_name: "ONG Norte")
-    org_b = Organization.create!(name: "ONG Sul")
+    org_b = create_organization!(name: "ONG Sul")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
     sign_in_as(account, organization: org_a)
 
@@ -33,7 +33,7 @@ RSpec.describe "Focus", type: :request do
 
   it "POST /focus without Access returns 404" do
     account, org_a = plant_coordinator(email: "coord@example.com", organization_name: "ONG Norte")
-    outsider = Organization.create!(name: "ONG Outra")
+    outsider = create_organization!(name: "ONG Outra")
     sign_in_as(account, organization: org_a)
 
     post "/focus", params: { organization_id: outsider.id }
@@ -44,7 +44,7 @@ RSpec.describe "Focus", type: :request do
 
   it "submitter POST /focus to an Access organization redirects" do
     account, org_a = plant_submitter(email: "sub@example.com", organization_name: "ONG Norte")
-    org_b = Organization.create!(name: "ONG Sul")
+    org_b = create_organization!(name: "ONG Sul")
     Access.create!(account: account, organization: org_b, kind: :submitter)
     sign_in_as(account, organization: org_a)
 
@@ -59,7 +59,7 @@ RSpec.describe "Focus", type: :request do
 
   it "submitter POST /focus without Access returns 404" do
     account, org_a = plant_submitter(email: "sub@example.com", organization_name: "ONG Norte")
-    outsider = Organization.create!(name: "ONG Outra")
+    outsider = create_organization!(name: "ONG Outra")
     sign_in_as(account, organization: org_a)
 
     post "/focus", params: { organization_id: outsider.id }

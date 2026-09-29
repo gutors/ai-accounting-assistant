@@ -48,7 +48,7 @@ RSpec.describe "Organization home", type: :request do
 
   it "home lists organization names when Account has multiple Accesses" do
     account, first = plant_coordinator(email: "coord@example.com", organization_name: "ONG Norte")
-    second = Organization.create!(name: "ONG Sul")
+    second = create_organization!(name: "ONG Sul")
     Access.create!(account: account, organization: second, kind: :coordinator)
     sign_in_as(account, organization: first)
 
@@ -60,7 +60,7 @@ RSpec.describe "Organization home", type: :request do
 
   it "focused home does not list another organization Access or Invite" do
     account, org_a = plant_coordinator(email: "coord@example.com", organization_name: "A")
-    org_b = Organization.create!(name: "B")
+    org_b = create_organization!(name: "B")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
     other = Account.create!(email: "only-b@example.com", google_uid: "uid-only-b")
     Access.create!(account: other, organization: org_b, kind: :coordinator)
@@ -129,7 +129,7 @@ RSpec.describe "Organization home", type: :request do
 
   it "submitter home lists organization names when Account has multiple Accesses" do
     account, first = plant_submitter(email: "sub@example.com", organization_name: "ONG Norte")
-    second = Organization.create!(name: "ONG Sul")
+    second = create_organization!(name: "ONG Sul")
     Access.create!(account: account, organization: second, kind: :submitter)
     sign_in_as(account, organization: first)
 
@@ -220,5 +220,92 @@ RSpec.describe "Organization home", type: :request do
     expect(page_doc(response.body).at_css("h1").text.strip).to eq("Início")
     expect(response.body).not_to include("Reenviar e-mail")
     expect(response.body).not_to include("O convite foi gravado, mas o e-mail não saiu.")
+  end
+
+  it "principal coordinator is first and sees Revogar on peer coordinator and submitter rows" do
+    zoe, organization = plant_home_people
+    sign_in_as(zoe, organization: organization)
+
+    get "/"
+
+    emails = coordinator_emails_on_home
+    expect(emails).to eq([ "zoe@exemplo.org", "ana@exemplo.org" ])
+    expect(revogar_on_coordinator_row("zoe@exemplo.org")).to be_nil
+    ana_revoke = revogar_on_coordinator_row("ana@exemplo.org")
+    expect(ana_revoke).not_to be_nil
+    expect(ana_revoke.ancestors("form").first["data-turbo-confirm"]).to eq("Revogar o acesso deste coordenador?")
+    submitter_revoke = revogar_on_submitter_row("submitter@exemplo.org")
+    expect(submitter_revoke.ancestors("form").first["data-turbo-confirm"]).to eq("Revogar o acesso deste submitter?")
+    expect(response.body).to include("Convidar coordenador")
+    expect(response.body).to include("Convidar submitter")
+    expect(response.body).not_to include("coordenador principal")
+  end
+
+  it "peer coordinator does not see Revogar on coordinator rows and still revokes submitters" do
+    _zoe, organization = plant_home_people
+    ana = Account.find_by!(email: "ana@exemplo.org")
+    sign_in_as(ana, organization: organization)
+
+    get "/"
+
+    expect(coordinator_emails_on_home).to eq([ "zoe@exemplo.org", "ana@exemplo.org" ])
+    expect(revogar_on_coordinator_row("zoe@exemplo.org")).to be_nil
+    expect(revogar_on_coordinator_row("ana@exemplo.org")).to be_nil
+    submitter_revoke = revogar_on_submitter_row("submitter@exemplo.org")
+    expect(submitter_revoke).not_to be_nil
+    expect(submitter_revoke.ancestors("form").first["data-turbo-confirm"]).to eq("Revogar o acesso deste submitter?")
+    expect(response.body).to include("Convidar coordenador")
+    expect(response.body).to include("Convidar submitter")
+  end
+
+  it "submitter home omits Revogar and Convidar coordenador" do
+    _zoe, organization = plant_home_people
+    submitter = Account.find_by!(email: "submitter@exemplo.org")
+    sign_in_as(submitter, organization: organization)
+
+    get "/"
+
+    expect(page_doc(response.body).at_css("h1").text.strip).to eq("Início")
+    expect(response.body).not_to include("Revogar")
+    expect(response.body).not_to include("Convidar coordenador")
+  end
+
+  it "after invite accept the first home coordinator row stays the principal" do
+    organization = Organization.register_coordinator(name: "ONG Norte", email: "coordenador@exemplo.org")
+    principal = Account.find_by!(email: "coordenador@exemplo.org")
+    principal.update!(google_uid: "uid-coord")
+    invite = Invite.create!(organization: organization, email: "ana@exemplo.org", kind: :coordinator)
+    ana = Account.create!(email: "ana@exemplo.org", google_uid: "uid-ana")
+    invite.accept!(ana)
+    sign_in_as(principal, organization: organization)
+
+    get "/"
+
+    expect(coordinator_emails_on_home.first).to eq("coordenador@exemplo.org")
+  end
+
+  def plant_home_people
+    zoe, organization = plant_coordinator(email: "zoe@exemplo.org", organization_name: "ONG Norte", google_uid: "uid-zoe")
+    ana = Account.create!(email: "ana@exemplo.org", google_uid: "uid-ana")
+    Access.create!(account: ana, organization: organization, kind: :coordinator)
+    plant_submitter(email: "submitter@exemplo.org", organization: organization)
+    [ zoe, organization ]
+  end
+
+  def coordinator_emails_on_home
+    heading = page_doc(response.body).css("h3").find { |node| node.text.strip == "Coordenadores" }
+    heading.parent.css("ul li span").map { |span| span.text.strip }
+  end
+
+  def revogar_on_coordinator_row(email)
+    heading = page_doc(response.body).css("h3").find { |node| node.text.strip == "Coordenadores" }
+    row = heading.parent.css("ul li").find { |li| li.at_css("span").text.strip == email }
+    row.css("button").find { |button| button.text.strip == "Revogar" }
+  end
+
+  def revogar_on_submitter_row(email)
+    heading = page_doc(response.body).css("h3").find { |node| node.text.strip == "Submitters" }
+    row = heading.parent.css("ul li").find { |li| li.at_css("span").text.strip == email }
+    row.css("button").find { |button| button.text.strip == "Revogar" }
   end
 end

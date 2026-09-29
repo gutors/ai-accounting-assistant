@@ -11,7 +11,7 @@ RSpec.describe "Administration screens", type: :system do
   end
 
   it "list, add, and edit stay within 390px without a form on the list" do
-    norte = Organization.create!(name: "ONG Norte")
+    norte = create_organization!(name: "ONG Norte")
     ana = Account.create!(email: "ana@exemplo.org")
     Access.create!(account: ana, organization: norte, kind: :coordinator)
 

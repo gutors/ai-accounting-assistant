@@ -25,7 +25,7 @@ RSpec.describe "Screens", type: :system do
 
   def plant_world
     coordinator, norte = plant_coordinator(email: "coord@example.com", organization_name: "ONG Norte")
-    sul = Organization.create!(name: "ONG Sul")
+    sul = create_organization!(name: "ONG Sul")
     Access.create!(account: coordinator, organization: sul, kind: :coordinator)
     submitter, _ = plant_submitter(email: "joao@example.com", organization: norte)
     Invite.create_pending(organization: norte, email: "guest@example.com", kind: :submitter)

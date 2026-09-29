@@ -11,7 +11,7 @@ RSpec.describe "Layout header", type: :request do
     headers = Nokogiri::HTML(response.body).css("header")
     expect(headers.size).to eq(1)
     header = headers.first
-    expect(header.text).to include("ONG Norte")
+    expect(header.text).to include("Fechamento Mensal - ONG Norte")
     expect(header.at_css('a[href="/"]')).not_to be_nil
     expect(header.at_css('a[href="/supporting_documents"]')).not_to be_nil
     expect(header.at_css('a[href="/setup"]')).not_to be_nil

@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe ExtraExceptionKind, type: :model do
   def organization
-    @organization ||= Organization.create!(name: "ONG")
+    @organization ||= create_organization!(name: "ONG")
   end
 
   it "create Doacao persists active ExtraExceptionKind" do
@@ -22,7 +22,7 @@ RSpec.describe ExtraExceptionKind, type: :model do
   end
 
   it "same name on another organization persists" do
-    other = Organization.create!(name: "Outra")
+    other = create_organization!(name: "Outra")
     ExtraExceptionKind.create_for(organization: other, name: "Doação")
 
     kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
@@ -121,7 +121,7 @@ RSpec.describe ExtraExceptionKind, type: :model do
 
     it "concurrent creates persist exactly one ExtraExceptionKind" do
       truncate_product_tables
-      org = Organization.create!(name: "ONG")
+      org = create_organization!(name: "ONG")
 
       run_in_parallel(2) do
         ExtraExceptionKind.create_for(organization: org, name: "Doação")
@@ -140,7 +140,7 @@ RSpec.describe ExtraExceptionKind, type: :model do
 
     it "concurrent unused destroy and mark persist kind plus mark or neither" do
       truncate_product_tables
-      org = Organization.create!(name: "ONG")
+      org = create_organization!(name: "ONG")
       kind = ExtraExceptionKind.create_for(organization: org, name: "Folha")
       _month, statement = plant_month(org)
       payment = plant_payment(statement, 22000)

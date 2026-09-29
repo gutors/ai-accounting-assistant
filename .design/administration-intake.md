@@ -2,6 +2,7 @@
 
 > Plan this with **tlc-plan**.
 > Decisions below carry the literal shape - copy them, do not re-derive them.
+> The confirmation, success, and mail-failure drawings are superseded by `.design/administration-list.md`. The door, the write, and the notice strings in this file still hold.
 
 ## Situation
 

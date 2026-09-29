@@ -129,7 +129,7 @@ RSpec.describe "Months", type: :request do
 
   it "month page does not include another organization bank account names" do
     account, org_a = plant_coordinator(email: "a@example.com", organization_name: "A")
-    org_b = Organization.create!(name: "B")
+    org_b = create_organization!(name: "B")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
     BankAccount.create_for(organization: org_a, name: "Conta Alfa", compe: "001")
     BankAccount.create_for(organization: org_b, name: "Conta Beta", compe: "001")
@@ -209,7 +209,7 @@ RSpec.describe "Months", type: :request do
 
   it "month unmatched pool does not include another organization payee" do
     account, org_a = plant_coordinator(email: "a@example.com", organization_name: "A")
-    org_b = Organization.create!(name: "B")
+    org_b = create_organization!(name: "B")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
     plant_recibo(org_b, account, payee: "Only Org B", amount: "155,00")
     sign_in_as(account, organization: org_a)
@@ -250,7 +250,7 @@ RSpec.describe "Months", type: :request do
 
   it "submitter focus GET /months/2026-05 responds 404" do
     account, org_a = plant_coordinator(email: "mixed@example.com", organization_name: "A")
-    org_b = Organization.create!(name: "B")
+    org_b = create_organization!(name: "B")
     Access.create!(account: account, organization: org_b, kind: :submitter)
     plant_month(org_b)
     sign_in_as(account, organization: org_b)
@@ -262,7 +262,7 @@ RSpec.describe "Months", type: :request do
 
   it "coordinator focus GET /months/2026-05 responds 200 for mixed Access" do
     account, org_a = plant_coordinator(email: "mixed@example.com", organization_name: "A")
-    org_b = Organization.create!(name: "B")
+    org_b = create_organization!(name: "B")
     Access.create!(account: account, organization: org_b, kind: :submitter)
     plant_month(org_a)
     sign_in_as(account, organization: org_a)
@@ -346,7 +346,7 @@ RSpec.describe "Months", type: :request do
 
   it "GET /months/2026-05 does not include another organization extra exception kind" do
     account, org_a = plant_coordinator(email: "coord@example.com", organization_name: "A")
-    org_b = Organization.create!(name: "B")
+    org_b = create_organization!(name: "B")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
     ExtraExceptionKind.create_for(organization: org_b, name: "Só B Extra")
     sign_in_as(account, organization: org_a)
@@ -988,7 +988,7 @@ RSpec.describe "Months", type: :request do
 
   it "GET org A omits Sugestao of org B payee" do
     account, org_a = plant_coordinator(email: "a@example.com", organization_name: "A")
-    org_b = Organization.create!(name: "B")
+    org_b = create_organization!(name: "B")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
     sign_in_as(account, organization: org_a)
     _month, statement = plant_month(org_a)

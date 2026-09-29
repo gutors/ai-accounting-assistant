@@ -1,13 +1,20 @@
+require "securerandom"
+
 module RecordHelpers
+  def create_organization!(name:, principal_coordinator_account: nil, **attrs)
+    principal_coordinator_account ||= Account.create!(email: "principal-#{SecureRandom.hex(8)}@exemplo.org")
+    Organization.create!(name: name, principal_coordinator_account: principal_coordinator_account, **attrs)
+  end
+
   def plant_coordinator(email: "coord@example.com", organization_name: "ONG Norte", google_uid: "uid-#{email}")
-    organization = Organization.create!(name: organization_name)
     account = Account.create!(email: email, google_uid: google_uid)
+    organization = Organization.create!(name: organization_name, principal_coordinator_account: account)
     Access.create!(account: account, organization: organization, kind: :coordinator)
     [ account, organization ]
   end
 
   def plant_submitter(email: "submitter@example.com", organization: nil, organization_name: "ONG Norte", google_uid: "uid-#{email}")
-    organization ||= Organization.create!(name: organization_name)
+    organization ||= create_organization!(name: organization_name)
     account = Account.create!(email: email, google_uid: google_uid)
     Access.create!(account: account, organization: organization, kind: :submitter)
     [ account, organization ]
@@ -28,7 +35,7 @@ module RecordHelpers
     BankAccount.delete_all
     Invite.delete_all
     Access.delete_all
-    Account.delete_all
     Organization.delete_all
+    Account.delete_all
   end
 end

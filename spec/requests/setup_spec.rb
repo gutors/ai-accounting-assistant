@@ -58,7 +58,7 @@ RSpec.describe "Setup", type: :request do
 
   it "setup does not include another organization accountant name" do
     account, org_a = plant_coordinator(email: "coord@example.com", organization_name: "A")
-    org_b = Organization.create!(name: "B")
+    org_b = create_organization!(name: "B")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
     org_b.update_accountant(presentation_name: "Contador Beta")
     sign_in_as(account, organization: org_a)
@@ -79,7 +79,7 @@ RSpec.describe "Setup", type: :request do
 
   it "setup does not include another organization archive URL" do
     account, org_a = plant_coordinator(email: "coord@example.com", organization_name: "A")
-    org_b = Organization.create!(name: "B")
+    org_b = create_organization!(name: "B")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
     url = "https://drive.google.com/drive/folders/15uNXeRBIhVvZJIhL4yTw4IsStMhUaaxl"
     org_b.update_package_archive(url)
@@ -156,7 +156,7 @@ RSpec.describe "Setup", type: :request do
 
   it "setup does not list another organization bank account names" do
     account, org_a = plant_coordinator(email: "coord@example.com", organization_name: "A")
-    org_b = Organization.create!(name: "B")
+    org_b = create_organization!(name: "B")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
     BankAccount.create_for(organization: org_b, name: "Conta Só B", compe: "001")
     sign_in_as(account, organization: org_a)
@@ -193,7 +193,7 @@ RSpec.describe "Setup", type: :request do
 
   it "setup does not include another organization titular CNPJ" do
     account, org_a = plant_coordinator(email: "coord@example.com", organization_name: "A")
-    org_b = Organization.create!(name: "B")
+    org_b = create_organization!(name: "B")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
     org_b.install_sefaz_certificate(
       file: sefaz_pfx(titular: "12345678000101", name: "b.pfx"),
@@ -331,7 +331,7 @@ RSpec.describe "Setup", type: :request do
 
   it "setup does not list another organization extra exception kind" do
     account, org_a = plant_coordinator(email: "coord@example.com", organization_name: "A")
-    org_b = Organization.create!(name: "B")
+    org_b = create_organization!(name: "B")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
     ExtraExceptionKind.create_for(organization: org_b, name: "Só B Extra")
     sign_in_as(account, organization: org_a)

@@ -169,7 +169,7 @@ class AdministrationController < ApplicationController
   def email_open
     organization = Organization.find_by(id: params[:organization_id])
     access = coordinator_access_for(organization, params[:email])
-    unless access
+    unless access && organization.principal_coordinator_account_id == access.account_id
       head :not_found
       return
     end
@@ -229,15 +229,19 @@ class AdministrationController < ApplicationController
       return
     end
 
-    account = organization.replace_coordinator(access: access, email: draft["email"])
+    replacement = organization.replace_coordinator(access: access, email: draft["email"])
     session.delete(:administration_email)
-    session[:organization_id] = organization.id if current_account.email == account.email
-    session[:administration_result] = {
-      "organization_id" => organization.id,
-      "mail_sent" => deliver_welcome(organization, account),
-      "email" => account.email,
-      "kind" => "correction"
-    }
+    session[:organization_id] = organization.id if current_account.email == replacement.account.email
+    if replacement.created_account
+      session[:administration_result] = {
+        "organization_id" => organization.id,
+        "mail_sent" => deliver_welcome(organization, replacement.account),
+        "email" => replacement.account.email,
+        "kind" => "correction"
+      }
+    else
+      session.delete(:administration_result)
+    end
     redirect_to administration_path, status: :found
   end
 
@@ -268,7 +272,7 @@ class AdministrationController < ApplicationController
   end
 
   def prepare_administration
-    @organizations = Organization.order(:name).includes(accesses: :account)
+    @organizations = Organization.order(:name).includes(:principal_coordinator_account, accesses: :account)
     @notices = []
     @name = ""
     @email = ""
@@ -433,7 +437,7 @@ class AdministrationController < ApplicationController
 
     normalized = NormalizedEmail.normalize(email)
     except = NormalizedEmail.normalize(except_email)
-    if normalized != except && organization.accesses.joins(:account).exists?(accounts: { email: normalized })
+    if normalized != except && organization.accesses.coordinator.joins(:account).exists?(accounts: { email: normalized })
       notices << "Esse e-mail já tem acesso a esta organização."
     end
     notices

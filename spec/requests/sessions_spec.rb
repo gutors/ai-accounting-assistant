@@ -22,7 +22,7 @@ RSpec.describe "Sessions", type: :request do
     page = Nokogiri::HTML(response.body)
     header = page.at_css("header")
     expect(header).not_to be_nil
-    expect(header.text).to include("Fechamento mensal")
+    expect(header.text).to include("Fechamento Mensal")
     expect(header.at_css("nav")).to be_nil
     expect(page.at_css("h1").text.strip).to eq("Fechamento mensal")
     expect(response.body).to include("Feche o mês da sua organização: extratos, documentos, casamentos e o pacote para o contador.")
