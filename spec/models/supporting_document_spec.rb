@@ -41,12 +41,30 @@ RSpec.describe SupportingDocument, type: :model do
     SefazConsulta.current.set(chave, SefazConsulta::Resumo.new(amount_cents:, payee:, document_on:))
   end
 
+  def ocr_photo(name, content_type: "image/png")
+    bytes = Rails.root.join("spec/fixtures/files/ocr", name).binread
+    upload_path(name, bytes, content_type)
+  end
+
   it "insert recibo jpg persists one SupportingDocument for the organization" do
     doc = insert_doc
 
     expect(doc).to be_persisted
     expect(doc.organization).to eq(organization)
     expect(SupportingDocument.where(organization: organization).count).to eq(1)
+  end
+
+  it "insert recibo jpg persists 15500 typed photo no xml chave nil" do
+    doc = insert_doc
+
+    expect(doc).to be_persisted
+    expect(SupportingDocument.where(organization: organization).count).to eq(1)
+    expect(doc.amount_cents).to be_a(Integer)
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.fields_origin).to eq(SupportingDocument::ORIGIN_TYPED)
+    expect(doc.photo).to be_attached
+    expect(doc.xml).not_to be_attached
+    expect(doc.chave).to be_nil
   end
 
   it "insert recibo amount_cents is Integer 15500" do
@@ -425,6 +443,20 @@ RSpec.describe SupportingDocument, type: :model do
     expect(doc.reload.amount_cents).to eq(15500)
   end
 
+  it "insert authorized XML persists 15500 uploaded_xml blob and apply 200,00 keeps 15500" do
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml, amount: nil, date: nil, payee: nil)
+
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.document_on).to eq(Date.new(2026, 5, 11))
+    expect(doc.payee).to eq("Padaria Central")
+    expect(doc.chave).to eq(nfe_chave)
+    expect(doc.fields_origin).to eq(SupportingDocument::ORIGIN_UPLOADED_XML)
+    expect(doc.xml).to be_attached
+    doc.apply(amount: "200,00")
+    expect(doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
+    expect(doc.reload.amount_cents).to eq(15500)
+  end
+
   it "apply payee on uploaded XML is rejected" do
     doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml)
     doc.apply(payee: "Mercado Silva")
@@ -722,6 +754,17 @@ RSpec.describe SupportingDocument, type: :model do
     expect(doc.sefaz_confirm_pending).to eq(true)
   end
 
+  it "apply chave on typed nota keeps 15500 pending not identified" do
+    install_a1
+    stub_xml_consulta(vnf: "100.00")
+    doc = insert_doc(kind: "nota_fiscal", xml: nil)
+    doc.apply(chave: nfe_chave)
+
+    expect(doc.reload.amount_cents).to eq(15500)
+    expect(doc.sefaz_confirm_pending).to eq(true)
+    expect(doc.fields_origin).not_to eq(SupportingDocument::ORIGIN_IDENTIFIED)
+  end
+
   it "apply observation on pending chave keeps sefaz_confirm_pending" do
     install_a1
     stub_xml_consulta(vnf: "100.00")
@@ -743,6 +786,22 @@ RSpec.describe SupportingDocument, type: :model do
     expect(doc.reload.amount_cents).to eq(10000)
     doc.apply(amount: "200,00")
     expect(doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
+  end
+
+  it "confirm identified SEFAZ persists 10000 identified without photo pipeline" do
+    install_a1
+    stub_xml_consulta(vnf: "100.00")
+    doc = insert_doc(kind: "nota_fiscal", xml: nil)
+    doc.apply(chave: nfe_chave)
+    expect(PhotoSymbols.current).not_to receive(:scan)
+    expect(PhotoFields.current).not_to receive(:read)
+    expect(PublicNfceConsulta.current).not_to receive(:fetch)
+
+    expect(doc.confirm_identified_sefaz).to eq(true)
+
+    expect(doc.reload.amount_cents).to eq(10000)
+    expect(doc.fields_origin).to eq(SupportingDocument::ORIGIN_IDENTIFIED)
+    expect(doc.sefaz_confirm_pending).to eq(false)
   end
 
   it "confirm identified SEFAZ from resumo persists 10000 and locks" do
@@ -917,6 +976,81 @@ RSpec.describe SupportingDocument, type: :model do
     expect(doc.xml).to be_attached
   end
 
+  it "insert photo chave with consulta XML persists 15500 identified xml not pending" do
+    stub_photo_symbols("danfe.jpg", chave: nfe_chave)
+    install_a1
+    stub_xml_consulta
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("danfe.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.chave).to eq(nfe_chave)
+    expect(doc.fields_origin).to eq(SupportingDocument::ORIGIN_IDENTIFIED)
+    expect(doc.xml).to be_attached
+    expect(doc.sefaz_confirm_pending).to eq(false)
+  end
+
+  it "insert Real photo OCR text is invoked at most once" do
+    PhotoSymbols.current = PhotoSymbols::Real.new
+    PhotoFields.current = PhotoFields::Real.new
+    expect(PhotoOcr).to receive(:text).once.and_call_original
+
+    doc = insert_doc(
+      kind: "nota_fiscal",
+      photo: ocr_photo("danfe_fields.png"),
+      xml: nil,
+      amount: nil,
+      date: nil,
+      payee: nil
+    )
+
+    expect(doc).to be_persisted
+    expect(doc.amount_cents).to eq(15500)
+  ensure
+    PhotoSymbols.reset!
+    PhotoFields.reset!
+  end
+
+  it "insert Real QR identified XML does not invoke PhotoOcr text" do
+    PhotoSymbols.current = PhotoSymbols::Real.new
+    install_a1
+    stub_xml_consulta(nfce_chave)
+    expect(PhotoOcr).not_to receive(:text)
+
+    insert_doc(
+      kind: "nota_fiscal",
+      photo: ocr_photo("nfce_qr.jpg", content_type: "image/jpeg"),
+      xml: nil,
+      amount: nil,
+      date: nil,
+      payee: nil
+    )
+  ensure
+    PhotoSymbols.reset!
+  end
+
+  it "insert apply confirm skip lookup when pkcs12 is nil and persist 15500" do
+    allow(SefazConsulta.current).to receive(:lookup)
+    doc = insert_doc(kind: "nota_fiscal", xml: nil, chave: nfe_chave)
+
+    expect(doc.amount_cents).to eq(15500)
+    doc.apply(payee: "Mercado Silva")
+    expect(doc.reload.payee).to eq("Mercado Silva")
+    doc.confirm_identified_sefaz
+    expect(SefazConsulta.current).not_to have_received(:lookup)
+  end
+
+  it "insert lookup receives PKCS12 and 44-digit chave" do
+    install_a1
+    stub_xml_consulta
+    allow(SefazConsulta.current).to receive(:lookup).and_call_original
+    insert_doc(kind: "nota_fiscal", xml: nil, amount: nil, date: nil, payee: nil, chave: nfe_chave)
+
+    expect(SefazConsulta.current).to have_received(:lookup).with(
+      pkcs12: an_instance_of(OpenSSL::PKCS12),
+      chave: nfe_chave
+    )
+  end
+
   it "insert pdf photo chave with consulta XML persists chave and xml" do
     stub_photo_symbols("foto.pdf", chave: nfe_chave)
     install_a1
@@ -1019,8 +1153,13 @@ RSpec.describe SupportingDocument, type: :model do
     stub_photo_symbols("nfce.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
     stub_public_fields(nfce_qr_url)
     doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("nfce.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
-    doc.apply(amount: "200,00")
 
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.document_on).to eq(Date.new(2026, 5, 11))
+    expect(doc.payee).to eq("Padaria Central")
+    expect(doc.fields_origin).to eq(SupportingDocument::ORIGIN_NFC_E_PUBLIC)
+    expect(doc.xml).not_to be_attached
+    doc.apply(amount: "200,00")
     expect(doc.amount_cents).to eq(20000)
     expect(doc.reload.fields_origin).to eq(SupportingDocument::ORIGIN_NFC_E_PUBLIC)
     expect(doc.xml).not_to be_attached
@@ -1157,9 +1296,12 @@ RSpec.describe SupportingDocument, type: :model do
   it "insert photo field reading persists 15500 origin photo" do
     stub_photo_fields("fields.jpg")
     doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("fields.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
-    doc.apply(payee: "Mercado Silva")
 
     expect(doc.amount_cents).to eq(15500)
+    expect(doc.document_on).to eq(Date.new(2026, 5, 11))
+    expect(doc.payee).to eq("Padaria Central")
+    expect(doc.fields_origin).to eq(SupportingDocument::ORIGIN_PHOTO)
+    doc.apply(payee: "Mercado Silva")
     expect(doc.reload.payee).to eq("Mercado Silva")
     expect(doc.fields_origin).to eq(SupportingDocument::ORIGIN_PHOTO)
   end

@@ -33,14 +33,14 @@ module PhotoFields
       @results[filename] = Miss.new
     end
 
-    def read(bytes:, filename:)
+    def read(bytes:, filename:, text: nil)
       @results.fetch(filename) { Miss.new }
     end
   end
 
   class Real
-    def read(bytes:, filename: nil)
-      text = PhotoOcr.text(bytes)
+    def read(bytes:, filename: nil, text: nil)
+      text = PhotoOcr.resolve(bytes, text)
       amount_cents = parse_amount(text)
       document_on = parse_date(text)
       payee = parse_emitente(text)

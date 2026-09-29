@@ -195,6 +195,41 @@ RSpec.describe Organization, type: :model do
     expect(organization.sefaz_titular_cnpj).to eq("11222333000181")
   end
 
+  it "sefaz pkcs12 exposure is nil without titular" do
+    organization = create_organization!(name: "ONG")
+
+    expect(organization.sefaz_pkcs12).to be_nil
+  end
+
+  it "sefaz pkcs12 exposure is nil when expired" do
+    organization = create_organization!(name: "ONG")
+    travel_to Date.new(2026, 5, 11) do
+      organization.install_sefaz_certificate(
+        file: sefaz_pfx(not_after: Date.new(2026, 5, 11), name: "exp.pfx"),
+        passphrase: "passphrase-secreta"
+      )
+    end
+    travel_to Date.new(2026, 5, 12) do
+      expect(organization.sefaz_pkcs12).to be_nil
+    end
+  end
+
+  it "sefaz pkcs12 exposure is nil on unwrap miss" do
+    organization = create_organization!(name: "ONG")
+    organization.install_sefaz_certificate(file: sefaz_pfx, passphrase: "passphrase-secreta")
+
+    with_env("SEFAZ_WRAP_KEY" => nil) do
+      expect(organization.sefaz_pkcs12).to be_nil
+    end
+  end
+
+  it "sefaz pkcs12 exposure returns PKCS12 for a valid A1" do
+    organization = create_organization!(name: "ONG")
+    organization.install_sefaz_certificate(file: sefaz_pfx, passphrase: "passphrase-secreta")
+
+    expect(organization.sefaz_pkcs12).to be_a(OpenSSL::PKCS12)
+  end
+
   it "install with passphrase errada persists no certificate" do
     organization = create_organization!(name: "ONG")
 
