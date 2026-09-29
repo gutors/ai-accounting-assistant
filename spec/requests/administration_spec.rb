@@ -68,7 +68,7 @@ RSpec.describe "Administration", type: :request do
       expect(response).to have_http_status(:unprocessable_content)
       notices = page.css("[data-notice='error']").map { |notice| notice.text.strip }
       expect(notices).to eq([ "Informe o nome da organização." ])
-      expect(response.body.index("Administração")).to be < response.body.index("Informe o nome da organização.")
+      expect(response.body.index("Adicionar organização")).to be < response.body.index("Informe o nome da organização.")
       expect(page.at_css("h1").text.strip).to eq("Adicionar organização")
       expect(page.at_css('input[name="name"]')["value"]).to eq("   ")
       expect(page.at_css('input[name="email"]')["value"]).to eq("coordenador@exemplo.org")
@@ -106,7 +106,7 @@ RSpec.describe "Administration", type: :request do
       name_at = body.index("Informe o nome da organização.")
       email_at = body.index("Informe um e-mail válido.")
       expect(name_at).to be < email_at
-      expect(body.index("Administração")).to be < name_at
+      expect(body.index("Adicionar organização")).to be < name_at
       expect(email_at).to be < body.index("Cadastre a organização e o coordenador que vai fechá-la.")
       expect(page.css("[data-notice='error']").map { |notice| notice.text.strip }).to eq([
         "Informe o nome da organização.",
