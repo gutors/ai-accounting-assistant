@@ -59,9 +59,10 @@ RSpec.describe SupportingDocument, type: :model do
 
     expect(doc).to be_persisted
     expect(SupportingDocument.where(organization: organization).count).to eq(1)
+    expect(doc.kind).to eq("recibo")
     expect(doc.amount_cents).to be_a(Integer)
     expect(doc.amount_cents).to eq(15500)
-    expect(doc.fields_origin).to eq(SupportingDocument::ORIGIN_TYPED)
+    expect(doc.fields_origin).to eq("typed")
     expect(doc.photo).to be_attached
     expect(doc.xml).not_to be_attached
     expect(doc.chave).to be_nil
@@ -450,10 +451,10 @@ RSpec.describe SupportingDocument, type: :model do
     expect(doc.document_on).to eq(Date.new(2026, 5, 11))
     expect(doc.payee).to eq("Padaria Central")
     expect(doc.chave).to eq(nfe_chave)
-    expect(doc.fields_origin).to eq(SupportingDocument::ORIGIN_UPLOADED_XML)
+    expect(doc.fields_origin).to eq("uploaded_xml")
     expect(doc.xml).to be_attached
     doc.apply(amount: "200,00")
-    expect(doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
+    expect(doc.errors[:base]).to include("Valor, data e favorecido vêm da nota e não podem ser alterados")
     expect(doc.reload.amount_cents).to eq(15500)
   end
 
@@ -762,7 +763,7 @@ RSpec.describe SupportingDocument, type: :model do
 
     expect(doc.reload.amount_cents).to eq(15500)
     expect(doc.sefaz_confirm_pending).to eq(true)
-    expect(doc.fields_origin).not_to eq(SupportingDocument::ORIGIN_IDENTIFIED)
+    expect(doc.fields_origin).not_to eq("identified")
   end
 
   it "apply observation on pending chave keeps sefaz_confirm_pending" do
@@ -800,7 +801,7 @@ RSpec.describe SupportingDocument, type: :model do
     expect(doc.confirm_identified_sefaz).to eq(true)
 
     expect(doc.reload.amount_cents).to eq(10000)
-    expect(doc.fields_origin).to eq(SupportingDocument::ORIGIN_IDENTIFIED)
+    expect(doc.fields_origin).to eq("identified")
     expect(doc.sefaz_confirm_pending).to eq(false)
   end
 
@@ -984,7 +985,7 @@ RSpec.describe SupportingDocument, type: :model do
 
     expect(doc.amount_cents).to eq(15500)
     expect(doc.chave).to eq(nfe_chave)
-    expect(doc.fields_origin).to eq(SupportingDocument::ORIGIN_IDENTIFIED)
+    expect(doc.fields_origin).to eq("identified")
     expect(doc.xml).to be_attached
     expect(doc.sefaz_confirm_pending).to eq(false)
   end
@@ -1047,7 +1048,7 @@ RSpec.describe SupportingDocument, type: :model do
 
     expect(SefazConsulta.current).to have_received(:lookup).with(
       pkcs12: an_instance_of(OpenSSL::PKCS12),
-      chave: nfe_chave
+      chave: a_string_matching(/\A\d{44}\z/)
     )
   end
 
@@ -1157,11 +1158,11 @@ RSpec.describe SupportingDocument, type: :model do
     expect(doc.amount_cents).to eq(15500)
     expect(doc.document_on).to eq(Date.new(2026, 5, 11))
     expect(doc.payee).to eq("Padaria Central")
-    expect(doc.fields_origin).to eq(SupportingDocument::ORIGIN_NFC_E_PUBLIC)
+    expect(doc.fields_origin).to eq("nfc_e_public")
     expect(doc.xml).not_to be_attached
     doc.apply(amount: "200,00")
     expect(doc.amount_cents).to eq(20000)
-    expect(doc.reload.fields_origin).to eq(SupportingDocument::ORIGIN_NFC_E_PUBLIC)
+    expect(doc.reload.fields_origin).to eq("nfc_e_public")
     expect(doc.xml).not_to be_attached
     expect(doc.chave).to eq(nfce_chave)
   end
@@ -1300,10 +1301,10 @@ RSpec.describe SupportingDocument, type: :model do
     expect(doc.amount_cents).to eq(15500)
     expect(doc.document_on).to eq(Date.new(2026, 5, 11))
     expect(doc.payee).to eq("Padaria Central")
-    expect(doc.fields_origin).to eq(SupportingDocument::ORIGIN_PHOTO)
+    expect(doc.fields_origin).to eq("photo")
     doc.apply(payee: "Mercado Silva")
     expect(doc.reload.payee).to eq("Mercado Silva")
-    expect(doc.fields_origin).to eq(SupportingDocument::ORIGIN_PHOTO)
+    expect(doc.fields_origin).to eq("photo")
   end
 
   it "insert CODE-128 when identified errors uses field reading" do
