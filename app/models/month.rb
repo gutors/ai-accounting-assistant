@@ -7,6 +7,7 @@ class Month < ApplicationRecord
   MISSING_ARCHIVE = "Informe a pasta do arquivo do pacote"
   MISSING_ACCOUNTANT = "Cadastre o contador"
   WRITE_FAILED = "Não foi possível gravar no arquivo do pacote"
+  INVALID = "Informe um mês válido"
 
   belongs_to :organization
 
@@ -19,6 +20,12 @@ class Month < ApplicationRecord
 
   def self.open(organization:, year_month:)
     year_month = year_month.to_s.strip
+    unless valid_year_month?(year_month)
+      record = organization.months.new(year_month: year_month)
+      record.errors.add(:base, INVALID)
+      return record
+    end
+
     existing = organization.months.find_by(year_month: year_month)
     return existing if existing
 

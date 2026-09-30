@@ -18,6 +18,9 @@
   <% if @invite_mail_failed %>
     <%= render "shared/notice", message: "O convite foi gravado, mas o e-mail não saiu." %>
   <% end %>
+  <% if @month_error.present? %>
+    <div class="mt-6"><%= render "shared/notice", message: @month_error %></div>
+  <% end %>
 
   <div class="mt-6 space-y-12">
     <section>

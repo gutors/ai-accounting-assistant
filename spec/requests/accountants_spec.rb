@@ -110,13 +110,14 @@ RSpec.describe "Accountants", type: :request do
     end
   end
 
-  it "PATCH /accountant CNPJ without razao social returns 422" do
+  it "PATCH /accountant CNPJ without razao social returns 422 Informe a razao social" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
 
     patch "/accountant", params: { presentation_name: "Ana", tax_id: "11222333000181" }
 
     expect(response).to have_http_status(:unprocessable_content)
+    expect(error_notice_text(response.body)).to eq("Informe a razão social")
     expect(organization.reload.accountant_tax_id).to be_nil
   end
 

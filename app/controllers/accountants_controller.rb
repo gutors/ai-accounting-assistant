@@ -6,6 +6,7 @@ class AccountantsController < ApplicationController
       redirect_to "/setup", status: :found
     else
       load_setup
+      @accountant_error = focused_organization.errors[:base].first
       render "setup/show", status: :unprocessable_content
     end
   end

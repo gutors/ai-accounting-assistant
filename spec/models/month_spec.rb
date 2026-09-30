@@ -22,6 +22,14 @@ RSpec.describe Month, type: :model do
     expect(organization.months.where(year_month: "2026-05").count).to eq(1)
   end
 
+  it "open empty year_month adds Informe um mes valido and does not persist" do
+    month = Month.open(organization: organization, year_month: "")
+
+    expect(month).not_to be_persisted
+    expect(month.errors[:base]).to include("Informe um mês válido")
+    expect(organization.months.count).to eq(0)
+  end
+
   it "rejects year_month 2026-13" do
     month = Month.open(organization: organization, year_month: "2026-13")
 
