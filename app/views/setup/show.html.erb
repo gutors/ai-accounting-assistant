@@ -2,6 +2,9 @@
 
 <h1 class="text-2xl leading-7 font-semibold tracking-[-0.01em]">Configuração</h1>
 
+<% if @accountant_error.present? %>
+  <div class="mt-6"><%= render "shared/notice", message: @accountant_error %></div>
+<% end %>
 <% if @certificate_error.present? %>
   <div class="mt-6"><%= render "shared/notice", message: @certificate_error %></div>
 <% end %>

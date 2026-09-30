@@ -7,6 +7,7 @@ class MonthsController < ApplicationController
       redirect_to "/months/#{month.year_month}", status: :found
     else
       load_home
+      @month_error = month.errors[:base].first
       render "organizations/show", status: :unprocessable_content
     end
   end

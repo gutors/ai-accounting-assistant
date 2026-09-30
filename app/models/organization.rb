@@ -6,6 +6,7 @@ class Organization < ApplicationRecord
   SEFAZ_OPEN_FAILED = "Não foi possível abrir o certificado com essa senha"
   SEFAZ_NOT_ECNPJ = "O certificado deve ser e-CNPJ A1 vigente"
   SEFAZ_WRAP_FAILED = "O certificado não pôde ser guardado"
+  ACCOUNTANT_LEGAL_NAME = "Informe a razão social"
 
   belongs_to :principal_coordinator_account, class_name: "Account"
 
@@ -276,7 +277,7 @@ class Organization < ApplicationRecord
       end
 
       if BrazilianTaxId.cnpj?(accountant_tax_id) && accountant_legal_name.blank?
-        errors.add(:accountant_legal_name, :blank)
+        errors.add(:base, ACCOUNTANT_LEGAL_NAME)
       end
 
       if BrazilianTaxId.cpf?(accountant_tax_id) && accountant_legal_name.present?

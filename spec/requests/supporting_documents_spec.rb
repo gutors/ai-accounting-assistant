@@ -284,7 +284,7 @@ RSpec.describe "Supporting documents", type: :request do
     post "/supporting_documents", params: nota_params
 
     expect(response).to have_http_status(:unprocessable_content)
-    expect(response.body).to include("Envie a foto e/ou o XML")
+    expect(error_notice_text(response.body)).to eq("Envie a foto e/ou o XML")
     expect(SupportingDocument.where(organization: organization).count).to eq(0)
   end
 

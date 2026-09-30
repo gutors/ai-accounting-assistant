@@ -245,7 +245,7 @@ RSpec.describe "SEFAZ certificates", type: :request do
     end
 
     expect(response).to have_http_status(:unprocessable_content)
-    expect(response.body).to include("O certificado não pôde ser guardado")
+    expect(error_notice_text(response.body)).to eq("O certificado não pôde ser guardado")
     expect(organization.reload.sefaz_titular_cnpj).to be_nil
   end
 

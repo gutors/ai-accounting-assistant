@@ -96,11 +96,12 @@ RSpec.describe Organization, type: :model do
     end
   end
 
-  it "rejects CNPJ without razao social" do
+  it "rejects CNPJ without razao social adds Informe a razao social" do
     organization = create_organization!(name: "ONG")
     organization.update_accountant(presentation_name: "Ana")
 
     expect(organization.update_accountant(presentation_name: "Ana", tax_id: "11222333000181")).to be(false)
+    expect(organization.errors[:base]).to include("Informe a razão social")
     expect(organization.reload.accountant_tax_id).to be_nil
   end
 

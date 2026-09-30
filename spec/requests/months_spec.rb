@@ -89,6 +89,18 @@ RSpec.describe "Months", type: :request do
     expect(response.body).to include("ag 1234")
   end
 
+  it "POST /months empty year_month returns 422 Informe um mes valido" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    expect do
+      post "/months", params: { year_month: "" }
+    end.not_to change(Month, :count)
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(error_notice_text(response.body)).to eq("Informe um mês válido")
+  end
+
   it "POST /months 2026-13 returns 422" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
