@@ -33,13 +33,13 @@ module PhotoSymbols
       @results[filename] = Symbols.new(chave:, qr_url:)
     end
 
-    def scan(bytes:, filename:)
+    def scan(bytes:, filename:, text: nil)
       @results.fetch(filename) { Symbols.new(chave: nil, qr_url: nil) }
     end
   end
 
   class Real
-    def scan(bytes:, filename: nil)
+    def scan(bytes:, filename: nil, text: nil)
       image = load_image(bytes)
       return Symbols.new(chave: nil, qr_url: nil) unless image
 
@@ -53,7 +53,7 @@ module PhotoSymbols
       end
 
       code_chave = forty_four(code128_payload(image)) unless qr_chave
-      printed_chave = forty_four(PhotoOcr.text(bytes)) unless qr_chave || code_chave
+      printed_chave = forty_four(PhotoOcr.resolve(bytes, text)) unless qr_chave || code_chave
       Symbols.new(chave: qr_chave || code_chave || printed_chave, qr_url:)
     rescue ChunkyPNG::Exception, PureJPEG::DecodeError, ArgumentError, URI::InvalidURIError
       Symbols.new(chave: nil, qr_url: nil)

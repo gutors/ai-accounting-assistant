@@ -13,6 +13,13 @@ module PhotoOcr
       @binary = nil
     end
 
+    def resolve(bytes, supplied)
+      return supplied.call if supplied.respond_to?(:call)
+      return supplied unless supplied.nil?
+
+      text(bytes)
+    end
+
     def text(bytes)
       ext = extension(bytes)
       return "" if ext.nil? || bytes.blank?

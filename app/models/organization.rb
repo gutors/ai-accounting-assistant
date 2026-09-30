@@ -199,6 +199,16 @@ class Organization < ApplicationRecord
     "#{digits[0, 2]}.#{digits[2, 3]}.#{digits[5, 3]}/#{digits[8, 4]}-#{digits[12, 2]}"
   end
 
+  def sefaz_pkcs12
+    return if sefaz_titular_cnpj.blank?
+    return if sefaz_certificate_expired?
+    return unless WrapKey.present?
+
+    unwrap_sefaz_pkcs12
+  rescue OpenSSL::PKCS12::PKCS12Error, WrapKey::Missing
+    nil
+  end
+
   def unwrap_sefaz_pkcs12
     return if sefaz_pkcs12_ciphertext.blank? || sefaz_passphrase_ciphertext.blank?
 

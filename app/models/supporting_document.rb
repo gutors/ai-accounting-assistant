@@ -146,8 +146,21 @@ class SupportingDocument < ApplicationRecord
     confirm_pending = sefaz_confirm_pending
     photo_symbols = PhotoSymbols::Symbols.new(chave: nil, qr_url: nil)
     extract_source = photo_source_for_extract(incoming_photo, next_kind) if parsed_nfe.nil? && next_kind == "nota_fiscal"
+    ocr_text = nil
+    ocr_computed = false
+    lazy_ocr = lambda {
+      unless ocr_computed
+        ocr_text = PhotoOcr.text(extract_source[:bytes])
+        ocr_computed = true
+      end
+      ocr_text
+    }
     if extract_source
-      photo_symbols = PhotoSymbols.current.scan(bytes: extract_source[:bytes], filename: extract_source[:filename])
+      photo_symbols = PhotoSymbols.current.scan(
+        bytes: extract_source[:bytes],
+        filename: extract_source[:filename],
+        text: lazy_ocr
+      )
     end
 
     if next_kind == "nota_fiscal"
@@ -206,7 +219,11 @@ class SupportingDocument < ApplicationRecord
         end
       end
       if !identified_delivered && public_fields.nil? && extract_source
-        case PhotoFields.current.read(bytes: extract_source[:bytes], filename: extract_source[:filename])
+        case PhotoFields.current.read(
+          bytes: extract_source[:bytes],
+          filename: extract_source[:filename],
+          text: lazy_ocr
+        )
         in PhotoFields::Fields => fields if complete_triple?(fields.amount_cents, fields.document_on, fields.payee)
           photo_fields = fields
         else
@@ -415,12 +432,7 @@ class SupportingDocument < ApplicationRecord
   end
 
   def consult_identified(chave_digits)
-    org = organization
-    return if org.sefaz_titular_cnpj.blank?
-    return if org.sefaz_certificate_expired?
-    return unless WrapKey.present?
-
-    pkcs12 = org.unwrap_sefaz_pkcs12
+    pkcs12 = organization.sefaz_pkcs12
     return unless pkcs12
 
     SefazConsulta.current.lookup(pkcs12:, chave: chave_digits)
