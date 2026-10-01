@@ -8,6 +8,7 @@ class MonthsController < ApplicationController
     else
       load_home
       @month_error = month.errors[:base].first
+      toast_now(kind: "error", message: @month_error)
       render "organizations/show", status: :unprocessable_content
     end
   end
