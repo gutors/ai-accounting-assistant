@@ -182,7 +182,7 @@ header: ▣ ONG Norte · nav
 Meses                                          (h1)
   2026-05     Aberto                           ← li[data-row="month"], link on 2026-05
   2026-04     Fechado
-  Mês  [____]  [ Abrir mês ]
+  Mês  [ select today − 12 through today + 12, previous calendar month selected ]  [ Abrir mês ]
 Pessoas                                        (h2)
   Coordenadores            | Submitters         ← two columns from 768px
    ana@…       Revogar     |  joao@…   Revogar

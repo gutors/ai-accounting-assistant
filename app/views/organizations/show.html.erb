@@ -36,7 +36,7 @@
       <%= form_with url: "/months", method: :post, class: "mt-4 flex flex-wrap items-end gap-3" do %>
         <div>
           <label for="year_month" class="mb-1 block font-medium">Mês</label>
-          <%= month_field_tag :year_month, nil, id: "year_month", class: "rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
+          <%= select_tag :year_month, options_for_select(openable_month_options, previous_calendar_year_month), id: "year_month", class: "rounded border border-rule bg-sheet px-3 py-2" %>
         </div>
         <%= submit_tag "Abrir mês", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
       <% end %>

@@ -10,6 +10,18 @@ module ApplicationHelper
     l(Date.strptime(year_month, "%Y-%m"), format: :month_title)
   end
 
+  def openable_month_options(today = Date.current)
+    first = today.beginning_of_month.prev_month(12)
+    (0..24).map do |offset|
+      year_month = first.next_month(offset).strftime("%Y-%m")
+      [ month_title(year_month), year_month ]
+    end
+  end
+
+  def previous_calendar_year_month(today = Date.current)
+    today.beginning_of_month.prev_month.strftime("%Y-%m")
+  end
+
   # Ledger row status, in the order the month page decides it.
   def payment_status(payment)
     if payment.missing_document?

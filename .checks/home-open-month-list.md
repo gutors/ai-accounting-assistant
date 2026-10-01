@@ -138,3 +138,7 @@ Design opened: `.specs/features/visual-identity/design.md` (file in the repo). U
 ## Handoff
 
 S1 ~5k (home ERB, helper, `organizations_spec`) + S2 ~16k (`months_spec` paid in full because proofs live there) + S3 ~5k (design.md + docs spec) = ~26k token floor. Unique files ~104k bytes / 4. All three slices stay under 150k and share home HTML. No split. One batch.
+
+- Where the boundary fell: C1–C10 closed on this branch after the implementation commit.
+- What the user settled mid-build: none.
+- What was abandoned: none.
