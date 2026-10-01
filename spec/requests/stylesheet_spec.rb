@@ -70,6 +70,14 @@ RSpec.describe "Served stylesheet", type: :request do
     expect(served_stylesheet).not_to include("@keyframes")
   end
 
+  it "served stylesheet ships no toast transition or keyframes" do
+    css = served_stylesheet
+    expect(css).not_to include("@keyframes")
+    css.scan(/\[data-toast\][^{]*\{[^}]*\}/m).each do |rule|
+      expect(rule).not_to include("transition")
+    end
+  end
+
   it "served stylesheet declares sheet, ink-soft and the two font stacks" do
     css = served_stylesheet
 

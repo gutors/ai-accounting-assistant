@@ -34,6 +34,9 @@ RSpec.describe "Submitter invites", type: :request do
     expect(message.body.decoded).to eq(
       "Você foi convidado a enviar documentos da organização ONG Norte. Entre com o Google usando docs@exemplo.org, pelo botão Entrar com Google."
     )
+    follow_redirect!
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_node(response.body).text).to include("Pronto.")
   end
 
   it "rejected submitter invite emails return 422" do

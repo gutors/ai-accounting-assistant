@@ -17,6 +17,8 @@ RSpec.describe "Package archives", type: :request do
 
     get "/setup"
     expect(response.body).to include(folders_url)
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_node(response.body).text).to include("Pronto.")
   end
 
   it "PATCH /package_archive persists folder id from u/0 URL with query" do

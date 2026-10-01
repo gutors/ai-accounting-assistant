@@ -4,7 +4,7 @@ class MonthsController < ApplicationController
   def create
     month = Month.open(organization: focused_organization, year_month: params[:year_month])
     if month.persisted?
-      redirect_to "/months/#{month.year_month}", status: :found
+      redirect_success("/months/#{month.year_month}")
     else
       load_home
       @month_error = month.errors[:base].first

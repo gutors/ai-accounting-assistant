@@ -97,4 +97,68 @@ RSpec.describe "Layout header", type: :request do
     expect(header.text).not_to include("Configuração")
     expect(header.css("button").map { |button| button.text.strip }).to include("Sair")
   end
+
+  it "GET / with empty flash has no toast" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    session[:invite_mail_failed] = true
+
+    get "/"
+
+    expect(response).to have_http_status(:ok)
+    expect(toast_node(response.body)).to be_nil
+    expect(response.body).not_to include("O convite foi gravado, mas o e-mail não saiu.")
+  end
+
+  it "success toast sits after header before main" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    post "/months", params: { year_month: "2026-05" }
+    follow_redirect!
+
+    doc = page_doc(response.body)
+    toasts = doc.css("[data-toast]")
+    expect(toasts.size).to eq(1)
+    toast = toasts.first
+    expect(toast["data-toast-kind"]).to eq("success")
+    expect(toast["role"]).to eq("status")
+    expect(toast["data-toast-timeout-ms"]).to eq("5000")
+    expect(toast.text).to include("Pronto.")
+    expect(toast.at_css("button").text.strip).to eq("Fechar")
+    expect(toast["class"]).to include("bg-caixa")
+    expect(toast["class"]).to include("text-white")
+    expect(toast["data-notice"]).to be_nil
+    expect(toast.at_css("[data-notice]")).to be_nil
+    expect(doc.at_css("header").next_element).to eq(toast)
+    expect(toast.next_element.name).to eq("main")
+  end
+
+  it "error toast sits after header before main" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    ActionMailer::Base.register_interceptor(CoordinatorInviteDeliveryFail)
+    CoordinatorInviteDeliveryFail.raise_now = true
+    begin
+      post "/coordinator_invites", params: { email: "guest@example.com" }
+      follow_redirect!
+
+      doc = page_doc(response.body)
+      toasts = doc.css("[data-toast]")
+      expect(toasts.size).to eq(1)
+      toast = toasts.first
+      expect(toast["data-toast-kind"]).to eq("error")
+      expect(toast["role"]).to eq("alert")
+      expect(toast["data-toast-timeout-ms"]).to eq("5000")
+      expect(toast.text).to include("O convite foi gravado, mas o e-mail não saiu.")
+      expect(toast.at_css("button").text.strip).to eq("Fechar")
+      expect(toast["class"]).to include("text-margem")
+      expect(toast["class"]).to include("border-l-[3px]")
+      expect(toast["class"]).to include("border-margem")
+      expect(doc.at_css("header").next_element).to eq(toast)
+      expect(toast.next_element.name).to eq("main")
+    ensure
+      CoordinatorInviteDeliveryFail.raise_now = false
+      ActionMailer::Base.unregister_interceptor(CoordinatorInviteDeliveryFail)
+    end
+  end
 end

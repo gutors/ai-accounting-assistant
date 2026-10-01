@@ -26,7 +26,8 @@ histórico, and valor. The app is a well-kept ledger.
 - **`Mês fechado` is a stamp**: an inked, double-ruled mark. Nothing else is boxed.
 - Sections are separated by **ruling**, not by cards. No shadows, no gradients, no icons other
   than the app mark.
-- Motion: none that the user did not trigger. `<details>` opening is the only state change.
+- Motion: none that the user did not trigger. `<details>` opening and the toast timeout
+  (after the action that set the toast) are the state changes.
 
 ## Tokens
 
@@ -136,6 +137,14 @@ status words and, when applicable, a `<details>` with the forms.
 `<p role="alert" data-notice="error" class="border-l-[3px] border-margem pl-3 text-margem">` for
 every existing error message (`@import_error`, `@month_error`, `@document_error`,
 `@certificate_error`). Placed directly under the page title.
+
+### Toast
+
+Layout banner immediately after `header` and before `main`. One `[data-toast]` at a time.
+Success: fill `caixa`, white text, `role="status"`. Error: `margem` rule like Notice
+(`border-l-[3px] border-margem`, `text-margem`), `role="alert"`, not `[data-notice]`.
+Timeout `5000` ms. Dismiss control text `Fechar`. Stimulus removes the node. No CSS
+`transition` or `@keyframes`. `prefers-reduced-motion` does not change the timeout.
 
 ### Empty state
 
@@ -326,6 +335,7 @@ Justificativas                                  (h2)
 - Labels stay visible and associated (`for`/`id` unchanged). Destructive confirms unchanged
   (`data-turbo-confirm`).
 - `prefers-reduced-motion`: nothing to reduce; no transitions or keyframes are shipped.
+  The toast timeout stays `5000` ms.
 
 ## Rejected
 

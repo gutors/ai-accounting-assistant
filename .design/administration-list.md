@@ -135,11 +135,11 @@ Under `Coordenadores`, the principal coordinator is the first row. The remaining
 
 Each pending invite, coordinator or submitter, shows `Reenviar e-mail` immediately before `Cancelar`. `Reenviar e-mail` is a quiet caixa action. `Cancelar` stays a quiet margem action, deletes that invite, and sends nothing. An invite that was already pending is sent only when someone resends.
 
-A failed send shows the notice under the `Meses` title: `O convite foi gravado, mas o e-mail não saiu.` A later send that goes out clears it. `Cancelar` does not set or clear it. There is no success sentence.
+A failed send is the error toast in C8–C10 (`O convite foi gravado, mas o e-mail não saiu.`), not a notice under the `Meses` title. `Cancelar` does not keep that failure. Per-invite mail status is #78.
 
 ```
+│  [error toast: O convite foi gravado, mas o e-mail não saiu.]  │
 │  Meses                                              (h1)       │
-│  │ O convite foi gravado, mas o e-mail não saiu.               │
 │                                                                │
 │  Convites pendentes                                            │
 │  ─────────────────────────────────────────────                 │

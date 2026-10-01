@@ -7,6 +7,6 @@ class FocusController < ApplicationController
     end
 
     session[:organization_id] = organization.id
-    redirect_to root_path, status: :found
+    redirect_success(root_path)
   end
 end

@@ -12,6 +12,10 @@ module PageHelpers
     error_notice(body)&.text&.strip
   end
 
+  def toast_node(body)
+    page_doc(body).at_css("[data-toast]")
+  end
+
   def rows(body, name)
     page_doc(body).css(%(li[data-row="#{name}"]))
   end

@@ -13,7 +13,11 @@ RSpec.describe "Focus", type: :request do
     expect(response).to have_http_status(:found)
     expect(response).to redirect_to("/")
     follow_redirect!
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_node(response.body).text).to include("Pronto.")
     expect(response.body).to include("ONG Sul")
+    sul = page_doc(response.body).css('nav[aria-label="Organizações"] button').find { |button| button.text.strip == "ONG Sul" }
+    expect(sul["aria-current"]).to eq("true")
   end
 
   it "focused organization button carries aria-current" do

@@ -3,7 +3,7 @@ class PackageArchivesController < ApplicationController
 
   def update
     if focused_organization.update_package_archive(params[:url])
-      redirect_to "/setup", status: :found
+      redirect_success("/setup")
     else
       load_setup
       render "setup/show", status: :unprocessable_content

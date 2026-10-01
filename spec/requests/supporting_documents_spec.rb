@@ -103,6 +103,8 @@ RSpec.describe "Supporting documents", type: :request do
     expect(SupportingDocument.where(organization: organization).count).to eq(1)
 
     get "/supporting_documents"
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_node(response.body).text).to include("Pronto.")
     list = response.body[response.body.index("Sem mês")..]
     document_row = rows(list, "document").first
     expect(document_row.at_css('time[datetime="2026-05-11"]').text).to eq("11/05/2026")
@@ -201,6 +203,9 @@ RSpec.describe "Supporting documents", type: :request do
 
     expect(response).to have_http_status(:unprocessable_content)
     expect(error_notice_text(response.body)).to eq("Envie a foto do recibo")
+    toast = toast_node(response.body)
+    expect(toast["data-toast-kind"]).to eq("error")
+    expect(toast.text).to include("Envie a foto do recibo")
   end
 
   it "POST recibo without photo returns 422 Envie a foto do recibo" do

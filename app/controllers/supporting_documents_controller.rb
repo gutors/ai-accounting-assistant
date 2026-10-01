@@ -20,9 +20,10 @@ class SupportingDocumentsController < ApplicationController
     )
 
     if document.errors.empty?
-      redirect_to "/supporting_documents", status: :found
+      redirect_success("/supporting_documents")
     else
       @document_error = document.errors[:base].first
+      toast_now(kind: "error", message: @document_error)
       load_documents
       render :index, status: :unprocessable_content
     end
@@ -97,6 +98,7 @@ class SupportingDocumentsController < ApplicationController
 
   def render_document_error(message)
     @document_error = message
+    toast_now(kind: "error", message: message)
     load_documents
     render :index, status: :unprocessable_content
   end

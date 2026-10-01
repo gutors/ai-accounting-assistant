@@ -4,8 +4,7 @@ class CoordinatorInvitesController < ApplicationController
   def create
     invite = Invite.create_pending(organization: focused_organization, email: params[:email])
     if invite.persisted?
-      session[:invite_mail_failed] = !deliver_invite(invite)
-      redirect_to root_path, status: :found
+      redirect_after_invite_mail(invite)
     else
       load_home
       render "organizations/show", status: :unprocessable_content
@@ -19,8 +18,7 @@ class CoordinatorInvitesController < ApplicationController
       return
     end
 
-    session[:invite_mail_failed] = !deliver_invite(invite)
-    redirect_to root_path, status: :found
+    redirect_after_invite_mail(invite)
   end
 
   def destroy
@@ -31,6 +29,6 @@ class CoordinatorInvitesController < ApplicationController
     end
 
     invite.destroy!
-    redirect_to root_path, status: :found
+    redirect_success(root_path)
   end
 end

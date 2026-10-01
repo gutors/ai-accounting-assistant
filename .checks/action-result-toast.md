@@ -201,3 +201,5 @@ Design opened: `.specs/features/visual-identity/design.md` (file in the repo). T
 ## Handoff
 
 S1 ~8k + S2 ~11k + S3 ~49k + S4 ~30k = ~98k token floor if those spec files are counted in full each time they are named. Read once, `supporting_documents_spec.rb` and `months_spec.rb` are not paid twice; unique files sit under ~70k plus the opened design (~5k). All four slices stay under 150k and share the layout toast. No split. One batch.
+
+Batch closed. Checks C1–C26 on this branch. No mid-build clarification. Abandoned: CDP `Emulation.setEmulatedMedia` for reduced-motion — Ferrum did not expose it; the C6 system example mocks `matchMedia` instead.

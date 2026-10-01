@@ -3,10 +3,11 @@ class AccountantsController < ApplicationController
 
   def update
     if focused_organization.update_accountant(accountant_params)
-      redirect_to "/setup", status: :found
+      redirect_success("/setup")
     else
       load_setup
       @accountant_error = focused_organization.errors[:base].first
+      toast_now(kind: "error", message: @accountant_error)
       render "setup/show", status: :unprocessable_content
     end
   end

@@ -15,9 +15,6 @@
 
 <% if coordinator_on_focus? %>
   <h1 class="text-2xl leading-7 font-semibold tracking-[-0.01em]">Meses</h1>
-  <% if @invite_mail_failed %>
-    <%= render "shared/notice", message: "O convite foi gravado, mas o e-mail não saiu." %>
-  <% end %>
   <% if @month_error.present? %>
     <div class="mt-6"><%= render "shared/notice", message: @month_error %></div>
   <% end %>

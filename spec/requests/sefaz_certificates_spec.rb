@@ -28,6 +28,8 @@ RSpec.describe "SEFAZ certificates", type: :request do
     expect(response.body).to include("Válido até 18/09/2027")
     expect(response.body).not_to include("Nenhum certificado")
     expect(response.body).not_to include("passphrase-secreta")
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_node(response.body).text).to include("Pronto.")
   end
 
   it "POST /sefaz_certificate accepts p12" do
@@ -86,6 +88,9 @@ RSpec.describe "SEFAZ certificates", type: :request do
 
     expect(response).to have_http_status(:unprocessable_content)
     expect(error_notice_text(response.body)).to eq("O certificado deve ser e-CNPJ A1 vigente")
+    toast = toast_node(response.body)
+    expect(toast["data-toast-kind"]).to eq("error")
+    expect(toast.text).to include("O certificado deve ser e-CNPJ A1 vigente")
   end
 
   it "POST e-CPF returns 422" do
@@ -200,6 +205,8 @@ RSpec.describe "SEFAZ certificates", type: :request do
     get "/setup"
     expect(response.body).to include("Nenhum certificado")
     expect(response.body).not_to include("11.222.333/0001-81")
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_node(response.body).text).to include("Pronto.")
   end
 
   it "unauthenticated DELETE /sefaz_certificate leaves certificate and responds 302 to /login" do

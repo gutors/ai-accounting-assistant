@@ -13,6 +13,8 @@ RSpec.describe "Accountants", type: :request do
 
     get "/setup"
     expect(response.body).to include("Ana Contábil")
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_node(response.body).text).to include("Pronto.")
   end
 
   it "PATCH /accountant persists CNPJ digits and razao social" do
@@ -97,6 +99,7 @@ RSpec.describe "Accountants", type: :request do
     expect(organization.accountant_tax_id).to be_nil
     expect(organization.accountant_pix_key).to be_nil
     expect(organization.package_destination_email).to be_nil
+    expect(toast_node(response.body)).to be_nil
   end
 
   it "PATCH /accountant rejected tax ids return 422" do

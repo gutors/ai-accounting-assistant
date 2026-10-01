@@ -78,7 +78,6 @@ class ApplicationController < ActionController::Base
     @invites = @organization.invites.order(:email)
     @focusable_organizations = current_account.organizations.order(:name)
     @months = @organization.months.order(year_month: :desc)
-    @invite_mail_failed = session[:invite_mail_failed]
   end
 
   def deliver_invite(invite)
@@ -152,5 +151,30 @@ class ApplicationController < ActionController::Base
     reset_session
     session[:account_id] = account.id
     session[:organization_id] = organization&.id
+  end
+
+  def redirect_success(path)
+    redirect_with_toast(path, kind: "success", message: "Pronto.")
+  end
+
+  def redirect_after_invite_mail(invite)
+    if deliver_invite(invite)
+      redirect_success(root_path)
+    else
+      redirect_with_toast(root_path, kind: "error", message: "O convite foi gravado, mas o e-mail não saiu.")
+    end
+  end
+
+  def redirect_with_toast(path, kind:, message:)
+    flash[:toast] = message
+    flash[:toast_kind] = kind
+    redirect_to path, status: :found
+  end
+
+  def toast_now(kind:, message:)
+    return if message.blank?
+
+    flash.now[:toast] = message
+    flash.now[:toast_kind] = kind
   end
 end

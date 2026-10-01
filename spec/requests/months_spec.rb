@@ -30,6 +30,9 @@ RSpec.describe "Months", type: :request do
     expect(response).to have_http_status(:found)
     expect(response).to redirect_to("/months/2026-05")
     expect(organization.months.where(year_month: "2026-05").count).to eq(1)
+    follow_redirect!
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_node(response.body).text).to include("Pronto.")
   end
 
   it "POST /months 2026-05 a second time does not duplicate" do

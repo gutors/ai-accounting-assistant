@@ -1,15 +1,5 @@
 require "rails_helper"
 
-module CoordinatorInviteDeliveryFail
-  class << self
-    attr_accessor :raise_now
-
-    def delivering_email(_mail)
-      raise RuntimeError, "smtp down" if raise_now
-    end
-  end
-end
-
 RSpec.describe "Coordinator invites", type: :request do
   before { ActionMailer::Base.register_interceptor(CoordinatorInviteDeliveryFail) }
   after do
@@ -54,6 +44,8 @@ RSpec.describe "Coordinator invites", type: :request do
       "Você foi convidado a fechar o mês da organização ONG Norte. Entre com o Google usando pessoa@exemplo.org, pelo botão Entrar com Google."
     )
     follow_redirect!
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_node(response.body).text).to include("Pronto.")
     expect(page_doc(response.body).css("[data-notice='error']")).to be_empty
     expect(response.body).not_to include("E-mail enviado")
     item = page_doc(response.body).css("li").find { |node| node.text.include?("pessoa@exemplo.org") }
@@ -86,6 +78,7 @@ RSpec.describe "Coordinator invites", type: :request do
       end.not_to change(Invite, :count)
       expect(response).to have_http_status(:unprocessable_content)
       expect(ActionMailer::Base.deliveries).to be_empty
+      expect(toast_node(response.body)).to be_nil
     end
   end
 
@@ -137,15 +130,35 @@ RSpec.describe "Coordinator invites", type: :request do
     post "/coordinator_invites", params: { email: "pessoa@exemplo.org" }
 
     expect(Invite.find_by!(email: "pessoa@exemplo.org", organization: organization)).to be_present
+    expect(session[:invite_mail_failed]).not_to eq(true)
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/")
     follow_redirect!
-    expect(page_doc(response.body).at_css("h1").text.strip).to eq("Meses")
-    notice = page_doc(response.body).at_css("[data-notice='error']")
-    expect(notice.text.strip).to eq("O convite foi gravado, mas o e-mail não saiu.")
-    expect(response.body.index("Meses")).to be < response.body.index("O convite foi gravado, mas o e-mail não saiu.")
-    expect(response.body.index("O convite foi gravado, mas o e-mail não saiu.")).to be < response.body.index("Nenhum mês aberto")
+    expect(response).to have_http_status(:ok)
+    toast = toast_node(response.body)
+    expect(toast["data-toast-kind"]).to eq("error")
+    expect(toast.text).to include("O convite foi gravado, mas o e-mail não saiu.")
+    notice_with_mail = page_doc(response.body).css("[data-notice='error']").find { |node|
+      node.text.include?("O convite foi gravado, mas o e-mail não saiu.")
+    }
+    expect(notice_with_mail).to be_nil
   end
 
-  it "resend on another Invite clears the failure notice" do
+  it "second GET after invite mail failure has no toast" do
+    account, organization = plant_coordinator(organization_name: "ONG Norte")
+    sign_in_as(account, organization: organization)
+    raise_invite_delivery
+    post "/coordinator_invites", params: { email: "pessoa@exemplo.org" }
+    follow_redirect!
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("error")
+
+    get "/"
+
+    expect(toast_node(response.body)).to be_nil
+    expect(response.body).not_to include("O convite foi gravado, mas o e-mail não saiu.")
+  end
+
+  it "resend on another Invite delivers Pronto toast" do
     account, organization = plant_coordinator(organization_name: "ONG Norte")
     other = Invite.create!(organization: organization, email: "outro@exemplo.org", kind: :coordinator)
     sign_in_as(account, organization: organization)
@@ -161,6 +174,8 @@ RSpec.describe "Coordinator invites", type: :request do
     expect(ActionMailer::Base.deliveries.size).to eq(1)
     expect(ActionMailer::Base.deliveries.last.to).to eq([ "outro@exemplo.org" ])
     follow_redirect!
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_node(response.body).text).to include("Pronto.")
     expect(response.body).not_to include("O convite foi gravado, mas o e-mail não saiu.")
     expect(response.body).not_to include("E-mail enviado")
   end
@@ -174,12 +189,16 @@ RSpec.describe "Coordinator invites", type: :request do
 
     expect(Invite.find(invite.id)).to eq(invite)
     follow_redirect!
-    expect(page_doc(response.body).at_css("[data-notice='error']").text.strip).to eq(
-      "O convite foi gravado, mas o e-mail não saiu."
-    )
+    toast = toast_node(response.body)
+    expect(toast["data-toast-kind"]).to eq("error")
+    expect(toast.text).to include("O convite foi gravado, mas o e-mail não saiu.")
+    notice_with_mail = page_doc(response.body).css("[data-notice='error']").find { |node|
+      node.text.include?("O convite foi gravado, mas o e-mail não saiu.")
+    }
+    expect(notice_with_mail).to be_nil
   end
 
-  it "Cancelar does not clear the invite failure notice" do
+  it "Cancelar shows Pronto toast and does not keep the mail failure" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
     raise_invite_delivery
@@ -191,7 +210,9 @@ RSpec.describe "Coordinator invites", type: :request do
     expect(Invite.find_by(id: invite.id)).to be_nil
     expect(ActionMailer::Base.deliveries).to be_empty
     follow_redirect!
-    expect(response.body).to include("O convite foi gravado, mas o e-mail não saiu.")
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_node(response.body).text).to include("Pronto.")
+    expect(response.body).not_to include("O convite foi gravado, mas o e-mail não saiu.")
   end
 
   it "Cancelar without a failure notice delivers nothing" do
