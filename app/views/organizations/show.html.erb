@@ -98,8 +98,12 @@
       <% if @invites.any? %>
         <ul>
           <% @invites.each do |invite| %>
-            <li class="flex items-center justify-between gap-3 border-b border-rule py-2">
-              <span class="min-w-0 break-all"><%= invite.email %></span>
+            <li data-row="invite" class="flex items-center justify-between gap-3 border-b border-rule py-2">
+              <span class="min-w-0 break-all">
+                <%= invite.email %>
+                <%= invite.coordinator? ? "Coordenador" : "Submitter" %>
+                <%= invite.sent? ? "enviado" : "falhou envio do e-mail" %>
+              </span>
               <span class="flex flex-wrap items-center gap-3">
                 <%= button_to "Reenviar e-mail", "/#{invite.submitter? ? "submitter" : "coordinator"}_invites/#{invite.id}/mail", method: :post, class: "text-caixa underline underline-offset-2" %>
                 <% if invite.submitter? %>

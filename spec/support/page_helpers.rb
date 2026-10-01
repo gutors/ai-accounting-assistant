@@ -20,6 +20,10 @@ module PageHelpers
     page_doc(body).css(%(li[data-row="#{name}"]))
   end
 
+  def pending_invite_item(body, email)
+    rows(body, "invite").find { |node| node.text.include?(email) }
+  end
+
   def row(body, name, **attrs)
     selector = attrs.map { |key, value| %([data-#{key.to_s.tr('_', '-')}="#{value}"]) }.join
     page_doc(body).at_css(%(li[data-row="#{name}"]#{selector}))

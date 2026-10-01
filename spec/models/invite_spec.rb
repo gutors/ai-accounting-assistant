@@ -56,6 +56,21 @@ RSpec.describe Invite, type: :model do
     expect(organization.accesses.coordinator.where(account: account)).to be_empty
   end
 
+  it "last_delivery is sent or failed" do
+    organization = create_organization!(name: "ONG")
+    expect(Invite.last_deliveries.keys).to contain_exactly("sent", "failed")
+
+    created = Invite.create_pending(organization: organization, email: "guest@example.com")
+    expect(created).to be_persisted
+    expect(created.last_delivery).to eq("sent")
+
+    created.update!(last_delivery: :failed)
+    expect(created.reload.last_delivery).to eq("failed")
+
+    created.last_delivery = "unsent"
+    expect(created).not_to be_valid
+  end
+
   it "rejects standing Access of either kind, pending duplicate, and invalid email" do
     organization = create_organization!(name: "ONG")
     standing_coord = Account.create!(email: "coord-standing@example.com")

@@ -39,6 +39,22 @@ RSpec.describe "Submitter invites", type: :request do
     expect(toast_node(response.body).text).to include("Pronto.")
   end
 
+  it "POST /submitter_invites pending row shows Submitter and enviado" do
+    account, organization = plant_coordinator(organization_name: "ONG Norte")
+    sign_in_as(account, organization: organization)
+
+    with_env("MAIL_FROM" => "venda@example.com") do
+      post "/submitter_invites", params: { email: "docs@exemplo.org" }
+    end
+    follow_redirect!
+
+    item = pending_invite_item(response.body, "docs@exemplo.org")
+    expect(item).to be_present
+    expect(item.text).to include("Submitter")
+    expect(item.text).to include("enviado")
+    expect(item.text).not_to include("Coordenador")
+  end
+
   it "rejected submitter invite emails return 422" do
     account, organization = plant_coordinator(email: "coord@example.com")
     standing_coord = Account.create!(email: "standing-coord@example.com", google_uid: "uid-standing-coord")
