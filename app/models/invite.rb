@@ -2,6 +2,7 @@ class Invite < ApplicationRecord
   belongs_to :organization
 
   enum :kind, { coordinator: "coordinator", submitter: "submitter" }, validate: true
+  enum :last_delivery, { sent: "sent", failed: "failed" }, validate: true
 
   before_validation :normalize_email
 

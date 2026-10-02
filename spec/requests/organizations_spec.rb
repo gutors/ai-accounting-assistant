@@ -3,6 +3,51 @@ require "rails_helper"
 RSpec.describe "Organization home", type: :request do
   include ActiveSupport::Testing::TimeHelpers
 
+  it "home pending invites show kind in email order under Convites pendentes" do
+    account, organization = plant_coordinator(email: "coord@example.com")
+    Invite.create!(organization: organization, email: "zoe@exemplo.org", kind: :submitter)
+    Invite.create!(organization: organization, email: "ana@exemplo.org", kind: :coordinator)
+    sign_in_as(account, organization: organization)
+
+    get "/"
+
+    ana = pending_invite_item(response.body, "ana@exemplo.org")
+    zoe = pending_invite_item(response.body, "zoe@exemplo.org")
+    expect(ana).to be_present
+    expect(zoe).to be_present
+    expect(response.body.index("ana@exemplo.org")).to be < response.body.index("zoe@exemplo.org")
+    expect(ana.text).to include("Coordenador")
+    expect(ana.text).not_to include("Submitter")
+    expect(zoe.text).to include("Submitter")
+    expect(zoe.text).not_to include("Coordenador")
+
+    doc = page_doc(response.body)
+    invites_heading = doc.css("h2").find { |h2| h2.text.strip == "Convites pendentes" }
+    invites_section = invites_heading.parent
+    expect(invites_section.css("li").map(&:text).join).to include("ana@exemplo.org")
+    expect(invites_section.css("li").map(&:text).join).to include("zoe@exemplo.org")
+    pessoas_section = doc.css("h2").find { |h2| h2.text.strip == "Pessoas" }.parent
+    expect(pessoas_section.css("h2").map { |h2| h2.text.strip }).not_to include("Convites pendentes")
+    expect(pessoas_section.css("li").map(&:text).join).not_to include("ana@exemplo.org")
+    expect(pessoas_section.css("li").map(&:text).join).not_to include("zoe@exemplo.org")
+  end
+
+  it "home pending invite shows exactly one last-delivery copy" do
+    account, organization = plant_coordinator(email: "coord@example.com")
+    Invite.create!(organization: organization, email: "ok@exemplo.org", kind: :coordinator, last_delivery: :sent)
+    Invite.create!(organization: organization, email: "fail@exemplo.org", kind: :submitter, last_delivery: :failed)
+    sign_in_as(account, organization: organization)
+
+    get "/"
+
+    sent_item = pending_invite_item(response.body, "ok@exemplo.org")
+    failed_item = pending_invite_item(response.body, "fail@exemplo.org")
+    expect(sent_item.text).to include("enviado")
+    expect(sent_item.text).not_to include("falhou envio do e-mail")
+    expect(failed_item.text).to include("falhou envio do e-mail")
+    expect(failed_item.text).not_to include("enviado")
+  end
+
   it "organization home lists standing and pending coordinator emails" do
     account, organization = plant_coordinator(email: "coord@example.com")
     Invite.create!(organization: organization, email: "guest@example.com", kind: :coordinator)

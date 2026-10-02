@@ -133,9 +133,9 @@ Under `Coordenadores`, the principal coordinator is the first row. The remaining
 
 ## Screen `home` invites
 
-Each pending invite, coordinator or submitter, shows `Reenviar e-mail` immediately before `Cancelar`. `Reenviar e-mail` is a quiet caixa action. `Cancelar` stays a quiet margem action, deletes that invite, and sends nothing. An invite that was already pending is sent only when someone resends.
+Each pending invite, coordinator or submitter, shows the email, `Coordenador` or `Submitter`, and `enviado` or `falhou envio do e-mail` on that row, then `Reenviar e-mail` immediately before `Cancelar`. `Reenviar e-mail` is a quiet caixa action. `Cancelar` stays a quiet margem action, deletes that invite, and sends nothing. An invite that was already pending is sent only when someone resends.
 
-A failed send is the error toast in C8–C10 (`O convite foi gravado, mas o e-mail não saiu.`), not a notice under the `Meses` title. `Cancelar` does not keep that failure. Per-invite mail status is #78.
+A failed send is the error toast in C8–C10 (`O convite foi gravado, mas o e-mail não saiu.`), not a notice under the `Meses` title. Per-invite mail status is #78. Last delivery lives on the Invite: resend overwrites `enviado` / `falhou envio do e-mail` on that row. The toast is one-shot.
 
 ```
 │  [error toast: O convite foi gravado, mas o e-mail não saiu.]  │
@@ -143,7 +143,7 @@ A failed send is the error toast in C8–C10 (`O convite foi gravado, mas o e-ma
 │                                                                │
 │  Convites pendentes                                            │
 │  ─────────────────────────────────────────────                 │
-│  pessoa@exemplo.org                                            │
+│  pessoa@exemplo.org  Coordenador  falhou envio do e-mail       │
 │  Reenviar e-mail    Cancelar                                   │
 ```
 
@@ -174,7 +174,7 @@ Out: the buyer form. Changing `coordinator:bootstrap` abort-on-existing-Account.
 | `Cancelar` on the field | Quiet caixa. Restores the row and writes nothing | Abandoning a field deletes nothing. Invite `Cancelar` stays margem because it deletes the invite | The same margem treatment for both, when the word should mean one thing everywhere | reversible |
 | Resend on the registry | Primary `Reenviar e-mail`, only on the organization of the latest failed send | That is the recovery from the intake failure screen, now sitting on the row it belongs to | A quiet resend on every organization that ever failed, when the failure has to outlive the session result | reversible |
 | `Remover` | Quiet margem. Confirm `Remover a organização {name}?`, the same mechanism as `Revogar`. A refusal is the notice on that row | The user confirmed the `Revogar` style. The sentence says "esta organização", which the row makes true | The notice under the title, when removal refusals should stack with validation notices | reversible |
-| Invite resend | Quiet caixa `Reenviar e-mail` immediately before `Cancelar`, on every pending invite. The failure notice sits under `Meses`. A send that goes out clears it. No success sentence | Every pending invite has the action, including ones that never failed, so it cannot be a primary button on each row | Primary `Reenviar e-mail` on the invite that just failed, when pending invites that were never sent should stay silent | reversible |
+| Invite resend | Quiet caixa `Reenviar e-mail` immediately before `Cancelar`, on every pending invite. Kind and last delivery sit on the row (`Coordenador`/`Submitter`, `enviado`/`falhou envio do e-mail`). Mail failure is the error toast, not a notice under `Meses`. Resend overwrites last delivery. No success sentence on the row | Every pending invite has the action, including ones that never failed, so it cannot be a primary button on each row | Primary `Reenviar e-mail` on the invite that just failed, when pending invites that were never sent should stay silent | reversible |
 | Welcome subject | `Fechamento Mensal - Cadastro da Organização {name}` | #63. The body sentences stay the ones `CoordinatorWelcomeMailer` already sends | Keeping `Cadastro da organização {name}`, when the mailbox should not gain the product prefix | reversible |
 | Email write | Does not change `Account.email`. New coordinator access is created before the old principal access is removed. A pending invite for the new email on that organization is deleted in the same write. Welcome mail is sent only when this write created the Account | #63 plus #66. An address that already has an Account is already in the system | Rewriting `Account.email`, when the Google identity and the address are the same record. Always sending the welcome, when the operator already uses the product | costly |
 | Removal guard | Deletes accesses and pending invites, then the organization, only when it has no bank account, month, supporting document, justification, or extra exception kind. The Account stays. The last-coordinator lock does not apply | #63 and ADR-0007. Close data is the reason the row cannot go. #66 item 4 is out of `.tasks/principal-coordinator.md` | A softer archive flag, when a removed organization must remain readable. Deleting orphan Accounts, when #66 item 4 is reopened | costly |

@@ -188,7 +188,7 @@ Pessoas                                        (h2)
    ana@…       Revogar     |  joao@…   Revogar
    [E-mail] [Convidar]     |  [E-mail] [Convidar]
 Convites pendentes                             (h2, full width)
-   guest@…   Cancelar
+   guest@…  Coordenador|Submitter  enviado|falhou envio do e-mail  Reenviar e-mail  Cancelar
 ```
 
 - The organization switcher keeps its `<nav aria-label="Organizações">`; the focused button

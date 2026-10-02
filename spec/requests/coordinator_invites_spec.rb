@@ -60,6 +60,23 @@ RSpec.describe "Coordinator invites", type: :request do
     expect(cancel["class"]).to include("underline-offset-2")
   end
 
+  it "POST /coordinator_invites pending row shows Coordenador and enviado" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    with_env("MAIL_FROM" => "venda@example.com") do
+      post "/coordinator_invites", params: { email: "pessoa@exemplo.org" }
+    end
+    follow_redirect!
+
+    item = pending_invite_item(response.body, "pessoa@exemplo.org")
+    expect(item).to be_present
+    expect(item.text).to include("Coordenador")
+    expect(item.text).to include("enviado")
+    expect(item.text).not_to include("Submitter")
+    expect(item.inner_html.index("Reenviar e-mail")).to be < item.inner_html.index("Cancelar")
+  end
+
   it "rejected invite emails return 422" do
     account, organization = plant_coordinator(email: "coord@example.com")
     standing = Account.create!(email: "standing@example.com", google_uid: "uid-standing")
@@ -129,7 +146,9 @@ RSpec.describe "Coordinator invites", type: :request do
     raise_invite_delivery
     post "/coordinator_invites", params: { email: "pessoa@exemplo.org" }
 
-    expect(Invite.find_by!(email: "pessoa@exemplo.org", organization: organization)).to be_present
+    invite = Invite.find_by!(email: "pessoa@exemplo.org", organization: organization)
+    expect(invite).to be_present
+    expect(invite.last_delivery).to eq("failed")
     expect(session[:invite_mail_failed]).not_to eq(true)
     expect(response).to have_http_status(:found)
     expect(response).to redirect_to("/")
@@ -142,6 +161,9 @@ RSpec.describe "Coordinator invites", type: :request do
       node.text.include?("O convite foi gravado, mas o e-mail não saiu.")
     }
     expect(notice_with_mail).to be_nil
+    item = pending_invite_item(response.body, "pessoa@exemplo.org")
+    expect(item.text).to include("falhou envio do e-mail")
+    expect(item.text).not_to include("enviado")
   end
 
   it "second GET after invite mail failure has no toast" do
@@ -156,6 +178,8 @@ RSpec.describe "Coordinator invites", type: :request do
 
     expect(toast_node(response.body)).to be_nil
     expect(response.body).not_to include("O convite foi gravado, mas o e-mail não saiu.")
+    item = pending_invite_item(response.body, "pessoa@exemplo.org")
+    expect(item.text).to include("falhou envio do e-mail")
   end
 
   it "resend on another Invite delivers Pronto toast" do
@@ -180,6 +204,46 @@ RSpec.describe "Coordinator invites", type: :request do
     expect(response.body).not_to include("E-mail enviado")
   end
 
+  it "a later invite send leaves the failed row failed" do
+    account, organization = plant_coordinator(organization_name: "ONG Norte")
+    sign_in_as(account, organization: organization)
+    raise_invite_delivery
+    post "/coordinator_invites", params: { email: "pessoa@exemplo.org" }
+    allow_invite_delivery
+    with_env("MAIL_FROM" => "venda@example.com") do
+      post "/coordinator_invites", params: { email: "nova@exemplo.org" }
+    end
+
+    expect(Invite.where(organization: organization, email: [ "pessoa@exemplo.org", "nova@exemplo.org" ]).count).to eq(2)
+    follow_redirect!
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_node(response.body).text).to include("Pronto.")
+    notice_with_mail = page_doc(response.body).css("[data-notice='error']").find { |node|
+      node.text.include?("O convite foi gravado, mas o e-mail não saiu.")
+    }
+    expect(notice_with_mail).to be_nil
+    pessoa = pending_invite_item(response.body, "pessoa@exemplo.org")
+    nova = pending_invite_item(response.body, "nova@exemplo.org")
+    expect(pessoa.text).to include("falhou envio do e-mail")
+    expect(pessoa.text).not_to include("enviado")
+    expect(nova.text).to include("enviado")
+    expect(nova.text).not_to include("falhou envio do e-mail")
+  end
+
+  it "resend overwrites failed last delivery with enviado" do
+    account, organization = plant_coordinator
+    invite = Invite.create!(organization: organization, email: "pessoa@exemplo.org", kind: :coordinator, last_delivery: :failed)
+    sign_in_as(account, organization: organization)
+    with_env("MAIL_FROM" => "venda@example.com") do
+      post "/coordinator_invites/#{invite.id}/mail"
+    end
+
+    follow_redirect!
+    item = pending_invite_item(response.body, "pessoa@exemplo.org")
+    expect(item.text).to include("enviado")
+    expect(item.text).not_to include("falhou envio do e-mail")
+  end
+
   it "invite resend keeps the Invite when deliver_now raises" do
     account, organization = plant_coordinator
     invite = Invite.create!(organization: organization, email: "pessoa@exemplo.org", kind: :coordinator)
@@ -196,6 +260,9 @@ RSpec.describe "Coordinator invites", type: :request do
       node.text.include?("O convite foi gravado, mas o e-mail não saiu.")
     }
     expect(notice_with_mail).to be_nil
+    item = pending_invite_item(response.body, "pessoa@exemplo.org")
+    expect(item.text).to include("falhou envio do e-mail")
+    expect(item.text).not_to include("enviado")
   end
 
   it "Cancelar shows Pronto toast and does not keep the mail failure" do
@@ -226,18 +293,20 @@ RSpec.describe "Coordinator invites", type: :request do
     expect(ActionMailer::Base.deliveries).to be_empty
     follow_redirect!
     expect(response.body).not_to include("O convite foi gravado, mas o e-mail não saiu.")
+    expect(response.body).not_to include("pessoa@exemplo.org")
   end
 
   it "resend of another organization Invite returns 404" do
     account, organization = plant_coordinator(email: "a@example.com", organization_name: "A")
     other = create_organization!(name: "B")
-    invite = Invite.create!(organization: other, email: "guest@example.com", kind: :coordinator)
+    invite = Invite.create!(organization: other, email: "guest@example.com", kind: :coordinator, last_delivery: :failed)
     sign_in_as(account, organization: organization)
     ActionMailer::Base.deliveries.clear
     post "/coordinator_invites/#{invite.id}/mail"
 
     expect(response).to have_http_status(:not_found)
     expect(Invite.find(invite.id)).to eq(invite)
+    expect(invite.reload.last_delivery).to eq("failed")
     expect(ActionMailer::Base.deliveries).to be_empty
   end
 

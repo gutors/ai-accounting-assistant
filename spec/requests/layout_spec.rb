@@ -107,7 +107,15 @@ RSpec.describe "Layout header", type: :request do
 
     expect(response).to have_http_status(:ok)
     expect(toast_node(response.body)).to be_nil
-    expect(response.body).not_to include("O convite foi gravado, mas o e-mail não saiu.")
+    mail_failure = "O convite foi gravado, mas o e-mail não saiu."
+    expect(response.body).not_to include(mail_failure)
+    notice_with_mail = page_doc(response.body).css("[data-notice='error']").find { |node|
+      node.text.include?(mail_failure)
+    }
+    expect(notice_with_mail).to be_nil
+    h1 = page_doc(response.body).at_css("h1")
+    expect(h1.text.strip).to eq("Meses")
+    expect(h1.parent.at_css("section").text).not_to include(mail_failure)
   end
 
   it "success toast sits after header before main" do

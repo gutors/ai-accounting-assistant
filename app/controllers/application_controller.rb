@@ -87,8 +87,10 @@ class ApplicationController < ActionController::Base
       InviteMailer.coordinator_invite(invite)
     end
     message.deliver_now
+    invite.update!(last_delivery: :sent)
     true
   rescue StandardError
+    invite.update!(last_delivery: :failed)
     false
   end
 
