@@ -77,6 +77,10 @@ RSpec.configure do |config|
   config.include CloseHelpers
 
   config.before(:suite) do
+    built = Rails.root.join("app/assets/builds/tailwind.css")
+    unless built.file? && built.size.positive?
+      system("bin/rails", "tailwindcss:build", exception: true)
+    end
     Bank.seed_catalog!
   end
 
