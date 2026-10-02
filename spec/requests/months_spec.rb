@@ -1,6 +1,8 @@
 require "rails_helper"
 
 RSpec.describe "Months", type: :request do
+  include ActiveSupport::Testing::TimeHelpers
+
   it "unauthenticated GET /months/2026-05 responds 302 to /login" do
     get "/months/2026-05"
 
@@ -35,6 +37,22 @@ RSpec.describe "Months", type: :request do
     expect(toast_node(response.body).text).to include("Pronto.")
   end
 
+  it "POST /months 2026-09 persists Month and redirects" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    travel_to Date.new(2026, 10, 1) do
+      post "/months", params: { year_month: "2026-09" }
+    end
+
+    expect(organization.months.where(year_month: "2026-09").count).to eq(1)
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/months/2026-09")
+    follow_redirect!
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_node(response.body).text).to include("Pronto.")
+  end
+
   it "POST /months 2026-05 a second time does not duplicate" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
@@ -42,9 +60,47 @@ RSpec.describe "Months", type: :request do
 
     post "/months", params: { year_month: "2026-05" }
 
+    expect(organization.months.where(year_month: "2026-05").count).to eq(1)
     expect(response).to have_http_status(:found)
     expect(response).to redirect_to("/months/2026-05")
-    expect(organization.months.where(year_month: "2026-05").count).to eq(1)
+    follow_redirect!
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_node(response.body).text).to include("Pronto.")
+  end
+
+  it "POST /months 2024-01 outside the picker window persists" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    travel_to Date.new(2026, 10, 1) do
+      post "/months", params: { year_month: "2024-01" }
+    end
+
+    expect(organization.months.where(year_month: "2024-01").count).to eq(1)
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/months/2024-01")
+  end
+
+  it "POST /months empty year_month re-renders the 25-month picker" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    travel_to Date.new(2026, 10, 1) do
+      expect do
+        post "/months", params: { year_month: "" }
+      end.not_to change(Month, :count)
+    end
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(error_notice_text(response.body)).to eq("Informe um mês válido")
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("error")
+    expect(toast_node(response.body).text).to include("Informe um mês válido")
+    select = page_doc(response.body).at_css("select#year_month")
+    options = select.css("option")
+    expect(options.map { |option| option["value"] }).to eq(
+      (0..24).map { |offset| Date.new(2025, 10, 1).next_month(offset).strftime("%Y-%m") }
+    )
+    expect(select.at_css("option[selected]")["value"]).to eq("2026-09")
   end
 
   it "GET /months/2026-05 responds 200 with pt-BR and 2026-05" do

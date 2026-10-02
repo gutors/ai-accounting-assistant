@@ -1,6 +1,8 @@
 require "rails_helper"
 
 RSpec.describe "Organization home", type: :request do
+  include ActiveSupport::Testing::TimeHelpers
+
   it "organization home lists standing and pending coordinator emails" do
     account, organization = plant_coordinator(email: "coord@example.com")
     Invite.create!(organization: organization, email: "guest@example.com", kind: :coordinator)
@@ -93,6 +95,80 @@ RSpec.describe "Organization home", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Configuração")
     expect(response.body).to include('href="/setup"')
+  end
+
+  it "GET / picker lists 25 months from 2025-10 to 2027-10" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    travel_to Date.new(2026, 10, 1) do
+      get "/"
+    end
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Nenhum mês aberto")
+    expect(response.body).not_to include('input type="month"')
+    doc = page_doc(response.body)
+    expect(doc.at_css('input[type="month"][name="year_month"]')).to be_nil
+    expect(doc.css("select#year_month").size).to eq(1)
+    select = doc.at_css("select#year_month")
+    expect(select["name"]).to eq("year_month")
+    options = select.css("option")
+    expect(options.map { |option| option["value"] }).to eq(
+      (0..24).map { |offset| Date.new(2025, 10, 1).next_month(offset).strftime("%Y-%m") }
+    )
+    selected = select.at_css("option[selected]")
+    expect(selected["value"]).to eq("2026-09")
+    expect(selected.text.strip).to eq("setembro de 2026")
+    expect(options.first.text.strip).to eq("outubro de 2025")
+    expect(options.last.text.strip).to eq("outubro de 2027")
+    expect(doc.at_css('label[for="year_month"]').text.strip).to eq("Mês")
+    open_form = doc.css("form").find { |form| form.at_css('input[type="submit"][value="Abrir mês"]') }
+    expect(open_form).not_to be_nil
+    expect(open_form["action"]).to eq("/months")
+    expect(open_form.at_css("select#year_month")).to eq(select)
+  end
+
+  it "GET / picker in January starts 2025-01 ends 2027-01" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    travel_to Date.new(2026, 1, 15) do
+      get "/"
+    end
+
+    select = page_doc(response.body).at_css("select#year_month")
+    values = select.css("option").map { |option| option["value"] }
+    expect(values.first).to eq("2025-01")
+    expect(values.last).to eq("2027-01")
+    expect(select.at_css("option[selected]")["value"]).to eq("2025-12")
+  end
+
+  it "GET / lists opened 2026-05 and keeps it in the picker" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    Month.open(organization: organization, year_month: "2026-05")
+
+    travel_to Date.new(2026, 10, 1) do
+      get "/"
+    end
+
+    month_row = rows(response.body, "month").first
+    link = month_row.at_css('a[href="/months/2026-05"]')
+    expect(link).not_to be_nil
+    expect(link.text).to include("2026-05")
+    values = page_doc(response.body).css("select#year_month option").map { |option| option["value"] }
+    expect(values).to include("2026-05")
+  end
+
+  it "submitter home has no year_month picker" do
+    account, organization = plant_submitter
+    sign_in_as(account, organization: organization)
+
+    get "/"
+
+    expect(page_doc(response.body).at_css("select#year_month")).to be_nil
+    expect(response.body).not_to include("Abrir mês")
   end
 
   it "organization home includes Meses form posting year_month to /months" do
