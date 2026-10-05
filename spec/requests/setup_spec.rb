@@ -75,6 +75,7 @@ RSpec.describe "Setup", type: :request do
 
     expect(response).to have_http_status(:ok)
     expect_accountant_leitura_cnpj_row(response.body)
+    expect(accountant_section(response.body).at_css("div.grid")["class"]).to include("md:grid-cols-2")
   end
 
   it "GET /setup leitura formats CPF and empty razao social" do
@@ -157,6 +158,9 @@ RSpec.describe "Setup", type: :request do
 
     expect(response).to have_http_status(:ok)
     expect_archive_cadastro(response.body)
+    headings = page_doc(response.body).css("h2").map { |node| node.text.strip }
+    expect(headings.index("Contador")).to be < headings.index("Armazenamento do pacote mensal")
+    expect(headings.index("Armazenamento do pacote mensal")).to be < headings.index("Certificado SEFAZ")
   end
 
   it "GET /setup leitura archive is labeled text" do
@@ -216,6 +220,7 @@ RSpec.describe "Setup", type: :request do
       expect(input["disabled"]).to be_nil
     end
     expect(form.at_css("#tax_id")["value"]).to eq("11222333000181")
+    expect(form["class"]).to include("md:grid-cols-2")
     expect(accountant_section(response.body).at_css("p#presentation_name")).to be_nil
     expect_archive_leitura(response.body)
   end

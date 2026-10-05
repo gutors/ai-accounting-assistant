@@ -94,6 +94,7 @@ module PageHelpers
       expect(input).to be_present
       expect(input["readonly"]).to be_nil
     end
+    expect(form["class"]).to include("md:grid-cols-2")
     expect_accountant_labels(body)
     expect(body).not_to include("Id fiscal")
     expect(body).not_to include("Destino do pacote")

@@ -67,6 +67,12 @@ RSpec.describe "Package archives", type: :request do
     expect_archive_leitura(response.body, url: new_url)
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
     expect(toast_node(response.body).text).to include("Pronto.")
+
+    patch "/package_archive", params: { url: new_url }
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/setup")
+    get "/setup"
+    expect_archive_leitura(response.body, url: new_url)
   end
 
   it "PATCH /package_archive rejected folder URLs return 422" do
