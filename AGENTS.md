@@ -1,6 +1,6 @@
 # Monthly close (ONG)
 
-Web app for a financial **Coordinator** to close a month for one or more **Organization**s (statements, supporting documents, matches, summary spreadsheet, monthly package). The coordinator delivers the package; the **Accountant** is not an operator. Read `README.md` and `CONTEXT.md` — do not revive the old SMB / owner-dashboard / multi-company books framing.
+Web app for a financial **Coordinator** to close a month for one or more **Organization**s (statements, supporting documents, matches, summary spreadsheet, monthly package). The coordinator delivers the package; the **Accountant** is not an operator. Read `README.md` and `GLOSSARY.md` — do not revive the old SMB / owner-dashboard / multi-company books framing.
 
 ## How to work
 
@@ -58,7 +58,7 @@ If a folder is missing, create it as part of the planned feature — do not scaf
 
 - **UI, user-facing copy, product docs:** Portuguese (Brazil).
 - **Code, comments, commit messages, and technical artifacts** (`.specs`, `.tasks`, `.checks`): English.
-- Domain words: `CONTEXT.md`.
+- Domain words: `GLOSSARY.md`.
 
 ## Commit messages
 
@@ -102,4 +102,4 @@ Default role labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for
 
 ### Domain docs
 
-Single-context: `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+Single-context: `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.

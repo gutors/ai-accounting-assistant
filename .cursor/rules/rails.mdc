@@ -25,7 +25,7 @@ Drive writer tokens, A1 unwrap, and SEFAZ mTLS stay on the server — never in v
 - Working files (photos, XML, statements) go through the blob/object-store interface, not durable writes under `Rails.root` or the container disk. Drive is only the **package archive** at **close-for-send**
 - Tailwind for styling. Turbo/Stimulus for interactivity. No React, no shadcn/ui
 - Semantic HTML, keyboard access, visible labels. Prefer buttons/links over clickable `div`s
-- User-facing copy: Portuguese (Brazil), default locale `pt-BR`. Glossary: `CONTEXT.md`
+- User-facing copy: Portuguese (Brazil), default locale `pt-BR`. Glossary: `GLOSSARY.md`
 
 ```ruby
 # BAD

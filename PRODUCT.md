@@ -10,7 +10,7 @@ web
 
 Do not restate these here:
 
-- [`CONTEXT.md`](CONTEXT.md) — domain vocabulary. Use its terms.
+- [`GLOSSARY.md`](GLOSSARY.md) — domain vocabulary. Use its terms.
 - [`README.md`](README.md) — who uses the product, the close ritual, the locked platform, and what is out of this version.
 
 Decisions that constrain later work live in [`docs/adr/`](docs/adr/).

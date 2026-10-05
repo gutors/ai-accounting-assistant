@@ -34,7 +34,7 @@ Quem cadastra uma organização nova é uma conta Google allowlistada (`ADMINIST
 5. **Fechar para envio** congela o mês no produto e grava o pacote na **pasta do mês** `{YYYY-MM}` no arquivo Drive da organização.
 6. O coordenador entrega o mesmo pacote ao contador.
 
-Vocabulário canônico: [`CONTEXT.md`](CONTEXT.md).
+Vocabulário canônico: [`GLOSSARY.md`](GLOSSARY.md).
 
 ## Rodar localmente
 
@@ -150,7 +150,7 @@ Travada. Detalhe e alternativas rejeitadas: [ADR-0001](docs/adr/0001-rails-8-hot
 
 | Doc | Para quê |
 | --- | --- |
-| [`CONTEXT.md`](CONTEXT.md) | Glossário do domínio |
+| [`GLOSSARY.md`](GLOSSARY.md) | Glossário do domínio |
 | [Issue #1](https://github.com/gutors/ai-accounting-assistant/issues/1) | Mapa de produto |
 | [`docs/adr/`](docs/adr/) | Decisões de plataforma |
 | [`AGENTS.md`](AGENTS.md) | Como agentes trabalham neste repo |

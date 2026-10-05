@@ -12,19 +12,5 @@ If the invocation includes an issue number, use it. Otherwise ask. The `gh pr cr
 2. Resolve the GitHub issue. Prefer the number the user named. Else `gh issue list --state open` and ask. If none exists, create one (`gh issue create`) or stop for an explicit human waiver.
 3. `git fetch origin main`. Read `git log --oneline origin/main..HEAD` and `git diff origin/main...HEAD`. Confirm the branch tracks a remote and is up to date enough to push.
 4. Push if needed: `git push -u origin HEAD`. Do not force-push `main`.
-5. Create the PR with `gh` and a heredoc. Title explains **why**. Body includes `Closes #N` or `Fixes #N` (the hook looks for `#<number>` in title, body, or `--fill` commits):
-
-```
-gh pr create --title "…" --body "$(cat <<'EOF'
-## Summary
-- …
-
-## Test plan
-- [ ] …
-
-Closes #N
-EOF
-)"
-```
-
+5. Write the PR body with the `pr` skill. Title explains **why**. Append `Closes #N` or `Fixes #N` after that body (the hook looks for `#<number>` in title, body, or `--fill` commits). Create with `gh pr create --title` and a heredoc `--body`.
 6. Return the PR URL. Do not merge. Do not run the-judge — it reviews a PR that already exists; the merge hook checks that it ran.
