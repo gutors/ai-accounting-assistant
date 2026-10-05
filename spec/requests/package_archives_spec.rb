@@ -3,7 +3,7 @@ require "rails_helper"
 RSpec.describe "Package archives", type: :request do
   let(:folders_url) { "https://drive.google.com/drive/folders/15uNXeRBIhVvZJIhL4yTw4IsStMhUaaxl" }
 
-  it "PATCH /package_archive persists folders URL and folder id" do
+  it "PATCH /package_archive from cadastro persists folders URL and toasts Pronto" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
 
@@ -16,7 +16,7 @@ RSpec.describe "Package archives", type: :request do
     expect(organization.package_archive_folder_id).to eq("15uNXeRBIhVvZJIhL4yTw4IsStMhUaaxl")
 
     get "/setup"
-    expect(response.body).to include(folders_url)
+    expect_archive_leitura(response.body, url: folders_url)
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
     expect(toast_node(response.body).text).to include("Pronto.")
   end
@@ -32,7 +32,7 @@ RSpec.describe "Package archives", type: :request do
     expect(organization.reload.package_archive_folder_id).to eq("15uNXeRBIhVvZJIhL4yTw4IsStMhUaaxl")
   end
 
-  it "PATCH /package_archive blank URL clears url and folder id" do
+  it "PATCH /package_archive blank URL returns cadastro" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
     organization.update_package_archive(folders_url)
@@ -40,9 +40,39 @@ RSpec.describe "Package archives", type: :request do
     patch "/package_archive", params: { url: "" }
 
     expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/setup")
     organization.reload
     expect(organization.package_archive_url).to be_nil
     expect(organization.package_archive_folder_id).to be_nil
+
+    get "/setup"
+    expect_archive_cadastro(response.body)
+  end
+
+  it "PATCH /package_archive from Editar 302s to leitura and toasts Pronto" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    organization.update_package_archive(folders_url)
+    new_url = "https://drive.google.com/drive/folders/1AbCdEfGhIjKlMnOpQrStUvWxYz123456"
+
+    patch "/package_archive", params: { url: new_url }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/setup")
+    organization.reload
+    expect(organization.package_archive_url).to eq(new_url)
+    expect(organization.package_archive_folder_id).to eq("1AbCdEfGhIjKlMnOpQrStUvWxYz123456")
+
+    get "/setup"
+    expect_archive_leitura(response.body, url: new_url)
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_node(response.body).text).to include("Pronto.")
+
+    patch "/package_archive", params: { url: new_url }
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/setup")
+    get "/setup"
+    expect_archive_leitura(response.body, url: new_url)
   end
 
   it "PATCH /package_archive rejected folder URLs return 422" do
@@ -63,7 +93,7 @@ RSpec.describe "Package archives", type: :request do
     end
   end
 
-  it "PATCH /package_archive file URL returns 422" do
+  it "PATCH /package_archive 422 file URL stays Confirmar" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
     organization.update_package_archive(folders_url)
@@ -72,6 +102,22 @@ RSpec.describe "Package archives", type: :request do
 
     expect(response).to have_http_status(:unprocessable_content)
     expect(organization.reload.package_archive_url).to eq(folders_url)
+    expect(toast_node(response.body)).to be_nil
+    expect_archive_edicao(response.body, url: folders_url)
+  end
+
+  it "PATCH /package_archive 422 during cadastro stays Salvar arquivo" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    patch "/package_archive", params: { url: "https://example.com/drive/folders/15uNXeRBIhVvZJIhL4yTw4IsStMhUaaxl" }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    organization.reload
+    expect(organization.package_archive_url).to be_nil
+    expect(organization.package_archive_folder_id).to be_nil
+    expect(toast_node(response.body)).to be_nil
+    expect_archive_cadastro(response.body)
   end
 
   it "unauthenticated PATCH /package_archive responds 302 to /login" do

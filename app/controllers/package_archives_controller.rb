@@ -6,6 +6,7 @@ class PackageArchivesController < ApplicationController
       redirect_success("/setup")
     else
       load_setup
+      @package_archive_editing = focused_organization.package_archive_url.present?
       render "setup/show", status: :unprocessable_content
     end
   end
