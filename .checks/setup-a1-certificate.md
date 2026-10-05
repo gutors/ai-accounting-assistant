@@ -134,3 +134,5 @@ Design opened: `.specs/features/visual-identity/design.md` (file in the repo). U
 ## Handoff
 
 S1 ~8k + S2 ~10k + S3 ~5k + S4 ~5k = ~28k token floor. All four slices share `setup/show.html.erb`; unique bytes sit under ~64k plus the opened design (~20 KB). All four stay under 150k and share the certificate section. No split. One batch.
+
+Batch closed. Checks C1–C9 on this branch. No mid-build clarification. Abandoned: locating `form[action="/sefaz_certificate"]` with `at_css` on the section (the Remover `button_to` is the first match); the install form is the one inside the `<details>`.
