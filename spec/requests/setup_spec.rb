@@ -56,6 +56,91 @@ RSpec.describe "Setup", type: :request do
     expect(response.body).to include("Cadastre o contador")
   end
 
+  it "GET /setup cadastro accountant form is writable with CPF/CNPJ labels" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    get "/setup"
+
+    expect(response).to have_http_status(:ok)
+    expect_accountant_cadastro(response.body)
+  end
+
+  it "GET /setup leitura accountant fields are readonly with formatted CNPJ" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    persist_standing_accountant(organization)
+
+    get "/setup"
+
+    expect(response).to have_http_status(:ok)
+    expect_accountant_leitura_cnpj_row(response.body)
+  end
+
+  it "GET /setup leitura formats CPF and empty razao social" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    organization.update_accountant(presentation_name: "Ana", tax_id: "39053344705")
+
+    get "/setup"
+
+    tax_id = accountant_form(response.body).at_css("#tax_id")
+    legal_name = accountant_form(response.body).at_css("#legal_name")
+    expect(tax_id["readonly"]).to eq("readonly")
+    expect(tax_id["value"]).to eq("390.533.447-05")
+    expect(legal_name["readonly"]).to eq("readonly")
+    expect(legal_name["value"]).to eq("")
+  end
+
+  it "GET /setup leitura with blank optionals still has Editar" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    organization.update_accountant(presentation_name: "Ana")
+
+    get "/setup"
+
+    form = accountant_form(response.body)
+    accountant_input_ids.each do |id|
+      expect(form.at_css("##{id}")["readonly"]).to eq("readonly")
+    end
+    expect(form.at_css("#tax_id")["value"]).to eq("")
+    expect(accountant_edit_control(response.body).text.strip).to eq("Editar")
+  end
+
+  it "GET /setup leitura does not persist tax id punctuation" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    persist_standing_accountant(organization)
+
+    get "/setup"
+    expect(organization.reload.accountant_tax_id).to eq("11222333000181")
+
+    organization.update_accountant(presentation_name: "Ana", tax_id: "39053344705")
+    get "/setup"
+    expect(organization.reload.accountant_tax_id).to eq("39053344705")
+  end
+
+  it "GET of Contador Editar unlocks the writable accountant form" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    persist_standing_accountant(organization)
+
+    get "/setup"
+    edit_url = accountant_edit_control(response.body)["href"]
+
+    get edit_url
+
+    expect(response).to have_http_status(:ok)
+    form = accountant_form(response.body)
+    expect(form.at_css('input[type="submit"][value="Salvar contador"]')).to be_present
+    accountant_input_ids.each do |id|
+      expect(form.at_css("##{id}")["readonly"]).to be_nil
+    end
+    expect(form.at_css("#tax_id")["value"]).to eq("11222333000181")
+    expect_accountant_labels(response.body)
+    expect(accountant_edit_control(response.body)).to be_nil
+  end
+
   it "setup does not include another organization accountant name" do
     account, org_a = plant_coordinator(email: "coord@example.com", organization_name: "A")
     org_b = create_organization!(name: "B")

@@ -29,9 +29,11 @@ Sources:
 
 Touches `GET /setup` Contador HTML (`setup/show`, `SetupController`) and the existing `PATCH /accountant` `422` re-render (`AccountantsController`). Reuses `Organization#update_accountant`, `BrazilianTaxId.normalize` / `format`, `#76` `Pronto.` toast, and `require_coordinator_organization`. No schema change; no new named resource.
 
-None — digits-only `accountant_tax_id` and `PATCH /accountant` already exist. Read-only HTML on the same five fields is reversible. Editar as a GET (Unresolved 1) is not a new resource.
+| One-way door | Literal shape | Alternative rejected |
+| --- | --- | --- |
+| Editar unlocks via query on the existing show | Contador `Editar` is `a` with `href="/setup?edit=accountant"`. `SetupController#show` sets `@accountant_editing` when `params[:edit]` is `accountant`. `AccountantsController` `422` sets `@accountant_editing = true` so the re-render is Edicao without that query. `GET /setup` with no query is Leitura | `details/summary` like bank accounts: Unresolved 2 has no `Cancelar`, and `GET /setup` without the Editar URL must be Leitura. A new `GET /accountant/edit` route: Unresolved 1 says no new resource |
 
-- Nothing else in this change is hard to reverse
+- Nothing else in this change is hard to reverse (read-only HTML, labels, `BrazilianTaxId.format` on `#tax_id`)
 
 ## Test policy
 
@@ -139,3 +141,5 @@ Design opened: `.specs/features/visual-identity/design.md` (file in the repo). U
 ## Handoff
 
 S1 ~8k + S2 ~6k + S3 ~11k = ~25k token floor. The three slices share `setup/show.html.erb` and `setup_spec.rb`; unique files sit under ~40k bytes plus the opened design (~20 KB). All three stay under 150k and share the Contador form. No split. One batch.
+
+Batch closed. Checks C1–C11 on this branch. No mid-build clarification. Abandoned: `readonly: false` on tag helpers (HTML treats the attribute as on); omitted unless Leitura.

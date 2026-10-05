@@ -12,32 +12,38 @@
 <div class="mt-10 space-y-12">
   <section>
     <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Contador</h2>
+    <% accountant_reading = @organization.accountant_presentation_name.present? && !@accountant_editing %>
+    <% accountant_tax_id_value = accountant_reading ? BrazilianTaxId.format(@organization.accountant_tax_id).to_s : @organization.accountant_tax_id.to_s %>
     <% if @organization.accountant_presentation_name.blank? %>
       <p class="mb-4">Cadastre o contador</p>
     <% end %>
     <%= form_with url: "/accountant", method: :patch, class: "grid max-w-3xl gap-4 md:grid-cols-2" do %>
       <div>
         <label for="presentation_name" class="mb-1 block font-medium">Nome de apresentação</label>
-        <%= text_field_tag :presentation_name, @organization.accountant_presentation_name, id: "presentation_name", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
+        <%= text_field_tag :presentation_name, @organization.accountant_presentation_name.to_s, id: "presentation_name", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off", **readonly_if(accountant_reading) %>
       </div>
       <div>
-        <label for="tax_id" class="mb-1 block font-medium">Id fiscal</label>
-        <%= text_field_tag :tax_id, @organization.accountant_tax_id, id: "tax_id", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
+        <label for="tax_id" class="mb-1 block font-medium">CPF/CNPJ (preencher apenas números)</label>
+        <%= text_field_tag :tax_id, accountant_tax_id_value, id: "tax_id", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off", **readonly_if(accountant_reading) %>
       </div>
       <div>
         <label for="legal_name" class="mb-1 block font-medium">Razão social</label>
-        <%= text_field_tag :legal_name, @organization.accountant_legal_name, id: "legal_name", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "organization" %>
+        <%= text_field_tag :legal_name, @organization.accountant_legal_name.to_s, id: "legal_name", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "organization", **readonly_if(accountant_reading) %>
       </div>
       <div>
         <label for="pix_key" class="mb-1 block font-medium">PIX</label>
-        <%= text_field_tag :pix_key, @organization.accountant_pix_key, id: "pix_key", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
+        <%= text_field_tag :pix_key, @organization.accountant_pix_key.to_s, id: "pix_key", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off", **readonly_if(accountant_reading) %>
       </div>
       <div>
-        <label for="destination_email" class="mb-1 block font-medium">Destino do pacote</label>
-        <%= email_field_tag :destination_email, @organization.package_destination_email, id: "destination_email", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "email" %>
+        <label for="destination_email" class="mb-1 block font-medium">Email para envio</label>
+        <%= email_field_tag :destination_email, @organization.package_destination_email.to_s, id: "destination_email", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "email", **readonly_if(accountant_reading) %>
       </div>
       <div class="md:col-span-2">
-        <%= submit_tag "Salvar contador", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+        <% if accountant_reading %>
+          <%= link_to "Editar", "/setup?edit=accountant", class: "inline-block rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+        <% else %>
+          <%= submit_tag "Salvar contador", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+        <% end %>
       </div>
     <% end %>
   </section>
