@@ -4,6 +4,7 @@ Rails.application.routes.draw do
   get "/login", to: "sessions#new", as: :login
   delete "/session", to: "sessions#destroy"
   get "/denied", to: "sessions#denied", as: :denied
+  post "/dev/session", to: "development_sessions#create" unless Rails.env.production?
 
   get "/administration", to: "administration#show", as: :administration
   get "/administration/new", to: "administration#new", as: :new_administration

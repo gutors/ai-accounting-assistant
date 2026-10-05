@@ -88,7 +88,7 @@ A URL e a redirect URI passam a usar a porta `3001`.
 
 ### Entrar
 
-Entre com Google usando `gutors@gmail.com` para cair na `ONG Exemplo` como coordenador. Outro nome ou outro e-mail:
+Entre com Google usando `gutors@gmail.com` para cair na `ONG Exemplo` como coordenador. Em development, `/login` também lista **Ambiente local**: um botão por conta já persistida (`POST /dev/session`) para o agente (ou você) entrar sem o Google. Essa porta não existe em production. Outro nome ou outro e-mail:
 
 ```sh
 ORGANIZATION_NAME="ONG Norte" COORDINATOR_EMAIL="coord@exemplo.org" bin/rails coordinator:bootstrap
