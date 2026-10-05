@@ -151,3 +151,7 @@ Design opened: `.specs/features/visual-identity/design.md` (file in the repo). U
 ## Handoff
 
 S1 ~26k (`index.html.erb` + `supporting_documents_spec.rb`) + S2 ~27k (same view/spec plus Stimulus controller and `document_kind_spec.rb`; spec file not paid twice on a unique-file floor) + S3 ~29k (`design.md` + docs spec + the same request spec) = ~82k if the 94 KB spec is counted in every slice, ~40k unique files / 4. All three slices stay under 150k and share the documents index. No split. One batch.
+
+- Where the boundary fell: C1–C13 closed on this branch after the implementation commit.
+- What the user settled mid-build: none.
+- What was abandoned: none.
