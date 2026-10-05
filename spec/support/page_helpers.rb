@@ -94,6 +94,59 @@ module PageHelpers
     expect(body).not_to include("Cadastre o contador")
     expect(accountant_edit_control(body).text.strip).to eq("Editar")
   end
+
+  def certificate_heading
+    "Certificado Digital A1 - Para consulta na SEFAZ"
+  end
+
+  def certificate_empty_line
+    "Não há certificado A1 instalado. Use Instalar certificado."
+  end
+
+  def certificate_section(body)
+    page_doc(body).css("section").find { |section| section.at_css("h2")&.text&.strip == certificate_heading }
+  end
+
+  def certificate_install_details(body)
+    certificate_section(body)&.at_css("#certificate")&.ancestors("details")&.first
+  end
+
+  def certificate_remover(body)
+    certificate_section(body)&.css("input[type='submit'], button").find { |node| node["value"] == "Remover" || node.text.strip == "Remover" }
+  end
+
+  def expect_certificate_absent_copy(body)
+    expect(body).to include(certificate_heading)
+    expect(body).to include(certificate_empty_line)
+    expect(body).not_to include("Certificado SEFAZ")
+    expect(body).not_to include("Nenhum certificado")
+    expect(body).not_to include("Válido até")
+    expect(body).not_to include("Expirado em")
+    expect(body).not_to include("Remover o certificado SEFAZ?")
+    expect(body).not_to match(/\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}/)
+  end
+
+  def expect_certificate_install_fold(body, open:)
+    details = certificate_install_details(body)
+    expect(details).to be_present
+    expect(details.has_attribute?("open")).to eq(open)
+    expect(details.at_css("summary").text.strip).to eq("Instalar certificado")
+    expect(details.at_css("#certificate")).to be_present
+    expect(details.at_css("#passphrase")).to be_present
+    form = details.at_css('form[action="/sefaz_certificate"]')
+    expect(form.at_css('input[type="submit"][value="Instalar certificado"]')).to be_present
+    expect(details.at_css("#certificate")["type"]).to eq("file")
+  end
+
+  def expect_certificate_listed_cnpj_row(body)
+    expect(body).to include("11.222.333/0001-81")
+    expect(body).to include("Válido até 18/09/2027")
+    expect(certificate_remover(body)).to be_present
+    expect(body).to include('data-turbo-confirm="Remover o certificado SEFAZ?"')
+    expect(body).not_to include(certificate_empty_line)
+    expect_certificate_install_fold(body, open: false)
+    expect(certificate_remover(body).ancestors("details")).not_to include(certificate_install_details(body))
+  end
 end
 
 RSpec.configure do |config|

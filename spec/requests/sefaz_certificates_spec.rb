@@ -24,9 +24,7 @@ RSpec.describe "SEFAZ certificates", type: :request do
     expect(organization.sefaz_not_after).to eq(Date.new(2027, 9, 18))
 
     get "/setup"
-    expect(response.body).to include("11.222.333/0001-81")
-    expect(response.body).to include("Válido até 18/09/2027")
-    expect(response.body).not_to include("Nenhum certificado")
+    expect_certificate_listed_cnpj_row(response.body)
     expect(response.body).not_to include("passphrase-secreta")
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
     expect(toast_node(response.body).text).to include("Pronto.")
@@ -64,7 +62,7 @@ RSpec.describe "SEFAZ certificates", type: :request do
     expect(response.body.b).not_to include(der.b)
   end
 
-  it "POST pfx with passphrase errada returns 422" do
+  it "POST pfx with passphrase errada returns 422 with install details open" do
     _account, organization = signed_in
 
     post "/sefaz_certificate", params: {
@@ -72,10 +70,34 @@ RSpec.describe "SEFAZ certificates", type: :request do
       passphrase: "errada"
     }
 
-    expect(response).to have_http_status(:unprocessable_content)
-    expect(response.body).to include("Não foi possível abrir o certificado com essa senha")
-    expect(response.body).to include("Nenhum certificado")
     expect(organization.reload.sefaz_titular_cnpj).to be_nil
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(error_notice_text(response.body)).to eq("Não foi possível abrir o certificado com essa senha")
+    expect(response.body).to include(certificate_empty_line)
+    expect_certificate_install_fold(response.body, open: true)
+    expect(page_doc(response.body).at_css("#certificate")["type"]).to eq("file")
+    expect(page_doc(response.body).at_css("#passphrase")["value"].to_s).to eq("")
+    expect(response.body).not_to include("errada")
+  end
+
+  it "POST e-CPF against listed A1 returns 422 with install details open" do
+    _account, organization = signed_in
+    post "/sefaz_certificate", params: {
+      certificate: sefaz_pfx,
+      passphrase: "passphrase-secreta"
+    }
+
+    post "/sefaz_certificate", params: {
+      certificate: sefaz_pfx(titular: "39053344705"),
+      passphrase: "passphrase-secreta"
+    }
+
+    expect(organization.reload.sefaz_titular_cnpj).to eq("11222333000181")
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(error_notice_text(response.body)).to eq("O certificado deve ser e-CNPJ A1 vigente")
+    expect(response.body).to include("11.222.333/0001-81")
+    expect(certificate_remover(response.body)).to be_present
+    expect_certificate_install_fold(response.body, open: true)
   end
 
   it "certificate error renders as a data-notice error alert" do
@@ -203,8 +225,8 @@ RSpec.describe "SEFAZ certificates", type: :request do
     expect(response).to redirect_to("/setup")
     expect(organization.reload.sefaz_titular_cnpj).to be_nil
     get "/setup"
-    expect(response.body).to include("Nenhum certificado")
-    expect(response.body).not_to include("11.222.333/0001-81")
+    expect_certificate_absent_copy(response.body)
+    expect_certificate_install_fold(response.body, open: false)
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
     expect(toast_node(response.body).text).to include("Pronto.")
   end
