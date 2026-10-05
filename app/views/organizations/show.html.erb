@@ -1,7 +1,8 @@
 <% content_for :title, @organization.name %>
 
-<% if @focusable_organizations.size > 1 %>
-  <nav aria-label="Organizações" class="mb-8">
+<nav aria-label="Organizações" class="mb-12">
+  <p class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Organizações</p>
+  <% if @focusable_organizations.size > 1 %>
     <ul class="flex flex-wrap gap-2">
       <% @focusable_organizations.each do |organization| %>
         <% focused = organization.id == @organization.id %>
@@ -10,35 +11,49 @@
         </li>
       <% end %>
     </ul>
-  </nav>
-<% end %>
+  <% else %>
+    <p class="font-medium"><%= @organization.name %></p>
+  <% end %>
+</nav>
 
 <% if coordinator_on_focus? %>
-  <h1 class="text-2xl leading-7 font-semibold tracking-[-0.01em]">Meses</h1>
+  <h1 class="text-2xl leading-7 font-semibold tracking-[-0.01em]">Início</h1>
+  <p class="mt-4 max-w-prose">Selecione um mês para abrir o fechamento ou escolha um na lista abaixo.</p>
   <% if @month_error.present? %>
     <div class="mt-6"><%= render "shared/notice", message: @month_error %></div>
   <% end %>
 
-  <div class="mt-6 space-y-12">
+  <div class="mt-12 space-y-12">
     <section>
-      <% if @months.empty? %>
-        <p>Nenhum mês aberto</p>
-      <% else %>
-        <ul class="border-t border-rule">
-          <% @months.each do |month| %>
-            <li data-row="month" class="grid grid-cols-[minmax(0,1fr)_8rem] gap-x-4 border-b border-rule py-3">
-              <%= link_to month.year_month, "/months/#{month.year_month}", class: "font-medium text-caixa tabular-nums underline underline-offset-2" %>
-              <span class="text-right text-ink-soft"><%= month.closed? ? "Fechado" : "Aberto" %></span>
-            </li>
-          <% end %>
-        </ul>
-      <% end %>
-      <%= form_with url: "/months", method: :post, class: "mt-4 flex flex-wrap items-end gap-3" do %>
+      <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Abrir o fechamento mensal</h2>
+      <%= form_with url: "/months", method: :post, class: "flex flex-wrap items-end gap-3" do %>
         <div>
           <label for="year_month" class="mb-1 block font-medium">Mês</label>
           <%= select_tag :year_month, options_for_select(openable_month_options, previous_calendar_year_month), id: "year_month", class: "rounded border border-rule bg-sheet px-3 py-2" %>
         </div>
         <%= submit_tag "Abrir mês", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+      <% end %>
+    </section>
+
+    <section>
+      <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Meses</h2>
+      <% if @months.empty? %>
+        <p>Nenhum mês aberto</p>
+      <% else %>
+        <div class="hidden border-b border-rule py-2 font-medium text-ink-soft md:grid md:grid-cols-[minmax(0,1fr)_8rem_8rem] md:gap-x-4">
+          <span>Mês</span>
+          <span>AAAA-MM</span>
+          <span class="text-right">Status</span>
+        </div>
+        <ul>
+          <% @months.each do |month| %>
+            <li data-row="month" class="grid grid-cols-1 gap-x-4 gap-y-1 border-b border-rule py-3 md:grid-cols-[minmax(0,1fr)_8rem_8rem]">
+              <%= link_to month_title(month.year_month), "/months/#{month.year_month}", class: "font-medium text-caixa underline underline-offset-2" %>
+              <span class="text-meta text-ink-soft tabular-nums"><%= month.year_month %></span>
+              <span class="text-ink-soft md:text-right"><%= month.closed? ? "Fechado" : "Aberto" %></span>
+            </li>
+          <% end %>
+        </ul>
       <% end %>
     </section>
 
@@ -96,15 +111,19 @@
     <section>
       <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Convites pendentes</h2>
       <% if @invites.any? %>
+        <div class="hidden border-b border-rule py-2 font-medium text-ink-soft md:grid md:grid-cols-[minmax(0,1.5fr)_9rem_minmax(10rem,1fr)_12rem] md:gap-x-4">
+          <span>E-mail</span>
+          <span>Tipo</span>
+          <span>Status</span>
+          <span></span>
+        </div>
         <ul>
           <% @invites.each do |invite| %>
-            <li data-row="invite" class="flex items-center justify-between gap-3 border-b border-rule py-2">
-              <span class="min-w-0 break-all">
-                <%= invite.email %>
-                <%= invite.coordinator? ? "Coordenador" : "Submitter" %>
-                <%= invite.sent? ? "enviado" : "falhou envio do e-mail" %>
-              </span>
-              <span class="flex flex-wrap items-center gap-3">
+            <li data-row="invite" class="grid grid-cols-2 gap-x-4 gap-y-1 border-b border-rule py-3 md:grid-cols-[minmax(0,1.5fr)_9rem_minmax(10rem,1fr)_12rem]">
+              <span class="col-span-2 min-w-0 break-all md:col-span-1"><%= invite.email %></span>
+              <span><%= invite.coordinator? ? "Coordenador" : "Submitter" %></span>
+              <span class="text-ink-soft"><%= invite.sent? ? "enviado" : "falhou envio do e-mail" %></span>
+              <span class="col-span-2 flex flex-wrap items-center gap-3 md:col-span-1 md:justify-end">
                 <%= button_to "Reenviar e-mail", "/#{invite.submitter? ? "submitter" : "coordinator"}_invites/#{invite.id}/mail", method: :post, class: "text-caixa underline underline-offset-2" %>
                 <% if invite.submitter? %>
                   <%= button_to "Cancelar", "/submitter_invites/#{invite.id}", method: :delete, class: "text-margem underline underline-offset-2" %>

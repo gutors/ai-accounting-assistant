@@ -114,7 +114,7 @@ RSpec.describe "Layout header", type: :request do
     }
     expect(notice_with_mail).to be_nil
     h1 = page_doc(response.body).at_css("h1")
-    expect(h1.text.strip).to eq("Meses")
+    expect(h1.text.strip).to eq("Início")
     expect(h1.parent.at_css("section").text).not_to include(mail_failure)
   end
 

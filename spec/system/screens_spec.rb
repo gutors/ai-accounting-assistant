@@ -157,7 +157,7 @@ RSpec.describe "Screens", type: :system do
 
     at_viewport(390) do
       visit "/"
-      expect(page).to have_css("h1", text: "Meses")
+      expect(page).to have_css("h1", text: "Início")
       expect(scroll_width).to be <= 390
 
       visit "/setup"

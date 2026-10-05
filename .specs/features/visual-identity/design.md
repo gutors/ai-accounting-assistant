@@ -178,32 +178,45 @@ Same shell as login. Body: `Você não foi convidado a usar este sistema.` New c
 
 ```
 header: ▣ ONG Norte · nav
-[ ONG Norte ] [ ONG Sul ]          ← only when >1 organization; focused has aria-current
-Meses                                          (h1)
-  2026-05     Aberto                           ← li[data-row="month"], link on 2026-05
-  2026-04     Fechado
+Organizações                                   (visible label; nav aria-label Organizações)
+  ONG Norte                                    ← name in ink, not a button, when only one organization
+  [ ONG Norte ] [ ONG Sul ]                    ← only when >1; focused has aria-current
+Início                                         (h1)
+Selecione um mês para abrir o fechamento ou escolha um na lista abaixo.
+Abrir o fechamento mensal                      (h2)
   Mês  [ select today − 12 through today + 12, previous calendar month selected ]  [ Abrir mês ]
+Meses                                          (h2)
+  Mês | AAAA-MM | Status                       ← column names; from 768px
+  maio de 2026    2026-05    Aberto            ← li[data-row="month"]; link on month_title
+  abril de 2026   2026-04    Fechado
 Pessoas                                        (h2)
   Coordenadores            | Submitters         ← two columns from 768px
    ana@…       Revogar     |  joao@…   Revogar
    [E-mail] [Convidar]     |  [E-mail] [Convidar]
 Convites pendentes                             (h2, full width)
-   guest@…  Coordenador|Submitter  enviado|falhou envio do e-mail  Reenviar e-mail  Cancelar
+  E-mail | Tipo | Status                       ← column names; from 768px
+  guest@…  Coordenador|Submitter  enviado|falhou envio do e-mail  Reenviar e-mail  Cancelar
 ```
 
-- The organization switcher keeps its `<nav aria-label="Organizações">`; the focused button
-  carries `aria-current="true"` and is filled `bg-caixa text-white`; others are secondary.
-- Months list is a ledger of `li[data-row="month"]`: `year_month` linked, then `Aberto` or
-  `Fechado` in `ink-soft`. `Nenhum mês aberto` stays as the empty state.
+- The organization switcher keeps its `<nav aria-label="Organizações">` on every home, with the
+  visible label `Organizações`. One organization: the focused name as text, not a button. More
+  than one: chips; the focused button carries `aria-current="true"` and is filled
+  `bg-caixa text-white`; others are secondary.
+- Open-month form is the first section after the page title. Months list is a ledger of
+  `li[data-row="month"]`: `month_title` linked, `year_month` in meta tabular figures, then
+  `Aberto` or `Fechado` in `ink-soft`. `Nenhum mês aberto` stays as the empty state.
 - Invite forms sit under their list inside the column. The `Convidar coordenador` /
   `Convidar submitter` headings become the `<legend>`-style labels of those forms; the submit
   stays `Convidar`.
-- New copy: `Meses` (h1), `Pessoas`, `Aberto`, `Fechado`.
+- New copy: `Início` (h1), `Abrir o fechamento mensal`, `Meses` (h2), `Pessoas`, `Aberto`,
+  `Fechado`, column names `Mês`, `AAAA-MM`, `Status`, `E-mail`, `Tipo`.
 
 ### `home` — `GET /` (submitter)
 
 ```
 header: ▣ ONG Norte · Início Documentos Sair
+Organizações                                   (same block as coordinator)
+  ONG Norte
 Início                                          (h1)
 Inclua e acompanhe seus documentos de suporte em Documentos.   ← link to /supporting_documents
 ```

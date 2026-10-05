@@ -24,6 +24,9 @@ RSpec.describe "Organization home", type: :request do
     doc = page_doc(response.body)
     invites_heading = doc.css("h2").find { |h2| h2.text.strip == "Convites pendentes" }
     invites_section = invites_heading.parent
+    expect(invites_section.text).to include("E-mail")
+    expect(invites_section.text).to include("Tipo")
+    expect(invites_section.text).to include("Status")
     expect(invites_section.css("li").map(&:text).join).to include("ana@exemplo.org")
     expect(invites_section.css("li").map(&:text).join).to include("zoe@exemplo.org")
     pessoas_section = doc.css("h2").find { |h2| h2.text.strip == "Pessoas" }.parent
@@ -151,9 +154,19 @@ RSpec.describe "Organization home", type: :request do
     end
 
     expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Selecione um mês para abrir o fechamento ou escolha um na lista abaixo.")
     expect(response.body).to include("Nenhum mês aberto")
+    expect(response.body.index("Abrir o fechamento mensal")).to be < response.body.index("Nenhum mês aberto")
     expect(response.body).not_to include('input type="month"')
     doc = page_doc(response.body)
+    orgs = doc.at_css('nav[aria-label="Organizações"]')
+    expect(orgs).to be_present
+    expect(orgs.at_css("p").text.strip).to eq("Organizações")
+    expect(orgs.css("p").map { |p| p.text.strip }).to include(organization.name)
+    expect(orgs.css("form")).to be_empty
+    headings = doc.css("h2").map { |h2| h2.text.strip }
+    expect(headings).to include("Abrir o fechamento mensal")
+    expect(headings).to include("Meses")
     expect(doc.at_css('input[type="month"][name="year_month"]')).to be_nil
     expect(doc.css("select#year_month").size).to eq(1)
     select = doc.at_css("select#year_month")
@@ -201,7 +214,8 @@ RSpec.describe "Organization home", type: :request do
     month_row = rows(response.body, "month").first
     link = month_row.at_css('a[href="/months/2026-05"]')
     expect(link).not_to be_nil
-    expect(link.text).to include("2026-05")
+    expect(link.text).to include("maio de 2026")
+    expect(month_row.text).to include("2026-05")
     values = page_doc(response.body).css("select#year_month option").map { |option| option["value"] }
     expect(values).to include("2026-05")
   end
@@ -272,19 +286,22 @@ RSpec.describe "Organization home", type: :request do
     expect(response.body).not_to include("Convidar coordenador")
   end
 
-  it "home h1 is Meses and an open month row says Aberto" do
+  it "home h1 is Inicio and an open month row says Aberto" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
     Month.open(organization: organization, year_month: "2026-05")
 
     get "/"
 
-    expect(page_doc(response.body).at_css("h1").text.strip).to eq("Meses")
+    expect(page_doc(response.body).at_css("h1").text.strip).to eq("Início")
     month_rows = rows(response.body, "month")
     expect(month_rows.size).to eq(1)
     expect(month_rows.first.at_css('a[href="/months/2026-05"]')).not_to be_nil
+    expect(month_rows.first.text).to include("maio de 2026")
+    expect(month_rows.first.text).to include("2026-05")
     expect(month_rows.first.text).to include("Aberto")
     expect(month_rows.first.text).not_to include("Fechado")
+    expect(response.body).to include("AAAA-MM")
   end
 
   it "home has a Pessoas h2" do
@@ -317,9 +334,13 @@ RSpec.describe "Organization home", type: :request do
 
     get "/"
 
-    expect(page_doc(response.body).at_css("h1").text.strip).to eq("Início")
+    doc = page_doc(response.body)
+    expect(doc.at_css("h1").text.strip).to eq("Início")
+    orgs = doc.at_css('nav[aria-label="Organizações"]')
+    expect(orgs).to be_present
+    expect(orgs.css("p").map { |p| p.text.strip }).to include(organization.name)
     expect(response.body).to include("Inclua e acompanhe seus documentos de suporte em")
-    expect(page_doc(response.body).at_css('main a[href="/supporting_documents"]')).not_to be_nil
+    expect(doc.at_css('main a[href="/supporting_documents"]')).not_to be_nil
     expect(response.body).not_to include("Meses")
   end
 

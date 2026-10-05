@@ -135,14 +135,15 @@ Under `Coordenadores`, the principal coordinator is the first row. The remaining
 
 Each pending invite, coordinator or submitter, shows the email, `Coordenador` or `Submitter`, and `enviado` or `falhou envio do e-mail` on that row, then `Reenviar e-mail` immediately before `Cancelar`. `Reenviar e-mail` is a quiet caixa action. `Cancelar` stays a quiet margem action, deletes that invite, and sends nothing. An invite that was already pending is sent only when someone resends.
 
-A failed send is the error toast in C8–C10 (`O convite foi gravado, mas o e-mail não saiu.`), not a notice under the `Meses` title. Per-invite mail status is #78. Last delivery lives on the Invite: resend overwrites `enviado` / `falhou envio do e-mail` on that row. The toast is one-shot.
+A failed send is the error toast in C8–C10 (`O convite foi gravado, mas o e-mail não saiu.`), not a notice under the `Início` title. Per-invite mail status is #78. Last delivery lives on the Invite: resend overwrites `enviado` / `falhou envio do e-mail` on that row. The toast is one-shot.
 
 ```
 │  [error toast: O convite foi gravado, mas o e-mail não saiu.]  │
-│  Meses                                              (h1)       │
+│  Início                                             (h1)       │
 │                                                                │
 │  Convites pendentes                                            │
 │  ─────────────────────────────────────────────                 │
+│  E-mail              Tipo         Status                       │
 │  pessoa@exemplo.org  Coordenador  falhou envio do e-mail       │
 │  Reenviar e-mail    Cancelar                                   │
 ```
