@@ -230,9 +230,12 @@ header · nav
 Configuração                                    (h1)
 Contador                                        (h2)
   cadastro (no presentation name): Nome de apresentação / CPF/CNPJ (preencher apenas números) / Razão social / PIX / Email para envio  [Salvar contador]
-  leitura (presentation name exists): those five fields read-only, formatted CPF/CNPJ on read  [Editar]
-Arquivo do pacote                               (h2)
-  form: URL da pasta do Drive  [Salvar arquivo]
+  leitura (presentation name exists): those five values as labeled font-medium text, formatted CPF/CNPJ on read  [Editar]
+  GET /setup?edit=accountant: the five fields as inputs  [Salvar contador]
+Armazenamento do pacote mensal                  (h2)
+  cadastro (no URL): Cole a URL da pasta do Google Drive; URL da pasta do Google Drive  [Salvar arquivo]
+  leitura (URL exists): labeled font-medium text plus [Editar]
+  GET /setup?edit=package_archive: input#url  [Confirmar]
 Certificado SEFAZ                               (h2)
   state line; Remover (quiet, margem); form: Arquivo / Senha [Instalar certificado]
 Contas bancárias                                (h2)
@@ -244,7 +247,8 @@ Tipos extras de exceção                         (h2)
   form: Nome  [Adicionar tipo extra]
 ```
 
-- Contador is cadastro when there is no presentation name; after that name exists the same five fields are read-only plus `Editar`. `GET /setup?edit=accountant` is the writable form. Formatted CPF/CNPJ on read. `Arquivo do pacote` stays the always-writable URL form (`Salvar arquivo`) — #81.
+- Contador is cadastro when there is no presentation name; after that name exists the five values are labeled-text chrome (`p.font-medium`) plus `Editar`. Cadastro and `GET /setup?edit=accountant` keep the input chrome. Formatted CPF/CNPJ on read.
+- Armazenamento do pacote mensal is cadastro when there is no URL (`Cole a URL da pasta do Google Drive`, label `URL da pasta do Google Drive`, `[Salvar arquivo]`). After a URL exists it is labeled `font-medium` text plus `Editar`. `GET /setup?edit=package_archive` is `input#url` with `[Confirmar]`.
 - Bank account rows are `li[data-row="bank-account"]`: name (500), slug and coordinates in meta,
   `Inativa` in `ink-soft` when inactive, quiet actions, then `<details><summary>Editar</summary>`
   with the existing edit form.

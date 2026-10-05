@@ -32,7 +32,7 @@ RSpec.describe "Setup", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include('lang="pt-BR"')
     expect(response.body).to include("Contador")
-    expect(response.body).to include("Arquivo do pacote")
+    expect(response.body).to include("Armazenamento do pacote mensal")
     expect(response.body).to include("Contas bancárias")
   end
 
@@ -66,7 +66,7 @@ RSpec.describe "Setup", type: :request do
     expect_accountant_cadastro(response.body)
   end
 
-  it "GET /setup leitura accountant fields are readonly with formatted CNPJ" do
+  it "GET /setup leitura accountant fields are labeled text with formatted CNPJ" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
     persist_standing_accountant(organization)
@@ -84,12 +84,9 @@ RSpec.describe "Setup", type: :request do
 
     get "/setup"
 
-    tax_id = accountant_form(response.body).at_css("#tax_id")
-    legal_name = accountant_form(response.body).at_css("#legal_name")
-    expect(tax_id["readonly"]).to eq("readonly")
-    expect(tax_id["value"]).to eq("390.533.447-05")
-    expect(legal_name["readonly"]).to eq("readonly")
-    expect(legal_name["value"]).to eq("")
+    section = accountant_section(response.body)
+    expect(section.at_css("p#tax_id").text.strip).to eq("390.533.447-05")
+    expect(section.at_css("p#legal_name").text.strip).to eq("")
   end
 
   it "GET /setup leitura with blank optionals still has Editar" do
@@ -99,11 +96,10 @@ RSpec.describe "Setup", type: :request do
 
     get "/setup"
 
-    form = accountant_form(response.body)
-    accountant_input_ids.each do |id|
-      expect(form.at_css("##{id}")["readonly"]).to eq("readonly")
+    section = accountant_section(response.body)
+    %w[tax_id legal_name pix_key destination_email].each do |id|
+      expect(section.at_css("p##{id}").text.strip).to eq("")
     end
-    expect(form.at_css("#tax_id")["value"]).to eq("")
     expect(accountant_edit_control(response.body).text.strip).to eq("Editar")
   end
 
@@ -153,13 +149,75 @@ RSpec.describe "Setup", type: :request do
     expect(response.body).not_to include("Contador Beta")
   end
 
-  it "GET /setup empty archive includes Cole a URL da pasta do Drive" do
+  it "GET /setup cadastro archive form is writable with Google Drive copy" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
 
     get "/setup"
 
-    expect(response.body).to include("Cole a URL da pasta do Drive")
+    expect(response).to have_http_status(:ok)
+    expect_archive_cadastro(response.body)
+  end
+
+  it "GET /setup leitura archive is labeled text" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    persist_standing_archive(organization)
+
+    get "/setup"
+
+    expect(response).to have_http_status(:ok)
+    expect_archive_leitura(response.body)
+  end
+
+  it "GET of Armazenamento Editar unlocks the writable archive form" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    persist_standing_archive(organization)
+
+    get "/setup"
+    edit_url = archive_edit_control(response.body)["href"]
+
+    get edit_url
+
+    expect(response).to have_http_status(:ok)
+    expect_archive_edicao(response.body)
+  end
+
+  it "GET /setup edit=package_archive unlocks archive and keeps accountant leitura" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    persist_standing_accountant(organization)
+    persist_standing_archive(organization)
+
+    get "/setup?edit=package_archive"
+
+    expect(response).to have_http_status(:ok)
+    expect_archive_edicao(response.body)
+    expect_accountant_leitura_cnpj_row(response.body)
+  end
+
+  it "GET /setup edit=accountant unlocks accountant and keeps archive leitura" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    persist_standing_accountant(organization)
+    persist_standing_archive(organization)
+
+    get "/setup?edit=accountant"
+
+    expect(response).to have_http_status(:ok)
+    form = accountant_form(response.body)
+    expect(form.at_css('input[type="submit"][value="Salvar contador"]')).to be_present
+    accountant_input_ids.each do |id|
+      input = form.at_css("input##{id}")
+      expect(input["class"]).to include("border-rule")
+      expect(input["class"]).to include("bg-sheet")
+      expect(input["readonly"]).to be_nil
+      expect(input["disabled"]).to be_nil
+    end
+    expect(form.at_css("#tax_id")["value"]).to eq("11222333000181")
+    expect(accountant_section(response.body).at_css("p#presentation_name")).to be_nil
+    expect_archive_leitura(response.body)
   end
 
   it "setup does not include another organization archive URL" do

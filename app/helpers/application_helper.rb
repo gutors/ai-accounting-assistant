@@ -41,8 +41,4 @@ module ApplicationHelper
   def format_chave(chave)
     chave.to_s.scan(/.{1,4}/).join(" ")
   end
-
-  def readonly_if(reading)
-    reading ? { readonly: true } : {}
-  end
 end

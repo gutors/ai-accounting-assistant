@@ -12,10 +12,6 @@ RSpec.describe "Setup accountant read-after-save sources" do
     expect(section).to include("cadastro")
     expect(section).to include("presentation name")
     expect(section).to include("Editar")
-    expect(section).to include("read-only")
     expect(section).to include("CPF/CNPJ")
-    expect(section).to include("Salvar arquivo")
-    expect(section).to include("#81")
-    expect(section).to include("Arquivo do pacote")
   end
 end

@@ -155,3 +155,7 @@ Design opened: `.specs/features/visual-identity/design.md` (file in the repo). U
 ## Handoff
 
 S1 ~9k + S2 ~8k + S3 ~9k + S4 ~8k + S5 ~10k = ~44k token floor. All five slices share `setup/show.html.erb` and `setup_spec.rb`; unique files sit under ~40k bytes plus the opened design (~20 KB). All five stay under 150k and share screen `setup`. No split. One batch.
+
+- Where the boundary fell: one batch; C1–C13 closed on this branch after the product commit.
+- What the user settled mid-build: none.
+- What was abandoned: wrapping standing Leitura in `form_with` and swapping `input[readonly]` for `p` — the authenticity token is an `input`, which C3 and C9 forbid.
