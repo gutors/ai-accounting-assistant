@@ -229,7 +229,8 @@ New copy: `Início`, `Inclua e acompanhe seus documentos de suporte em Documento
 header · nav
 Configuração                                    (h1)
 Contador                                        (h2)
-  form: Nome de apresentação / Id fiscal / Razão social / PIX / Destino do pacote  [Salvar contador]
+  cadastro (no presentation name): Nome de apresentação / CPF/CNPJ (preencher apenas números) / Razão social / PIX / Email para envio  [Salvar contador]
+  leitura (presentation name exists): those five fields read-only, formatted CPF/CNPJ on read  [Editar]
 Arquivo do pacote                               (h2)
   form: URL da pasta do Drive  [Salvar arquivo]
 Certificado SEFAZ                               (h2)
@@ -243,6 +244,7 @@ Tipos extras de exceção                         (h2)
   form: Nome  [Adicionar tipo extra]
 ```
 
+- Contador is cadastro when there is no presentation name; after that name exists the same five fields are read-only plus `Editar`. `GET /setup?edit=accountant` is the writable form. Formatted CPF/CNPJ on read. `Arquivo do pacote` stays the always-writable URL form (`Salvar arquivo`) — #81.
 - Bank account rows are `li[data-row="bank-account"]`: name (500), slug and coordinates in meta,
   `Inativa` in `ink-soft` when inactive, quiet actions, then `<details><summary>Editar</summary>`
   with the existing edit form.

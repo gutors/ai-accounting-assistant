@@ -1,6 +1,82 @@
 require "rails_helper"
 
 RSpec.describe "Accountants", type: :request do
+  it "PATCH /accountant from cadastro persists Ana and toasts Pronto" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    patch "/accountant", params: { presentation_name: "Ana" }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/setup")
+    expect(organization.reload.accountant_presentation_name).to eq("Ana")
+
+    get "/setup"
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_node(response.body).text).to include("Pronto.")
+  end
+
+  it "PATCH /accountant from Editar 302s to leitura and toasts Pronto" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    persist_standing_accountant(organization)
+
+    patch "/accountant", params: {
+      presentation_name: "Ana Contábil",
+      tax_id: "11222333000181",
+      legal_name: "Contábil LTDA",
+      pix_key: "chave-pix",
+      destination_email: "ana@example.com"
+    }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/setup")
+    expect(organization.reload.accountant_tax_id).to eq("11222333000181")
+
+    get "/setup"
+    expect_accountant_leitura_cnpj_row(response.body)
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_node(response.body).text).to include("Pronto.")
+  end
+
+  it "PATCH /accountant 422 after standing name stays writable" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    organization.update_accountant(presentation_name: "Ana")
+    tax_id_before = organization.reload.accountant_tax_id
+
+    patch "/accountant", params: { presentation_name: "Ana", tax_id: "11222333000181" }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(organization.reload.accountant_tax_id).to eq(tax_id_before)
+    expect(error_notice_text(response.body)).to eq("Informe a razão social")
+    form = accountant_form(response.body)
+    expect(form.at_css('input[type="submit"][value="Salvar contador"]')).to be_present
+    accountant_input_ids.each do |id|
+      expect(form.at_css("##{id}")["readonly"]).to be_nil
+    end
+  end
+
+  it "PATCH /accountant clearing the name returns cadastro" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    persist_standing_accountant(organization)
+
+    patch "/accountant", params: { presentation_name: "" }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/setup")
+    organization.reload
+    expect(organization.accountant_presentation_name).to be_nil
+    expect(organization.accountant_tax_id).to be_nil
+    expect(organization.accountant_legal_name).to be_nil
+    expect(organization.accountant_pix_key).to be_nil
+    expect(organization.package_destination_email).to be_nil
+
+    get "/setup"
+    expect_accountant_cadastro(response.body)
+  end
+
   it "PATCH /accountant persists presentation name and redirects" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)

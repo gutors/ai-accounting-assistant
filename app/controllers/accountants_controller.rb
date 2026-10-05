@@ -6,6 +6,7 @@ class AccountantsController < ApplicationController
       redirect_success("/setup")
     else
       load_setup
+      @accountant_editing = true
       @accountant_error = focused_organization.errors[:base].first
       toast_now(kind: "error", message: @accountant_error)
       render "setup/show", status: :unprocessable_content

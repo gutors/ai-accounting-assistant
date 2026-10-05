@@ -3,5 +3,6 @@ class SetupController < ApplicationController
 
   def show
     load_setup
+    @accountant_editing = params[:edit] == "accountant"
   end
 end
