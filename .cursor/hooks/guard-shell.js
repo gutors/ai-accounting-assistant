@@ -139,7 +139,7 @@ async function main() {
       respond({
         permission: "ask",
         user_message: `This command pushes or deploys: "${command}". AGENTS.md says not to do this unless the user explicitly asked — confirm before continuing.`,
-        agent_message: "A gate hook flagged this as a push/deploy/publish command. Only proceed if the user explicitly asked for this in the current conversation; otherwise stop and ask.",
+        agent_message: "A gate hook flagged this as a push/deploy/publish command. Only proceed if the user explicitly asked for this in the current conversation; otherwise stop and ask. git push to GitHub: required_permissions [\"all\"] on the first Shell call.",
       });
       return;
     }

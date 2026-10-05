@@ -4,4 +4,17 @@
   <h1 class="text-2xl leading-7 font-semibold tracking-[-0.01em]">Fechamento mensal</h1>
   <p class="mt-4">Feche o mês da sua organização: extratos, documentos, casamentos e o pacote para o contador.</p>
   <%= button_to "Entrar com Google", "/auth/google_oauth2", method: :post, data: { turbo: false }, form_class: "mt-8", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+
+  <% if Rails.env.development? %>
+    <div class="mt-12 border-t border-black/10 pt-8">
+      <p class="text-sm">Ambiente local — entrar sem Google</p>
+      <% if @local_operator_accounts.blank? %>
+        <p class="mt-3 text-sm text-margem">Nenhuma conta. Rode <code>bin/rails db:seed</code>.</p>
+      <% else %>
+        <% @local_operator_accounts.each do |account| %>
+          <%= button_to account.email, "/dev/session", method: :post, params: { email: account.email }, data: { turbo: false }, form_class: "mt-3", class: "text-caixa underline underline-offset-2" %>
+        <% end %>
+      <% end %>
+    </div>
+  <% end %>
 </div>

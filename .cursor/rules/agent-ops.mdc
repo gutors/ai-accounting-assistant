@@ -1,0 +1,10 @@
+---
+description: GitHub SSH sandbox and development browser login for Cursor agents.
+alwaysApply: true
+---
+
+# Agent ops
+
+**GitHub:** the sandbox cannot use macOS `SSH_AUTH_SOCK`. Origin is `git@github.com`, so a sandboxed `git push`/`fetch`/`pull`/`ls-remote` fails `Permission denied (publickey)`. The first Shell call that talks to GitHub (including `gh`) must set `required_permissions: ["all"]`. Do not retry sandboxed.
+
+**Browser:** do not skip UI because login is Google OIDC. In development, `/login` has **Ambiente local** (`POST /dev/session`) for planted Accounts (`gutors@gmail.com` after `bin/rails db:seed`). Click one, then exercise the flow. Absent in production.

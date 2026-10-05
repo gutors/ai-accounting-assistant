@@ -236,8 +236,11 @@ Armazenamento do pacote mensal                  (h2)
   cadastro (no URL): Cole a URL da pasta do Google Drive; URL da pasta do Google Drive  [Salvar arquivo]
   leitura (URL exists): labeled font-medium text plus [Editar]
   GET /setup?edit=package_archive: input#url  [Confirmar]
-Certificado SEFAZ                               (h2)
-  state line; Remover (quiet, margem); form: Arquivo / Senha [Instalar certificado]
+Certificado Digital A1 - Para consulta na SEFAZ (h2)
+  empty: Não há certificado A1 instalado. Use Instalar certificado.
+  listed: formatted titular; Válido até / Expirado em; Remover (quiet, margem) outside the fold
+  ▸ Instalar certificado   ← details with Arquivo / Senha [Instalar certificado]
+
 Contas bancárias                                (h2)
   Conta Principal            extrato-conta-principal        Desativar
   ag 1234                                                    ▸ Editar   ← details with the edit form
@@ -249,6 +252,7 @@ Tipos extras de exceção                         (h2)
 
 - Contador is cadastro when there is no presentation name; after that name exists the five values are labeled-text chrome (`p.font-medium`) plus `Editar`. Cadastro and `GET /setup?edit=accountant` keep the input chrome. Formatted CPF/CNPJ on read.
 - Armazenamento do pacote mensal is cadastro when there is no URL (`Cole a URL da pasta do Google Drive`, label `URL da pasta do Google Drive`, `[Salvar arquivo]`). After a URL exists it is labeled `font-medium` text plus `Editar`. `GET /setup?edit=package_archive` is `input#url` with `[Confirmar]`.
+- Certificate: heading `Certificado Digital A1 - Para consulta na SEFAZ`. Empty line `Não há certificado A1 instalado. Use Instalar certificado.` when none. When a certificate exists, titular / validity / `Remover` (quiet, margem) stay outside the fold. Arquivo / Senha sit in `<details>` whose `<summary>` is `Instalar certificado`. A `422` from `POST /sefaz_certificate` re-renders that details `open`.
 - Bank account rows are `li[data-row="bank-account"]`: name (500), slug and coordinates in meta,
   `Inativa` in `ink-soft` when inactive, quiet actions, then `<details><summary>Editar</summary>`
   with the existing edit form.

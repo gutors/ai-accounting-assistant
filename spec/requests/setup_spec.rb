@@ -36,15 +36,23 @@ RSpec.describe "Setup", type: :request do
     expect(response.body).to include("Contas bancárias")
   end
 
-  it "GET /setup with no SEFAZ certificate includes Certificado SEFAZ and Nenhum certificado" do
+  it "GET /setup with no SEFAZ certificate includes A1 heading and empty line" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
 
     get "/setup"
 
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include("Certificado SEFAZ")
-    expect(response.body).to include("Nenhum certificado")
+    expect_certificate_absent_copy(response.body)
+  end
+
+  it "GET /setup with no SEFAZ certificate keeps Arquivo and Senha in closed Instalar certificado details" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    get "/setup"
+
+    expect_certificate_install_fold(response.body, open: false)
   end
 
   it "GET /setup empty accountant includes Cadastre o contador" do
@@ -160,7 +168,7 @@ RSpec.describe "Setup", type: :request do
     expect_archive_cadastro(response.body)
     headings = page_doc(response.body).css("h2").map { |node| node.text.strip }
     expect(headings.index("Contador")).to be < headings.index("Armazenamento do pacote mensal")
-    expect(headings.index("Armazenamento do pacote mensal")).to be < headings.index("Certificado SEFAZ")
+    expect(headings.index("Armazenamento do pacote mensal")).to be < headings.index(certificate_heading)
   end
 
   it "GET /setup leitura archive is labeled text" do
@@ -328,15 +336,15 @@ RSpec.describe "Setup", type: :request do
     expect(response.body).not_to include("Válido até")
   end
 
-  it "GET /setup with certificate includes Remover turbo confirm" do
+  it "GET /setup with listed A1 shows titular validity Remover outside closed install details" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
     organization.install_sefaz_certificate(file: sefaz_pfx, passphrase: "passphrase-secreta")
 
     get "/setup"
 
-    expect(response.body).to include("Remover")
-    expect(response.body).to include('data-turbo-confirm="Remover o certificado SEFAZ?"')
+    expect(response).to have_http_status(:ok)
+    expect_certificate_listed_cnpj_row(response.body)
   end
 
   it "setup does not include another organization titular CNPJ" do
@@ -369,10 +377,12 @@ RSpec.describe "Setup", type: :request do
     end
 
     expect(response.body).to include("Expirado em 11/05/2026")
+    expect(response.body).to include("Remover")
     expect(response.body).not_to include("Válido até")
+    expect_certificate_install_fold(response.body, open: false)
   end
 
-  it "GET /setup with blank wrap key and no certificate includes Nenhum certificado" do
+  it "GET /setup with blank wrap key and no certificate includes the empty A1 line" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
 
@@ -381,7 +391,7 @@ RSpec.describe "Setup", type: :request do
     end
 
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include("Nenhum certificado")
+    expect(response.body).to include(certificate_empty_line)
   end
 
   it "submitter GET /setup responds 404 and omits bank-account name" do
