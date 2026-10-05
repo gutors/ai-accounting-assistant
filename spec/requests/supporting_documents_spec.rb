@@ -32,6 +32,22 @@ RSpec.describe "Supporting documents", type: :request do
     SefazConsulta.current.set(chave, SefazConsulta::Resumo.new(amount_cents:, payee:, document_on:))
   end
 
+  def insert_form(body)
+    page_doc(body).css("form").find { |node| node["action"] == "/supporting_documents" && node["method"] == "post" }
+  end
+
+  def selected_option_value(select)
+    selected = select.at_css("option[selected]")
+    (selected || select.at_css("option"))["value"]
+  end
+
+  def html_visible?(node)
+    return false if node["hidden"]
+    return false if node["class"].to_s.split.include?("hidden")
+
+    node.ancestors.none? { |ancestor| ancestor["hidden"] || ancestor["class"].to_s.split.include?("hidden") }
+  end
+
 
   it "unauthenticated GET /supporting_documents responds 302 to /login" do
     get "/supporting_documents"
@@ -120,6 +136,169 @@ RSpec.describe "Supporting documents", type: :request do
     end.not_to change(Month, :count)
 
     expect(SupportingDocument.last.account).to eq(account)
+  end
+
+  it "GET insert date defaults to Date.current" do
+    signed_in
+
+    travel_to Date.new(2026, 10, 5) do
+      get "/supporting_documents"
+    end
+
+    expect(response).to have_http_status(:ok)
+    form = insert_form(response.body)
+    expect(form.at_css('label[for="date"]').text.strip).to eq("Data")
+    date = form.at_css("input#date[type=date]")
+    expect(date["value"]).to eq("2026-10-05")
+  end
+
+  it "GET Editar date stays document_on" do
+    account, organization = signed_in
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00", date: "2026-05-11")
+
+    travel_to Date.new(2026, 10, 5) do
+      get "/supporting_documents"
+    end
+
+    date = page_doc(response.body).at_css("input#date_#{document.id}[type=date]")
+    expect(date["value"]).to eq("2026-05-11")
+  end
+
+  it "GET optional chave and observation labels on insert and Editar" do
+    account, organization = signed_in
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00", date: "2026-05-11")
+
+    travel_to Date.new(2026, 10, 5) do
+      get "/supporting_documents"
+    end
+
+    form = insert_form(response.body)
+    expect(form.at_css('label[for="chave"]').text.strip).to eq("Chave de acesso (opcional)")
+    expect(form.at_css('label[for="observation"]').text.strip).to eq("Observação (opcional)")
+    page = page_doc(response.body)
+    expect(page.at_css(%(label[for="chave_#{document.id}"])).text.strip).to eq("Chave de acesso (opcional)")
+    expect(page.at_css(%(label[for="observation_#{document.id}"])).text.strip).to eq("Observação (opcional)")
+  end
+
+  it "GET insert kind nota_fiscal shows chave and xml" do
+    signed_in
+
+    get "/supporting_documents"
+
+    page = page_doc(response.body)
+    first_section = page.css("section").first
+    form = first_section.css("form").find { |node| node["action"] == "/supporting_documents" && node["method"] == "post" }
+    expect(form).not_to be_nil
+    expect(form["class"]).to include("md:grid-cols-2")
+    expect(form.at_css('input[type="submit"][value="Incluir documento"]')).not_to be_nil
+    expect(form.css("label").map { |label| label["for"] }).to eq(
+      %w[kind amount date payee chave observation photo xml]
+    )
+    expect(form.at_css("input#chave").parent["class"]).to include("md:col-span-2")
+    expect(form.at_css("#observation").parent["class"]).to include("md:col-span-2")
+    expect(selected_option_value(form.at_css("select#kind"))).to eq("nota_fiscal")
+    chave = form.at_css("input#chave")
+    xml = form.at_css("input#xml")
+    expect(chave).not_to be_nil
+    expect(xml).not_to be_nil
+    expect(chave["disabled"]).to be_nil
+    expect(xml["disabled"]).to be_nil
+    expect(html_visible?(chave)).to be true
+    expect(html_visible?(xml)).to be true
+  end
+
+  it "GET Editar recibo hides chave and xml" do
+    account, organization = signed_in
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+
+    get "/supporting_documents"
+
+    page = page_doc(response.body)
+    expect(selected_option_value(page.at_css("select#kind_#{document.id}"))).to eq("recibo")
+    chave = page.at_css("input#chave_#{document.id}")
+    xml = page.at_css("input#xml_#{document.id}")
+    photo = page.at_css("input#photo_#{document.id}")
+    expect(chave["disabled"]).to be_present
+    expect(xml["disabled"]).to be_present
+    expect(html_visible?(chave)).to be false
+    expect(html_visible?(xml)).to be false
+    expect(html_visible?(photo)).to be true
+    expect(photo["disabled"]).to be_nil
+  end
+
+  it "GET Editar nota_fiscal shows chave and xml" do
+    account, organization = signed_in
+    document = SupportingDocument.insert(
+      organization: organization,
+      account: account,
+      kind: "nota_fiscal",
+      amount: "155,00",
+      date: "2026-05-11",
+      payee: "Padaria Central",
+      photo: photo_jpg
+    )
+
+    get "/supporting_documents"
+
+    page = page_doc(response.body)
+    expect(selected_option_value(page.at_css("select#kind_#{document.id}"))).to eq("nota_fiscal")
+    chave = page.at_css("input#chave_#{document.id}")
+    xml = page.at_css("input#xml_#{document.id}")
+    expect(html_visible?(chave)).to be true
+    expect(html_visible?(xml)).to be true
+    expect(chave["disabled"]).to be_nil
+    expect(xml["disabled"]).to be_nil
+  end
+
+  it "POST recibo photo without XML persists chave nil and Pronto toast" do
+    _account, organization = signed_in
+
+    post "/supporting_documents", params: recibo_params(photo: photo_jpg("recibo.jpg"))
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/supporting_documents")
+    document = SupportingDocument.find_by!(organization: organization)
+    expect(document.chave).to be_nil
+    expect(document.xml).not_to be_attached
+
+    get "/supporting_documents"
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_node(response.body).text).to include("Pronto.")
+  end
+
+  it "POST nota_fiscal chave 123 returns 422 and error toast" do
+    _account, organization = signed_in
+
+    post "/supporting_documents", params: nota_params(photo: photo_jpg, chave: "123")
+
+    expect(SupportingDocument.where(organization: organization).count).to eq(0)
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(error_notice_text(response.body)).to eq("Informe a chave de acesso com 44 dígitos")
+    toast = toast_node(response.body)
+    expect(toast["data-toast-kind"]).to eq("error")
+    expect(toast.text).to include("Informe a chave de acesso com 44 dígitos")
+  end
+
+  it "POST recibo with XML returns 422 and error toast" do
+    _account, organization = signed_in
+
+    post "/supporting_documents", params: recibo_params(xml: xml_file)
+
+    expect(SupportingDocument.where(organization: organization).count).to eq(0)
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(error_notice_text(response.body)).to eq("Recibo não tem XML")
+    toast = toast_node(response.body)
+    expect(toast["data-toast-kind"]).to eq("error")
+    expect(toast.text).to include("Recibo não tem XML")
+  end
+
+  it "POST nota_fiscal 44-digit chave persists when consulta does not deliver" do
+    _account, organization = signed_in
+
+    post "/supporting_documents", params: nota_params(photo: photo_jpg("nota.jpg"), chave: nfe_chave)
+
+    expect(SupportingDocument.where(organization: organization).count).to eq(1)
+    expect(SupportingDocument.find_by!(organization: organization).chave).to eq("43260511222333000181550010000000011123456781")
   end
 
   # Ledger arrangement (visual-identity C44, C45, C47, C48)

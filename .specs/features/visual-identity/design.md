@@ -314,11 +314,12 @@ Documentos de suporte                           (h1)
 <notice>
 Incluir documento                               (h2)
   Tipo [v]        Valor [    ]      ← two columns from 768px, one on phone
-  Data [    ]     Favorecido [    ]
-  Chave de acesso [                          ]
-  Observação [                               ]
-  Foto [file]     XML [file]
+  Data [today]    Favorecido [    ]
+  Chave de acesso (opcional) [               ]   ← hidden when Tipo is Recibo
+  Observação (opcional) [                    ]
+  Foto [file]     XML [file]                     ← XML hidden when Tipo is Recibo
   [Incluir documento]
+  Recibo: hiding chave and XML (photo only)
 Sem mês                                         (h2)
   11/05/2026  Padaria Central                  R$ 155,00
               Recibo (meta)

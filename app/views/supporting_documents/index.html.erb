@@ -9,10 +9,10 @@
 <div class="mt-10 space-y-12">
   <section>
     <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Incluir documento</h2>
-    <%= form_with url: "/supporting_documents", method: :post, multipart: true, class: "grid max-w-3xl gap-4 md:grid-cols-2" do %>
+    <%= form_with url: "/supporting_documents", method: :post, multipart: true, class: "grid max-w-3xl gap-4 md:grid-cols-2", data: { controller: "document-kind" } do %>
       <div>
         <label for="kind" class="mb-1 block font-medium">Tipo</label>
-        <%= select_tag :kind, options_for_select([ [ "Nota fiscal", "nota_fiscal" ], [ "Recibo", "recibo" ] ]), id: "kind", class: "w-full rounded border border-rule bg-sheet px-3 py-2" %>
+        <%= select_tag :kind, options_for_select([ [ "Nota fiscal", "nota_fiscal" ], [ "Recibo", "recibo" ] ], "nota_fiscal"), id: "kind", class: "w-full rounded border border-rule bg-sheet px-3 py-2", data: { action: "change->document-kind#sync", document_kind_target: "kind" } %>
       </div>
       <div>
         <label for="amount" class="mb-1 block font-medium">Valor</label>
@@ -20,25 +20,25 @@
       </div>
       <div>
         <label for="date" class="mb-1 block font-medium">Data</label>
-        <%= date_field_tag :date, nil, id: "date", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
+        <%= date_field_tag :date, Date.current, id: "date", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
       </div>
       <div>
         <label for="payee" class="mb-1 block font-medium">Favorecido</label>
         <%= text_field_tag :payee, nil, id: "payee", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
       </div>
-      <div class="md:col-span-2">
-        <label for="chave" class="mb-1 block font-medium">Chave de acesso</label>
+      <div class="md:col-span-2" data-document-kind-target="nfOnly">
+        <label for="chave" class="mb-1 block font-medium">Chave de acesso (opcional)</label>
         <%= text_field_tag :chave, nil, id: "chave", class: "w-full rounded border border-rule bg-sheet px-3 py-2 font-mono text-meta", autocomplete: "off" %>
       </div>
       <div class="md:col-span-2">
-        <label for="observation" class="mb-1 block font-medium">Observação</label>
+        <label for="observation" class="mb-1 block font-medium">Observação (opcional)</label>
         <%= text_area_tag :observation, nil, id: "observation", class: "w-full rounded border border-rule bg-sheet px-3 py-2", rows: 3 %>
       </div>
       <div>
         <label for="photo" class="mb-1 block font-medium">Foto</label>
         <%= file_field_tag :photo, id: "photo", class: "block w-full max-w-full text-meta" %>
       </div>
-      <div>
+      <div data-document-kind-target="nfOnly">
         <label for="xml" class="mb-1 block font-medium">XML</label>
         <%= file_field_tag :xml, id: "xml", class: "block w-full max-w-full text-meta" %>
       </div>
@@ -84,10 +84,11 @@
               <details class="mt-1">
                 <summary class="cursor-pointer font-medium text-caixa">Editar</summary>
                 <div class="mt-3 max-w-3xl space-y-4 rounded border border-rule bg-sheet p-4">
-                  <%= form_with url: "/supporting_documents/#{document.id}", method: :patch, multipart: true, class: "grid gap-4 md:grid-cols-2" do %>
+                  <%= form_with url: "/supporting_documents/#{document.id}", method: :patch, multipart: true, class: "grid gap-4 md:grid-cols-2", data: { controller: "document-kind" } do %>
+                    <% recibo = document.recibo? %>
                     <div>
                       <label for="kind_<%= document.id %>" class="mb-1 block font-medium">Tipo</label>
-                      <%= select_tag :kind, options_for_select([ [ "Nota fiscal", "nota_fiscal" ], [ "Recibo", "recibo" ] ], document.kind), id: "kind_#{document.id}", class: "w-full rounded border border-rule bg-sheet px-3 py-2" %>
+                      <%= select_tag :kind, options_for_select([ [ "Nota fiscal", "nota_fiscal" ], [ "Recibo", "recibo" ] ], document.kind), id: "kind_#{document.id}", class: "w-full rounded border border-rule bg-sheet px-3 py-2", data: { action: "change->document-kind#sync", document_kind_target: "kind" } %>
                     </div>
                     <% unless document.fields_locked? %>
                       <div>
@@ -103,21 +104,21 @@
                         <%= text_field_tag :payee, document.payee, id: "payee_#{document.id}", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
                       </div>
                     <% end %>
-                    <div class="md:col-span-2">
-                      <label for="chave_<%= document.id %>" class="mb-1 block font-medium">Chave de acesso</label>
-                      <%= text_field_tag :chave, document.chave, id: "chave_#{document.id}", class: "w-full rounded border border-rule bg-sheet px-3 py-2 font-mono text-meta", autocomplete: "off" %>
+                    <div class="md:col-span-2<%= " hidden" if recibo %>" <%= "hidden" if recibo %> data-document-kind-target="nfOnly">
+                      <label for="chave_<%= document.id %>" class="mb-1 block font-medium">Chave de acesso (opcional)</label>
+                      <%= text_field_tag :chave, document.chave, id: "chave_#{document.id}", class: "w-full rounded border border-rule bg-sheet px-3 py-2 font-mono text-meta", autocomplete: "off", disabled: recibo %>
                     </div>
                     <div class="md:col-span-2">
-                      <label for="observation_<%= document.id %>" class="mb-1 block font-medium">Observação</label>
+                      <label for="observation_<%= document.id %>" class="mb-1 block font-medium">Observação (opcional)</label>
                       <%= text_area_tag :observation, document.observation, id: "observation_#{document.id}", class: "w-full rounded border border-rule bg-sheet px-3 py-2", rows: 3 %>
                     </div>
                     <div>
                       <label for="photo_<%= document.id %>" class="mb-1 block font-medium">Foto</label>
                       <%= file_field_tag :photo, id: "photo_#{document.id}", class: "block w-full max-w-full text-meta" %>
                     </div>
-                    <div>
+                    <div<% if recibo %> class="hidden" hidden<% end %> data-document-kind-target="nfOnly">
                       <label for="xml_<%= document.id %>" class="mb-1 block font-medium">XML</label>
-                      <%= file_field_tag :xml, id: "xml_#{document.id}", class: "block w-full max-w-full text-meta" %>
+                      <%= file_field_tag :xml, id: "xml_#{document.id}", class: "block w-full max-w-full text-meta", disabled: recibo %>
                     </div>
                     <div class="md:col-span-2">
                       <%= submit_tag "Salvar documento", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
