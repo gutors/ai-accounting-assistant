@@ -34,7 +34,7 @@ RSpec.describe "Keep form on 422", type: :system do
       fill_in "date", with: "2026-05-11"
       fill_in "payee", with: "Padaria Central"
       fill_in "observation", with: "pago em dinheiro"
-      attach_file "xml", xml_path
+      attach_file "xml", xml_path, make_visible: true
       select "Recibo", from: "kind"
       page.execute_script("document.getElementById('xml').disabled = false")
       click_button "Incluir documento"
@@ -61,7 +61,7 @@ RSpec.describe "Keep form on 422", type: :system do
       fill_in "amount", with: "155,00"
       fill_in "date", with: "2026-05-11"
       fill_in "payee", with: "Padaria Central"
-      attach_file "photo", photo_path
+      attach_file "photo", photo_path, make_visible: true
       select "Recibo", from: "kind"
       click_button "Incluir documento"
     end
@@ -71,7 +71,7 @@ RSpec.describe "Keep form on 422", type: :system do
       fill_in "amount", with: "155,00"
       fill_in "date", with: "2026-05-11"
       fill_in "payee", with: "Padaria Central"
-      attach_file "xml", xml_path
+      attach_file "xml", xml_path, make_visible: true
       select "Recibo", from: "kind"
       page.execute_script("document.getElementById('xml').disabled = false")
       click_button "Incluir documento"
@@ -88,10 +88,10 @@ RSpec.describe "Keep form on 422", type: :system do
     photo_path = write_upload("recibo.jpg", "jpeg-bytes")
 
     within("form[action='/supporting_documents']") do
-      attach_file "photo", photo_path
-      expect(find("#photo").value).to include("recibo.jpg")
-      find("#photo").sibling("button", text: "Limpar").click
-      expect(find("#photo").value).to eq("")
+      attach_file "photo", photo_path, make_visible: true
+      expect(find("#photo", visible: :all).value).to include("recibo.jpg")
+      find("#photo", visible: :all).sibling("button", text: "Limpar").click
+      expect(find("#photo", visible: :all).value).to eq("")
     end
     expect(page).to have_current_path("/supporting_documents")
   end
@@ -106,7 +106,7 @@ RSpec.describe "Keep form on 422", type: :system do
     within("form[action='/sefaz_certificate']") do
       attach_file "certificate", cert_path, make_visible: true
       expect(find("#certificate", visible: :all).value).to include("cert.pfx")
-      find("#certificate").sibling("button", text: "Limpar").click
+      find("#certificate", visible: :all).sibling("button", text: "Limpar").click
       expect(find("#certificate", visible: :all).value).to eq("")
     end
     expect(page).to have_current_path("/setup")

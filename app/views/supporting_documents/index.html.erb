@@ -32,19 +32,9 @@
         <label for="observation" class="mb-1 block font-medium">Observação (opcional)</label>
         <%= text_area_tag :observation, params[:observation], id: "observation", class: "w-full rounded border border-rule bg-sheet px-3 py-2", rows: 3 %>
       </div>
-      <div>
-        <label for="photo" class="mb-1 block font-medium">Foto</label>
-        <div class="flex max-w-full flex-wrap items-center gap-x-4 gap-y-2" data-controller="file-clear">
-          <%= file_field_tag :photo, id: "photo", class: "block min-w-0 grow text-meta", data: { file_clear_target: "input" } %>
-          <button type="button" data-action="file-clear#clear">Limpar</button>
-        </div>
-      </div>
+      <%= render "shared/file_field", name: :photo, id: "photo", field_label: "Foto", action_label: "Incluir foto" %>
       <div data-document-kind-target="nfOnly">
-        <label for="xml" class="mb-1 block font-medium">XML</label>
-        <div class="flex max-w-full flex-wrap items-center gap-x-4 gap-y-2" data-controller="file-clear">
-          <%= file_field_tag :xml, id: "xml", class: "block min-w-0 grow text-meta", data: { file_clear_target: "input" } %>
-          <button type="button" data-action="file-clear#clear">Limpar</button>
-        </div>
+        <%= render "shared/file_field", name: :xml, id: "xml", field_label: "XML", action_label: "Incluir XML" %>
       </div>
       <div class="md:col-span-2">
         <%= submit_tag "Incluir documento", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
@@ -116,13 +106,9 @@
                       <label for="observation_<%= document.id %>" class="mb-1 block font-medium">Observação (opcional)</label>
                       <%= text_area_tag :observation, document.observation, id: "observation_#{document.id}", class: "w-full rounded border border-rule bg-sheet px-3 py-2", rows: 3 %>
                     </div>
-                    <div>
-                      <label for="photo_<%= document.id %>" class="mb-1 block font-medium">Foto</label>
-                      <%= file_field_tag :photo, id: "photo_#{document.id}", class: "block w-full max-w-full text-meta" %>
-                    </div>
+                    <%= render "shared/file_field", name: :photo, id: "photo_#{document.id}", field_label: "Foto", action_label: "Incluir foto" %>
                     <div<% if recibo %> class="hidden" hidden<% end %> data-document-kind-target="nfOnly">
-                      <label for="xml_<%= document.id %>" class="mb-1 block font-medium">XML</label>
-                      <%= file_field_tag :xml, id: "xml_#{document.id}", class: "block w-full max-w-full text-meta", disabled: recibo %>
+                      <%= render "shared/file_field", name: :xml, id: "xml_#{document.id}", field_label: "XML", action_label: "Incluir XML", disabled: recibo %>
                     </div>
                     <div class="md:col-span-2">
                       <%= submit_tag "Salvar documento", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>

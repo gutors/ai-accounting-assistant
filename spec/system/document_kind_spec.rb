@@ -34,8 +34,8 @@ RSpec.describe "Document kind chrome", type: :system do
       expect(xml).not_to be_visible
       expect(chave).to be_disabled
       expect(xml).to be_disabled
-      photo = find("#photo")
-      expect(photo).to be_visible
+      photo = find("#photo", visible: :all)
+      expect(find("[data-file-field='photo']")).to be_visible
       expect(photo).not_to be_disabled
     end
   end
@@ -47,9 +47,9 @@ RSpec.describe "Document kind chrome", type: :system do
       select "Recibo", from: "kind"
       select "Nota fiscal", from: "kind"
       chave = find("#chave")
-      xml = find("#xml")
+      xml = find("#xml", visible: :all)
       expect(chave).to be_visible
-      expect(xml).to be_visible
+      expect(find("[data-file-field='xml']")).to be_visible
       expect(chave).not_to be_disabled
       expect(xml).not_to be_disabled
     end

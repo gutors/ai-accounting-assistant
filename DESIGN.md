@@ -237,6 +237,8 @@ There are no cards. The open disclosure is the only panel: sheet-white ground, 1
 
 Sheet ground, 1px ruling border, 4px corner, 8px by 12px padding, full width of the form. Labels stay visible above the field at label weight. Focus uses the global ring. An error is not a red field border; it is the notice under the page title.
 
+**File field.** The native picker is covered, not shown. The control is a sheet field: ruling border, 4px corner, empty copy “Nenhum arquivo” in meta soft ink. A chosen filename replaces that copy at label weight. The action chip on the right uses the primary fill (“Incluir foto”, “Incluir XML”, “Incluir arquivo”, “Incluir PDF”, “Incluir planilha”). It is not a second form commit. **Limpar** sits beside the chip as a quiet underlined action and zeros that control without a submit. Disabled is 50% opacity and ignores pointer events.
+
 ### Navigation
 
 A paper bar with a 1px ruling line along its bottom. Left: the mark at 1.25rem and the focused organization in label weight, or the product name when nothing is focused. Right: text links in ink that underline on hover, then "Sair" as a quiet ledger-green action. Below 640px the links wrap under the name. Login and the denied page have no navigation.
