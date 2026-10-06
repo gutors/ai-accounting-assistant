@@ -414,6 +414,9 @@ RSpec.describe "Setup", type: :request do
 
     expect(response).to have_http_status(:ok)
     section = extras_section(response.body)
+    expect(page_doc(response.body).css("div.space-y-12 > section > h2").last.text.strip).to eq("Tipos extras de exceção")
+    expect(section.at_css("h2 + ul")).to be_present
+    expect(section.at_css("h2 + p")).to be_nil
     html = section.to_html
     heading = html.index("Tipos extras de exceção")
     tarifa = html.index("Tarifa bancária")
@@ -491,14 +494,20 @@ RSpec.describe "Setup", type: :request do
 
     get "/setup"
 
-    form = extras_section(response.body).at_css('form[action="/extra_exception_kinds"]')
+    section = extras_section(response.body)
+    form = section.at_css('form[action="/extra_exception_kinds"]')
     expect(form.at_css('label[for="extra_exception_kind_name"]').text.strip).to eq("Nome")
     expect(form.at_css("#extra_exception_kind_name")).to be_present
     justification = form.at_css('input[name="justification"]')
     expect(justification).to be_present
     expect(form.at_css("label[for='#{justification['id']}']").text.strip).to eq("Justificativa")
     expect(form.at_css('input[type="submit"][value="Adicionar tipo extra"]')).to be_present
-    expect(extras_section(response.body).text).to include("Justificativa")
+    heading = section.at_css('li[data-row="extras-column-headings"]')
+    expect(heading.text.gsub(/\s+/, " ").strip).to eq("Justificativa")
+    expect(heading.ancestors("form")).to be_empty
+    list = section.at_css("h2 + ul")
+    expect(list.css("li").first["data-row"]).to eq("extras-column-headings")
+    expect(form.previous_element).to eq(list)
   end
 
   it "setup extra exception kind row shows justification and has no name or justification fields" do
