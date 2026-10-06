@@ -8,9 +8,8 @@ Web app for a financial **Coordinator** to close a month for one or more **Organ
 2. tlc-plan writes `.tasks/<name>.md`. A human confirms that task before implementation. tlc-implement extracts `.checks/<feature>.md` from it and builds from that checklist.
 3. When tlc-plan finishes, ask whether to open a GitHub issue for the planned feature when none exists yet. Create it only after the user agrees. When `Unresolved` still holds questions this session will not settle, suggest a second issue for those, created only after the feature issue and only if the user agrees.
 4. A builder reports and stops. The orchestrator — never the builder — dispatches a fresh Verifier (`.cursor/agents/tlc-verifier.md`) over `<feature base>..HEAD` with every check. Author is not verifier.
-5. Project memory: `.specs/STATE.md` is the **handoff** snapshot only. Decisions that constrain later features live in `docs/adr/` (start from ADR-0001). Do not start a second log in STATE.md. Features that already have `.specs/features/<name>/` stay there. New tasks and checklists go to `.tasks/` and `.checks/`.
+5. Project memory: `.specs/STATE.md` is the **handoff** snapshot only. Decisions that constrain later features live in `docs/adr/` (start from ADR-0001). Do not start a second log in STATE.md. Features that already have `.specs/features/<name>/` stay there as history. New tasks and checklists go to `.tasks/` and `.checks/`.
 6. Do not paste tlc-plan or tlc-implement `references/` into this file.
-7. A feature that already has `.specs/features/<name>/checks.md` continues with **tlc-spec-lean**. A new feature does not get a folder there.
 
 ## tlc-implement
 
@@ -30,7 +29,6 @@ Platform v1 (locked — do not reopen inside a feature plan. A live architecture
 - **Jobs:** Active Job; Solid Queue is the Rails 8 default (no Redis). **Close-for-send** may stay an in-request long job (timeout in minutes) or run as a job — pick in Landing of that feature.
 - **SEFAZ certificate:** A1 `.pfx` + passphrase encrypted in Postgres; wrapping key in the process environment. Identified consulta (mTLS) on the server, including when a **Submitter** triggers it unattended.
 - **Working files:** opaque object store from v1 (container disk is ephemeral). Drive only at close-for-send / month-folder restore. Metadata in Postgres. No second database. Local dev may use a disk adapter of the same blob interface. Brand (S3, GCS, …) is not locked. Active Storage only if Landing of the first file feature chooses it as that interface.
-- **UI:** Tailwind + Hotwire. No React, no shadcn/ui. Default locale `pt-BR`. User-facing copy: pt-BR.
 - **Tests:** RSpec (`spec/`). Decision tables and guards are proven at their own layer, one asserted case per enumerated member; HTTP boundaries also get a request spec. See `.cursor/rules/rails.mdc`.
 - Conventions: `.cursor/rules/rails.mdc` (loads when Ruby/ERB/Gemfile is in play).
 
@@ -44,11 +42,10 @@ Parallel local agents: one git worktree per agent; distinct `PORT` and `DATABASE
 | `config/` | Rails config (create on first feature) |
 | `db/` | Migrations and schema (create on first feature) |
 | `spec/` | RSpec (create on first feature) |
-| `.specs/` | Handoff (`STATE.md`) and features already specified with tlc-spec-lean |
+| `.specs/` | Handoff (`STATE.md`) and already-shipped feature folders (not a build source) |
 | `.tasks/` | tlc-plan tasks for new features |
 | `.checks/` | tlc-implement checklists and verification reports |
 | `.cursor/rules/` | Stack conventions (glob-scoped) |
-| `.cursor/skills/tlc-spec-lean/` | Skill for a feature that already has `.specs/features/<name>/checks.md` |
 | `.cursor/commands/` | Human-triggered slash commands (`/open-pr`, `/worktree`) |
 | `.cursor/agents/` | Project subagents (`tlc-verifier`) |
 
@@ -59,11 +56,6 @@ If a folder is missing, create it as part of the planned feature — do not scaf
 - **UI, user-facing copy, product docs:** Portuguese (Brazil).
 - **Code, comments, commit messages, and technical artifacts** (`.specs`, `.tasks`, `.checks`): English.
 - Domain words: `GLOSSARY.md`.
-
-## Commit messages
-
-- Explain **why** the change exists; the diff already shows what changed.
-- Do not list every file or document in the message.
 
 ## Commands
 
@@ -87,7 +79,7 @@ When `Gemfile` exists, use `bin/rails`, `bin/rspec`, and other `bin/` wrappers. 
 - Treat the container filesystem as durable storage for photos, XML, or statements.
 - Implement Open Finance consent, a BCB receptor, NF-e issuance, accountant login, or organization CNPJ as a setup field.
 - Start product code before a human has confirmed the `.tasks/<name>.md` task and tlc-implement has extracted `.checks/<feature>.md`.
-- Plan a new feature with tlc-spec-lean. That skill stays for a feature that already has `.specs/features/<name>/checks.md`.
+- Load tlc-spec-lean. New work is tlc-plan then tlc-implement.
 - Dispatch the Verifier from a builder, or treat a self-check as verification.
 
 ## Agent skills

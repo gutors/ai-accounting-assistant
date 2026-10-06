@@ -5,6 +5,7 @@ dist/
 build/
 .next/
 *.log
+.harness-eval/
 
 # Ignore settings and rules for other AI editors
 .claude/

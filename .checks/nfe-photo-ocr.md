@@ -9,7 +9,7 @@ Sources:
 - `AGENTS.md` / `.cursor/rules/rails.mdc` - no cloud vendor; integer cents; Real proven at its own layer from fixtures
 - `app/models/photo_symbols.rb` / `app/models/photo_fields.rb` - production `build` is already Real; test `reset!` is Fake
 
-No design source for the screens. Profile stays `standard` (AGENTS.md tlc-spec-lean floor; this cut has no binding screen).
+No design source for the screens. Profile stays `standard` (AGENTS.md tlc-implement floor; this cut has no binding screen).
 
 ## Out of scope
 

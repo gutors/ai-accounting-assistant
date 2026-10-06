@@ -40,6 +40,7 @@ node_modules/
 .agent/
 .agents/
 .scratch/
+.harness-eval/
 
 # Lefthook machine-local overrides (lefthook.yml is committed)
 .lefthook-local.yml
