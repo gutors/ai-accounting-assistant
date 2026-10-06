@@ -10,9 +10,11 @@ class BankAccountsController < ApplicationController
     )
 
     if bank_account.persisted?
-      redirect_to "/setup", status: :found
+      redirect_success("/setup")
     else
       load_setup
+      assign_bank_account_form_from_params
+      prepare_bank_account_form
       render "setup/show", status: :unprocessable_content
     end
   end
@@ -25,9 +27,14 @@ class BankAccountsController < ApplicationController
     end
 
     if bank_account.apply_from(bank_account_params)
-      redirect_to "/setup", status: :found
+      redirect_success("/setup")
     else
+      editing_id = bank_account.id
+      bank_account.reload
       load_setup
+      @editing_bank_account = @organization.bank_accounts.find(editing_id)
+      assign_bank_account_form_from_params
+      prepare_bank_account_form
       render "setup/show", status: :unprocessable_content
     end
   end

@@ -143,8 +143,8 @@ Proof: `bin/rspec spec/requests/focus_spec.rb -e "focused organization button ca
 **C41** - Submitter `GET /`: `<h1>` text is `Início`, the body includes `Inclua e acompanhe seus documentos de suporte em` with `<a href="/supporting_documents">`, and does not include `Meses` (HOME-01, AC 28)
 Proof: `bin/rspec spec/requests/organizations_spec.rb -e "submitter home says Inicio and points to Documentos"`
 
-**C42** - Coordinator `GET /setup`: `<h1>` text is `Configuração`; a bank account renders as `li[data-row="bank-account"][data-bank-account-id="{id}"]` whose `PATCH /bank_accounts/{id}` form is inside a `<details>` with `<summary>` `Editar` (HOME-01, AC 29)
-Proof: `bin/rspec spec/requests/setup_spec.rb -e "setup h1 is Configuracao and bank account edit folds under Editar"`
+**C42** - Coordinator `GET /setup`: `<h1>` text is `Configuração`; a bank account renders as `li[data-row="bank-account"][data-bank-account-id="{id}"]`; `Editar` on that row is a GET on `/setup` that fills the one section form as PATCH `Salvar conta`; there is no per-row Editar fold
+Proof: `bin/rspec spec/requests/setup_spec.rb -e "setup h1 is Configuracao and bank account Editar fills the section form"`
 
 **C43** - `GET /setup`: an extra exception kind renders as `li[data-row="extra-exception-kind"][data-extra-exception-kind-id="{id}"]` (HOME-01, AC 29)
 Proof: `bin/rspec spec/requests/extra_exception_kinds_spec.rb -e "extra exception kind row carries data-row hook"`
@@ -213,7 +213,7 @@ Proof: `bin/rspec spec/requests/justifications_spec.rb -e "justification edit fo
 | `data-row` names (9) | `payment` C24 · `inflow` C29 · `pool-document` C29 · `bank-account` C29, C42 · `month` C38 · `extra-exception-kind` C43 · `document` C44 · `justification` C46 · header has none (not a row) C6 | - |
 | `Resolver` open state (3) | suggestion C31 · exception suggestion C32 · neither C33 | - |
 | statement upload fold (2) | present C35 · absent C36 | - |
-| `<details>` summaries (5) | `Resolver` C30 · `Substituir extrato` C35 · `Casar vários pagamentos com um documento` C37 · `Editar` on bank account C42 · `Editar` on document C44 | - |
+| `<details>` summaries (4) | `Resolver` C30 · `Substituir extrato` C35 · `Casar vários pagamentos com um documento` C37 · `Editar` on document C44 | bank-account `Editar` is a GET on `/setup` (C42), not a summary |
 | month state on home (2) | `Aberto` C38 · `Fechado` C39 | - |
 | closed-month page (2) | stamp present C34 · no `<details>` C34 | - |
 | home h1 by access (2) | coordinator `Meses` C38 · submitter `Início` C41 | - |

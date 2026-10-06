@@ -33,6 +33,10 @@ Touches `GET /setup` Contas bancárias HTML (`setup/show`, `SetupController`) an
 
 None — `POST /bank_accounts` and `PATCH /bank_accounts/:id` already exist. A query on `GET /setup` to fill the section form copies Contador `?edit=accountant` (Unresolved 1) and is not a new resource. Four-cell CSS on existing `li[data-row="bank-account"]` is reversible. No catalog or PIX schema.
 
+| Door found while building | Literal shape | Alternative rejected |
+| --- | --- | --- |
+| 422 redisplays submitted fields without dirtying the list | `@bank_account_form` from params; `@bank_accounts` reloaded; `@editing_bank_account` is the persisted row when the write was PATCH | Render the failed `BankAccount` in the list — C11’s row would read `Cafe` while the column stays `Outra` |
+
 - Nothing else in this change is hard to reverse (cell order, one section form, label, Editar query, success toast on existing 302s)
 
 ## Test policy
@@ -149,3 +153,7 @@ Design opened: `.specs/features/visual-identity/design.md` (file in the repo). U
 ## Handoff
 
 S1 ~9k + S2 ~11k + S3 ~9k + S4 ~16k = ~45k token floor. All four slices share `setup/show.html.erb`; unique bytes sit under ~90k plus the opened design (~21 KB). All four stay under 150k and share the Contas bancárias section. No split. One batch.
+
+- Where the boundary fell: C1–C12 closed in the implementation commit after this checklist.
+- What the user settled mid-build: nothing.
+- What was abandoned: binding 422 list cells to the failed `BankAccount` instance — C11 needs persisted `Outra` on the row while `#name` is `Cafe`.

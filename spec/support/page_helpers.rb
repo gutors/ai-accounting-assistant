@@ -227,6 +227,40 @@ module PageHelpers
     expect_certificate_install_fold(body, open: false)
     expect(certificate_remover(body).ancestors("details")).not_to include(certificate_install_details(body))
   end
+
+  def bank_accounts_section(body)
+    page_doc(body).css("section").find { |section| section.at_css("h2")&.text&.strip == "Contas bancárias" }
+  end
+
+  def bank_account_section_form(body)
+    bank_accounts_section(body)&.css("form")&.find { |form| form.at_css("#name") && form.at_css("#compe") && form.at_css("#coordinates") }
+  end
+
+  def bank_account_row_edit_control(row_node)
+    row_node.css("a, button").find { |node| node.text.strip == "Editar" }
+  end
+
+  def selected_compe(form)
+    form.at_css('#compe option[selected]')&.[]("value")
+  end
+
+  def expect_bank_account_field_labels(form)
+    expect(form.at_css('label[for="name"]').text.strip).to eq("Nome")
+    expect(form.at_css('label[for="compe"]').text.strip).to eq("Banco")
+    expect(form.at_css('label[for="coordinates"]').text.strip).to eq("Agência/Conta Corrente")
+  end
+
+  def expect_bank_account_add_form(body)
+    form = bank_account_section_form(body)
+    expect(form).to be_present
+    expect(form["action"]).to eq("/bank_accounts")
+    expect(form.at_css('input[name="_method"][value="patch"]')).to be_nil
+    expect(form.at_css('input[type="submit"][value="Adicionar conta"]')).to be_present
+    expect(form.at_css("#name")["value"].to_s).to eq("")
+    expect(form.at_css("#coordinates")["value"].to_s).to eq("")
+    expect(form.at_css("select#compe")).to be_present
+    expect_bank_account_field_labels(form)
+  end
 end
 
 RSpec.configure do |config|

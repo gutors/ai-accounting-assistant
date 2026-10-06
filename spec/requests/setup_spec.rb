@@ -283,6 +283,175 @@ RSpec.describe "Setup", type: :request do
     expect(response.body).to include("Nenhuma conta bancária")
   end
 
+  it "GET /setup with no bank accounts includes empty line and add form labelled Agencia/Conta Corrente" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    get "/setup"
+
+    expect(response).to have_http_status(:ok)
+    section = bank_accounts_section(response.body)
+    expect(section.text).to include("Nenhuma conta bancária")
+    expect(section.css('li[data-row="bank-account"]')).to be_empty
+    expect(section.to_html).not_to include("Coordenadas")
+    expect_bank_account_add_form(response.body)
+  end
+
+  it "GET /setup lists bank accounts as four cells without Coordenadas or column headers" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    principal = BankAccount.create_for(
+      organization: organization, name: "Conta Principal", compe: "001", coordinates: "ag 1234"
+    )
+    parada = BankAccount.create_for(organization: organization, name: "Parada", compe: "033")
+    parada.apply_from(active: false)
+    BankAccount.create_for(organization: organization, name: "Zeta", compe: "001")
+    BankAccount.create_for(organization: organization, name: "Alfa", compe: "001")
+
+    get "/setup"
+
+    principal_row = row(response.body, "bank-account", bank_account_id: principal.id)
+    parada_row = row(response.body, "bank-account", bank_account_id: parada.id)
+    expect(principal_row).to be_present
+    expect(parada_row).to be_present
+    expect(response.body.index("Alfa")).to be < response.body.index("Zeta")
+    principal_html = principal_row.to_html
+    expect(principal_html.index("Banco do Brasil")).to be < principal_html.index("Conta Principal")
+    expect(principal_html.index("Conta Principal")).to be < principal_html.index("ag 1234")
+    expect(principal_html.index("ag 1234")).to be < principal_html.index("extrato-conta-principal")
+    parada_html = parada_row.to_html
+    expect(parada_html.index("Santander")).to be < parada_html.index("Parada")
+    expect(parada_html.index("Parada")).to be < parada_html.index("extrato-parada")
+    expect(parada_html).to include("Inativa")
+    expect(principal_html).not_to include("Coordenadas")
+    expect(parada_html).not_to include("Coordenadas")
+    section = bank_accounts_section(response.body)
+    headerish = section.css("li, tr, thead").find do |node|
+      text = node.text
+      text.include?("Nome do Banco") && text.include?("Nome") &&
+        text.include?("Agência/Conta Corrente") && text.include?("extrato-{slug}")
+    end
+    expect(headerish).to be_nil
+  end
+
+  it "GET /setup listed accounts have one add section form and row Editar on /setup" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    principal = BankAccount.create_for(
+      organization: organization, name: "Conta Principal", compe: "001", coordinates: "ag 1234"
+    )
+    parada = BankAccount.create_for(organization: organization, name: "Parada", compe: "033")
+    parada.apply_from(active: false)
+
+    get "/setup"
+
+    section = bank_accounts_section(response.body)
+    forms = section.css("form").select { |form| form.at_css("#name") && form.at_css("#compe") && form.at_css("#coordinates") }
+    expect(forms.size).to eq(1)
+    expect_bank_account_add_form(response.body)
+    picker = forms.first.at_css("select#compe")
+    expected = [
+      [ "001", "Banco do Brasil" ],
+      [ "033", "Santander" ],
+      [ "041", "Banrisul" ],
+      [ "077", "Inter" ],
+      [ "104", "Caixa" ],
+      [ "136", "Unicred" ],
+      [ "237", "Bradesco" ],
+      [ "260", "Nubank" ],
+      [ "290", "PagBank/PagSeguro" ],
+      [ "341", "Itaú" ],
+      [ "748", "Sicredi" ],
+      [ "756", "Sicoob" ]
+    ]
+    expect(picker.css("option").map { |option| [ option["value"], option.text ] }).to eq(expected)
+    expect(section.to_html).not_to include("Outro")
+    expect(section.css("details").any? { |details| details.at_css("summary")&.text&.strip == "Editar" }).to eq(false)
+    [ principal, parada ].each do |bank_account|
+      listed = row(response.body, "bank-account", bank_account_id: bank_account.id)
+      edit = bank_account_row_edit_control(listed)
+      expect(edit.text.strip).to eq("Editar")
+      expect(edit["href"]).to include("/setup")
+    end
+    section.css("form").each do |form|
+      next unless form.at_css('input[type="submit"][value="Desativar"], input[type="submit"][value="Reativar"]') ||
+        form.text.include?("Desativar") || form.text.include?("Reativar")
+
+      expect(form.at_css("#name")).to be_nil
+    end
+  end
+
+  it "GET of row Editar fills the section form as PATCH Salvar conta" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    principal = BankAccount.create_for(
+      organization: organization, name: "Conta Principal", compe: "001", coordinates: "ag 1234"
+    )
+    parada = BankAccount.create_for(organization: organization, name: "Parada", compe: "033")
+    parada.apply_from(active: false)
+
+    get "/setup"
+    edit_url = bank_account_row_edit_control(row(response.body, "bank-account", bank_account_id: principal.id))["href"]
+
+    get edit_url
+
+    expect(response).to have_http_status(:ok)
+    expect(row(response.body, "bank-account", bank_account_id: principal.id)).to be_present
+    expect(row(response.body, "bank-account", bank_account_id: parada.id)).to be_present
+    form = bank_account_section_form(response.body)
+    expect(form["action"]).to eq("/bank_accounts/#{principal.id}")
+    expect(form.at_css('input[name="_method"][value="patch"]')).to be_present
+    expect(form.at_css('input[type="submit"][value="Salvar conta"]')).to be_present
+    expect(form.at_css("#name")["value"]).to eq("Conta Principal")
+    expect(selected_compe(form)).to eq("001")
+    expect(form.at_css("#coordinates")["value"]).to eq("ag 1234")
+    expect_bank_account_field_labels(form)
+    named_forms = bank_accounts_section(response.body).css("form").select { |node| node.at_css("#name") }
+    expect(named_forms.size).to eq(1)
+  end
+
+  it "GET /setup edit bank_account of another organization stays the add form" do
+    account, org_a = plant_coordinator(email: "coord@example.com", organization_name: "A")
+    org_b = create_organization!(name: "B")
+    Access.create!(account: account, organization: org_b, kind: :coordinator)
+    alheia = BankAccount.create_for(organization: org_b, name: "Alheia", compe: "001")
+    sign_in_as(account, organization: org_a)
+
+    get "/setup?edit=bank_account&bank_account_id=#{alheia.id}"
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).not_to include("Alheia")
+    expect_bank_account_add_form(response.body)
+  end
+
+  it "GET /setup edit bank_account with unknown id stays the add form" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    get "/setup?edit=bank_account&bank_account_id=0"
+
+    expect(response).to have_http_status(:ok)
+    expect_bank_account_add_form(response.body)
+  end
+
+  it "GET /setup listed accounts show Desativar or Reativar and no Excluir" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    principal = BankAccount.create_for(
+      organization: organization, name: "Conta Principal", compe: "001", coordinates: "ag 1234"
+    )
+    parada = BankAccount.create_for(organization: organization, name: "Parada", compe: "033")
+    parada.apply_from(active: false)
+
+    get "/setup"
+
+    expect(row(response.body, "bank-account", bank_account_id: principal.id).to_html).to include("Desativar")
+    parada_html = row(response.body, "bank-account", bank_account_id: parada.id).to_html
+    expect(parada_html).to include("Reativar")
+    expect(parada_html).to include("Inativa")
+    expect(bank_accounts_section(response.body).to_html).not_to include("Excluir")
+  end
+
   it "GET /setup lists bank account names in ascending order" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
@@ -499,7 +668,7 @@ RSpec.describe "Setup", type: :request do
     expect(response.body).not_to include("Só B Extra")
   end
 
-  it "setup h1 is Configuracao and bank account edit folds under Editar" do
+  it "setup h1 is Configuracao and bank account Editar fills the section form" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
     bank_account = BankAccount.create_for(organization: organization, name: "Conta Principal", compe: "001")
@@ -510,11 +679,17 @@ RSpec.describe "Setup", type: :request do
     expect(page_doc(response.body).at_css("h1").text.strip).to eq("Configuração")
     account_row = row(response.body, "bank-account", bank_account_id: bank_account.id)
     expect(account_row).not_to be_nil
-    form = account_row.css("form").find { |node| node["action"] == "/bank_accounts/#{bank_account.id}" && node.at_css('input[name="_method"][value="patch"]') && node.at_css('input[name="name"]') }
-    expect(form).not_to be_nil
-    details = form.ancestors("details").first
-    expect(details).not_to be_nil
-    expect(details.at_css("summary").text.strip).to eq("Editar")
+    expect(account_row.at_css("details")).to be_nil
+    edit = bank_account_row_edit_control(account_row)
+    expect(edit["href"]).to include("/setup")
+    expect(bank_accounts_section(response.body).css("details").any? { |details| details.at_css("summary")&.text&.strip == "Editar" }).to eq(false)
+
+    get edit["href"]
+
+    form = bank_account_section_form(response.body)
+    expect(form["action"]).to eq("/bank_accounts/#{bank_account.id}")
+    expect(form.at_css('input[name="_method"][value="patch"]')).to be_present
+    expect(form.at_css('input[type="submit"][value="Salvar conta"]')).to be_present
   end
 
   def extra_kind_row(body, name)
