@@ -246,8 +246,11 @@ Contas bancárias                                (h2)
   ag 1234                                                    ▸ Editar   ← details with the edit form
   form: Nome / Banco / Coordenadas  [Adicionar conta]
 Tipos extras de exceção                         (h2)
-  Doação                                        Desativar  Excluir
-  form: Nome  [Adicionar tipo extra]
+  Justificativa                                 ← column heading; no intro under the h2
+  Tarifa bancária   Tarifa cobrada pelo banco; não há documento fiscal a anexar.
+  Honorário do contador   Honorário do contador neste fechamento; isento de documento de suporte.
+  Doação            Doação pontual sem nota.                 Desativar  Excluir
+  form: Nome / Justificativa  [Adicionar tipo extra]
 ```
 
 - Contador is cadastro when there is no presentation name; after that name exists the five values are labeled-text chrome (`p.font-medium`) plus `Editar`. Cadastro and `GET /setup?edit=accountant` keep the input chrome. Formatted CPF/CNPJ on read.
@@ -256,7 +259,9 @@ Tipos extras de exceção                         (h2)
 - Bank account rows are `li[data-row="bank-account"]`: name (500), slug and coordinates in meta,
   `Inativa` in `ink-soft` when inactive, quiet actions, then `<details><summary>Editar</summary>`
   with the existing edit form.
-- Extra exception kinds are `li[data-row="extra-exception-kind"]`.
+- Extra exception kinds are `li[data-row="extra-exception-kind"]` (name plus justification). The
+  two base document-exception kinds sit first as `li[data-row="base-document-exception"]` with
+  fixed copy, not as catalog rows. There is no `Nenhum tipo extra`.
 - Forms are two columns from 768px where fields are short (accountant form: 2 columns).
 - New copy: `Configuração` (h1), `Editar`.
 

@@ -93,7 +93,7 @@ RSpec.describe Month, type: :model do
     end
 
     it "close with extra Doacao payment does not add Ha documento faltante" do
-      kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+      kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
       payment = plant_payment(statement, 22000)
       payment.mark_document_exception(extra_exception_kind_id: kind.id)
 

@@ -135,7 +135,7 @@ Proof of a payment that is not a nota fiscal. It has no XML, chave de acesso, or
 _Avoid_: receipt (unqualified, when the Brazilian document type is meant)
 
 **Extra exception kind**:
-A name the organization keeps, besides bank fee and accountant’s fee, for marking a document exception. Unique in that organization and distinct from the two base names. A deactivated kind remains on payments already marked and is not offered for new marks; an unused kind may be removed.
+A name the organization keeps, besides bank fee and accountant’s fee, for marking a document exception, together with a required sentence explaining why a payment of that kind needs no supporting document. Unique in that organization and distinct from the two base names. A deactivated kind remains on payments already marked and is not offered for new marks; an unused kind may be removed. Justification is stored on the catalog row and is not edited after include.
 _Avoid_: category, tag, extra (unqualified), exception type (when the document exception is meant)
 
 **Document exception**:

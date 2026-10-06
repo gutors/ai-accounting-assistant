@@ -406,78 +406,166 @@ RSpec.describe "Setup", type: :request do
     expect(response.body).not_to include("Conta Principal")
   end
 
-  it "GET /setup with zero extra exception kinds includes Tipos extras de excecao and Nenhum tipo extra" do
+  it "GET /setup with zero extra exception kinds lists fixed Tarifa then Honorario" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
 
     get "/setup"
 
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include("Tipos extras de exceção")
-    expect(response.body).to include("Nenhum tipo extra")
+    section = extras_section(response.body)
+    html = section.to_html
+    heading = html.index("Tipos extras de exceção")
+    tarifa = html.index("Tarifa bancária")
+    tarifa_copy = html.index("Tarifa cobrada pelo banco; não há documento fiscal a anexar.")
+    honorario = html.index("Honorário do contador")
+    honorario_copy = html.index("Honorário do contador neste fechamento; isento de documento de suporte.")
+    expect(heading).to be_present
+    expect(tarifa).to be_present
+    expect(tarifa_copy).to be_present
+    expect(honorario).to be_present
+    expect(honorario_copy).to be_present
+    expect(heading).to be < tarifa
+    expect(tarifa).to be < tarifa_copy
+    expect(tarifa_copy).to be < honorario
+    expect(honorario).to be < honorario_copy
+    expect(html).not_to include("Nenhum tipo extra")
+    expect(organization.extra_exception_kinds.count).to eq(0)
   end
 
-  it "GET /setup lists extra exception kinds Alfa before Zeta" do
+  it "GET /setup Tarifa and Honorario are not extra-exception-kind rows" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
-    ExtraExceptionKind.create_for(organization: organization, name: "Zeta")
-    ExtraExceptionKind.create_for(organization: organization, name: "Alfa")
+    ExtraExceptionKind.create_for(
+      organization: organization, name: "Doação", justification: "Doação pontual sem nota."
+    )
 
     get "/setup"
 
-    expect(response.body.index("Alfa")).to be < response.body.index("Zeta")
+    extra_names = rows(response.body, "extra-exception-kind").map { |node| node.text }
+    expect(extra_names.join).to include("Doação")
+    expect(extra_names.join).not_to include("Tarifa bancária")
+    expect(extra_names.join).not_to include("Honorário do contador")
+    expect(extras_section(response.body).text).to include("Tarifa bancária")
+    expect(extras_section(response.body).text).to include("Honorário do contador")
   end
 
-  it "setup extra exception kind has no control that submits a new name" do
+  it "GET /setup fixed exception rows omit Desativar Reativar Excluir" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
-    ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+
+    get "/setup"
+
+    tarifa = base_exception_row(response.body, "Tarifa bancária")
+    honorario = base_exception_row(response.body, "Honorário do contador")
+    expect(tarifa).to be_present
+    expect(honorario).to be_present
+    [ tarifa, honorario ].each do |row|
+      expect(row.text).not_to include("Desativar")
+      expect(row.text).not_to include("Reativar")
+      expect(row.text).not_to include("Excluir")
+    end
+  end
+
+  it "GET /setup extras section order is Tarifa Honorario Alfa Zeta" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    ExtraExceptionKind.create_for(
+      organization: organization, name: "Zeta", justification: "Isento de documento de suporte."
+    )
+    ExtraExceptionKind.create_for(
+      organization: organization, name: "Alfa", justification: "Isento de documento de suporte."
+    )
+
+    get "/setup"
+
+    html = extras_section(response.body).to_html
+    expect(html.index("Tarifa bancária")).to be < html.index("Honorário do contador")
+    expect(html.index("Honorário do contador")).to be < html.index("Alfa")
+    expect(html.index("Alfa")).to be < html.index("Zeta")
+  end
+
+  it "GET /setup extra kind form has Nome Justificativa and Adicionar tipo extra" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    get "/setup"
+
+    form = extras_section(response.body).at_css('form[action="/extra_exception_kinds"]')
+    expect(form.at_css('label[for="extra_exception_kind_name"]').text.strip).to eq("Nome")
+    expect(form.at_css("#extra_exception_kind_name")).to be_present
+    justification = form.at_css('input[name="justification"]')
+    expect(justification).to be_present
+    expect(form.at_css("label[for='#{justification['id']}']").text.strip).to eq("Justificativa")
+    expect(form.at_css('input[type="submit"][value="Adicionar tipo extra"]')).to be_present
+    expect(extras_section(response.body).text).to include("Justificativa")
+  end
+
+  it "setup extra exception kind row shows justification and has no name or justification fields" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    ExtraExceptionKind.create_for(
+      organization: organization, name: "Doação", justification: "Doação pontual sem nota."
+    )
 
     get "/setup"
 
     row = extra_kind_row(response.body, "Doação")
     expect(row).to be_present
-    expect(row).not_to include('name="name"')
+    expect(row.text).to include("Doação pontual sem nota.")
+    expect(row.at_css('input[name="name"], textarea[name="name"], select[name="name"]')).to be_nil
+    expect(row.at_css('input[name="justification"], textarea[name="justification"]')).to be_nil
   end
 
-  it "GET /setup does not list Tarifa bancaria or Honorario do contador as extra exception kinds" do
+  it "setup deactivated extra exception kind still includes justification" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
+    kind = ExtraExceptionKind.create_for(
+      organization: organization, name: "Doação", justification: "Doação pontual sem nota."
+    )
+    kind.apply_active(false)
 
     get "/setup"
 
-    extras = extra_kinds_section(response.body)
-    expect(extras).not_to include("Tarifa bancária")
-    expect(extras).not_to include("Honorário do contador")
+    row = extra_kind_row(response.body, "Doação")
+    expect(row.text).to include("Doação pontual sem nota.")
   end
 
   it "setup extra exception kinds show Desativar or Reativar" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
-    ExtraExceptionKind.create_for(organization: organization, name: "Ativa Extra")
-    inactive = ExtraExceptionKind.create_for(organization: organization, name: "Parada Extra")
+    ExtraExceptionKind.create_for(
+      organization: organization, name: "Ativa Extra", justification: "Isento de documento de suporte."
+    )
+    inactive = ExtraExceptionKind.create_for(
+      organization: organization, name: "Parada Extra", justification: "Isento de documento de suporte."
+    )
     inactive.apply_active(false)
 
     get "/setup"
 
-    expect(extra_kind_row(response.body, "Ativa Extra")).to include("Desativar")
-    expect(extra_kind_row(response.body, "Parada Extra")).to include("Reativar")
+    expect(extra_kind_row(response.body, "Ativa Extra").text).to include("Desativar")
+    expect(extra_kind_row(response.body, "Parada Extra").text).to include("Reativar")
   end
 
   it "setup unused extra exception kind Folha includes Excluir" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
-    ExtraExceptionKind.create_for(organization: organization, name: "Folha")
+    ExtraExceptionKind.create_for(
+      organization: organization, name: "Folha", justification: "Isento de documento de suporte."
+    )
 
     get "/setup"
 
-    expect(extra_kind_row(response.body, "Folha")).to include("Excluir")
+    expect(extra_kind_row(response.body, "Folha").text).to include("Excluir")
   end
 
   it "setup includes no Excluir while every extra exception kind is referenced" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
-    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    kind = ExtraExceptionKind.create_for(
+      organization: organization, name: "Doação", justification: "Doação pontual sem nota."
+    )
     _month, statement = plant_month(organization)
     payment = plant_payment(statement, 22000)
     payment.update!(extra_exception_kind: kind)
@@ -491,7 +579,9 @@ RSpec.describe "Setup", type: :request do
     account, org_a = plant_coordinator(email: "coord@example.com", organization_name: "A")
     org_b = create_organization!(name: "B")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
-    ExtraExceptionKind.create_for(organization: org_b, name: "Só B Extra")
+    ExtraExceptionKind.create_for(
+      organization: org_b, name: "Só B Extra", justification: "Isento de documento de suporte."
+    )
     sign_in_as(account, organization: org_a)
 
     get "/setup"
@@ -515,14 +605,5 @@ RSpec.describe "Setup", type: :request do
     details = form.ancestors("details").first
     expect(details).not_to be_nil
     expect(details.at_css("summary").text.strip).to eq("Editar")
-  end
-
-  def extra_kind_row(body, name)
-    rows_html(body, "extra-exception-kind").find { |li| li.include?(name) }
-  end
-
-  def extra_kinds_section(body)
-    start = body.index("Tipos extras de exceção")
-    body[start..]
   end
 end

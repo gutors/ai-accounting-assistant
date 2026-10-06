@@ -4,7 +4,8 @@ class ExtraExceptionKindsController < ApplicationController
   def create
     extra_exception_kind = ExtraExceptionKind.create_for(
       organization: focused_organization,
-      name: params[:name]
+      name: params[:name],
+      justification: params[:justification]
     )
 
     if extra_exception_kind.persisted?

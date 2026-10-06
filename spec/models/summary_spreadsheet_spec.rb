@@ -219,7 +219,7 @@ RSpec.describe SummarySpreadsheet, type: :model do
   end
 
   it "extra Doacao expense Excecao cell is Doacao" do
-    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
     payment = plant_payment(statement, 15500)
     payment.mark_document_exception(extra_exception_kind_id: kind.id)
     values = sheet_cell_values(book)

@@ -370,7 +370,7 @@ RSpec.describe "Months", type: :request do
   it "GET /months/2026-05 includes Doacao as a mark choice" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
-    ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
     _month, statement = plant_month(organization)
     payment = plant_payment(statement, 22000)
 
@@ -386,7 +386,7 @@ RSpec.describe "Months", type: :request do
   it "GET /months/2026-05 deactivated Doacao is not offered and stays on the marked payment" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
-    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
     _month, statement = plant_month(organization)
     marked = plant_payment(statement, 22000)
     plant_payment(statement, 10000)
@@ -405,7 +405,7 @@ RSpec.describe "Months", type: :request do
   it "GET /months/2026-05 with every payment extra-excepted omits Documento faltante" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
-    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
     _month, statement = plant_month(organization)
     plant_payment(statement, 22000).mark_document_exception(extra_exception_kind_id: kind.id)
     plant_payment(statement, 10000).mark_document_exception(extra_exception_kind_id: kind.id)
@@ -419,7 +419,7 @@ RSpec.describe "Months", type: :request do
     account, org_a = plant_coordinator(email: "coord@example.com", organization_name: "A")
     org_b = create_organization!(name: "B")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
-    ExtraExceptionKind.create_for(organization: org_b, name: "Só B Extra")
+    ExtraExceptionKind.create_for(organization: org_b, name: "Só B Extra", justification: "Isento de documento de suporte.")
     sign_in_as(account, organization: org_a)
     _month, statement = plant_month(org_a)
     plant_payment(statement, 22000)
@@ -432,7 +432,7 @@ RSpec.describe "Months", type: :request do
   it "GET closed month shows deactivated Doacao without Desmarcar excecao" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
-    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
     month, statement = plant_month(organization)
     payment = plant_payment(statement, 22000)
     payment.mark_document_exception(extra_exception_kind_id: kind.id)
@@ -1048,7 +1048,7 @@ RSpec.describe "Months", type: :request do
 
   it "GET extra exception kind is not Sugestao de excecao" do
     _account, organization, _month, statement = signed_open_month
-    ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
     plant_payment(statement, 22000, history: "Pix enviado")
 
     get "/months/2026-05"

@@ -166,7 +166,7 @@ RSpec.describe "Document exceptions", type: :request do
 
   it "POST extra_exception_kind_id Doacao persists and redirects" do
     _account, organization, _month, statement = signed_month
-    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
     payment = plant_payment(statement, 22000)
 
     post "/months/2026-05/payments/#{payment.id}/document_exception", params: { extra_exception_kind_id: kind.id }
@@ -183,7 +183,7 @@ RSpec.describe "Document exceptions", type: :request do
 
   it "DELETE extra Doacao returns Documento faltante" do
     _account, organization, _month, statement = signed_month
-    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
     payment = plant_payment(statement, 22000)
     post "/months/2026-05/payments/#{payment.id}/document_exception", params: { extra_exception_kind_id: kind.id }
 
@@ -200,7 +200,7 @@ RSpec.describe "Document exceptions", type: :request do
 
   it "POST deactivated extra_exception_kind_id returns 422 Informe um tipo de excecao permitido" do
     _account, organization, _month, statement = signed_month
-    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
     kind.apply_active(false)
     payment = plant_payment(statement, 22000)
 
@@ -213,7 +213,7 @@ RSpec.describe "Document exceptions", type: :request do
 
   it "POST kind bank_fee and extra_exception_kind_id returns 422" do
     _account, organization, _month, statement = signed_month
-    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
     payment = plant_payment(statement, 22000)
 
     post "/months/2026-05/payments/#{payment.id}/document_exception",
@@ -228,7 +228,7 @@ RSpec.describe "Document exceptions", type: :request do
   it "POST extra_exception_kind_id of another organization returns 404" do
     _account, organization, _month, statement = signed_month
     other = create_organization!(name: "B")
-    foreign = ExtraExceptionKind.create_for(organization: other, name: "Doação")
+    foreign = ExtraExceptionKind.create_for(organization: other, name: "Doação", justification: "Isento de documento de suporte.")
     payment = plant_payment(statement, 22000)
 
     post "/months/2026-05/payments/#{payment.id}/document_exception", params: { extra_exception_kind_id: foreign.id }
@@ -239,7 +239,7 @@ RSpec.describe "Document exceptions", type: :request do
 
   it "POST extra_exception_kind_id on matched payment returns 422 Desfaca o casamento" do
     account, organization, _month, statement = signed_month
-    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
     payment = plant_payment(statement, 22000)
     document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
     post "/months/2026-05/matches", params: {
@@ -256,7 +256,7 @@ RSpec.describe "Document exceptions", type: :request do
 
   it "POST bank_fee replaces extra Doacao" do
     _account, organization, _month, statement = signed_month
-    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
     payment = plant_payment(statement, 22000)
     post "/months/2026-05/payments/#{payment.id}/document_exception", params: { extra_exception_kind_id: kind.id }
 
@@ -271,7 +271,7 @@ RSpec.describe "Document exceptions", type: :request do
 
   it "POST extra_exception_kind_id while closed returns 422 Mes fechado" do
     _account, organization, month, statement = signed_month
-    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
     payment = plant_payment(statement, 22000)
     month.update!(closed: true)
 
@@ -284,7 +284,7 @@ RSpec.describe "Document exceptions", type: :request do
 
   it "DELETE extra Doacao while closed returns 422 Mes fechado" do
     _account, organization, month, statement = signed_month
-    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
     payment = plant_payment(statement, 22000)
     payment.mark_document_exception(extra_exception_kind_id: kind.id)
     month.update!(closed: true)
@@ -298,7 +298,7 @@ RSpec.describe "Document exceptions", type: :request do
 
   it "submitter POST extra_exception_kind_id persists no mark and responds 404" do
     account, organization, _month, statement = signed_month
-    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
     payment = plant_payment(statement, 22000)
     submitter, _ = plant_submitter(organization: organization)
     sign_in_as(submitter, organization: organization)
@@ -359,7 +359,7 @@ RSpec.describe "Document exceptions", type: :request do
 
   it "payment row data-status is extra" do
     _account, organization, _month, statement = signed_month
-    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
     payment = plant_payment(statement, 15500)
     payment.mark_document_exception(extra_exception_kind_id: kind.id)
 

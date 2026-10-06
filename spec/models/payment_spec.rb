@@ -116,7 +116,7 @@ RSpec.describe Payment, type: :model do
   end
 
   it "mark extra Doacao on missing-document payment" do
-    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
     payment = plant_payment(statement, 22000)
 
     payment.mark_document_exception(extra_exception_kind_id: kind.id)
@@ -128,7 +128,7 @@ RSpec.describe Payment, type: :model do
   end
 
   it "unmark extra Doacao returns missing document" do
-    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
     payment = plant_payment(statement, 22000)
     payment.mark_document_exception(extra_exception_kind_id: kind.id)
 
@@ -139,7 +139,7 @@ RSpec.describe Payment, type: :model do
   end
 
   it "rejects deactivated extra Doacao" do
-    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
     kind.apply_active(false)
     payment = plant_payment(statement, 22000)
 
@@ -150,7 +150,7 @@ RSpec.describe Payment, type: :model do
   end
 
   it "rejects kind bank_fee together with extra Doacao" do
-    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
     payment = plant_payment(statement, 22000)
 
     payment.mark_document_exception("bank_fee", extra_exception_kind_id: kind.id)
@@ -161,7 +161,7 @@ RSpec.describe Payment, type: :model do
   end
 
   it "rejects extra Doacao on a matched payment" do
-    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
     payment = plant_payment(statement, 22000)
     document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
     Match.confirm(month: month, payments: [ payment ], supporting_documents: [ document ])
@@ -175,7 +175,7 @@ RSpec.describe Payment, type: :model do
   end
 
   it "mark bank_fee clears extra Doacao" do
-    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
     payment = plant_payment(statement, 22000)
     payment.mark_document_exception(extra_exception_kind_id: kind.id)
 
@@ -186,7 +186,7 @@ RSpec.describe Payment, type: :model do
   end
 
   it "mark extra Doacao while Month closed persists no mark" do
-    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
     payment = plant_payment(statement, 22000)
     month.update!(closed: true)
 
@@ -197,7 +197,7 @@ RSpec.describe Payment, type: :model do
   end
 
   it "unmark extra Doacao while Month closed keeps the mark" do
-    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
     payment = plant_payment(statement, 22000)
     payment.mark_document_exception(extra_exception_kind_id: kind.id)
     month.update!(closed: true)

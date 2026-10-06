@@ -396,7 +396,7 @@ RSpec.describe "Matches", type: :request do
 
   it "POST format-1 Match on extra Doacao payment clears the extra mark" do
     account, organization, _month, statement = signed_month
-    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
     payment = plant_payment(statement, 22000)
     document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
     payment.mark_document_exception(extra_exception_kind_id: kind.id)

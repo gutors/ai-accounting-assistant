@@ -835,7 +835,7 @@ RSpec.describe "Administration access", type: :request do
 
   it "removing an organization with an ExtraExceptionKind re-renders 422" do
     _account, norte = plant_coordinator(email: "coordenador@exemplo.org", organization_name: "ONG Norte")
-    ExtraExceptionKind.create_for(organization: norte, name: "Doação")
+    ExtraExceptionKind.create_for(organization: norte, name: "Doação", justification: "Isento de documento de suporte.")
     as_seller do
       expect {
         delete "/administration", params: { organization_id: norte.id }
