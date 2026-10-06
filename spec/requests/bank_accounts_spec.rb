@@ -1,6 +1,107 @@
 require "rails_helper"
 
 RSpec.describe "Bank accounts", type: :request do
+  it "POST /bank_accounts persists BB Conta Principal and toasts Pronto" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    post "/bank_accounts", params: { name: "Conta Principal", compe: "001", coordinates: "ag 1234" }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/setup")
+    bank_account = organization.bank_accounts.last
+    expect(organization.bank_accounts.count).to eq(1)
+    expect(bank_account).to be_active
+    expect(bank_account.bank.presentation_name).to eq("Banco do Brasil")
+
+    get "/setup"
+    row_html = row(response.body, "bank-account", bank_account_id: bank_account.id).to_html
+    expect(row_html.index("Banco do Brasil")).to be < row_html.index("Conta Principal")
+    expect(row_html.index("Conta Principal")).to be < row_html.index("ag 1234")
+    expect(row_html.index("ag 1234")).to be < row_html.index("extrato-conta-principal")
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_node(response.body).text).to include("Pronto.")
+  end
+
+  it "PATCH section form 302s to add form and toasts Pronto" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    bank_account = BankAccount.create_for(
+      organization: organization, name: "Conta Principal", compe: "001", coordinates: "ag 1234"
+    )
+
+    patch "/bank_accounts/#{bank_account.id}", params: { name: "Nova Conta", compe: "001", coordinates: "ag 1234" }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/setup")
+    bank_account.reload
+    expect(bank_account.name).to eq("Nova Conta")
+    expect(bank_account.slug).to eq("nova-conta")
+
+    get "/setup"
+    expect_bank_account_add_form(response.body)
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_node(response.body).text).to include("Pronto.")
+  end
+
+  it "PATCH active false 302s to add form with Inativa and toasts Pronto" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    bank_account = BankAccount.create_for(organization: organization, name: "Conta Principal", compe: "001")
+
+    patch "/bank_accounts/#{bank_account.id}", params: { active: false }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/setup")
+    expect(BankAccount.find(bank_account.id)).not_to be_active
+
+    get "/setup"
+    listed = row(response.body, "bank-account", bank_account_id: bank_account.id)
+    expect(listed).to be_present
+    expect(listed.to_html).to include("Conta Principal")
+    expect(listed.to_html).to include("Inativa")
+    expect_bank_account_add_form(response.body)
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_node(response.body).text).to include("Pronto.")
+  end
+
+  it "POST colliding slug returns 422 add form with submitted fields and no toast" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    BankAccount.create_for(organization: organization, name: "Café", compe: "001")
+
+    post "/bank_accounts", params: { name: "Cafe", compe: "033", coordinates: "ag 9" }
+
+    expect(organization.bank_accounts.count).to eq(1)
+    expect(response).to have_http_status(:unprocessable_content)
+    form = bank_account_section_form(response.body)
+    expect(form["action"]).to eq("/bank_accounts")
+    expect(form.at_css('input[type="submit"][value="Adicionar conta"]')).to be_present
+    expect(form.at_css("#name")["value"]).to eq("Cafe")
+    expect(selected_compe(form)).to eq("033")
+    expect(form.at_css("#coordinates")["value"]).to eq("ag 9")
+    expect(toast_node(response.body)).to be_nil
+  end
+
+  it "PATCH colliding slug returns 422 edit form with submitted fields and no toast" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    BankAccount.create_for(organization: organization, name: "Café", compe: "001")
+    other = BankAccount.create_for(organization: organization, name: "Outra", compe: "033")
+
+    patch "/bank_accounts/#{other.id}", params: { name: "Cafe", compe: "033", coordinates: "x" }
+
+    expect(other.reload.name).to eq("Outra")
+    expect(response).to have_http_status(:unprocessable_content)
+    form = bank_account_section_form(response.body)
+    expect(form["action"]).to eq("/bank_accounts/#{other.id}")
+    expect(form.at_css('input[type="submit"][value="Salvar conta"]')).to be_present
+    expect(form.at_css("#name")["value"]).to eq("Cafe")
+    expect(selected_compe(form)).to eq("033")
+    expect(form.at_css("#coordinates")["value"]).to eq("x")
+    expect(toast_node(response.body)).to be_nil
+  end
+
   it "POST /bank_accounts persists active Banco do Brasil account and redirects" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)

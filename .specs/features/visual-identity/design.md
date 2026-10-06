@@ -242,9 +242,10 @@ Certificado Digital A1 - Para consulta na SEFAZ (h2)
   ▸ Instalar certificado   ← details with Arquivo / Senha [Instalar certificado]
 
 Contas bancárias                                (h2)
-  Conta Principal            extrato-conta-principal        Desativar
-  ag 1234                                                    ▸ Editar   ← details with the edit form
-  form: Nome / Banco / Coordenadas  [Adicionar conta]
+  Banco do Brasil  Conta Principal  ag 1234  extrato-conta-principal  Desativar  Editar
+  Santander        Parada                    extrato-parada  Inativa  Reativar  Editar
+  one section form: Nome / Banco / Agência/Conta Corrente  [Adicionar conta]
+  Editar is GET /setup?edit=bank_account&bank_account_id={id}; submit [Salvar conta]
 Tipos extras de exceção                         (h2)
   Justificativa                                 ← column heading; no intro under the h2
   Tarifa bancária   Tarifa cobrada pelo banco; não há documento fiscal a anexar.
@@ -256,9 +257,10 @@ Tipos extras de exceção                         (h2)
 - Contador is cadastro when there is no presentation name; after that name exists the five values are labeled-text chrome (`p.font-medium`) plus `Editar`. Cadastro and `GET /setup?edit=accountant` keep the input chrome. Formatted CPF/CNPJ on read.
 - Armazenamento do pacote mensal is cadastro when there is no URL (`Cole a URL da pasta do Google Drive`, label `URL da pasta do Google Drive`, `[Salvar arquivo]`). After a URL exists it is labeled `font-medium` text plus `Editar`. `GET /setup?edit=package_archive` is `input#url` with `[Confirmar]`.
 - Certificate: heading `Certificado Digital A1 - Para consulta na SEFAZ`. Empty line `Não há certificado A1 instalado. Use Instalar certificado.` when none. When a certificate exists, titular / validity / `Remover` (quiet, margem) stay outside the fold. Arquivo / Senha sit in `<details>` whose `<summary>` is `Instalar certificado`. A `422` from `POST /sefaz_certificate` re-renders that details `open`.
-- Bank account rows are `li[data-row="bank-account"]`: name (500), slug and coordinates in meta,
-  `Inativa` in `ink-soft` when inactive, quiet actions, then `<details><summary>Editar</summary>`
-  with the existing edit form.
+- Bank account rows are `li[data-row="bank-account"]`: four cells in order bank presentation name,
+  name, agência/conta corrente, `extrato-{slug}`; `Inativa` in `ink-soft` when inactive; quiet
+  `Desativar` / `Reativar` on the row; `Editar` fills the one section form as PATCH `Salvar conta`.
+  Empty POST is `Adicionar conta`. Label `Agência/Conta Corrente`. No per-row edit fold.
 - Extra exception kinds are `li[data-row="extra-exception-kind"]` (name plus justification). The
   two base document-exception kinds sit first as `li[data-row="base-document-exception"]` with
   fixed copy, not as catalog rows. There is no `Nenhum tipo extra`.
