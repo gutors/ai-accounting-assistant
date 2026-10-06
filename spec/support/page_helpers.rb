@@ -25,7 +25,9 @@ module PageHelpers
   end
 
   def turbo_stream_for(body, css_selector)
-    turbo_stream_nodes(body).find { |node| node["targets"] == css_selector }
+    turbo_stream_nodes(body).find do |node|
+      node["targets"] == css_selector || node["target"] == css_selector.delete_prefix("#")
+    end
   end
 
   def rows(body, name)

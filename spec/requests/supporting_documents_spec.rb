@@ -267,6 +267,11 @@ RSpec.describe "Supporting documents", type: :request do
     form = insert_form(response.body)
     expect(limpar_next_to(form, "photo")).to be_present
     expect(limpar_next_to(form, "xml")).to be_present
+    notice = error_notice(response.body)
+    expect(notice.attribute("hidden")).not_to be_nil
+    expect(notice.parent.name).to eq("main")
+    expect(page_doc(response.body).at_css("#toast-host")).not_to be_nil
+    expect(toast_node(response.body)).to be_nil
   end
 
   it "GET Editar recibo hides chave and xml" do
@@ -430,7 +435,7 @@ RSpec.describe "Supporting documents", type: :request do
     expect(response).to have_http_status(:unprocessable_content)
     expect(response.media_type).to include("turbo-stream")
     notice = turbo_stream_for(response.body, "[data-notice=error]")
-    toast = turbo_stream_for(response.body, "[data-toast-kind=error]")
+    toast = turbo_stream_for(response.body, "toast-host")
     expect(notice.text).to include("Envie a foto e/ou o XML")
     expect(toast.text).to include("Envie a foto e/ou o XML")
     expect(Nokogiri::HTML::DocumentFragment.parse(response.body).at_css('form[action="/supporting_documents"]')).to be_nil

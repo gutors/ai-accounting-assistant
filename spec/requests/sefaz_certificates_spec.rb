@@ -108,7 +108,7 @@ RSpec.describe "SEFAZ certificates", type: :request do
     expect(response).to have_http_status(:unprocessable_content)
     expect(response.media_type).to include("turbo-stream")
     notice = turbo_stream_for(response.body, "[data-notice=error]")
-    toast = turbo_stream_for(response.body, "[data-toast-kind=error]")
+    toast = turbo_stream_for(response.body, "toast-host")
     expect(notice.text).to include("Não foi possível abrir o certificado com essa senha")
     expect(toast.text).to include("Não foi possível abrir o certificado com essa senha")
     expect(response.body).not_to include("errada")

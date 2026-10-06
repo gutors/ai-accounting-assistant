@@ -50,6 +50,37 @@ RSpec.describe "Keep form on 422", type: :system do
     expect(find("#xml", visible: :all).value).to include("nota.xml")
   end
 
+  it "insert 422 after Pronto still shows the error toast" do
+    account, _organization = plant_coordinator
+    sign_in_through_google(account)
+    visit "/supporting_documents"
+    photo_path = write_upload("recibo.jpg", "jpeg-bytes")
+    xml_path = write_upload("nota.xml", "<nfe/>")
+
+    within("form[action='/supporting_documents']") do
+      fill_in "amount", with: "155,00"
+      fill_in "date", with: "2026-05-11"
+      fill_in "payee", with: "Padaria Central"
+      attach_file "photo", photo_path
+      select "Recibo", from: "kind"
+      click_button "Incluir documento"
+    end
+    expect(page).to have_css("[data-toast-kind=success]", text: "Pronto.")
+
+    within("form[action='/supporting_documents']") do
+      fill_in "amount", with: "155,00"
+      fill_in "date", with: "2026-05-11"
+      fill_in "payee", with: "Padaria Central"
+      attach_file "xml", xml_path
+      select "Recibo", from: "kind"
+      page.execute_script("document.getElementById('xml').disabled = false")
+      click_button "Incluir documento"
+    end
+    expect(page).to have_css("[data-notice=error]", text: "Recibo não tem XML")
+    expect(page).to have_css("[data-toast-kind=error]", text: "Recibo não tem XML")
+    expect(page).to have_css("#toast-host [data-toast-kind=error]")
+  end
+
   it "Limpar clears insert photo without submit" do
     account, _organization = plant_coordinator
     sign_in_through_google(account)

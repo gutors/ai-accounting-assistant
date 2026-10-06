@@ -21,11 +21,11 @@
 
   <body class="min-h-full bg-paper text-ink antialiased">
     <%= render "layouts/header" %>
-    <% if flash[:toast].present? %>
-      <%= render "shared/toast" %>
-    <% else %>
-      <div data-toast-kind="error" hidden></div>
-    <% end %>
+    <div id="toast-host">
+      <% if flash[:toast].present? %>
+        <%= render "shared/toast" %>
+      <% end %>
+    </div>
     <main class="mx-auto mt-10 max-w-6xl px-5 pb-16 md:px-8">
       <%= yield %>
     </main>

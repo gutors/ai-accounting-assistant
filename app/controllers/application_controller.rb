@@ -214,12 +214,13 @@ class ApplicationController < ActionController::Base
       turbo_stream.action_all(
         :replace,
         "[data-notice=error]",
-        html: render_to_string(partial: "shared/notice", locals: { message: message })
+        partial: "shared/notice",
+        locals: { message: message }
       ),
-      turbo_stream.action_all(
-        :replace,
-        "[data-toast-kind=error]",
-        html: render_to_string(partial: "shared/toast", locals: { toast: message, toast_kind: "error" })
+      turbo_stream.update(
+        "toast-host",
+        partial: "shared/toast",
+        locals: { toast: message, toast_kind: "error" }
       )
     ], status: :unprocessable_content
   end

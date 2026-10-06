@@ -106,6 +106,7 @@ RSpec.describe "Layout header", type: :request do
     get "/"
 
     expect(response).to have_http_status(:ok)
+    expect(page_doc(response.body).at_css("#toast-host")).not_to be_nil
     expect(toast_node(response.body)).to be_nil
     mail_failure = "O convite foi gravado, mas o e-mail não saiu."
     expect(response.body).not_to include(mail_failure)
@@ -137,8 +138,11 @@ RSpec.describe "Layout header", type: :request do
     expect(toast["class"]).to include("text-white")
     expect(toast["data-notice"]).to be_nil
     expect(toast.at_css("[data-notice]")).to be_nil
-    expect(doc.at_css("header").next_element).to eq(toast)
-    expect(toast.next_element.name).to eq("main")
+    host = doc.at_css("#toast-host")
+    expect(host).not_to be_nil
+    expect(doc.at_css("header").next_element).to eq(host)
+    expect(host.at_css("[data-toast]")).to eq(toast)
+    expect(host.next_element.name).to eq("main")
   end
 
   it "error toast sits after header before main" do
@@ -162,8 +166,11 @@ RSpec.describe "Layout header", type: :request do
       expect(toast["class"]).to include("text-margem")
       expect(toast["class"]).to include("border-l-[3px]")
       expect(toast["class"]).to include("border-margem")
-      expect(doc.at_css("header").next_element).to eq(toast)
-      expect(toast.next_element.name).to eq("main")
+      host = doc.at_css("#toast-host")
+      expect(host).not_to be_nil
+      expect(doc.at_css("header").next_element).to eq(host)
+      expect(host.at_css("[data-toast]")).to eq(toast)
+      expect(host.next_element.name).to eq("main")
     ensure
       CoordinatorInviteDeliveryFail.raise_now = false
       ActionMailer::Base.unregister_interceptor(CoordinatorInviteDeliveryFail)
