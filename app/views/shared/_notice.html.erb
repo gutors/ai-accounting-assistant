@@ -1,1 +1,1 @@
-<p role="alert" data-notice="error" class="border-l-[3px] border-margem pl-3 text-margem"><%= message %></p>
+<p role="alert" data-notice="error" class="border-l-[3px] border-margem pl-3 text-margem" <%= "hidden" if message.blank? %>><%= message %></p>

@@ -10,10 +10,14 @@ class SefazCertificatesController < ApplicationController
     if focused_organization.install_sefaz_certificate(file: params[:certificate], passphrase: params[:passphrase])
       redirect_success("/setup")
     else
-      load_setup
       @certificate_error = focused_organization.errors[:base].first
       toast_now(kind: "error", message: @certificate_error)
-      render "setup/show", status: :unprocessable_content
+      if turbo_stream_refusal?
+        render_refusal_streams(@certificate_error)
+      else
+        load_setup
+        render "setup/show", status: :unprocessable_content
+      end
     end
   end
 

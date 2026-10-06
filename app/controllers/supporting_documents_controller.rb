@@ -22,10 +22,7 @@ class SupportingDocumentsController < ApplicationController
     if document.errors.empty?
       redirect_success("/supporting_documents")
     else
-      @document_error = document.errors[:base].first
-      toast_now(kind: "error", message: @document_error)
-      load_documents
-      render :index, status: :unprocessable_content
+      refuse_insert(document.errors[:base].first)
     end
   end
 
@@ -101,5 +98,16 @@ class SupportingDocumentsController < ApplicationController
     toast_now(kind: "error", message: message)
     load_documents
     render :index, status: :unprocessable_content
+  end
+
+  def refuse_insert(message)
+    @document_error = message
+    toast_now(kind: "error", message: message)
+    if turbo_stream_refusal?
+      render_refusal_streams(message)
+    else
+      load_documents
+      render :index, status: :unprocessable_content
+    end
   end
 end

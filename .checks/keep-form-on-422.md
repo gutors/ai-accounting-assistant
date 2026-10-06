@@ -39,6 +39,8 @@ Touches `SupportingDocumentsController#create`, `SefazCertificatesController#cre
 
 `Limpar` is Stimulus clearing `input type=file` (browser API), the same class of controller as `document-kind`. It is not a new transport.
 
+| GET documents and setup plus the layout toast host always expose the Stream CSS targets | When there is no flash, the layout renders a `hidden` node with `data-toast-kind="error"` and without `data-toast`. Documents and setup always render `[data-notice=error]` (`hidden` when the message is blank). Stream `422` uses `action="replace"` `targets="[data-notice=error]"` and `targets="[data-toast-kind=error]"` so a hidden shell becomes the visible notice/toast. `request.accept` including `text/vnd.turbo-stream.html` selects this path. | `turbo_stream.update` of innerHTML — the empty shell stays `hidden`, so the person would not see the error. `turbo_stream.append` — a second `422` would duplicate nodes. Putting `data-toast` on the empty shell — `GET /` with empty flash must still have no `[data-toast]` (#76). Site-wide morph / `turbo-refresh` — already rejected |
+
 - Nothing else in this change is hard to reverse
 
 ## Test policy
@@ -165,3 +167,7 @@ Design opened: `.specs/features/visual-identity/design.md` (file in the repo). U
 ## Handoff
 
 S1 ~29k (`index.html.erb` + `supporting_documents_controller.rb` + the 101 KB request spec) + S2 ~6k (`setup/show` + `sefaz_certificates_spec`) + S3 ~30k (same request specs plus a system spec; 101 KB spec not paid twice on a unique-file floor) + S4 ~8k (Stimulus + GET examples + system clicks) + S5 ~6k (`design.md` + docs spec + C10 assertions on the same POST examples) = ~79k if the large spec is counted once (~42k unique-file floor / 4 on ~167 KB of named files). All five slices stay under 150k and share the two forms. No split. One batch.
+
+- Where the boundary fell: C1–C11 closed on this branch after the implementation commit.
+- What the user settled mid-build: none.
+- What was abandoned: `turbo_stream.action(:replace, targets: …)` — TagBuilder `#action` expects a DOM id as the second argument (`wrong number of arguments`). `#action_all` emits `targets=`. C7 re-enables `#xml` in the browser proof because Recibo chrome (#79) disables that control so a Turbo submit would omit the file and never hit `Recibo não tem XML`.

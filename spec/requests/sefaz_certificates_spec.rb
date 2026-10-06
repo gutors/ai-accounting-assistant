@@ -64,6 +64,7 @@ RSpec.describe "SEFAZ certificates", type: :request do
 
   it "POST pfx with passphrase errada returns 422 with install details open" do
     _account, organization = signed_in
+    blob_count = ActiveStorage::Blob.count
 
     post "/sefaz_certificate", params: {
       certificate: sefaz_pfx,
@@ -76,8 +77,42 @@ RSpec.describe "SEFAZ certificates", type: :request do
     expect(response.body).to include(certificate_empty_line)
     expect_certificate_install_fold(response.body, open: true)
     expect(page_doc(response.body).at_css("#certificate")["type"]).to eq("file")
+    expect(page_doc(response.body).at_css("#certificate")["value"].to_s).to eq("")
     expect(page_doc(response.body).at_css("#passphrase")["value"].to_s).to eq("")
     expect(response.body).not_to include("errada")
+    toast = toast_node(response.body)
+    expect(toast["data-toast-kind"]).to eq("error")
+    expect(toast.text).to include("Não foi possível abrir o certificado com essa senha")
+    after = {
+      blobs: ActiveStorage::Blob.count,
+      sefaz: organization.reload.attributes.values_at(
+        "sefaz_titular_cnpj", "sefaz_not_after", "sefaz_pkcs12_ciphertext", "sefaz_passphrase_ciphertext"
+      )
+    }
+    expect(after[:blobs]).to eq(blob_count)
+    expect(after[:sefaz]).to eq([ nil, nil, nil, nil ])
+    joined = session.to_hash.values.map(&:to_s).join
+    expect(joined).not_to include("errada")
+    der = sefaz_pkcs12_der(titular: "11222333000181", not_after: Date.new(2027, 9, 18), passphrase: "passphrase-secreta")
+    expect(session.to_hash.values.none? { |value| value.to_s.b.include?(der.b) }).to eq(true)
+  end
+
+  it "POST pfx with passphrase errada turbo stream 422 updates notice and toast only" do
+    signed_in
+
+    post "/sefaz_certificate", params: {
+      certificate: sefaz_pfx,
+      passphrase: "errada"
+    }, headers: turbo_stream_accept
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.media_type).to include("turbo-stream")
+    notice = turbo_stream_for(response.body, "[data-notice=error]")
+    toast = turbo_stream_for(response.body, "[data-toast-kind=error]")
+    expect(notice.text).to include("Não foi possível abrir o certificado com essa senha")
+    expect(toast.text).to include("Não foi possível abrir o certificado com essa senha")
+    expect(response.body).not_to include("errada")
+    expect(Nokogiri::HTML::DocumentFragment.parse(response.body).at_css('form[action="/sefaz_certificate"]')).to be_nil
   end
 
   it "POST e-CPF against listed A1 returns 422 with install details open" do

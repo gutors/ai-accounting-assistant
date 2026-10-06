@@ -204,4 +204,23 @@ class ApplicationController < ActionController::Base
     flash.now[:toast] = message
     flash.now[:toast_kind] = kind
   end
+
+  def turbo_stream_refusal?
+    request.accept.to_s.include?("text/vnd.turbo-stream.html")
+  end
+
+  def render_refusal_streams(message)
+    render turbo_stream: [
+      turbo_stream.action_all(
+        :replace,
+        "[data-notice=error]",
+        html: render_to_string(partial: "shared/notice", locals: { message: message })
+      ),
+      turbo_stream.action_all(
+        :replace,
+        "[data-toast-kind=error]",
+        html: render_to_string(partial: "shared/toast", locals: { toast: message, toast_kind: "error" })
+      )
+    ], status: :unprocessable_content
+  end
 end

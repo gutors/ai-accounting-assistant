@@ -16,6 +16,18 @@ module PageHelpers
     page_doc(body).at_css("[data-toast]")
   end
 
+  def turbo_stream_accept
+    { "Accept" => "text/vnd.turbo-stream.html, text/html" }
+  end
+
+  def turbo_stream_nodes(body)
+    Nokogiri::HTML::DocumentFragment.parse(body).css("turbo-stream")
+  end
+
+  def turbo_stream_for(body, css_selector)
+    turbo_stream_nodes(body).find { |node| node["targets"] == css_selector }
+  end
+
   def rows(body, name)
     page_doc(body).css(%(li[data-row="#{name}"]))
   end
