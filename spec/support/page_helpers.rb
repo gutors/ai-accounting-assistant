@@ -242,6 +242,7 @@ module PageHelpers
     form = details.at_css('form[action="/sefaz_certificate"]')
     expect(form.at_css('input[type="submit"][value="Instalar certificado"]')).to be_present
     expect(details.at_css("#certificate")["type"]).to eq("file")
+    expect(details.at_css("[data-file-field='certificate']").text).to include("Incluir arquivo")
   end
 
   def expect_certificate_listed_cnpj_row(body)

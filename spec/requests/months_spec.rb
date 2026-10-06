@@ -135,6 +135,8 @@ RSpec.describe "Months", type: :request do
 
     expect(response.body).to include("Conta Principal")
     expect(response.body).to include("Falta")
+    expect(response.body).to include("Incluir PDF")
+    expect(response.body).to include("Incluir planilha")
   end
 
   it "GET /months/2026-05 includes coordinates on the account card" do

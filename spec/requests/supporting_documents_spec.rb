@@ -194,6 +194,8 @@ RSpec.describe "Supporting documents", type: :request do
     expect(form.css("label").map { |label| label["for"] }).to eq(
       %w[kind amount date payee chave observation photo xml]
     )
+    expect(form.at_css("[data-file-field='photo']").text).to include("Incluir foto").and include("Nenhum arquivo")
+    expect(form.at_css("[data-file-field='xml']").text).to include("Incluir XML")
     expect(form.at_css("input#chave").parent["class"]).to include("md:col-span-2")
     expect(form.at_css("#observation").parent["class"]).to include("md:col-span-2")
     expect(selected_option_value(form.at_css("select#kind"))).to eq("nota_fiscal")

@@ -107,13 +107,7 @@
     <details<% if @certificate_error.present? %> open<% end %>>
       <summary class="cursor-pointer font-medium text-caixa">Instalar certificado</summary>
       <%= form_with url: "/sefaz_certificate", method: :post, multipart: true, class: "mt-3 grid max-w-3xl gap-4 rounded border border-rule bg-sheet p-4 md:grid-cols-2" do %>
-        <div>
-          <label for="certificate" class="mb-1 block font-medium">Arquivo</label>
-          <div class="flex max-w-full flex-wrap items-center gap-x-4 gap-y-2" data-controller="file-clear">
-            <%= file_field_tag :certificate, id: "certificate", class: "block min-w-0 grow text-meta", data: { file_clear_target: "input" } %>
-            <button type="button" data-action="file-clear#clear">Limpar</button>
-          </div>
-        </div>
+        <%= render "shared/file_field", name: :certificate, id: "certificate", field_label: "Arquivo", action_label: "Incluir arquivo" %>
         <div>
           <label for="passphrase" class="mb-1 block font-medium">Senha</label>
           <%= password_field_tag :passphrase, nil, id: "passphrase", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>

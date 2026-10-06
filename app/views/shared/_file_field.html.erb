@@ -1,0 +1,12 @@
+<% id = local_assigns.fetch(:id, name.to_s) %>
+<% disabled = local_assigns.fetch(:disabled, false) %>
+<div>
+  <label for="<%= id %>" class="mb-1 block font-medium"><%= field_label %></label>
+  <div class="file-field relative flex min-h-10 items-center gap-3 rounded border border-rule bg-sheet py-1 pr-1 pl-3" data-controller="file-field file-clear" data-file-field="<%= id %>">
+    <%= file_field_tag name, id: id, disabled: disabled, class: "absolute inset-0 z-10 cursor-pointer opacity-0", data: { action: "change->file-field#picked", file_clear_target: "input" } %>
+    <span class="min-w-0 flex-1 truncate text-meta text-ink-soft" data-file-field-target="empty">Nenhum arquivo</span>
+    <span class="min-w-0 flex-1 truncate font-medium" hidden data-file-field-target="filename"></span>
+    <span class="pointer-events-none shrink-0 rounded bg-caixa px-4 py-2 font-semibold text-white"><%= action_label %></span>
+    <button type="button" class="relative z-20 shrink-0 px-2 font-medium text-caixa underline underline-offset-2" data-action="file-clear#clear file-field#cleared">Limpar</button>
+  </div>
+</div>
