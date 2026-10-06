@@ -117,6 +117,31 @@ class ApplicationController < ActionController::Base
     @bank_accounts = @organization.bank_accounts.includes(:bank).order(:name)
     @extra_exception_kinds = @organization.extra_exception_kinds.order(:name)
     @focusable_organizations = current_account.organizations.order(:name)
+    assign_editing_bank_account_from_query unless instance_variable_defined?(:@editing_bank_account)
+    prepare_bank_account_form
+  end
+
+  def assign_editing_bank_account_from_query
+    return unless params[:edit] == "bank_account"
+
+    @editing_bank_account = @organization.bank_accounts.find_by(id: params[:bank_account_id])
+  end
+
+  def assign_bank_account_form_from_params
+    @bank_account_form = {
+      name: params[:name].to_s,
+      compe: params[:compe],
+      coordinates: params[:coordinates].to_s
+    }
+  end
+
+  def prepare_bank_account_form
+    editing = @editing_bank_account
+    @bank_account_form ||= {
+      name: editing&.name.to_s,
+      compe: editing&.bank&.compe,
+      coordinates: editing&.coordinates.to_s
+    }
   end
 
   def suggestions_on_month
