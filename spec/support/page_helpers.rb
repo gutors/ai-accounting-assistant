@@ -77,6 +77,18 @@ module PageHelpers
     archive_section(body)&.css("a, button").find { |node| node.text.strip == "Editar" }
   end
 
+  def extras_section(body)
+    page_doc(body).css("section").find { |section| section.at_css("h2")&.text&.strip == "Tipos extras de exceção" }
+  end
+
+  def extra_kind_row(body, name)
+    rows(body, "extra-exception-kind").find { |node| node.text.include?(name) }
+  end
+
+  def base_exception_row(body, name)
+    rows(body, "base-document-exception").find { |node| node.text.include?(name) }
+  end
+
   def expect_accountant_labels(body)
     expect(page_doc(body).at_css('label[for="presentation_name"]').text.strip).to eq("Nome de apresentação")
     expect(page_doc(body).at_css('label[for="tax_id"]').text.strip).to eq("CPF/CNPJ (preencher apenas números)")

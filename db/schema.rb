@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_01_200000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_05_210000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -103,6 +103,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_01_200000) do
     t.string "name", null: false
     t.bigint "organization_id", null: false
     t.datetime "updated_at", null: false
+    t.text "justification", null: false
     t.index "organization_id, lower((name)::text)", name: "index_extra_exception_kinds_on_org_id_and_lower_name", unique: true
     t.index ["organization_id"], name: "index_extra_exception_kinds_on_organization_id"
   end
@@ -122,9 +123,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_01_200000) do
     t.datetime "created_at", null: false
     t.string "email", null: false
     t.string "kind", null: false
-    t.string "last_delivery", default: "sent", null: false
     t.bigint "organization_id", null: false
     t.datetime "updated_at", null: false
+    t.string "last_delivery", default: "sent", null: false
     t.index ["organization_id", "email"], name: "index_invites_on_organization_id_and_email", unique: true
     t.index ["organization_id"], name: "index_invites_on_organization_id"
   end
@@ -168,12 +169,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_01_200000) do
     t.string "package_archive_folder_id"
     t.string "package_archive_url"
     t.string "package_destination_email"
-    t.bigint "principal_coordinator_account_id", null: false
     t.date "sefaz_not_after"
     t.text "sefaz_passphrase_ciphertext"
     t.text "sefaz_pkcs12_ciphertext"
     t.string "sefaz_titular_cnpj"
     t.datetime "updated_at", null: false
+    t.bigint "principal_coordinator_account_id", null: false
     t.index "lower((name)::text)", name: "index_organizations_on_lower_name", unique: true
     t.index ["principal_coordinator_account_id"], name: "index_organizations_on_principal_coordinator_account_id"
   end

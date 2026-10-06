@@ -618,7 +618,7 @@ RSpec.describe Organization, type: :model do
   it "remove refuses when an ExtraExceptionKind exists" do
     norte = create_organization!(name: "ONG Norte")
     Access.create!(account: Account.create!(email: "coordenador@exemplo.org"), organization: norte, kind: :coordinator)
-    ExtraExceptionKind.create_for(organization: norte, name: "Doação")
+    ExtraExceptionKind.create_for(organization: norte, name: "Doação", justification: "Isento de documento de suporte.")
 
     expect(norte.remove).to be(false)
     expect(Organization.find(norte.id)).to eq(norte)

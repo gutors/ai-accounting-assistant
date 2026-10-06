@@ -247,8 +247,11 @@ Contas bancárias                                (h2)
   one section form: Nome / Banco / Agência/Conta Corrente  [Adicionar conta]
   Editar is GET /setup?edit=bank_account&bank_account_id={id}; submit [Salvar conta]
 Tipos extras de exceção                         (h2)
-  Doação                                        Desativar  Excluir
-  form: Nome  [Adicionar tipo extra]
+  Justificativa                                 ← column heading; no intro under the h2
+  Tarifa bancária   Tarifa cobrada pelo banco; não há documento fiscal a anexar.
+  Honorário do contador   Honorário do contador neste fechamento; isento de documento de suporte.
+  Doação            Doação pontual sem nota.                 Desativar  Excluir
+  form: Nome / Justificativa  [Adicionar tipo extra]
 ```
 
 - Contador is cadastro when there is no presentation name; after that name exists the five values are labeled-text chrome (`p.font-medium`) plus `Editar`. Cadastro and `GET /setup?edit=accountant` keep the input chrome. Formatted CPF/CNPJ on read.
@@ -258,7 +261,9 @@ Tipos extras de exceção                         (h2)
   name, agência/conta corrente, `extrato-{slug}`; `Inativa` in `ink-soft` when inactive; quiet
   `Desativar` / `Reativar` on the row; `Editar` fills the one section form as PATCH `Salvar conta`.
   Empty POST is `Adicionar conta`. Label `Agência/Conta Corrente`. No per-row edit fold.
-- Extra exception kinds are `li[data-row="extra-exception-kind"]`.
+- Extra exception kinds are `li[data-row="extra-exception-kind"]` (name plus justification). The
+  two base document-exception kinds sit first as `li[data-row="base-document-exception"]` with
+  fixed copy, not as catalog rows. There is no `Nenhum tipo extra`.
 - Forms are two columns from 768px where fields are short (accountant form: 2 columns).
 - New copy: `Configuração` (h1), `Editar`.
 

@@ -127,7 +127,7 @@ RSpec.describe ExceptionSuggestion, type: :model do
   end
 
   it "never proposes an extra exception kind" do
-    ExtraExceptionKind.create_for(organization: organization, name: "Doação")
+    ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
     set_pix("chave-pix")
     payment = plant_payment(statement, 22000, history: "Pix enviado chave-pix")
 

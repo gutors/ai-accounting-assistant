@@ -31,7 +31,7 @@ RSpec.describe "Screens", type: :system do
     Invite.create_pending(organization: norte, email: "guest@example.com", kind: :submitter)
     ready_to_close!(norte)
     norte.update!(accountant_tax_id: "39053344705", accountant_legal_name: "Contábil LTDA", accountant_pix_key: "contador@pix.example")
-    ExtraExceptionKind.create_for(organization: norte, name: "Doação")
+    ExtraExceptionKind.create_for(organization: norte, name: "Doação", justification: "Isento de documento de suporte.")
 
     principal = BankAccount.create_for(organization: norte, name: "Conta Principal", compe: "001", coordinates: "ag 1234 cc 56789-0")
     BankAccount.create_for(organization: norte, name: "Conta Alfa", compe: "033")

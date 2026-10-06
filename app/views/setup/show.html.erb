@@ -175,13 +175,22 @@
 
   <section>
     <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Tipos extras de exceção</h2>
-    <% if @extra_exception_kinds.empty? %>
-      <p class="mb-4">Nenhum tipo extra</p>
-    <% else %>
-      <ul class="mb-6">
-        <% @extra_exception_kinds.each do |extra_exception_kind| %>
-          <li data-row="extra-exception-kind" data-extra-exception-kind-id="<%= extra_exception_kind.id %>" class="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-rule py-3">
-            <p class="min-w-0 grow font-medium"><%= extra_exception_kind.name %></p>
+    <ul class="mb-6">
+      <li data-row="extras-column-headings" class="grid gap-x-6 gap-y-2 border-b border-rule py-3 text-meta text-ink-soft md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_12rem]">
+        <span></span>
+        <span>Justificativa</span>
+      </li>
+      <% ExtraExceptionKind::BASE_NAMES.each do |name| %>
+        <li data-row="base-document-exception" class="grid gap-x-6 gap-y-2 border-b border-rule py-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_12rem]">
+          <p class="font-medium"><%= name %></p>
+          <p><%= ExtraExceptionKind::BASE_JUSTIFICATIONS.fetch(name) %></p>
+        </li>
+      <% end %>
+      <% @extra_exception_kinds.each do |extra_exception_kind| %>
+        <li data-row="extra-exception-kind" data-extra-exception-kind-id="<%= extra_exception_kind.id %>" class="grid gap-x-6 gap-y-2 border-b border-rule py-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_12rem]">
+          <p class="font-medium"><%= extra_exception_kind.name %></p>
+          <p><%= extra_exception_kind.justification %></p>
+          <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
             <% if extra_exception_kind.active? %>
               <%= button_to "Desativar", "/extra_exception_kinds/#{extra_exception_kind.id}", method: :patch, params: { active: false }, class: "text-margem underline underline-offset-2" %>
             <% else %>
@@ -191,17 +200,23 @@
             <% if extra_exception_kind.payments.none? %>
               <%= button_to "Excluir", "/extra_exception_kinds/#{extra_exception_kind.id}", method: :delete, class: "text-margem underline underline-offset-2" %>
             <% end %>
-          </li>
-        <% end %>
-      </ul>
-    <% end %>
+          </div>
+        </li>
+      <% end %>
+    </ul>
 
-    <%= form_with url: "/extra_exception_kinds", method: :post, class: "flex max-w-3xl flex-wrap items-end gap-3" do %>
-      <div class="min-w-0 grow">
+    <%= form_with url: "/extra_exception_kinds", method: :post, class: "grid max-w-3xl gap-4 md:grid-cols-2" do %>
+      <div>
         <label for="extra_exception_kind_name" class="mb-1 block font-medium">Nome</label>
         <%= text_field_tag :name, nil, id: "extra_exception_kind_name", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
       </div>
-      <%= submit_tag "Adicionar tipo extra", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+      <div>
+        <label for="extra_exception_kind_justification" class="mb-1 block font-medium">Justificativa</label>
+        <%= text_field_tag :justification, nil, id: "extra_exception_kind_justification", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
+      </div>
+      <div class="md:col-span-2">
+        <%= submit_tag "Adicionar tipo extra", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+      </div>
     <% end %>
   </section>
 </div>
