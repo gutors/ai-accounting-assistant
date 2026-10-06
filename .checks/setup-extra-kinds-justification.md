@@ -159,6 +159,6 @@ Proof: `bin/rspec spec/docs/setup_extra_kinds_justification_spec.rb -e "visual-i
 
 S1 ~14k + S2 ~14k = ~28k token floor. Both slices share `setup/show.html.erb`, ExtraExceptionKind, and the opened design. All stay under 150k. No split. One batch.
 
-- Where the boundary fell: one batch; C1–C15 closed on this branch after the product commit.
+- Where the boundary fell: one batch; C1–C15 closed on `385c122` after checklist `4e03227`.
 - What the user settled mid-build: none.
-- What was abandoned: none yet.
+- What was abandoned: injecting a hardcoded backfill string into `create_for` in the controller while mass-updating spec callers — create still takes `params[:justification]`.
