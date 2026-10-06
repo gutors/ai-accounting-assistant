@@ -2,9 +2,7 @@
 
 <h1 class="text-2xl leading-7 font-semibold tracking-[-0.01em]">Documentos de suporte</h1>
 
-<% if @document_error.present? %>
-  <div class="mt-6"><%= render "shared/notice", message: @document_error %></div>
-<% end %>
+<%= render "shared/notice", message: @document_error.to_s %>
 
 <div class="mt-10 space-y-12">
   <section>
@@ -12,35 +10,41 @@
     <%= form_with url: "/supporting_documents", method: :post, multipart: true, class: "grid max-w-3xl gap-4 md:grid-cols-2", data: { controller: "document-kind" } do %>
       <div>
         <label for="kind" class="mb-1 block font-medium">Tipo</label>
-        <%= select_tag :kind, options_for_select([ [ "Nota fiscal", "nota_fiscal" ], [ "Recibo", "recibo" ] ], "nota_fiscal"), id: "kind", class: "w-full rounded border border-rule bg-sheet px-3 py-2", data: { action: "change->document-kind#sync", document_kind_target: "kind" } %>
+        <%= select_tag :kind, options_for_select([ [ "Nota fiscal", "nota_fiscal" ], [ "Recibo", "recibo" ] ], params[:kind].presence || "nota_fiscal"), id: "kind", class: "w-full rounded border border-rule bg-sheet px-3 py-2", data: { action: "change->document-kind#sync", document_kind_target: "kind" } %>
       </div>
       <div>
         <label for="amount" class="mb-1 block font-medium">Valor</label>
-        <%= text_field_tag :amount, nil, id: "amount", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
+        <%= text_field_tag :amount, params[:amount], id: "amount", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
       </div>
       <div>
         <label for="date" class="mb-1 block font-medium">Data</label>
-        <%= date_field_tag :date, Date.current, id: "date", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
+        <%= date_field_tag :date, params[:date].presence || Date.current, id: "date", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
       </div>
       <div>
         <label for="payee" class="mb-1 block font-medium">Favorecido</label>
-        <%= text_field_tag :payee, nil, id: "payee", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
+        <%= text_field_tag :payee, params[:payee], id: "payee", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
       </div>
       <div class="md:col-span-2" data-document-kind-target="nfOnly">
         <label for="chave" class="mb-1 block font-medium">Chave de acesso (opcional)</label>
-        <%= text_field_tag :chave, nil, id: "chave", class: "w-full rounded border border-rule bg-sheet px-3 py-2 font-mono text-meta", autocomplete: "off" %>
+        <%= text_field_tag :chave, params[:chave], id: "chave", class: "w-full rounded border border-rule bg-sheet px-3 py-2 font-mono text-meta", autocomplete: "off" %>
       </div>
       <div class="md:col-span-2">
         <label for="observation" class="mb-1 block font-medium">Observação (opcional)</label>
-        <%= text_area_tag :observation, nil, id: "observation", class: "w-full rounded border border-rule bg-sheet px-3 py-2", rows: 3 %>
+        <%= text_area_tag :observation, params[:observation], id: "observation", class: "w-full rounded border border-rule bg-sheet px-3 py-2", rows: 3 %>
       </div>
       <div>
         <label for="photo" class="mb-1 block font-medium">Foto</label>
-        <%= file_field_tag :photo, id: "photo", class: "block w-full max-w-full text-meta" %>
+        <div class="flex max-w-full flex-wrap items-center gap-x-4 gap-y-2" data-controller="file-clear">
+          <%= file_field_tag :photo, id: "photo", class: "block min-w-0 grow text-meta", data: { file_clear_target: "input" } %>
+          <button type="button" data-action="file-clear#clear">Limpar</button>
+        </div>
       </div>
       <div data-document-kind-target="nfOnly">
         <label for="xml" class="mb-1 block font-medium">XML</label>
-        <%= file_field_tag :xml, id: "xml", class: "block w-full max-w-full text-meta" %>
+        <div class="flex max-w-full flex-wrap items-center gap-x-4 gap-y-2" data-controller="file-clear">
+          <%= file_field_tag :xml, id: "xml", class: "block min-w-0 grow text-meta", data: { file_clear_target: "input" } %>
+          <button type="button" data-action="file-clear#clear">Limpar</button>
+        </div>
       </div>
       <div class="md:col-span-2">
         <%= submit_tag "Incluir documento", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>

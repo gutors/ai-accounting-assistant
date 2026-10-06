@@ -55,6 +55,23 @@ RSpec.describe "Setup", type: :request do
     expect_certificate_install_fold(response.body, open: false)
   end
 
+  it "GET setup A1 form has Limpar next to certificate" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    get "/setup"
+
+    form = certificate_install_details(response.body).at_css('form[action="/sefaz_certificate"]')
+    certificate = form.at_css("#certificate")
+    limpar = certificate.parent.css("button").select { |button| button.text.strip == "Limpar" && button["type"] == "button" }
+    expect(limpar.size).to eq(1)
+    notice = error_notice(response.body)
+    expect(notice.attribute("hidden")).not_to be_nil
+    expect(notice.parent.name).to eq("main")
+    expect(page_doc(response.body).at_css("#toast-host")).not_to be_nil
+    expect(toast_node(response.body)).to be_nil
+  end
+
   it "GET /setup empty accountant includes Cadastre o contador" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)

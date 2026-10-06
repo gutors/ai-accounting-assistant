@@ -207,6 +207,73 @@ RSpec.describe "Supporting documents", type: :request do
     expect(html_visible?(xml)).to be true
   end
 
+  def limpar_next_to(form, input_id)
+    input = form.at_css("##{input_id}")
+    buttons = input.parent.css("button").select { |button| button.text.strip == "Limpar" && button["type"] == "button" }
+    expect(buttons.size).to eq(1)
+    buttons.first
+  end
+
+  def echoed_insert_fields(body)
+    form = insert_form(body)
+    {
+      kind: selected_option_value(form.at_css("select#kind")),
+      amount: form.at_css("#amount")["value"].to_s,
+      date: form.at_css("#date")["value"].to_s,
+      payee: form.at_css("#payee")["value"].to_s,
+      observation: form.at_css("#observation").text,
+      chave: form.at_css("#chave")["value"].to_s,
+      photo: form.at_css("#photo"),
+      xml: form.at_css("#xml")
+    }
+  end
+
+  def session_blob_stash(organization)
+    {
+      blobs: ActiveStorage::Blob.count,
+      sefaz: organization.reload.attributes.values_at(
+        "sefaz_titular_cnpj", "sefaz_not_after", "sefaz_pkcs12_ciphertext", "sefaz_passphrase_ciphertext"
+      ),
+      session: session.to_hash.values
+    }
+  end
+
+  def expect_echoed_document_texts(fields)
+    expect(fields[:amount]).to eq("155,00")
+    expect(fields[:date]).to eq("2026-05-11")
+    expect(fields[:payee]).to eq("Padaria Central")
+    expect(fields[:observation].strip).to eq("pago em dinheiro")
+  end
+
+  def expect_empty_file_input(node)
+    expect(node["type"]).to eq("file")
+    expect(node["value"].to_s).to eq("")
+  end
+
+  def expect_no_stash(before, organization, passphrase: nil, der: nil)
+    after = session_blob_stash(organization)
+    expect(after[:blobs]).to eq(before[:blobs])
+    expect(after[:sefaz]).to eq(before[:sefaz])
+    joined = after[:session].map { |value| value.to_s }.join
+    expect(joined).not_to include(passphrase) if passphrase
+    expect(after[:session].none? { |value| value.to_s.b.include?(der.b) }).to eq(true) if der
+  end
+
+  it "GET insert has Limpar next to photo and xml" do
+    signed_in
+
+    get "/supporting_documents"
+
+    form = insert_form(response.body)
+    expect(limpar_next_to(form, "photo")).to be_present
+    expect(limpar_next_to(form, "xml")).to be_present
+    notice = error_notice(response.body)
+    expect(notice.attribute("hidden")).not_to be_nil
+    expect(notice.parent.name).to eq("main")
+    expect(page_doc(response.body).at_css("#toast-host")).not_to be_nil
+    expect(toast_node(response.body)).to be_nil
+  end
+
   it "GET Editar recibo hides chave and xml" do
     account, organization = signed_in
     document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
@@ -290,6 +357,88 @@ RSpec.describe "Supporting documents", type: :request do
     toast = toast_node(response.body)
     expect(toast["data-toast-kind"]).to eq("error")
     expect(toast.text).to include("Recibo não tem XML")
+  end
+
+  it "POST nota_fiscal without files echoes insert fields on 422" do
+    _account, organization = signed_in
+    before = session_blob_stash(organization)
+
+    post "/supporting_documents", params: {
+      kind: "nota_fiscal", amount: "155,00", date: "2026-05-11", payee: "Padaria Central",
+      observation: "pago em dinheiro"
+    }
+
+    expect(SupportingDocument.where(organization: organization).count).to eq(0)
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(error_notice_text(response.body)).to eq("Envie a foto e/ou o XML")
+    toast = toast_node(response.body)
+    expect(toast["data-toast-kind"]).to eq("error")
+    expect(toast.text).to include("Envie a foto e/ou o XML")
+    fields = echoed_insert_fields(response.body)
+    expect(fields[:kind]).to eq("nota_fiscal")
+    expect_echoed_document_texts(fields)
+    expect_empty_file_input(fields[:photo])
+    expect_empty_file_input(fields[:xml])
+    expect_no_stash(before, organization)
+  end
+
+  it "POST recibo with XML echoes insert fields on 422 and creates no blob" do
+    _account, organization = signed_in
+    before = session_blob_stash(organization)
+
+    post "/supporting_documents", params: recibo_params(
+      photo: photo_jpg, xml: xml_file, observation: "pago em dinheiro"
+    )
+
+    expect(SupportingDocument.where(organization: organization).count).to eq(0)
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(error_notice_text(response.body)).to eq("Recibo não tem XML")
+    toast = toast_node(response.body)
+    expect(toast["data-toast-kind"]).to eq("error")
+    expect(toast.text).to include("Recibo não tem XML")
+    fields = echoed_insert_fields(response.body)
+    expect(fields[:kind]).to eq("recibo")
+    expect_echoed_document_texts(fields)
+    expect_empty_file_input(fields[:xml])
+    expect_no_stash(before, organization)
+  end
+
+  it "POST nota_fiscal chave 123 echoes chave and insert fields on 422" do
+    _account, organization = signed_in
+    before = session_blob_stash(organization)
+
+    post "/supporting_documents", params: nota_params(
+      photo: photo_jpg, chave: "123", observation: "pago em dinheiro"
+    )
+
+    expect(SupportingDocument.where(organization: organization).count).to eq(0)
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(error_notice_text(response.body)).to eq("Informe a chave de acesso com 44 dígitos")
+    toast = toast_node(response.body)
+    expect(toast["data-toast-kind"]).to eq("error")
+    expect(toast.text).to include("Informe a chave de acesso com 44 dígitos")
+    fields = echoed_insert_fields(response.body)
+    expect(fields[:kind]).to eq("nota_fiscal")
+    expect(fields[:chave]).to eq("123")
+    expect_echoed_document_texts(fields)
+    expect_no_stash(before, organization)
+  end
+
+  it "POST nota_fiscal without files turbo stream 422 updates notice and toast only" do
+    signed_in
+
+    post "/supporting_documents", params: {
+      kind: "nota_fiscal", amount: "155,00", date: "2026-05-11", payee: "Padaria Central",
+      observation: "pago em dinheiro"
+    }, headers: turbo_stream_accept
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.media_type).to include("turbo-stream")
+    notice = turbo_stream_for(response.body, "[data-notice=error]")
+    toast = turbo_stream_for(response.body, "toast-host")
+    expect(notice.text).to include("Envie a foto e/ou o XML")
+    expect(toast.text).to include("Envie a foto e/ou o XML")
+    expect(Nokogiri::HTML::DocumentFragment.parse(response.body).at_css('form[action="/supporting_documents"]')).to be_nil
   end
 
   it "POST nota_fiscal 44-digit chave persists when consulta does not deliver" do

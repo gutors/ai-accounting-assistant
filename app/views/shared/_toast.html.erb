@@ -1,13 +1,15 @@
-<% if flash[:toast].present? %>
-  <% toast_error = flash[:toast_kind].to_s == "error" %>
+<% toast = local_assigns.key?(:toast) ? local_assigns[:toast] : flash[:toast] %>
+<% toast_kind = local_assigns.key?(:toast_kind) ? local_assigns[:toast_kind] : flash[:toast_kind] %>
+<% if toast.present? %>
+  <% toast_error = toast_kind.to_s == "error" %>
   <div
     data-controller="toast"
     data-toast
-    data-toast-kind="<%= flash[:toast_kind] %>"
+    data-toast-kind="<%= toast_kind %>"
     data-toast-timeout-ms="5000"
     role="<%= toast_error ? "alert" : "status" %>"
     class="<%= toast_error ? "mx-auto mt-6 flex max-w-6xl items-start justify-between gap-4 px-5 text-margem md:px-8 border-l-[3px] border-margem" : "mx-auto mt-6 flex max-w-6xl items-start justify-between gap-4 bg-caixa px-5 py-3 text-white md:px-8" %>">
-    <p><%= flash[:toast] %></p>
+    <p><%= toast %></p>
     <button type="button" data-action="toast#dismiss">Fechar</button>
   </div>
 <% end %>

@@ -239,7 +239,7 @@ Armazenamento do pacote mensal                  (h2)
 Certificado Digital A1 - Para consulta na SEFAZ (h2)
   empty: Não há certificado A1 instalado. Use Instalar certificado.
   listed: formatted titular; Válido até / Expirado em; Remover (quiet, margem) outside the fold
-  ▸ Instalar certificado   ← details with Arquivo / Senha [Instalar certificado]
+  ▸ Instalar certificado   ← details with Arquivo [Limpar] / Senha [Instalar certificado]
 
 Contas bancárias                                (h2)
   Banco do Brasil  Conta Principal  ag 1234  extrato-conta-principal  Desativar  Editar
@@ -256,7 +256,7 @@ Tipos extras de exceção                         (h2)
 
 - Contador is cadastro when there is no presentation name; after that name exists the five values are labeled-text chrome (`p.font-medium`) plus `Editar`. Cadastro and `GET /setup?edit=accountant` keep the input chrome. Formatted CPF/CNPJ on read.
 - Armazenamento do pacote mensal is cadastro when there is no URL (`Cole a URL da pasta do Google Drive`, label `URL da pasta do Google Drive`, `[Salvar arquivo]`). After a URL exists it is labeled `font-medium` text plus `Editar`. `GET /setup?edit=package_archive` is `input#url` with `[Confirmar]`.
-- Certificate: heading `Certificado Digital A1 - Para consulta na SEFAZ`. Empty line `Não há certificado A1 instalado. Use Instalar certificado.` when none. When a certificate exists, titular / validity / `Remover` (quiet, margem) stay outside the fold. Arquivo / Senha sit in `<details>` whose `<summary>` is `Instalar certificado`. A `422` from `POST /sefaz_certificate` re-renders that details `open`.
+- Certificate: heading `Certificado Digital A1 - Para consulta na SEFAZ`. Empty line `Não há certificado A1 instalado. Use Instalar certificado.` when none. When a certificate exists, titular / validity / `Remover` (quiet, margem) stay outside the fold. Arquivo / Senha sit in `<details>` whose `<summary>` is `Instalar certificado`. Arquivo has `Limpar` beside the file control. A `422` from `POST /sefaz_certificate` re-renders that details `open`. HTML `422` does not write Senha into the HTML.
 - Bank account rows are `li[data-row="bank-account"]`: four cells in order bank presentation name,
   name, agência/conta corrente, `extrato-{slug}`; `Inativa` in `ink-soft` when inactive; quiet
   `Desativar` / `Reativar` on the row; `Editar` fills the one section form as PATCH `Salvar conta`.
@@ -334,9 +334,10 @@ Incluir documento                               (h2)
   Data [today]    Favorecido [    ]
   Chave de acesso (opcional) [               ]   ← hidden when Tipo is Recibo
   Observação (opcional) [                    ]
-  Foto [file]     XML [file]                     ← XML hidden when Tipo is Recibo
+  Foto [file] [Limpar]     XML [file] [Limpar]   ← XML hidden when Tipo is Recibo
   [Incluir documento]
   Recibo: hiding chave and XML (photo only)
+  HTML 422 fallback echoes Tipo, Valor, Data, Favorecido, Chave, Observação; file inputs stay empty
 Sem mês                                         (h2)
   11/05/2026  Padaria Central                  R$ 155,00
               Recibo (meta)
@@ -353,6 +354,9 @@ Justificativas                                  (h2)
 
 - Phone-first: one column, full-width inputs, the insert form is the first section because it is
   the submitter's job.
+- Insert Foto and XML each have `Limpar` beside the file control.
+- HTML `422` fallback on `POST /supporting_documents` echoes Tipo, Valor, Data, Favorecido, Chave,
+  and Observação; file inputs stay empty.
 - Document rows `li[data-row="document"][data-document-id]`: date | payee (500) with kind, chave
   (grouped, mono, `data-chave`), filenames, observation and month status as meta lines | amount.
   The raw 44-digit chave stays as the value of the edit field.
