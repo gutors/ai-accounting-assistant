@@ -5,7 +5,7 @@ gem "rails", "~> 8.1.4"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
 # Use postgresql as the database for Active Record
-gem "pg", "~> 1.1"
+gem "pg", "~> 1.7"
 # json 3.x rejects the positional options hash ActiveSupport::JSON.decode still passes.
 gem "json", "~> 2.13"
 # Use the Puma web server [https://github.com/puma/puma]
