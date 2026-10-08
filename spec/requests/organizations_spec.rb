@@ -436,18 +436,18 @@ RSpec.describe "Organization home", type: :request do
 
   def coordinator_emails_on_home
     heading = page_doc(response.body).css("h3").find { |node| node.text.strip == "Coordenadores" }
-    heading.parent.css("ul li span").map { |span| span.text.strip }
+    heading.parent.css('ul li [data-cell="email"]').map { |span| span.text.strip }
   end
 
   def revogar_on_coordinator_row(email)
     heading = page_doc(response.body).css("h3").find { |node| node.text.strip == "Coordenadores" }
-    row = heading.parent.css("ul li").find { |li| li.at_css("span").text.strip == email }
+    row = heading.parent.css("ul li").find { |li| li.at_css('[data-cell="email"]').text.strip == email }
     row.css("button").find { |button| button.text.strip == "Revogar" }
   end
 
   def revogar_on_submitter_row(email)
     heading = page_doc(response.body).css("h3").find { |node| node.text.strip == "Submitters" }
-    row = heading.parent.css("ul li").find { |li| li.at_css("span").text.strip == email }
+    row = heading.parent.css("ul li").find { |li| li.at_css('[data-cell="email"]').text.strip == email }
     row.css("button").find { |button| button.text.strip == "Revogar" }
   end
 end

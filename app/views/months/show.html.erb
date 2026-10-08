@@ -45,76 +45,98 @@
     <% if @active_bank_accounts.empty? %>
       <p>Nenhuma conta bancária ativa</p>
     <% else %>
-      <ul>
-        <% @active_bank_accounts.each do |bank_account| %>
-          <% statement = @statements_by_account_id[bank_account.id] %>
-          <li data-row="bank-account" data-bank-account-id="<%= bank_account.id %>" class="grid gap-x-6 gap-y-2 border-b border-rule py-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)]">
-            <div>
+      <div class="ledger-sheet">
+        <div class="ledger-row ledger-head ledger-month-bank" aria-hidden="true">
+          <span>Nome</span>
+          <span>Agência/conta</span>
+          <span>Situação</span>
+          <span></span>
+        </div>
+        <ul>
+          <% @active_bank_accounts.each do |bank_account| %>
+            <% statement = @statements_by_account_id[bank_account.id] %>
+            <li data-row="bank-account" data-bank-account-id="<%= bank_account.id %>" class="ledger-row ledger-month-bank">
               <p class="font-medium"><%= bank_account.name %></p>
-              <% if bank_account.coordinates.present? %>
-                <p class="text-meta text-ink-soft"><%= bank_account.coordinates %></p>
-              <% end %>
-            </div>
-            <div>
-              <% if statement %>
-                <p>Presente</p>
-                <p class="text-meta text-ink-soft"><%= statement.pdf.filename %></p>
-                <p class="text-meta text-ink-soft"><%= statement.spreadsheet.filename %></p>
-              <% else %>
-                <p class="text-margem">Falta</p>
-              <% end %>
-            </div>
-            <% unless @month.closed? %>
+              <p class="text-meta text-ink-soft"><%= bank_account.coordinates %></p>
               <div>
                 <% if statement %>
-                  <details>
-                    <summary class="cursor-pointer font-medium text-caixa">Substituir extrato</summary>
-                    <div class="mt-3 rounded border border-rule bg-sheet p-4">
-                      <%= render "months/statement_form", month: @month, bank_account: bank_account %>
-                    </div>
-                  </details>
+                  <p>Presente</p>
+                  <p class="text-meta text-ink-soft"><%= statement.pdf.filename %></p>
+                  <p class="text-meta text-ink-soft"><%= statement.spreadsheet.filename %></p>
                 <% else %>
-                  <%= render "months/statement_form", month: @month, bank_account: bank_account %>
+                  <p class="text-margem">Falta</p>
                 <% end %>
               </div>
-            <% end %>
-          </li>
-        <% end %>
-      </ul>
+              <div>
+                <% unless @month.closed? %>
+                  <% if statement %>
+                    <details>
+                      <summary class="cursor-pointer font-medium text-caixa">Substituir extrato</summary>
+                      <div class="mt-3 rounded border border-rule bg-sheet p-4">
+                        <%= render "months/statement_form", month: @month, bank_account: bank_account %>
+                      </div>
+                    </details>
+                  <% else %>
+                    <%= render "months/statement_form", month: @month, bank_account: bank_account %>
+                  <% end %>
+                <% end %>
+              </div>
+            </li>
+          <% end %>
+        </ul>
+      </div>
     <% end %>
   </section>
 
   <section>
     <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Recebimentos</h2>
-    <ul>
-      <% @inflows.each do |inflow| %>
-        <li data-row="inflow" class="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-x-4 gap-y-1 border-b border-rule py-3 md:grid-cols-[5.5rem_minmax(0,1fr)_8rem_12rem]">
-          <time datetime="<%= inflow.occurred_on.iso8601 %>" class="col-start-1 row-start-1 tabular-nums"><%= l(inflow.occurred_on) %></time>
-          <div class="col-span-2 row-start-2 md:col-span-1 md:col-start-2 md:row-start-1">
-            <p class="font-medium"><%= inflow.history %></p>
-            <p class="text-meta text-ink-soft"><%= inflow.bank_statement.bank_account.name %></p>
-          </div>
-          <p data-cell="amount" class="col-start-2 row-start-1 text-right font-medium tabular-nums md:col-start-3"><%= format_reais(inflow.amount_cents) %></p>
-        </li>
-      <% end %>
-    </ul>
+    <% if @inflows.any? %>
+    <div class="ledger-sheet">
+      <div class="ledger-row ledger-head ledger-inflow" aria-hidden="true">
+        <span>Data</span>
+        <span>Histórico</span>
+        <span class="ledger-amount">Valor</span>
+      </div>
+      <ul>
+        <% @inflows.each do |inflow| %>
+          <li data-row="inflow" class="ledger-row ledger-inflow">
+            <time datetime="<%= inflow.occurred_on.iso8601 %>" class="tabular-nums"><%= l(inflow.occurred_on) %></time>
+            <div>
+              <p class="font-medium"><%= inflow.history %></p>
+              <p class="text-meta text-ink-soft"><%= inflow.bank_statement.bank_account.name %></p>
+            </div>
+            <p data-cell="amount" class="font-medium tabular-nums"><%= format_reais(inflow.amount_cents) %></p>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+    <% end %>
   </section>
 
   <section>
     <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Pagamentos</h2>
-    <ul>
+    <% if @payments.any? %>
+    <div class="ledger-sheet">
+      <div class="ledger-row ledger-head ledger-pay">
+        <span class="sort-key">Data</span>
+        <span>Histórico</span>
+        <span class="ledger-amount">Valor</span>
+        <span>Status</span>
+        <span>Ações</span>
+      </div>
+      <ul>
       <% @payments.each do |payment| %>
         <% status = payment_status(payment) %>
-        <li data-row="payment" data-payment-id="<%= payment.id %>" data-status="<%= status %>" class="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-x-4 gap-y-1 border-b border-rule py-3 md:grid-cols-[5.5rem_minmax(0,1fr)_8rem_12rem] <%= "border-l-[3px] border-l-margem pl-3" if status == "missing" %>">
-          <time datetime="<%= payment.occurred_on.iso8601 %>" class="col-start-1 row-start-1 tabular-nums"><%= l(payment.occurred_on) %></time>
-          <div class="col-span-2 row-start-2 md:col-span-1 md:col-start-2 md:row-start-1">
+        <% suggestion = @suggestions_by_payment_id[payment.id] %>
+        <% exception_suggestion = @exception_suggestions_by_payment_id[payment.id] %>
+        <li data-row="payment" data-payment-id="<%= payment.id %>" data-status="<%= status %>" class="ledger-row ledger-pay<%= " is-block" if status == "missing" %>">
+          <time datetime="<%= payment.occurred_on.iso8601 %>" class="tabular-nums"><%= l(payment.occurred_on) %></time>
+          <div>
             <p class="font-medium"><%= payment.history %></p>
             <p class="text-meta text-ink-soft"><%= payment.bank_statement.bank_account.name %></p>
           </div>
-          <p data-cell="amount" class="col-start-2 row-start-1 text-right font-medium tabular-nums md:col-start-3"><%= format_reais(payment.amount_cents) %></p>
-          <% suggestion = @suggestions_by_payment_id[payment.id] %>
-          <% exception_suggestion = @exception_suggestions_by_payment_id[payment.id] %>
-          <div class="col-span-2 row-start-3 md:col-span-1 md:col-start-4 md:row-start-1">
+          <p data-cell="amount" class="font-medium tabular-nums"><%= format_reais(payment.amount_cents) %></p>
+          <div>
             <% if status == "missing" %>
               <p class="font-medium text-margem">Documento faltante</p>
               <% if suggestion %>
@@ -128,30 +150,18 @@
               <% if payment.match.observation.present? %>
                 <p class="text-meta text-ink-soft"><%= payment.match.observation %></p>
               <% end %>
-              <% unless @month.closed? %>
-                <%= button_to "Desfazer casamento", "/months/#{@month.year_month}/matches/#{payment.match_id}", method: :delete, form_class: "mt-1", class: "text-margem underline underline-offset-2" %>
-              <% end %>
             <% elsif status == "bank_fee" %>
               <p class="font-medium">Tarifa bancária</p>
-              <% unless @month.closed? %>
-                <%= button_to "Desmarcar exceção", "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :delete, form_class: "mt-1", class: "text-margem underline underline-offset-2" %>
-              <% end %>
             <% elsif status == "accountant_fee" %>
               <p class="font-medium">Honorário do contador</p>
-              <% unless @month.closed? %>
-                <%= button_to "Desmarcar exceção", "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :delete, form_class: "mt-1", class: "text-margem underline underline-offset-2" %>
-              <% end %>
             <% elsif status == "extra" %>
               <p class="font-medium"><%= payment.extra_exception_kind.name %></p>
-              <% unless @month.closed? %>
-                <%= button_to "Desmarcar exceção", "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :delete, form_class: "mt-1", class: "text-margem underline underline-offset-2" %>
-              <% end %>
             <% end %>
           </div>
           <% if status == "missing" && !@month.closed? %>
-            <%= tag.details open: suggestion.present? || exception_suggestion.present?, class: "col-span-2 row-start-4 md:col-span-3 md:col-start-2 md:row-start-2" do %>
+            <%= tag.details open: suggestion.present? || exception_suggestion.present? do %>
               <summary class="cursor-pointer font-medium text-caixa">Resolver</summary>
-              <div class="mt-3 space-y-4 rounded border border-rule bg-sheet p-4">
+              <div class="ledger-span mt-3 space-y-4 rounded border border-rule bg-sheet p-4">
                 <%= form_with url: "/months/#{@month.year_month}/matches", method: :post, class: "space-y-3" do %>
                   <%= hidden_field_tag "payment_ids[]", payment.id, id: "payment_ids_#{payment.id}" %>
                   <% suggested_ids = suggestion&.one_to_one_form_document_ids || [] %>
@@ -189,10 +199,18 @@
                 </div>
               </div>
             <% end %>
+          <% elsif !@month.closed? && status == "matched" %>
+            <%= button_to "Desfazer casamento", "/months/#{@month.year_month}/matches/#{payment.match_id}", method: :delete, class: "text-margem underline underline-offset-2" %>
+          <% elsif !@month.closed? && %w[bank_fee accountant_fee extra].include?(status) %>
+            <%= button_to "Desmarcar exceção", "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :delete, class: "text-margem underline underline-offset-2" %>
+          <% else %>
+            <span></span>
           <% end %>
         </li>
       <% end %>
     </ul>
+    </div>
+    <% end %>
     <% if !@month.closed? && @missing_document_payments.size >= 2 && @unmatched_documents.any? %>
       <%= tag.details open: @format_2_suggestion.present?, class: "mt-4" do %>
         <summary class="cursor-pointer font-medium text-caixa">Casar vários pagamentos com um documento</summary>
@@ -230,26 +248,33 @@
     <% if @unmatched_documents.empty? %>
       <p>Nenhum documento sem casamento</p>
     <% else %>
-      <ul>
-        <% @unmatched_documents.each do |document| %>
-          <li data-row="pool-document" data-document-id="<%= document.id %>" class="grid grid-cols-[minmax(0,1fr)_8rem] gap-x-4 gap-y-1 border-b border-rule py-3 md:grid-cols-[minmax(0,1fr)_8rem_12rem]">
-            <div class="flex items-center gap-2 font-medium">
-              <% if !@month.closed? && document.month_id.nil? %>
-                <%= check_box_tag "supporting_document_ids[]", document.id, false, id: "close_doc_#{document.id}", form: "close-month" %>
-                <label for="close_doc_<%= document.id %>"><%= document.payee %></label>
-              <% else %>
-                <%= document.payee %>
-              <% end %>
-            </div>
-            <p data-cell="amount" class="text-right font-medium tabular-nums"><%= format_reais(document.amount_cents) %></p>
-            <% if !@month.closed? && document.month_id == @month.id %>
-              <div class="col-span-2 md:col-span-1">
-                <%= button_to "Devolver", "/months/#{@month.year_month}/supporting_documents/#{document.id}/return", method: :post, class: "text-margem underline underline-offset-2" %>
+      <div class="ledger-sheet">
+        <div class="ledger-row ledger-head ledger-pool" aria-hidden="true">
+          <span>Favorecido</span>
+          <span class="ledger-amount">Valor</span>
+          <span></span>
+        </div>
+        <ul>
+          <% @unmatched_documents.each do |document| %>
+            <li data-row="pool-document" data-document-id="<%= document.id %>" class="ledger-row ledger-pool">
+              <div class="flex items-center gap-2 font-medium">
+                <% if !@month.closed? && document.month_id.nil? %>
+                  <%= check_box_tag "supporting_document_ids[]", document.id, false, id: "close_doc_#{document.id}", form: "close-month" %>
+                  <label for="close_doc_<%= document.id %>"><%= document.payee %></label>
+                <% else %>
+                  <%= document.payee %>
+                <% end %>
               </div>
-            <% end %>
-          </li>
-        <% end %>
-      </ul>
+              <p data-cell="amount" class="font-medium tabular-nums"><%= format_reais(document.amount_cents) %></p>
+              <div>
+                <% if !@month.closed? && document.month_id == @month.id %>
+                  <%= button_to "Devolver", "/months/#{@month.year_month}/supporting_documents/#{document.id}/return", method: :post, class: "text-margem underline underline-offset-2" %>
+                <% end %>
+              </div>
+            </li>
+          <% end %>
+        </ul>
+      </div>
     <% end %>
   </section>
 </div>

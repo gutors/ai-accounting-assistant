@@ -138,7 +138,7 @@ The closed month is an ink stamp, the only double-ruled mark in the system. The 
 
 **Key Characteristics:**
 
-- **Ruled rows.** Money is aligned columns, not cards.
+- **Ruled rows.** Record lists are a ledger sheet: vertical and horizontal rules, not cards.
 - **One red margin.** Red appears only on a missing document or an error.
 - **Flat paper.** Depth is a hairline rule, not a shadow.
 - **The stamp.** A closed month is inked and double-ruled. Nothing else is boxed.
@@ -190,11 +190,11 @@ One family, self-hosted, Latin subset, `font-display: swap`. IBM Plex Sans at 40
 
 The content column is 72rem, left-aligned, inside the viewport. The page gutter is the narrow step on a phone and the wide step from 768px. Below the header (minimum height 3.5rem) the title sits one page-step down; sections stack one section-step apart; the column ends with the page-end step.
 
-From 768px a money row is four tracks: 5.5rem for the date, a flexible history, 8rem for the amount, 12rem for the status. Below 768px the date and amount share the first line, the history drops to the second, and the status to the third. Rows are separated by a 1px rule and have no fill. Short forms cap at 28rem; two-column forms and the people list begin at 768px. Navigation wraps under the organization name below 640px.
+From 768px every record list is a ruled sheet: 1px vertical `rule` between cells, 1px horizontal `rule` between rows, snug cell padding (6px by 10px; payment rows 3px vertical). A payment row is five tracks: 9.5rem for the date (`time`, nowrap, tabular), a flexible history, 8rem for the amount, then status and actions as separate columns. The header row uses soft-ink labels (the Pagamentos Data label is ink and semibold as the visual sort key) and a 1px ink underline. Below 768px the header hides, cells stack, and vertical rules drop. Other lists (months, people, invites, banks, documents, administration) share this sheet grammar with their own tracks. Rows have no fill. Short forms cap at 28rem; two-column forms and the people list begin at 768px. Navigation wraps under the organization name below 640px.
 
 The month page leads with the month in words, the folder name in meta under it, and one summary sentence: missing documents first (in margin red when any remain), missing statements second. There is no horizontal scroll at 390px.
 
-**The Ledger Column Rule.** Every list of money is a ruled row with aligned columns and tabular figures. The amount is right-aligned.
+**The Ledger Column Rule.** Every record list is a ruled sheet with aligned columns, vertical rules, and tabular figures. The amount is right-aligned. Status and each action occupy their own columns.
 
 ## Elevation & Depth
 
@@ -245,7 +245,7 @@ A paper bar with a 1px ruling line along its bottom. Left: the mark at 1.25rem a
 
 ### Ledger row
 
-A list item, not a table. Cells run date, primary text with a soft-ink meta line under it, amount, status. A missing document adds the red margin and the status words in margin red. The status cell holds those words and, when there is something to do, the disclosure. Inflows have no status cell.
+A list item in a CSS grid sheet (`.ledger-sheet` / `.ledger-row`), not a table and not a card. Direct children are cells. Money lists run date, primary text with a soft-ink meta line under it, amount, status, then actions (Desfazer casamento, Resolver, Desmarcar exceção) in their own column — not stacked inside status. A missing document adds the red margin (3px left border, 12px inset on the first cell) and the status words in margin red. Bank, invite, and extras lists split situação and each quiet action into their own columns. Inflows have no status or actions cell. One sheet per section; do not group rows into status bands.
 
 ### Notice
 
@@ -261,7 +261,8 @@ Inline, ink on paper: "Mês fechado", weight 600, the double rule from Shapes. I
 
 - **Do** set a missing-document row and an error notice with a 3px left border in `margem` and 12px of inset.
 - **Do** fill a primary action with `caixa`, a sheet-white label, weight 600, and 8px by 16px padding.
-- **Do** separate sections with a ruling line under the heading.
+- **Do** separate sections with a ruling line under the heading, and draw each record list as one flat ruled sheet with vertical rules between cells.
+- **Do** keep payment rows denser than other lists, with Status and Ações as separate columns.
 - **Do** self-host IBM Plex Sans and IBM Plex Mono. The page makes no third-party font request.
 - **Do** draw focus as a 2px solid `caixa` ring, offset 2px, on every control.
 

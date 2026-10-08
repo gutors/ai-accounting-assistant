@@ -21,8 +21,8 @@ RSpec.describe "Administration access", type: :request do
       add = page.css("a").find { |link| link.text.strip == "Adicionar organização" }
       expect(add["href"]).to eq("/administration/new")
       expect(add["class"]).to include("bg-caixa")
-      header_row = page.css("div").find { |div|
-        div["class"].to_s.include?("md:grid-cols-") && div.css("p").map { |p| p.text.strip } == [
+      header_row = page.css(".ledger-head").find { |div|
+        div.css("p").map { |p| p.text.strip } == [
           "Nome", "Email coordenador", "Status", "Editar"
         ]
       }

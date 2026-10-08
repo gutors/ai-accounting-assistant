@@ -575,14 +575,13 @@ RSpec.describe "Administration", type: :request do
       expect(add["class"]).to include("bg-caixa")
       expect(page.at_css('input[name="name"]')).to be_nil
       expect(page.at_css('input[type="submit"]')).to be_nil
-      headers = page.css("main .font-medium").first(4).map { |node| node.text.strip }
+      headers = page.at_css("main .ledger-head").css("p").map { |node| node.text.strip }
       expect(headers).to eq([ "Nome", "Email coordenador", "Status", "Editar" ])
       expect(page.css("[data-organization-id]").map { |node| node["data-organization-id"].to_i }).to eq([
         ama.id, norte.id, sul.id
       ])
       row = organization_row(norte)
-      expect(row["class"]).to include("border-b")
-      expect(row["class"]).to include("border-rule")
+      expect(row.at_css(".ledger-row")).not_to be_nil
       html = row.inner_html
       expect(html.index("ONG Norte")).to be < html.index("zoe@exemplo.org")
       expect(html.index("zoe@exemplo.org")).to be < html.index("Pendente")

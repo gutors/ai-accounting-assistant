@@ -9,12 +9,12 @@
   <% end %>
 
   <% if @organizations.any? %>
-  <div class="mt-10">
-      <div class="hidden border-b border-rule pb-2 md:grid md:grid-cols-[minmax(0,1.2fr)_minmax(0,1.4fr)_7rem_4.5rem] md:gap-x-4">
-        <p class="font-medium">Nome</p>
-        <p class="font-medium">Email coordenador</p>
-        <p class="font-medium">Status</p>
-        <p class="font-medium">Editar</p>
+  <div class="ledger-sheet mt-10">
+      <div class="ledger-row ledger-head ledger-org">
+        <p>Nome</p>
+        <p>Email coordenador</p>
+        <p>Status</p>
+        <p>Editar</p>
       </div>
       <% @organizations.each do |organization| %>
         <%= render "administration/organization_row", organization: organization %>

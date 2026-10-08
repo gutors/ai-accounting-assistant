@@ -124,25 +124,37 @@
     <% if @bank_accounts.empty? %>
       <p class="mb-4">Nenhuma conta bancária</p>
     <% else %>
-      <ul class="mb-6">
-        <% @bank_accounts.each do |bank_account| %>
-          <li data-row="bank-account" data-bank-account-id="<%= bank_account.id %>" class="grid gap-x-6 gap-y-2 border-b border-rule py-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
-            <p class="font-medium"><%= bank_account.bank.presentation_name %></p>
-            <p class="font-medium"><%= bank_account.name %></p>
-            <p class="text-meta text-ink-soft"><%= bank_account.coordinates %></p>
-            <p class="text-meta text-ink-soft">extrato-<%= bank_account.slug %></p>
-            <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <% if bank_account.active? %>
-                <%= button_to "Desativar", "/bank_accounts/#{bank_account.id}", method: :patch, params: { active: false }, class: "text-margem underline underline-offset-2" %>
-              <% else %>
-                <p class="text-ink-soft">Inativa</p>
-                <%= button_to "Reativar", "/bank_accounts/#{bank_account.id}", method: :patch, params: { active: true }, class: "text-caixa underline underline-offset-2" %>
-              <% end %>
+      <div class="ledger-sheet mb-6">
+        <div class="ledger-row ledger-head ledger-bank" aria-hidden="true">
+          <span>Banco</span>
+          <span>Nome</span>
+          <span>Agência/conta</span>
+          <span>Situação</span>
+          <span></span>
+          <span></span>
+        </div>
+        <ul>
+          <% @bank_accounts.each do |bank_account| %>
+            <li data-row="bank-account" data-bank-account-id="<%= bank_account.id %>" class="ledger-row ledger-bank">
+              <p class="font-medium"><%= bank_account.bank.presentation_name %></p>
+              <p class="font-medium"><%= bank_account.name %></p>
+              <div>
+                <p class="text-meta text-ink-soft"><%= bank_account.coordinates %></p>
+                <p class="text-meta text-ink-soft">extrato-<%= bank_account.slug %></p>
+              </div>
+              <span class="text-ink-soft"><%= bank_account.active? ? "" : "Inativa" %></span>
+              <span>
+                <% if bank_account.active? %>
+                  <%= button_to "Desativar", "/bank_accounts/#{bank_account.id}", method: :patch, params: { active: false }, class: "text-margem underline underline-offset-2" %>
+                <% else %>
+                  <%= button_to "Reativar", "/bank_accounts/#{bank_account.id}", method: :patch, params: { active: true }, class: "text-caixa underline underline-offset-2" %>
+                <% end %>
+              </span>
               <%= link_to "Editar", "/setup?edit=bank_account&bank_account_id=#{bank_account.id}", class: "text-caixa underline underline-offset-2" %>
-            </div>
-          </li>
-        <% end %>
-      </ul>
+            </li>
+          <% end %>
+        </ul>
+      </div>
     <% end %>
 
     <% editing = @editing_bank_account %>
@@ -167,32 +179,40 @@
 
   <section>
     <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Tipos extras de exceção</h2>
-    <ul class="mb-6">
-      <li data-row="extras-column-headings" class="grid gap-x-6 gap-y-2 border-b border-rule py-3 text-meta text-ink-soft md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_12rem]">
-        <span></span>
+    <ul class="ledger-sheet mb-6">
+      <li data-row="extras-column-headings" class="ledger-row ledger-head ledger-extras">
+        <span>Nome</span>
         <span>Justificativa</span>
+        <span>Situação</span>
+        <span></span>
+        <span></span>
       </li>
       <% ExtraExceptionKind::BASE_NAMES.each do |name| %>
-        <li data-row="base-document-exception" class="grid gap-x-6 gap-y-2 border-b border-rule py-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_12rem]">
+        <li data-row="base-document-exception" class="ledger-row ledger-extras">
           <p class="font-medium"><%= name %></p>
           <p><%= ExtraExceptionKind::BASE_JUSTIFICATIONS.fetch(name) %></p>
+          <span></span>
+          <span></span>
+          <span></span>
         </li>
       <% end %>
       <% @extra_exception_kinds.each do |extra_exception_kind| %>
-        <li data-row="extra-exception-kind" data-extra-exception-kind-id="<%= extra_exception_kind.id %>" class="grid gap-x-6 gap-y-2 border-b border-rule py-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_12rem]">
+        <li data-row="extra-exception-kind" data-extra-exception-kind-id="<%= extra_exception_kind.id %>" class="ledger-row ledger-extras">
           <p class="font-medium"><%= extra_exception_kind.name %></p>
           <p><%= extra_exception_kind.justification %></p>
-          <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
+          <span class="text-ink-soft"><%= extra_exception_kind.active? ? "" : "Desativado" %></span>
+          <span>
             <% if extra_exception_kind.active? %>
               <%= button_to "Desativar", "/extra_exception_kinds/#{extra_exception_kind.id}", method: :patch, params: { active: false }, class: "text-margem underline underline-offset-2" %>
             <% else %>
-              <p class="text-ink-soft">Desativado</p>
               <%= button_to "Reativar", "/extra_exception_kinds/#{extra_exception_kind.id}", method: :patch, params: { active: true }, class: "text-caixa underline underline-offset-2" %>
             <% end %>
+          </span>
+          <span>
             <% if extra_exception_kind.payments.none? %>
               <%= button_to "Excluir", "/extra_exception_kinds/#{extra_exception_kind.id}", method: :delete, class: "text-margem underline underline-offset-2" %>
             <% end %>
-          </div>
+          </span>
         </li>
       <% end %>
     </ul>

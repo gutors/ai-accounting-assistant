@@ -47,11 +47,17 @@
     <% if @documents.empty? %>
       <p>Nenhum documento</p>
     <% else %>
-      <ul>
+      <div class="ledger-sheet">
+        <div class="ledger-row ledger-head ledger-doc" aria-hidden="true">
+          <span>Data</span>
+          <span>Favorecido</span>
+          <span class="ledger-amount">Valor</span>
+        </div>
+        <ul>
         <% @documents.each do |document| %>
-          <li data-row="document" data-document-id="<%= document.id %>" class="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-x-4 gap-y-1 border-b border-rule py-3 md:grid-cols-[5.5rem_minmax(0,1fr)_8rem]">
-            <time datetime="<%= document.document_on.iso8601 %>" class="col-start-1 row-start-1 tabular-nums"><%= l(document.document_on) %></time>
-            <div class="col-span-2 row-start-2 min-w-0 md:col-span-1 md:col-start-2 md:row-start-1">
+          <li data-row="document" data-document-id="<%= document.id %>" class="ledger-row ledger-doc">
+            <time datetime="<%= document.document_on.iso8601 %>" class="tabular-nums"><%= l(document.document_on) %></time>
+            <div class="min-w-0">
               <p class="font-medium"><%= document.payee %></p>
               <p class="text-meta text-ink-soft"><%= document.recibo? ? "Recibo" : "Nota fiscal" %></p>
               <% if document.chave.present? %>
@@ -120,10 +126,11 @@
                 </div>
               </details>
             </div>
-            <p data-cell="amount" class="col-start-2 row-start-1 text-right font-medium tabular-nums md:col-start-3"><%= format_reais(document.amount_cents) %></p>
+            <p data-cell="amount" class="font-medium tabular-nums"><%= format_reais(document.amount_cents) %></p>
           </li>
         <% end %>
-      </ul>
+        </ul>
+      </div>
     <% end %>
   </section>
 
@@ -132,10 +139,15 @@
     <% if @justifications.empty? %>
       <p class="mb-4">Nenhuma justificativa</p>
     <% else %>
-      <ul class="mb-6">
+      <div class="ledger-sheet mb-6">
+        <div class="ledger-row ledger-head ledger-justification" aria-hidden="true">
+          <span class="ledger-amount">Valor</span>
+          <span>Favorecido</span>
+        </div>
+        <ul>
         <% @justifications.each do |justification| %>
-          <li data-row="justification" data-justification-id="<%= justification.id %>" class="grid grid-cols-[8rem_minmax(0,1fr)] gap-x-4 gap-y-1 border-b border-rule py-3">
-            <p data-cell="amount" class="text-right font-medium tabular-nums"><%= format_reais(justification.amount_cents) %></p>
+          <li data-row="justification" data-justification-id="<%= justification.id %>" class="ledger-row ledger-justification">
+            <p data-cell="amount" class="font-medium tabular-nums"><%= format_reais(justification.amount_cents) %></p>
             <div class="min-w-0">
               <p><%= justification.supporting_documents.map(&:payee).join(", ") %></p>
               <% if !coordinator_on_focus? && justification.supporting_documents.all? { |document| document.month_id.nil? } %>
@@ -153,7 +165,8 @@
             </div>
           </li>
         <% end %>
-      </ul>
+        </ul>
+      </div>
     <% end %>
 
     <% unless coordinator_on_focus? %>

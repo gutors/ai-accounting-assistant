@@ -40,20 +40,22 @@
       <% if @months.empty? %>
         <p>Nenhum mês aberto</p>
       <% else %>
-        <div class="hidden border-b border-rule py-2 font-medium text-ink-soft md:grid md:grid-cols-[minmax(0,1fr)_8rem_8rem] md:gap-x-4">
-          <span>Mês</span>
-          <span>AAAA-MM</span>
-          <span class="text-right">Status</span>
+        <div class="ledger-sheet">
+          <div class="ledger-row ledger-head ledger-month" aria-hidden="true">
+            <span>Mês</span>
+            <span>AAAA-MM</span>
+            <span>Status</span>
+          </div>
+          <ul>
+            <% @months.each do |month| %>
+              <li data-row="month" class="ledger-row ledger-month">
+                <%= link_to month_title(month.year_month), "/months/#{month.year_month}", class: "font-medium text-caixa underline underline-offset-2" %>
+                <span class="text-meta text-ink-soft tabular-nums"><%= month.year_month %></span>
+                <span class="text-ink-soft"><%= month.closed? ? "Fechado" : "Aberto" %></span>
+              </li>
+            <% end %>
+          </ul>
         </div>
-        <ul>
-          <% @months.each do |month| %>
-            <li data-row="month" class="grid grid-cols-1 gap-x-4 gap-y-1 border-b border-rule py-3 md:grid-cols-[minmax(0,1fr)_8rem_8rem]">
-              <%= link_to month_title(month.year_month), "/months/#{month.year_month}", class: "font-medium text-caixa underline underline-offset-2" %>
-              <span class="text-meta text-ink-soft tabular-nums"><%= month.year_month %></span>
-              <span class="text-ink-soft md:text-right"><%= month.closed? ? "Fechado" : "Aberto" %></span>
-            </li>
-          <% end %>
-        </ul>
       <% end %>
     </section>
 
@@ -62,16 +64,26 @@
       <div class="grid gap-x-8 gap-y-10 md:grid-cols-2">
         <div>
           <h3 class="mb-2 font-medium">Coordenadores</h3>
-          <ul>
-            <% @coordinator_accesses.each do |access| %>
-              <li class="flex items-center justify-between gap-3 border-b border-rule py-2">
-                <span class="min-w-0 break-all"><%= access.account.email %></span>
-                <% if @organization.principal_coordinator_account_id == current_account.id && access.account_id != current_account.id %>
-                  <%= button_to "Revogar", "/accesses/#{access.id}", method: :delete, form: { data: { turbo_confirm: "Revogar o acesso deste coordenador?" } }, class: "text-margem underline underline-offset-2" %>
-                <% end %>
-              </li>
-            <% end %>
-          </ul>
+          <div class="ledger-sheet">
+            <div class="ledger-row ledger-head ledger-people" aria-hidden="true">
+              <span>E-mail</span>
+              <span>Papel</span>
+              <span></span>
+            </div>
+            <ul>
+              <% @coordinator_accesses.each do |access| %>
+                <li class="ledger-row ledger-people">
+                  <span data-cell="email" class="min-w-0 break-all font-medium"><%= access.account.email %></span>
+                  <span class="text-ink-soft"><%= @organization.principal_coordinator_account_id == access.account_id ? "Principal" : "Coordenador" %></span>
+                  <span>
+                    <% if @organization.principal_coordinator_account_id == current_account.id && access.account_id != current_account.id %>
+                      <%= button_to "Revogar", "/accesses/#{access.id}", method: :delete, form: { data: { turbo_confirm: "Revogar o acesso deste coordenador?" } }, class: "text-margem underline underline-offset-2" %>
+                    <% end %>
+                  </span>
+                </li>
+              <% end %>
+            </ul>
+          </div>
           <%= form_with url: "/coordinator_invites", method: :post, class: "mt-4" do %>
             <fieldset>
               <legend class="mb-2 font-medium">Convidar coordenador</legend>
@@ -86,14 +98,24 @@
 
         <div>
           <h3 class="mb-2 font-medium">Submitters</h3>
-          <ul>
-            <% @submitter_accesses.each do |access| %>
-              <li class="flex items-center justify-between gap-3 border-b border-rule py-2">
-                <span class="min-w-0 break-all"><%= access.account.email %></span>
-                <%= button_to "Revogar", "/accesses/#{access.id}", method: :delete, form: { data: { turbo_confirm: "Revogar o acesso deste submitter?" } }, class: "text-margem underline underline-offset-2" %>
-              </li>
-            <% end %>
-          </ul>
+          <div class="ledger-sheet">
+            <div class="ledger-row ledger-head ledger-people" aria-hidden="true">
+              <span>E-mail</span>
+              <span>Papel</span>
+              <span></span>
+            </div>
+            <ul>
+              <% @submitter_accesses.each do |access| %>
+                <li class="ledger-row ledger-people">
+                  <span data-cell="email" class="min-w-0 break-all font-medium"><%= access.account.email %></span>
+                  <span class="text-ink-soft">Submitter</span>
+                  <span>
+                    <%= button_to "Revogar", "/accesses/#{access.id}", method: :delete, form: { data: { turbo_confirm: "Revogar o acesso deste submitter?" } }, class: "text-margem underline underline-offset-2" %>
+                  </span>
+                </li>
+              <% end %>
+            </ul>
+          </div>
           <%= form_with url: "/submitter_invites", method: :post, class: "mt-4" do %>
             <fieldset>
               <legend class="mb-2 font-medium">Convidar submitter</legend>
@@ -111,29 +133,30 @@
     <section>
       <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Convites pendentes</h2>
       <% if @invites.any? %>
-        <div class="hidden border-b border-rule py-2 font-medium text-ink-soft md:grid md:grid-cols-[minmax(0,1.5fr)_9rem_minmax(10rem,1fr)_12rem] md:gap-x-4">
-          <span>E-mail</span>
-          <span>Tipo</span>
-          <span>Status</span>
-          <span></span>
-        </div>
-        <ul>
-          <% @invites.each do |invite| %>
-            <li data-row="invite" class="grid grid-cols-2 gap-x-4 gap-y-1 border-b border-rule py-3 md:grid-cols-[minmax(0,1.5fr)_9rem_minmax(10rem,1fr)_12rem]">
-              <span class="col-span-2 min-w-0 break-all md:col-span-1"><%= invite.email %></span>
-              <span><%= invite.coordinator? ? "Coordenador" : "Submitter" %></span>
-              <span class="text-ink-soft"><%= invite.sent? ? "enviado" : "falhou envio do e-mail" %></span>
-              <span class="col-span-2 flex flex-wrap items-center gap-3 md:col-span-1 md:justify-end">
+        <div class="ledger-sheet">
+          <div class="ledger-row ledger-head ledger-invite" aria-hidden="true">
+            <span>E-mail</span>
+            <span>Tipo</span>
+            <span>Status</span>
+            <span></span>
+            <span></span>
+          </div>
+          <ul>
+            <% @invites.each do |invite| %>
+              <li data-row="invite" class="ledger-row ledger-invite<%= " is-block" unless invite.sent? %>">
+                <span class="min-w-0 break-all font-medium"><%= invite.email %></span>
+                <span><%= invite.coordinator? ? "Coordenador" : "Submitter" %></span>
+                <span class="<%= invite.sent? ? "text-ink-soft" : "font-medium text-margem" %>"><%= invite.sent? ? "enviado" : "falhou envio do e-mail" %></span>
                 <%= button_to "Reenviar e-mail", "/#{invite.submitter? ? "submitter" : "coordinator"}_invites/#{invite.id}/mail", method: :post, class: "text-caixa underline underline-offset-2" %>
                 <% if invite.submitter? %>
                   <%= button_to "Cancelar", "/submitter_invites/#{invite.id}", method: :delete, class: "text-margem underline underline-offset-2" %>
                 <% else %>
                   <%= button_to "Cancelar", "/coordinator_invites/#{invite.id}", method: :delete, class: "text-margem underline underline-offset-2" %>
                 <% end %>
-              </span>
-            </li>
-          <% end %>
-        </ul>
+              </li>
+            <% end %>
+          </ul>
+        </div>
       <% end %>
     </section>
   </div>

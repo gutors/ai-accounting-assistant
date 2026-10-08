@@ -689,7 +689,7 @@ RSpec.describe "Setup", type: :request do
     expect(form.at_css("label[for='#{justification['id']}']").text.strip).to eq("Justificativa")
     expect(form.at_css('input[type="submit"][value="Adicionar tipo extra"]')).to be_present
     heading = section.at_css('li[data-row="extras-column-headings"]')
-    expect(heading.text.gsub(/\s+/, " ").strip).to eq("Justificativa")
+    expect(heading.text.gsub(/\s+/, " ").strip).to eq("Nome Justificativa Situação")
     expect(heading.ancestors("form")).to be_empty
     list = section.at_css("h2 + ul")
     expect(list.css("li").first["data-row"]).to eq("extras-column-headings")
