@@ -209,6 +209,6 @@ Design opened: `.specs/features/visual-identity/design.md` (file in the repo) an
 
 S1 ~33k + S2 ~37k + S3 ~45k + S4 ~48k + S5 ~31k if the 107 KB request spec and 57 KB model spec are counted in every slice they touch. Unique files on this cut (`index.html.erb`, `supporting_document.rb`, both specs, `design.md`, `application.css`, `_file_field.html.erb`, `document_kind_controller.js`, new money-mask controller and system spec) ≈ 236 KB / 4 ≈ 59k. Running total stays under 150k and the surface stays the documents index plus `SupportingDocument#submit`. No split. One batch.
 
-- Where the boundary fell: (builder fills after the last commit)
+- Where the boundary fell: C1–C25 closed on this branch after the implementation commit. No split.
 - What the user settled mid-build: none.
 - What was abandoned: none.

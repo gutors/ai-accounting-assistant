@@ -154,8 +154,8 @@ Proof: `bin/rspec spec/requests/extra_exception_kinds_spec.rb -e "extra exceptio
 **C44** - `GET /supporting_documents`: `<h1>` text is `Documentos de suporte`; the first `<section>` contains the form posting to `/supporting_documents` with submit `Incluir documento`; a document renders as `li[data-row="document"][data-document-id="{id}"]` whose `PATCH /supporting_documents/{id}` form is inside a `<details>` with `<summary>` `Editar` (DOCS-01, AC 31)
 Proof: `bin/rspec spec/requests/supporting_documents_spec.rb -e "documents h1 insert form first and edit folds under Editar"`
 
-**C45** - A deletable document's `Excluir` button is inside that same `<details>` (DOCS-01, AC 31)
-Proof: `bin/rspec spec/requests/supporting_documents_spec.rb -e "Excluir sits inside Editar"`
+**C45** - A deletable document's `Excluir` button is in Ações, not inside that same `<details>` (DOCS-01, Sem mês Ações)
+Proof: `bin/rspec spec/requests/supporting_documents_spec.rb -e "GET Excluir sits in Acoes not inside Editar"`
 
 **C46** - A justification renders as `li[data-row="justification"][data-justification-id="{id}"]` (DOCS-01, AC 31)
 Proof: `bin/rspec spec/requests/justifications_spec.rb -e "justification row carries data-row hook"`

@@ -7,7 +7,10 @@ class SupportingDocument < ApplicationRecord
   RECIBO_XML = "Recibo não tem XML"
   NF_FILES = "Envie a foto e/ou o XML"
   MISSING_FIELDS = "Informe valor, data e favorecido"
-  BAD_KIND = "Informe se é nota fiscal ou recibo"
+    BAD_KIND = "Informe se é nota fiscal ou recibo"
+  PHOTO_LOCKED = "A foto não pode ser alterada. Exclua o documento e inclua novamente."
+  XML_LOCKED = "O XML não pode ser alterado. Exclua o documento e inclua novamente."
+  KIND_LOCKED = "O tipo não pode ser alterado. Exclua o documento e inclua novamente."
   OVERSIZE = "Cada arquivo pode ter no máximo 10 MB"
   PHOTO_TYPE = "A foto deve ser JPEG, PNG, WebP ou PDF"
   XML_TYPE = "O XML deve ser um arquivo .xml"
@@ -99,6 +102,10 @@ class SupportingDocument < ApplicationRecord
       errors.add(:base, BAD_KIND)
       return self
     end
+    if persisted? && attrs.key?(:kind) && next_kind != kind.to_s
+      errors.add(:base, KIND_LOCKED)
+      return self
+    end
 
     incoming_photo = uploaded?(attrs[:photo]) ? attrs[:photo] : nil
     incoming_xml = uploaded?(attrs[:xml]) ? attrs[:xml] : nil
@@ -122,6 +129,15 @@ class SupportingDocument < ApplicationRecord
         errors.add(:base, XML_TYPE)
         return self
       end
+    end
+
+    if persisted? && incoming_photo && photo.attached?
+      errors.add(:base, PHOTO_LOCKED)
+      return self
+    end
+    if persisted? && incoming_xml && xml.attached?
+      errors.add(:base, XML_LOCKED)
+      return self
     end
 
     if next_kind == "recibo" && incoming_xml

@@ -180,7 +180,7 @@
     }
 
     .ledger-doc {
-      grid-template-columns: 9.5rem minmax(0, 1fr) 8rem;
+      grid-template-columns: 9.5rem minmax(0, 1fr) 7rem 8rem 7.5rem;
     }
 
     .ledger-justification {
