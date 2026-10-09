@@ -808,7 +808,7 @@ RSpec.describe "Supporting documents", type: :request do
     expect(SupportingDocument.find(foreign_id).payee).to eq("Payee B")
   end
 
-  it "PATCH kind recibo on xml-only nota_fiscal without photo returns 422 Envie a foto do recibo" do
+  it "PATCH kind recibo on xml-only nota_fiscal returns 422 KIND_LOCKED" do
     signed_in
     post "/supporting_documents", params: nota_params(xml: authorized_xml)
     doc = SupportingDocument.last
@@ -822,7 +822,7 @@ RSpec.describe "Supporting documents", type: :request do
     expect(doc.xml).to be_attached
   end
 
-  it "PATCH kind recibo with photo purges xml" do
+  it "PATCH kind recibo with photo returns 422 KIND_LOCKED and keeps xml" do
     signed_in
     post "/supporting_documents", params: nota_params(xml: authorized_xml)
     doc = SupportingDocument.last
@@ -1567,7 +1567,7 @@ RSpec.describe "Supporting documents", type: :request do
     expect(SupportingDocument.find(id).fields_origin).to eq("uploaded_xml")
   end
 
-  it "PATCH kind recibo on locked nota discards xml chave and unlocks" do
+  it "PATCH kind recibo on locked nota returns 422 KIND_LOCKED" do
     signed_in
     post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg, xml: authorized_xml }
     id = SupportingDocument.last.id
@@ -1581,7 +1581,7 @@ RSpec.describe "Supporting documents", type: :request do
     expect(doc.xml).to be_attached
   end
 
-  it "PATCH kind nota_fiscal on recibo fires consulta and locks" do
+  it "PATCH kind nota_fiscal on recibo returns 422 KIND_LOCKED" do
     _account, organization = signed_in
     install_a1(organization)
     stub_xml_consulta(vnf: "100.00", emit: "Mercado Silva", dhemi: "2026-05-12T10:00:00-03:00")
@@ -2469,7 +2469,7 @@ RSpec.describe "Supporting documents", type: :request do
     expect(response.body).to include("Valor, data e favorecido vêm da nota e não podem ser alterados")
   end
 
-  it "PATCH kind nota_fiscal on recibo reads existing photo chave" do
+  it "PATCH kind nota_fiscal on recibo with photo chave returns 422 KIND_LOCKED" do
     _account, organization = signed_in
     stub_photo_symbols("recibo.jpg", chave: nfe_chave)
     install_a1(organization)
@@ -2484,7 +2484,7 @@ RSpec.describe "Supporting documents", type: :request do
     expect(SupportingDocument.find(id).kind).to eq("recibo")
   end
 
-  it "PATCH kind recibo on photo-filled nota drops chave and unlocks" do
+  it "PATCH kind recibo on photo-filled nota returns 422 KIND_LOCKED" do
     signed_in
     stub_photo_fields("fields.jpg")
     stub_photo_symbols("fields.jpg", chave: nfe_chave)

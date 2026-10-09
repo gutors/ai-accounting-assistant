@@ -258,7 +258,7 @@ RSpec.describe SupportingDocument, type: :model do
     expect(SupportingDocument.count).to eq(0)
   end
 
-  it "rejects kind recibo on xml-only without photo" do
+  it "apply kind recibo on xml-only nota_fiscal returns KIND_LOCKED" do
     doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml)
     doc.apply(kind: "recibo")
 
@@ -267,7 +267,7 @@ RSpec.describe SupportingDocument, type: :model do
     expect(doc.xml).to be_attached
   end
 
-  it "update kind recibo with photo purges xml" do
+  it "apply kind recibo with photo returns KIND_LOCKED and keeps xml" do
     doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml)
     doc.apply(kind: "recibo", photo: photo_named("recibo-novo.jpg"))
 
@@ -720,7 +720,7 @@ RSpec.describe SupportingDocument, type: :model do
     expect(doc.fields_origin).to eq(SupportingDocument::ORIGIN_UPLOADED_XML)
   end
 
-  it "apply kind recibo on locked nota purges xml chave and unlocks" do
+  it "apply kind recibo on locked nota returns KIND_LOCKED" do
     doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg, xml: authorized_xml)
     doc.apply(kind: "recibo")
 
@@ -729,7 +729,7 @@ RSpec.describe SupportingDocument, type: :model do
     expect(doc.xml).to be_attached
   end
 
-  it "apply kind nota_fiscal on recibo fires consulta and locks" do
+  it "apply kind nota_fiscal on recibo returns KIND_LOCKED" do
     install_a1
     stub_xml_consulta(vnf: "100.00", emit: "Mercado Silva", dhemi: "2026-05-12T10:00:00-03:00")
     doc = insert_doc
@@ -1439,7 +1439,7 @@ RSpec.describe SupportingDocument, type: :model do
     expect(doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
   end
 
-  it "apply kind nota_fiscal on recibo reads existing photo chave" do
+  it "apply kind nota_fiscal on recibo with photo chave returns KIND_LOCKED" do
     stub_photo_symbols("recibo.jpg", chave: nfe_chave)
     install_a1
     stub_xml_consulta(vnf: "100.00", emit: "Mercado Silva", dhemi: "2026-05-12T10:00:00-03:00")
@@ -1450,7 +1450,7 @@ RSpec.describe SupportingDocument, type: :model do
     expect(doc.reload.kind).to eq("recibo")
   end
 
-  it "apply kind recibo on photo-filled nota drops chave" do
+  it "apply kind recibo on photo-filled nota returns KIND_LOCKED" do
     stub_photo_fields("fields.jpg")
     stub_photo_symbols("fields.jpg", chave: nfe_chave)
     doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("fields.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
