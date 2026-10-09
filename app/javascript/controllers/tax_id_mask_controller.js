@@ -32,9 +32,9 @@ export default class extends Controller {
     const b = digits.slice(2, 5)
     const c = digits.slice(5, 8)
     const d = digits.slice(8, 12)
-    const e = digits.slice(12, 14)
+    const e = digits.slice(12)
     let out = `${a}.${b}.${c}/${d}`
-    if (digits.length > 12) out += `-${e}`
+    if (e.length) out += `-${e}`
     return out
   }
 }
