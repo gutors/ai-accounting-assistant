@@ -339,14 +339,15 @@ Incluir documento                               (h2)
   Recibo: hiding chave and XML (photo only)
   HTML 422 fallback echoes Tipo, Valor, Data, Favorecido, Chave, Observação; file inputs stay empty
 Sem mês                                         (h2)
-  11/05/2026  Padaria Central                  R$ 155,00
-              Recibo (meta)
+  Data | Favorecido | Tipo | Valor | Ações
+  11/05/2026  Padaria Central     Recibo   R$ 155,00   ▸ Editar
               3524 0612 3456 7800 0190 5500 1000 0012 3410 0001 2340   (mono)
               foto.jpg, nota.xml (meta)
               pago em dinheiro (meta, the observation)
               Casado em 2026-05 (coordinator only)
               [Usar dados da SEFAZ]  (only when pending)
-              ▸ Editar  → details: edit form, then Excluir (quiet, margem)
+              Excluir (quiet, margem) sits in Ações, not inside Editar
+              Editar does not offer a control that changes Tipo
 Justificativas                                  (h2)
   R$ 300,00   Padaria Central, Mercado Silva     ▸ Editar (submitter, when allowed)
   form: Valor gasto [    ]  ☐ Padaria Central … [Justificar]   (submitter only)
@@ -357,9 +358,11 @@ Justificativas                                  (h2)
 - Insert Foto and XML each have `Limpar` beside the file control.
 - HTML `422` fallback on `POST /supporting_documents` echoes Tipo, Valor, Data, Favorecido, Chave,
   and Observação; file inputs stay empty.
-- Document rows `li[data-row="document"][data-document-id]`: date | payee (500) with kind, chave
-  (grouped, mono, `data-chave`), filenames, observation and month status as meta lines | amount.
-  The raw 44-digit chave stays as the value of the edit field.
+- Document rows `li[data-row="document"][data-document-id]`: date | payee (filenames, chave,
+  observation, month status as meta under payee) | Tipo | amount | Ações (`Editar` disclosure;
+  `Excluir` in Ações, not inside the edit panel). Kind is not a meta line under payee. Editar
+  does not offer a control that changes Tipo. The raw 44-digit chave stays as the value of the
+  edit field.
 - Justification rows `li[data-row="justification"]`.
 - New copy: `Editar`.
 

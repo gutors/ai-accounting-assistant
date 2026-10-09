@@ -63,6 +63,7 @@ Rails.application.routes.draw do
   delete "/months/:year_month/payments/:id/document_exception", to: "document_exceptions#destroy"
 
   get "/supporting_documents", to: "supporting_documents#index"
+  get "/supporting_documents/:id/edit", to: "supporting_documents#edit"
   post "/supporting_documents", to: "supporting_documents#create"
   patch "/supporting_documents/:id", to: "supporting_documents#update"
   delete "/supporting_documents/:id", to: "supporting_documents#destroy"

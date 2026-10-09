@@ -34,6 +34,7 @@ RSpec.describe "Keep form on 422", type: :system do
       fill_in "date", with: "2026-05-11"
       fill_in "payee", with: "Padaria Central"
       fill_in "observation", with: "pago em dinheiro"
+      select "Nota fiscal", from: "kind"
       attach_file "xml", xml_path, make_visible: true
       select "Recibo", from: "kind"
       page.execute_script("document.getElementById('xml').disabled = false")
@@ -71,6 +72,7 @@ RSpec.describe "Keep form on 422", type: :system do
       fill_in "amount", with: "155,00"
       fill_in "date", with: "2026-05-11"
       fill_in "payee", with: "Padaria Central"
+      select "Nota fiscal", from: "kind"
       attach_file "xml", xml_path, make_visible: true
       select "Recibo", from: "kind"
       page.execute_script("document.getElementById('xml').disabled = false")

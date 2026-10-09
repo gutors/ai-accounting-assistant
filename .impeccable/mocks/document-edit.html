@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Editar documento · Fechamento mensal</title>
+  <style>
+    @font-face {
+      font-family: "IBM Plex Sans";
+      font-style: normal;
+      font-weight: 400;
+      font-display: swap;
+      src: url("/app/assets/fonts/IBMPlexSans-Regular.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: "IBM Plex Sans";
+      font-style: normal;
+      font-weight: 500;
+      font-display: swap;
+      src: url("/app/assets/fonts/IBMPlexSans-Medium.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: "IBM Plex Sans";
+      font-style: normal;
+      font-weight: 600;
+      font-display: swap;
+      src: url("/app/assets/fonts/IBMPlexSans-SemiBold.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: "IBM Plex Mono";
+      font-style: normal;
+      font-weight: 400;
+      font-display: swap;
+      src: url("/app/assets/fonts/IBMPlexMono-Regular.woff2") format("woff2");
+    }
+
+    :root {
+      --paper: #f3f5f1;
+      --sheet: #ffffff;
+      --ink: #1b3229;
+      --ink-soft: #5c6e66;
+      --rule: #c7d5ca;
+      --caixa: #2e6b4e;
+      --margem: #b4372a;
+      --gutter: 20px;
+      --control: 4px;
+    }
+    @media (min-width: 768px) {
+      :root { --gutter: 32px; }
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--paper); color: var(--ink); }
+    body {
+      font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+      font-size: 1rem;
+      line-height: 1.5rem;
+    }
+    :focus-visible {
+      outline: 2px solid var(--caixa);
+      outline-offset: 2px;
+    }
+    ::selection { background: #c5ddd0; color: var(--ink); }
+    p { margin: 0; }
+    a { color: var(--caixa); text-underline-offset: 2px; }
+    a:hover { text-decoration: underline; }
+    button {
+      font: inherit;
+      cursor: pointer;
+      background: none;
+      border: 0;
+      padding: 0;
+      color: inherit;
+    }
+    label { display: block; font-weight: 500; margin-bottom: 4px; }
+    input, select, textarea {
+      width: 100%;
+      font: inherit;
+      color: var(--ink);
+      background: var(--sheet);
+      border: 1px solid var(--rule);
+      border-radius: var(--control);
+      padding: 8px 12px;
+    }
+    textarea { min-height: 4.5rem; resize: vertical; }
+    select:disabled, input:disabled {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    .chave {
+      font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.8125rem;
+      line-height: 1.125rem;
+    }
+    .meta { font-size: 0.8125rem; line-height: 1.125rem; color: var(--ink-soft); }
+    .tabular { font-variant-numeric: tabular-nums; }
+
+    .app-header {
+      min-height: 3.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 24px;
+      padding: 8px var(--gutter);
+      border-bottom: 1px solid var(--rule);
+    }
+    .app-header p { font-weight: 500; display: flex; align-items: center; gap: 8px; }
+    .mark { width: 1.25rem; height: 1.25rem; border-radius: 4px; display: block; }
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 20px;
+    }
+    @media (min-width: 640px) {
+      nav { margin-left: auto; }
+    }
+    nav a { color: var(--ink); text-decoration: none; }
+    nav a:hover { text-decoration: underline; text-underline-offset: 2px; }
+    .sair { color: var(--caixa); text-underline-offset: 2px; }
+    .sair:hover { text-decoration: underline; }
+
+    .page {
+      max-width: 72rem;
+      margin: 0;
+      padding: 40px var(--gutter) 64px;
+    }
+    .back { color: var(--caixa); }
+    h1 {
+      margin: 16px 0 0;
+      font-size: 1.5rem;
+      line-height: 1.75rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .notice {
+      margin-top: 16px;
+      padding: 0 0 0 12px;
+      border-left: 3px solid var(--margem);
+      color: var(--margem);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px 16px;
+    }
+    .notice p { flex: 1 1 16rem; }
+
+    .split {
+      display: grid;
+      gap: 48px;
+      margin-top: 48px;
+      align-items: start;
+    }
+    @media (min-width: 768px) {
+      .split {
+        grid-template-columns: minmax(0, 1fr) 28rem;
+        gap: 32px;
+      }
+    }
+
+    .evidence {
+      background: var(--sheet);
+      border: 1px solid var(--rule);
+      border-radius: var(--control);
+      padding: 16px;
+    }
+    .receipt {
+      width: 100%;
+      aspect-ratio: 3 / 4;
+      max-height: 28rem;
+      background: var(--paper);
+      border: 1px solid var(--rule);
+      display: grid;
+      grid-template-rows: auto 1fr auto auto;
+      padding: 16px;
+      gap: 8px;
+    }
+    .receipt .who { font-weight: 600; }
+    .receipt .line { border-top: 1px solid var(--rule); padding-top: 8px; }
+    .receipt .sum { font-weight: 500; font-variant-numeric: tabular-nums; text-align: right; }
+    .evidence .cap { margin-top: 12px; }
+    .evidence .lock { margin-top: 4px; }
+
+    .file-field {
+      margin-top: 16px;
+    }
+    .file-control {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 2.5rem;
+      padding: 4px 4px 4px 12px;
+      background: var(--sheet);
+      border: 1px solid var(--rule);
+      border-radius: var(--control);
+    }
+    .file-control .empty { flex: 1; }
+    .chip {
+      flex-shrink: 0;
+      background: var(--caixa);
+      color: var(--sheet);
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: var(--control);
+    }
+
+    .book { display: grid; gap: 16px; max-width: 28rem; }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 16px;
+      margin-top: 8px;
+    }
+    .primary {
+      background: var(--caixa);
+      color: var(--sheet);
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: var(--control);
+    }
+    .danger {
+      color: var(--margem);
+      text-underline-offset: 2px;
+    }
+    .danger:hover { text-decoration: underline; }
+
+    .proto {
+      border-bottom: 1px solid var(--rule);
+      padding: 12px var(--gutter);
+      font-size: 0.8125rem;
+      line-height: 1.125rem;
+      color: var(--ink-soft);
+    }
+  </style>
+</head>
+<body>
+  <p class="proto">Protótipo — composição “Prova à esquerda”. Não é a rota Rails.</p>
+  <header class="app-header">
+    <p>
+      <svg class="mark" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
+        <rect width="512" height="512" rx="96" fill="#2e6b4e" />
+        <rect x="96" y="208" width="320" height="28" fill="#f3f5f1" />
+        <rect x="96" y="304" width="320" height="28" fill="#f3f5f1" />
+        <rect x="152" y="96" width="28" height="320" fill="#b4372a" />
+      </svg>
+      Fechamento Mensal - Centro Social da Rua
+    </p>
+    <nav aria-label="Principal">
+      <a href="/">Início</a>
+      <a href="/supporting_documents">Documentos</a>
+      <a href="/setup">Configuração</a>
+      <a href="/administration">Administração</a>
+      <button class="sair" type="button">Sair</button>
+    </nav>
+  </header>
+
+  <main class="page">
+    <p><a class="back" href="/supporting_documents">Voltar para documentos</a></p>
+    <h1>Editar documento</h1>
+
+    <div class="notice" role="status">
+      <p>A SEFAZ devolveu dados desta chave.</p>
+      <button class="primary" type="button">Usar dados da SEFAZ</button>
+    </div>
+
+    <div class="split">
+      <aside class="proof">
+        <div class="evidence">
+          <div class="receipt" aria-label="Pré-visualização da foto (dado de demonstração)">
+            <p class="who">Padaria Central</p>
+            <p class="meta">NF-e · 11/05/2026</p>
+            <p class="line meta">Pão e café — reunião da coordenação</p>
+            <p class="sum">R$ 155,00</p>
+          </div>
+          <p class="cap meta">nota-padaria-central.jpg</p>
+          <p class="lock meta">A foto não pode ser alterada. Exclua o documento e inclua novamente.</p>
+        </div>
+        <div class="file-field">
+          <label for="xml">XML</label>
+          <div class="file-control">
+            <span class="empty meta">Nenhum arquivo</span>
+            <span class="chip">Incluir XML</span>
+            <button class="sair" type="button">Limpar</button>
+          </div>
+        </div>
+      </aside>
+
+      <form class="book" action="/supporting_documents/1" method="post" onsubmit="return false">
+        <div>
+          <label for="kind">Tipo</label>
+          <select id="kind" name="kind" disabled>
+            <option selected>Nota fiscal</option>
+            <option>Recibo</option>
+          </select>
+        </div>
+        <div>
+          <label for="amount">Valor</label>
+          <input class="tabular" id="amount" name="amount" value="155,00" inputmode="numeric" autocomplete="off">
+        </div>
+        <div>
+          <label for="date">Data</label>
+          <input class="tabular" id="date" name="date" type="date" value="2026-05-11" autocomplete="off">
+        </div>
+        <div>
+          <label for="payee">Favorecido</label>
+          <input id="payee" name="payee" value="Padaria Central" autocomplete="off">
+        </div>
+        <div>
+          <label for="chave">Chave de acesso (opcional)</label>
+          <input class="chave" id="chave" name="chave" value="43260511222333000181550010000000011123456781" autocomplete="off">
+        </div>
+        <div>
+          <label for="observation">Observação (opcional)</label>
+          <textarea id="observation" name="observation" rows="3">Compra do café da reunião</textarea>
+        </div>
+        <div class="actions">
+          <button class="primary" type="submit">Salvar documento</button>
+          <button class="danger" type="button">Excluir</button>
+        </div>
+      </form>
+    </div>
+  </main>
+</body>
+</html>

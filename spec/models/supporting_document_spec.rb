@@ -182,7 +182,8 @@ RSpec.describe SupportingDocument, type: :model do
     doc = insert_doc(photo: photo_named("foto-antiga.jpg"))
     doc.apply(photo: photo_named("foto-nova.jpg"))
 
-    expect(doc.reload.photo.filename.to_s).to eq("foto-nova.jpg")
+    expect(doc.errors[:base]).to include(SupportingDocument::PHOTO_LOCKED)
+    expect(doc.reload.photo.filename.to_s).to eq("foto-antiga.jpg")
   end
 
   it "insert with observation pago em dinheiro" do
@@ -257,23 +258,23 @@ RSpec.describe SupportingDocument, type: :model do
     expect(SupportingDocument.count).to eq(0)
   end
 
-  it "rejects kind recibo on xml-only without photo" do
+  it "apply kind recibo on xml-only nota_fiscal returns KIND_LOCKED" do
     doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml)
     doc.apply(kind: "recibo")
 
-    expect(doc.errors[:base]).to include("Envie a foto do recibo")
+    expect(doc.errors[:base]).to include(SupportingDocument::KIND_LOCKED)
     expect(doc.reload.kind).to eq("nota_fiscal")
     expect(doc.xml).to be_attached
   end
 
-  it "update kind recibo with photo purges xml" do
+  it "apply kind recibo with photo returns KIND_LOCKED and keeps xml" do
     doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml)
     doc.apply(kind: "recibo", photo: photo_named("recibo-novo.jpg"))
 
+    expect(doc.errors[:base]).to include(SupportingDocument::KIND_LOCKED)
     doc.reload
-    expect(doc.kind).to eq("recibo")
-    expect(doc.photo.filename.to_s).to eq("recibo-novo.jpg")
-    expect(doc.xml).not_to be_attached
+    expect(doc.kind).to eq("nota_fiscal")
+    expect(doc.xml).to be_attached
   end
 
   it "kind enum members are nota_fiscal and recibo" do
@@ -719,30 +720,23 @@ RSpec.describe SupportingDocument, type: :model do
     expect(doc.fields_origin).to eq(SupportingDocument::ORIGIN_UPLOADED_XML)
   end
 
-  it "apply kind recibo on locked nota purges xml chave and unlocks" do
+  it "apply kind recibo on locked nota returns KIND_LOCKED" do
     doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg, xml: authorized_xml)
     doc.apply(kind: "recibo")
 
-    doc.reload
-    expect(doc.kind).to eq("recibo")
-    expect(doc.xml).not_to be_attached
-    expect(doc.chave).to be_nil
-    doc.apply(payee: "Mercado Silva")
-    expect(doc.reload.payee).to eq("Mercado Silva")
+    expect(doc.errors[:base]).to include(SupportingDocument::KIND_LOCKED)
+    expect(doc.reload.kind).to eq("nota_fiscal")
+    expect(doc.xml).to be_attached
   end
 
-  it "apply kind nota_fiscal on recibo fires consulta and locks" do
+  it "apply kind nota_fiscal on recibo returns KIND_LOCKED" do
     install_a1
     stub_xml_consulta(vnf: "100.00", emit: "Mercado Silva", dhemi: "2026-05-12T10:00:00-03:00")
     doc = insert_doc
     doc.apply(kind: "nota_fiscal", chave: nfe_chave)
 
-    expect(doc.amount_cents).to eq(10000)
-    expect(doc.payee).to eq("Mercado Silva")
-    expect(doc.document_on).to eq(Date.new(2026, 5, 12))
-    expect(doc.xml).to be_attached
-    doc.apply(amount: "200,00")
-    expect(doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
+    expect(doc.errors[:base]).to include(SupportingDocument::KIND_LOCKED)
+    expect(doc.reload.kind).to eq("recibo")
   end
 
   it "apply chave on typed nota keeps 15500" do
@@ -1445,32 +1439,25 @@ RSpec.describe SupportingDocument, type: :model do
     expect(doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
   end
 
-  it "apply kind nota_fiscal on recibo reads existing photo chave" do
+  it "apply kind nota_fiscal on recibo with photo chave returns KIND_LOCKED" do
     stub_photo_symbols("recibo.jpg", chave: nfe_chave)
     install_a1
     stub_xml_consulta(vnf: "100.00", emit: "Mercado Silva", dhemi: "2026-05-12T10:00:00-03:00")
     doc = insert_doc
     doc.apply(kind: "nota_fiscal")
 
-    expect(doc.amount_cents).to eq(10000)
-    expect(doc.payee).to eq("Mercado Silva")
-    expect(doc.document_on).to eq(Date.new(2026, 5, 12))
-    expect(doc.xml).to be_attached
-    doc.apply(amount: "200,00")
-    expect(doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
+    expect(doc.errors[:base]).to include(SupportingDocument::KIND_LOCKED)
+    expect(doc.reload.kind).to eq("recibo")
   end
 
-  it "apply kind recibo on photo-filled nota drops chave" do
+  it "apply kind recibo on photo-filled nota returns KIND_LOCKED" do
     stub_photo_fields("fields.jpg")
     stub_photo_symbols("fields.jpg", chave: nfe_chave)
     doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("fields.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
     doc.apply(kind: "recibo")
 
-    expect(doc.kind).to eq("recibo")
-    expect(doc.chave).to be_nil
-    expect(doc.amount_cents).to eq(15500)
-    doc.apply(payee: "Mercado Silva")
-    expect(doc.reload.payee).to eq("Mercado Silva")
+    expect(doc.errors[:base]).to include(SupportingDocument::KIND_LOCKED)
+    expect(doc.reload.kind).to eq("nota_fiscal")
   end
 
   it "install A1 after photo-filled chave leaves amount" do
@@ -1592,5 +1579,37 @@ RSpec.describe SupportingDocument, type: :model do
     ensure
       truncate_product_tables
     end
+  end
+
+  it "apply refuses new photo when photo is already attached" do
+    doc = insert_doc(photo: photo_named("foto-antiga.jpg"))
+    doc.apply(photo: photo_named("foto-nova.jpg"))
+
+    expect(doc.errors[:base]).to include(SupportingDocument::PHOTO_LOCKED)
+    expect(doc.reload.photo.filename.to_s).to eq("foto-antiga.jpg")
+  end
+
+  it "apply refuses new XML when XML is already attached" do
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml)
+    doc.apply(xml: xml_file("outra.xml"))
+
+    expect(doc.errors[:base]).to include(SupportingDocument::XML_LOCKED)
+    expect(doc.reload.xml.filename.to_s).to eq("autorizada.xml")
+  end
+
+  it "apply refuses kind change from nota_fiscal to recibo" do
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml)
+    doc.apply(kind: "recibo")
+
+    expect(doc.errors[:base]).to include(SupportingDocument::KIND_LOCKED)
+    expect(doc.reload.kind).to eq("nota_fiscal")
+  end
+
+  it "apply refuses kind change from recibo to nota_fiscal" do
+    doc = insert_doc
+    doc.apply(kind: "nota_fiscal")
+
+    expect(doc.errors[:base]).to include(SupportingDocument::KIND_LOCKED)
+    expect(doc.reload.kind).to eq("recibo")
   end
 end

@@ -8,12 +8,12 @@ export default class extends Controller {
   }
 
   sync() {
-    const recibo = this.kindTarget.value === "recibo"
+    const showNf = this.kindTarget.value === "nota_fiscal"
     this.nfOnlyTargets.forEach((el) => {
-      el.classList.toggle("hidden", recibo)
-      el.toggleAttribute("hidden", recibo)
+      el.classList.toggle("hidden", !showNf)
+      el.toggleAttribute("hidden", !showNf)
       el.querySelectorAll("input").forEach((input) => {
-        input.disabled = recibo
+        input.disabled = !showNf
       })
     })
   }

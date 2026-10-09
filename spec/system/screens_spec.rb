@@ -172,8 +172,19 @@ RSpec.describe "Screens", type: :system do
 
     at_viewport(390) do
       visit "/supporting_documents"
-      find('li[data-row="document"] summary', text: "Editar", match: :first).click
-      expect(page).to have_css('li[data-row="document"] details[open]')
+      expect(page).to have_css("h1", text: "Documentos de suporte")
+      expect(scroll_width).to be <= 390
+    end
+  end
+
+  it "document edit has no horizontal scroll at 390" do
+    accounts = plant_world
+    sign_in_through_google(accounts[:submitter])
+
+    at_viewport(390) do
+      visit "/supporting_documents"
+      click_link "Editar", match: :first
+      expect(page).to have_css("h1", text: "Editar documento")
       expect(scroll_width).to be <= 390
     end
   end

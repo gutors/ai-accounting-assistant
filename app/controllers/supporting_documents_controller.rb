@@ -5,6 +5,10 @@ class SupportingDocumentsController < ApplicationController
     load_documents
   end
 
+  def edit
+    @document = mutate_document
+  end
+
   def create
     document = SupportingDocument.insert(
       organization: focused_organization,
@@ -27,11 +31,11 @@ class SupportingDocumentsController < ApplicationController
   end
 
   def update
-    document = mutate_document
-    return unless document
+    @document = mutate_document
+    return unless @document
 
-    if submitter_month_locked?(document)
-      render_document_error(SupportingDocument::HAS_MONTH)
+    if submitter_month_locked?(@document)
+      render_document_error(SupportingDocument::HAS_MONTH, template: :edit)
       return
     end
 
@@ -41,12 +45,12 @@ class SupportingDocumentsController < ApplicationController
     end
     attrs[:photo] = params[:photo] if params[:photo].present?
     attrs[:xml] = params[:xml] if params[:xml].present?
-    document.apply(**attrs)
+    @document.apply(**attrs)
 
-    if document.errors.empty?
+    if @document.errors.empty?
       redirect_to "/supporting_documents", status: :found
     else
-      render_document_error(document.errors[:base].first)
+      render_document_error(@document.errors[:base].first, template: :edit)
     end
   end
 
@@ -93,11 +97,15 @@ class SupportingDocumentsController < ApplicationController
     !coordinator_on_focus? && document.month_id.present?
   end
 
-  def render_document_error(message)
+  def render_document_error(message, template: :index)
     @document_error = message
     toast_now(kind: "error", message: message)
-    load_documents
-    render :index, status: :unprocessable_content
+    if template == :edit
+      render :edit, status: :unprocessable_content
+    else
+      load_documents
+      render :index, status: :unprocessable_content
+    end
   end
 
   def refuse_insert(message)

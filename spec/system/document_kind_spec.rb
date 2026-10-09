@@ -23,6 +23,22 @@ RSpec.describe "Document kind chrome", type: :system do
     find("form[action='/supporting_documents']")
   end
 
+  it "insert Nota fiscal shows chave and xml from empty kind" do
+    open_insert_form
+
+    within("form[action='/supporting_documents']") do
+      chave = find("#chave", visible: :all)
+      xml = find("#xml", visible: :all)
+      expect(chave).not_to be_visible
+      expect(xml).not_to be_visible
+      select "Nota fiscal", from: "kind"
+      expect(find("#chave")).to be_visible
+      expect(find("[data-file-field='xml']")).to be_visible
+      expect(find("#chave")).not_to be_disabled
+      expect(find("#xml", visible: :all)).not_to be_disabled
+    end
+  end
+
   it "insert Recibo hides chave and xml" do
     open_insert_form
 
