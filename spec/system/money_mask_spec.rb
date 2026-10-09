@@ -40,9 +40,9 @@ RSpec.describe "Money mask", type: :system do
     account, organization = plant_coordinator
     document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
     sign_in_through_google(account)
-    visit "/supporting_documents"
+    visit "/supporting_documents/#{document.id}/edit"
 
-    expect(find("#amount_#{document.id}", visible: :all).value).to eq("155,00")
+    expect(find("#amount").value).to eq("155,00")
   end
 
   it "justification amount types 1 0 0 as 0,01 0,10 1,00" do

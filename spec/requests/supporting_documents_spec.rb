@@ -157,16 +157,24 @@ RSpec.describe "Supporting documents", type: :request do
     document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00", date: "2026-05-11")
 
     travel_to Date.new(2026, 10, 5) do
-      get "/supporting_documents"
+      get "/supporting_documents/#{document.id}/edit"
     end
 
-    date = page_doc(response.body).at_css("input#date_#{document.id}[type=date]")
+    date = page_doc(response.body).at_css("input#date[type=date]")
     expect(date["value"]).to eq("2026-05-11")
   end
 
   it "GET optional chave and observation labels on insert and Editar" do
     account, organization = signed_in
-    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00", date: "2026-05-11")
+    document = SupportingDocument.insert(
+      organization: organization,
+      account: account,
+      kind: "nota_fiscal",
+      amount: "155,00",
+      date: "2026-05-11",
+      payee: "Padaria Central",
+      photo: photo_jpg
+    )
 
     travel_to Date.new(2026, 10, 5) do
       get "/supporting_documents"
@@ -175,9 +183,11 @@ RSpec.describe "Supporting documents", type: :request do
     form = insert_form(response.body)
     expect(form.at_css('label[for="chave"]').text.strip).to eq("Chave de acesso (opcional)")
     expect(form.at_css('label[for="observation"]').text.strip).to eq("Observação (opcional)")
+
+    get "/supporting_documents/#{document.id}/edit"
     page = page_doc(response.body)
-    expect(page.at_css(%(label[for="chave_#{document.id}"])).text.strip).to eq("Chave de acesso (opcional)")
-    expect(page.at_css(%(label[for="observation_#{document.id}"])).text.strip).to eq("Observação (opcional)")
+    expect(page.at_css('label[for="chave"]').text.strip).to eq("Chave de acesso (opcional)")
+    expect(page.at_css('label[for="observation"]').text.strip).to eq("Observação (opcional)")
   end
 
   it "GET insert kind nota_fiscal shows chave and xml" do
@@ -276,26 +286,20 @@ RSpec.describe "Supporting documents", type: :request do
     expect(toast_node(response.body)).to be_nil
   end
 
-  it "GET Editar recibo hides chave and xml" do
+  it "GET edit recibo hides chave and xml" do
     account, organization = signed_in
     document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
 
-    get "/supporting_documents"
+    get "/supporting_documents/#{document.id}/edit"
 
     page = page_doc(response.body)
-    expect(selected_option_value(page.at_css("select#kind_#{document.id}"))).to eq("recibo")
-    chave = page.at_css("input#chave_#{document.id}")
-    xml = page.at_css("input#xml_#{document.id}")
-    photo = page.at_css("input#photo_#{document.id}")
-    expect(chave["disabled"]).to be_present
-    expect(xml["disabled"]).to be_present
-    expect(html_visible?(chave)).to be false
-    expect(html_visible?(xml)).to be false
-    expect(html_visible?(photo)).to be true
-    expect(photo["disabled"]).to be_present
+    expect(selected_option_value(page.at_css("select#kind"))).to eq("recibo")
+    expect(page.at_css("input#chave")).to be_nil
+    expect(page.at_css("input#xml")).to be_nil
+    expect(page.at_css("input#photo")).to be_nil
   end
 
-  it "GET Editar nota_fiscal shows chave and xml" do
+  it "GET edit nota_fiscal shows chave and empty XML" do
     account, organization = signed_in
     document = SupportingDocument.insert(
       organization: organization,
@@ -307,16 +311,19 @@ RSpec.describe "Supporting documents", type: :request do
       photo: photo_jpg
     )
 
-    get "/supporting_documents"
+    get "/supporting_documents/#{document.id}/edit"
 
     page = page_doc(response.body)
-    expect(selected_option_value(page.at_css("select#kind_#{document.id}"))).to eq("nota_fiscal")
-    chave = page.at_css("input#chave_#{document.id}")
-    xml = page.at_css("input#xml_#{document.id}")
+    expect(selected_option_value(page.at_css("select#kind"))).to eq("nota_fiscal")
+    expect(page.at_css('label[for="chave"]').text.strip).to eq("Chave de acesso (opcional)")
+    chave = page.at_css("input#chave")
+    xml = page.at_css("input#xml")
     expect(html_visible?(chave)).to be true
     expect(html_visible?(xml)).to be true
     expect(chave["disabled"]).to be_nil
     expect(xml["disabled"]).to be_nil
+    expect(page.at_css("[data-file-field='xml']").text).to include("Nenhum arquivo")
+    expect(page.at_css("[data-file-field='xml']").text).to include("Incluir XML")
   end
 
   it "POST recibo photo without XML persists chave nil and Pronto toast" do
@@ -454,10 +461,8 @@ RSpec.describe "Supporting documents", type: :request do
 
   # Ledger arrangement (visual-identity C44, C45, C47, C48)
 
-  def editar_details(document_row)
-    details = document_row.css("details").select { |node| node.at_css("summary")&.text&.strip == "Editar" }
-    expect(details.size).to eq(1)
-    details.first
+  def editar_link(document_row)
+    document_row.css("a").find { |node| node.text.strip == "Editar" }
   end
 
   it "documents h1 insert form first and edit folds under Editar" do
@@ -476,9 +481,8 @@ RSpec.describe "Supporting documents", type: :request do
 
     document_row = row(response.body, "document", document_id: document.id)
     expect(document_row).not_to be_nil
-    edit_form = document_row.css("form").find { |node| node["action"] == "/supporting_documents/#{document.id}" && node.at_css('input[name="_method"][value="patch"]') }
-    expect(edit_form).not_to be_nil
-    expect(edit_form.ancestors.include?(editar_details(document_row))).to eq(true)
+    expect(editar_link(document_row)["href"]).to eq("/supporting_documents/#{document.id}/edit")
+    expect(document_row.css("form").none? { |form| form.at_css('input[name="_method"][value="patch"]') }).to eq(true)
   end
 
   it "Excluir sits inside Editar" do
@@ -490,10 +494,10 @@ RSpec.describe "Supporting documents", type: :request do
     document_row = row(response.body, "document", document_id: document.id)
     excluir = document_row.css("button").find { |button| button.text.strip == "Excluir" }
     expect(excluir).not_to be_nil
-    expect(excluir.ancestors.include?(editar_details(document_row))).to eq(false)
+    expect(excluir.ancestors.include?(document_row.at_css('[data-cell="actions"]'))).to eq(true)
   end
 
-  it "Usar dados da SEFAZ stays outside Editar" do
+  it "GET list row has no Usar dados da SEFAZ" do
     _account, organization = signed_in
     install_a1(organization)
     stub_xml_consulta(vnf: "100.00")
@@ -505,9 +509,7 @@ RSpec.describe "Supporting documents", type: :request do
     get "/supporting_documents"
 
     document_row = row(response.body, "document", document_id: id)
-    sefaz = document_row.css("button").find { |button| button.text.strip == "Usar dados da SEFAZ" }
-    expect(sefaz).not_to be_nil
-    expect(sefaz.ancestors("details")).to be_empty
+    expect(document_row.text).not_to include("Usar dados da SEFAZ")
   end
 
   it "chave is displayed in groups of four and kept raw in the edit field" do
@@ -521,7 +523,9 @@ RSpec.describe "Supporting documents", type: :request do
 
     document_row = row(response.body, "document", document_id: id)
     expect(document_row.at_css("[data-chave]").text.strip).to eq("3524 0612 3456 7800 0190 5500 1000 0012 3410 0001 2340")
-    expect(document_row.at_css('input[name="chave"]')["value"]).to eq(chave)
+
+    get "/supporting_documents/#{id}/edit"
+    expect(page_doc(response.body).at_css("input#chave")["value"]).to eq(chave)
   end
 
   it "document error renders as a data-notice error alert" do
@@ -1179,8 +1183,9 @@ RSpec.describe "Supporting documents", type: :request do
     expect(response.body).to include("R$ 155,00")
     expect(response.body).to include("11/05/2026")
     expect(response.body).to include("Padaria Central")
-    expect(response.body).to include("43260511222333000181550010000000011123456781")
     expect(response.body).not_to include("ONG Destinataria")
+    get "/supporting_documents/#{doc.id}/edit"
+    expect(page_doc(response.body).at_css("#chave")["value"]).to eq("43260511222333000181550010000000011123456781")
   end
 
   it "PATCH amount on uploaded XML returns 422" do
@@ -1601,7 +1606,7 @@ RSpec.describe "Supporting documents", type: :request do
 
     expect(response).to have_http_status(:found)
     expect(SupportingDocument.find(id).amount_cents).to eq(15500)
-    get "/supporting_documents"
+    get "/supporting_documents/#{id}/edit"
     expect(response.body).to include("Usar dados da SEFAZ")
   end
 
@@ -1616,7 +1621,7 @@ RSpec.describe "Supporting documents", type: :request do
     patch "/supporting_documents/#{id}", params: { observation: "ok" }
 
     expect(response).to have_http_status(:found)
-    get "/supporting_documents"
+    get "/supporting_documents/#{id}/edit"
     expect(response.body).to include("Usar dados da SEFAZ")
     expect(SupportingDocument.find(id).amount_cents).to eq(15500)
   end
@@ -2136,7 +2141,8 @@ RSpec.describe "Supporting documents", type: :request do
     expect(response.body).to include("R$ 155,00")
     expect(response.body).to include("11/05/2026")
     expect(response.body).to include("Padaria Central")
-    expect(response.body).to include(nfce_chave)
+    get "/supporting_documents/#{doc.id}/edit"
+    expect(page_doc(response.body).at_css("#chave")["value"]).to eq(nfce_chave)
     patch "/supporting_documents/#{doc.id}", params: { amount: "200,00" }
     expect(response).to have_http_status(:found)
     expect(doc.reload.amount_cents).to eq(20000)
@@ -2402,7 +2408,7 @@ RSpec.describe "Supporting documents", type: :request do
 
     expect(response).to have_http_status(:found)
     expect(SupportingDocument.find(id).amount_cents).to eq(15500)
-    get "/supporting_documents"
+    get "/supporting_documents/#{id}/edit"
     expect(response.body).to include("Usar dados da SEFAZ")
   end
 
@@ -2440,7 +2446,7 @@ RSpec.describe "Supporting documents", type: :request do
 
     expect(response).to have_http_status(:found)
     expect(SupportingDocument.find(id).amount_cents).to eq(15500)
-    get "/supporting_documents"
+    get "/supporting_documents/#{id}/edit"
     expect(response.body).to include("Usar dados da SEFAZ")
   end
 
@@ -2620,7 +2626,6 @@ RSpec.describe "Supporting documents", type: :request do
 
     page = page_doc(response.body)
     expect(page.at_css("#amount")["inputmode"]).to eq("numeric")
-    expect(page.at_css("#amount_#{document.id}")["inputmode"]).to eq("numeric")
   end
 
   it "GET submitter justification amount fields have inputmode numeric" do
@@ -2669,18 +2674,20 @@ RSpec.describe "Supporting documents", type: :request do
     expect(payee.text).not_to include("Recibo")
   end
 
-  it "GET Editar details sit in Acoes not Favorecido" do
+  it "GET Editar is a link to edit not a details fold" do
     account, organization = signed_in
     document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
 
     get "/supporting_documents"
 
     document_row = row(response.body, "document", document_id: document.id)
-    details = editar_details(document_row)
-    expect(details.ancestors.include?(document_row.at_css('[data-cell="payee"]'))).to eq(false)
-    expect(details.ancestors.include?(document_row.at_css('[data-cell="actions"]'))).to eq(true)
-    form = document_row.css("form").find { |node| node["action"] == "/supporting_documents/#{document.id}" && node.at_css('input[name="_method"][value="patch"]') }
-    expect(form.ancestors.include?(details)).to eq(true)
+    link = editar_link(document_row)
+    expect(link.text.strip).to eq("Editar")
+    expect(link["href"]).to eq("/supporting_documents/#{document.id}/edit")
+    expect(link.ancestors.include?(document_row.at_css('[data-cell="actions"]'))).to eq(true)
+    expect(link.ancestors.include?(document_row.at_css('[data-cell="payee"]'))).to eq(false)
+    expect(document_row.css("details").none? { |node| node.at_css("summary")&.text&.strip == "Editar" }).to eq(true)
+    expect(document_row.css("form").none? { |form| form.at_css('input[name="_method"][value="patch"]') }).to eq(true)
   end
 
   it "GET Excluir sits in Acoes not inside Editar" do
@@ -2690,15 +2697,12 @@ RSpec.describe "Supporting documents", type: :request do
     get "/supporting_documents"
 
     document_row = row(response.body, "document", document_id: document.id)
-    details = editar_details(document_row)
     excluir = document_row.css("button").find { |button| button.text.strip == "Excluir" }
     expect(excluir).not_to be_nil
     form = excluir.ancestors("form").first
     expect(form["action"]).to eq("/supporting_documents/#{document.id}")
     expect(form.at_css('input[name="_method"][value="delete"]')).not_to be_nil
     expect(form["data-turbo-confirm"]).to eq("Excluir este documento?")
-    expect(excluir.ancestors.include?(details)).to eq(false)
-    expect(details.css("button").none? { |button| button.text.strip == "Excluir" }).to eq(true)
     expect(excluir.ancestors.include?(document_row.at_css('[data-cell="actions"]'))).to eq(true)
   end
 
@@ -2711,40 +2715,42 @@ RSpec.describe "Supporting documents", type: :request do
     get "/supporting_documents"
 
     document_row = row(response.body, "document", document_id: document.id)
-    expect(editar_details(document_row)).not_to be_nil
+    expect(editar_link(document_row)["href"]).to eq("/supporting_documents/#{document.id}/edit")
     expect(document_row.css("button").none? { |button| button.text.strip == "Excluir" }).to eq(true)
   end
 
-  it "GET Editar attached photo shows filename and is disabled without Limpar" do
+  it "GET edit attached photo shows img filename and PHOTO_LOCKED" do
     signed_in
     post "/supporting_documents", params: recibo_params(photo: photo_named("foto-antiga.jpg"))
     id = SupportingDocument.last.id
 
-    get "/supporting_documents"
+    get "/supporting_documents/#{id}/edit"
 
-    field = page_doc(response.body).at_css("[data-file-field='photo_#{id}']")
-    expect(field.text).to include("foto-antiga.jpg")
-    expect(field.at_css("#photo_#{id}")["disabled"]).to be_present
-    expect(field.css("button").none? { |button| button.text.strip == "Limpar" }).to eq(true)
+    proof = page_doc(response.body).at_css("[data-edit=proof]")
+    img = proof.at_css("img")
+    expect(img).not_to be_nil
+    expect(img["src"]).to include("rails/active_storage")
+    expect(proof.text).to include("foto-antiga.jpg")
+    expect(proof.text).to include(SupportingDocument::PHOTO_LOCKED)
+    expect(page_doc(response.body).at_css("input#photo")).to be_nil
   end
 
-  it "GET Editar xml-only locks XML and leaves photo empty" do
+  it "GET edit xml-only empty photo and locked XML" do
     signed_in
     post "/supporting_documents", params: nota_params(xml: authorized_xml)
     id = SupportingDocument.last.id
 
-    get "/supporting_documents"
+    get "/supporting_documents/#{id}/edit"
 
     page = page_doc(response.body)
-    xml_field = page.at_css("[data-file-field='xml_#{id}']")
+    proof = page.at_css("[data-edit=proof]")
+    expect(proof.text).to include("Nenhuma foto")
+    expect(proof.text).not_to include("A foto não pode ser alterada")
+    expect(page.at_css("input#photo")).to be_nil
+    xml_field = page.at_css("[data-file-field='xml']")
     expect(xml_field.text).to include("autorizada.xml")
-    expect(page.at_css("#xml_#{id}")["disabled"]).to be_present
+    expect(page.at_css("#xml")["disabled"]).to be_present
     expect(xml_field.css("button").none? { |button| button.text.strip == "Limpar" }).to eq(true)
-    photo_field = page.at_css("[data-file-field='photo_#{id}']")
-    expect(photo_field.text).to include("Nenhum arquivo")
-    expect(photo_field.text).to include("Incluir foto")
-    expect(page.at_css("#photo_#{id}")["disabled"]).to be_nil
-    expect(photo_field.css("button").any? { |button| button.text.strip == "Limpar" }).to eq(true)
   end
 
   it "PATCH new photo on attached photo returns 422 and keeps filename" do
@@ -2755,6 +2761,7 @@ RSpec.describe "Supporting documents", type: :request do
     patch "/supporting_documents/#{id}", params: { photo: photo_named("foto-nova.jpg") }
 
     expect(response).to have_http_status(:unprocessable_content)
+    expect(page_doc(response.body).at_css("h1").text.strip).to eq("Editar documento")
     expect(error_notice_text(response.body)).to eq(SupportingDocument::PHOTO_LOCKED)
     toast = toast_node(response.body)
     expect(toast["data-toast-kind"]).to eq("error")
@@ -2818,15 +2825,19 @@ RSpec.describe "Supporting documents", type: :request do
     )
 
     get "/supporting_documents"
-
-    page = page_doc(response.body)
-    expect(page.at_css("#kind_#{recibo.id}")["disabled"]).to be_present
-    expect(page.at_css("#kind_#{nf.id}")["disabled"]).to be_present
     expect(insert_form(response.body).at_css("#kind")["disabled"]).to be_nil
-    expect(html_visible?(page.at_css("#chave_#{recibo.id}"))).to be false
-    expect(html_visible?(page.at_css("#xml_#{recibo.id}"))).to be false
-    expect(html_visible?(page.at_css("#chave_#{nf.id}"))).to be true
-    expect(html_visible?(page.at_css("#xml_#{nf.id}"))).to be true
+
+    get "/supporting_documents/#{recibo.id}/edit"
+    page = page_doc(response.body)
+    expect(page.at_css("#kind")["disabled"]).to be_present
+    expect(page.at_css("#chave")).to be_nil
+    expect(page.at_css("#xml")).to be_nil
+
+    get "/supporting_documents/#{nf.id}/edit"
+    page = page_doc(response.body)
+    expect(page.at_css("#kind")["disabled"]).to be_present
+    expect(html_visible?(page.at_css("#chave"))).to be true
+    expect(html_visible?(page.at_css("#xml"))).to be true
   end
 
   it "PATCH kind recibo on nota_fiscal returns 422 and keeps kind" do
@@ -2910,5 +2921,203 @@ RSpec.describe "Supporting documents", type: :request do
     toast = toast_node(response.body)
     expect(toast["data-toast-kind"]).to eq("error")
     expect(toast.text).to include(SupportingDocument::BAD_KIND)
+  end
+
+  it "GET edit coordinator 200 Editar documento" do
+    account, organization = signed_in
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+
+    get "/supporting_documents/#{document.id}/edit"
+
+    expect(response).to have_http_status(:ok)
+    expect(page_doc(response.body).at_css("h1").text.strip).to eq("Editar documento")
+  end
+
+  it "unauthenticated GET edit responds 302 to /login" do
+    account, organization = plant_coordinator
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+
+    get "/supporting_documents/#{document.id}/edit"
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/login")
+  end
+
+  it "submitter GET edit on another Account document returns 404" do
+    coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(coord, organization: organization)
+    post "/supporting_documents", params: recibo_params
+    id = SupportingDocument.last.id
+    sign_in_as(submitter, organization: organization)
+
+    get "/supporting_documents/#{id}/edit"
+
+    expect(response).to have_http_status(:not_found)
+  end
+
+  it "submitter GET edit on own document returns 200" do
+    _coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(submitter, organization: organization)
+    post "/supporting_documents", params: recibo_params
+    id = SupportingDocument.last.id
+
+    get "/supporting_documents/#{id}/edit"
+
+    expect(response).to have_http_status(:ok)
+  end
+
+  it "GET edit missing id returns 404" do
+    signed_in
+
+    get "/supporting_documents/0/edit"
+
+    expect(response).to have_http_status(:not_found)
+  end
+
+  it "GET edit other organization document returns 404" do
+    account, org_a = plant_coordinator(email: "a@example.com", organization_name: "A")
+    org_b = create_organization!(name: "B")
+    Access.create!(account: account, organization: org_b, kind: :coordinator)
+    sign_in_as(account, organization: org_b)
+    post "/supporting_documents", params: recibo_params(payee: "Only Org B")
+    id = SupportingDocument.last.id
+    sign_in_as(account, organization: org_a)
+
+    get "/supporting_documents/#{id}/edit"
+
+    expect(response).to have_http_status(:not_found)
+  end
+
+  it "GET edit page order Voltar h1 split proof then book" do
+    account, organization = signed_in
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+
+    get "/supporting_documents/#{document.id}/edit"
+
+    main = page_doc(response.body).at_css("main")
+    voltar = main.css("a").find { |node| node.text.strip == "Voltar para documentos" }
+    expect(voltar["href"]).to eq("/supporting_documents")
+    h1 = main.at_css("h1")
+    expect(h1.text.strip).to eq("Editar documento")
+    expect(main.inner_html.index("Voltar para documentos")).to be < main.inner_html.index("<h1")
+    form = main.at_css("form#document-edit")
+    expect(form.at_css('label[for="kind"]').text.strip).to eq("Tipo")
+    expect(form.at_css('label[for="amount"]').text.strip).to eq("Valor")
+    expect(form.at_css('label[for="date"]').text.strip).to eq("Data")
+    expect(form.at_css('label[for="payee"]').text.strip).to eq("Favorecido")
+    expect(form.at_css('label[for="observation"]').text.strip).to eq("Observação (opcional)")
+    expect(form.at_css("#kind")["disabled"]).to be_present
+    expect(form.at_css('input[type="submit"][value="Salvar documento"]')).not_to be_nil
+    book = main.at_css("[data-edit=book]")
+    expect(book["class"]).to include("max-w-[28rem]")
+    expect(book.at_css("form#document-edit")).not_to be_nil
+    split = main.at_css("[data-edit=split]")
+    expect(split["class"]).to include("md:grid-cols-[minmax(0,1fr)_28rem]")
+    children = split.element_children
+    expect(children[0]["data-edit"]).to eq("proof")
+    expect(children[1]["data-edit"]).to eq("book")
+    expect(main.inner_html.index("<h1")).to be < main.inner_html.index("data-edit=\"split\"")
+  end
+
+  it "GET edit pending SEFAZ notice and button before split" do
+    _account, organization = signed_in
+    install_a1(organization)
+    stub_xml_consulta(vnf: "100.00")
+    post "/supporting_documents", params: nota_params(photo: photo_jpg)
+    id = SupportingDocument.last.id
+    patch "/supporting_documents/#{id}", params: { chave: nfe_chave }
+    expect(SupportingDocument.find(id).sefaz_confirm_pending?).to eq(true)
+
+    get "/supporting_documents/#{id}/edit"
+
+    main = page_doc(response.body).at_css("main")
+    expect(main.text).to include("A SEFAZ devolveu dados desta chave.")
+    sefaz = main.css("form").find { |form| form["action"] == "/supporting_documents/#{id}/sefaz_confirm" }
+    expect(sefaz.at_css("button").text.strip).to eq("Usar dados da SEFAZ")
+    html = main.inner_html
+    expect(html.index("<h1")).to be < html.index("A SEFAZ devolveu dados desta chave.")
+    expect(html.index("A SEFAZ devolveu dados desta chave.")).to be < html.index("data-edit=\"split\"")
+  end
+
+  it "GET edit without pending SEFAZ has no Usar dados" do
+    account, organization = signed_in
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+
+    get "/supporting_documents/#{document.id}/edit"
+
+    expect(response.body).not_to include("Usar dados da SEFAZ")
+    expect(response.body).not_to include("A SEFAZ devolveu dados desta chave.")
+  end
+
+  it "GET edit typed shows amount date payee" do
+    account, organization = signed_in
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+
+    get "/supporting_documents/#{document.id}/edit"
+
+    page = page_doc(response.body)
+    expect(page.at_css("#amount")["disabled"]).to be_nil
+    expect(page.at_css("#date")["disabled"]).to be_nil
+    expect(page.at_css("#payee")["disabled"]).to be_nil
+  end
+
+  it "GET edit locked XML hides amount date payee" do
+    signed_in
+    post "/supporting_documents", params: nota_params(xml: authorized_xml)
+    id = SupportingDocument.last.id
+    expect(SupportingDocument.find(id).fields_locked?).to eq(true)
+
+    get "/supporting_documents/#{id}/edit"
+
+    page = page_doc(response.body)
+    expect(page.at_css("#amount")).to be_nil
+    expect(page.at_css("#date")).to be_nil
+    expect(page.at_css("#payee")).to be_nil
+  end
+
+  it "GET edit Excluir when month_id nil" do
+    account, organization = signed_in
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+
+    get "/supporting_documents/#{document.id}/edit"
+
+    excluir = page_doc(response.body).css("button").find { |button| button.text.strip == "Excluir" }
+    form = excluir.ancestors("form").first
+    expect(form["action"]).to eq("/supporting_documents/#{document.id}")
+    expect(form.at_css('input[name="_method"][value="delete"]')).not_to be_nil
+    expect(form["data-turbo-confirm"]).to eq("Excluir este documento?")
+  end
+
+  it "GET edit no Excluir when month_id set" do
+    account, organization = signed_in
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    month, _statement = plant_month(organization)
+    document.update!(month_id: month.id)
+
+    get "/supporting_documents/#{document.id}/edit"
+
+    expect(page_doc(response.body).css("button").none? { |button| button.text.strip == "Excluir" }).to eq(true)
+  end
+
+  it "GET edit chave field keeps raw digits" do
+    signed_in
+    chave = "35240612345678000190550010000012341000012340"
+    post "/supporting_documents", params: nota_params(photo: photo_jpg, chave: chave)
+    id = SupportingDocument.last.id
+
+    get "/supporting_documents/#{id}/edit"
+
+    expect(page_doc(response.body).at_css("#chave")["value"]).to eq(chave)
+  end
+
+  it "GET edit amount has inputmode numeric" do
+    account, organization = signed_in
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+
+    get "/supporting_documents/#{document.id}/edit"
+
+    expect(page_doc(response.body).at_css("#amount")["inputmode"]).to eq("numeric")
   end
 end
