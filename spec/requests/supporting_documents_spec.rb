@@ -3083,8 +3083,9 @@ RSpec.describe "Supporting documents", type: :request do
 
     get "/supporting_documents/#{document.id}/edit"
 
-    excluir = page_doc(response.body).css("button").find { |button| button.text.strip == "Excluir" }
-    form = excluir.ancestors("form").first
+    page = page_doc(response.body)
+    excluir = page.css("button").find { |button| button.text.strip == "Excluir" }
+    form = page.at_css("form##{excluir['form']}")
     expect(form["action"]).to eq("/supporting_documents/#{document.id}")
     expect(form.at_css('input[name="_method"][value="delete"]')).not_to be_nil
     expect(form["data-turbo-confirm"]).to eq("Excluir este documento?")
@@ -3119,5 +3120,70 @@ RSpec.describe "Supporting documents", type: :request do
     get "/supporting_documents/#{document.id}/edit"
 
     expect(page_doc(response.body).at_css("#amount")["inputmode"]).to eq("numeric")
+  end
+
+  it "GET edit Salvar and Excluir share actions row in book" do
+    account, organization = signed_in
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+
+    get "/supporting_documents/#{document.id}/edit"
+
+    book = page_doc(response.body).at_css("[data-edit=book]")
+    actions = book.at_css("[data-edit=actions]")
+    salvar = actions.at_css('input[type="submit"][value="Salvar documento"]')
+    excluir = actions.css("button").find { |button| button.text.strip == "Excluir" }
+    expect(salvar).not_to be_nil
+    expect(excluir).not_to be_nil
+    html = actions.inner_html
+    expect(html.index("Salvar documento")).to be < html.index("Excluir")
+  end
+
+  it "GET edit empty XML label XML and Limpar" do
+    account, organization = signed_in
+    document = SupportingDocument.insert(
+      organization: organization,
+      account: account,
+      kind: "nota_fiscal",
+      amount: "155,00",
+      date: "2026-05-11",
+      payee: "Padaria Central",
+      photo: photo_jpg
+    )
+
+    get "/supporting_documents/#{document.id}/edit"
+
+    page = page_doc(response.body)
+    expect(page.at_css('label[for="xml"]').text.strip).to eq("XML")
+    xml_field = page.at_css("[data-file-field='xml']")
+    expect(xml_field.css("button").any? { |button| button.text.strip == "Limpar" }).to eq(true)
+  end
+
+  it "DELETE month document 422 renders index not edit" do
+    account, organization = signed_in
+    post "/supporting_documents", params: recibo_params(amount: "220,00")
+    document = SupportingDocument.last
+    month, statement = plant_month(organization)
+    payment = plant_payment(statement, 22000)
+    Match.confirm(month: month, payments: [ payment ], supporting_documents: [ document ])
+
+    delete "/supporting_documents/#{document.id}"
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(page_doc(response.body).at_css("h1").text.strip).to eq("Documentos de suporte")
+  end
+
+  it "POST sefaz_confirm uploaded XML 422 renders index not edit" do
+    _account, organization = signed_in
+    install_a1(organization)
+    stub_xml_consulta(vnf: "100.00", emit: "Outro")
+    post "/supporting_documents", params: {
+      kind: "nota_fiscal", photo: photo_jpg, xml: authorized_xml(vnf: "155.00"), chave: nfe_chave
+    }
+    id = SupportingDocument.last.id
+
+    post "/supporting_documents/#{id}/sefaz_confirm"
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(page_doc(response.body).at_css("h1").text.strip).to eq("Documentos de suporte")
   end
 end

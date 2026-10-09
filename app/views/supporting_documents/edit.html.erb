@@ -1,6 +1,7 @@
 <% content_for :title, "Editar documento" %>
 <% document = @document %>
 <% recibo = document.recibo? %>
+<% can_delete = document.month_id.nil? && (coordinator_on_focus? || document.account_id == current_account.id) %>
 
 <p>
   <%= link_to "Voltar para documentos", "/supporting_documents", class: "text-caixa underline underline-offset-2" %>
@@ -70,14 +71,16 @@
         <label for="observation" class="mb-1 block font-medium">Observação (opcional)</label>
         <%= text_area_tag :observation, document.observation, id: "observation", class: "w-full rounded border border-rule bg-sheet px-3 py-2", rows: 3 %>
       </div>
-      <div class="mt-2 flex flex-wrap items-center gap-4">
+      <div data-edit="actions" class="mt-2 flex flex-wrap items-center gap-4">
         <%= submit_tag "Salvar documento", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+        <% if can_delete %>
+          <%= button_tag "Excluir", type: "submit", form: "document-destroy", class: "text-margem underline underline-offset-2" %>
+        <% end %>
       </div>
     <% end %>
-    <% if document.month_id.nil? && (coordinator_on_focus? || document.account_id == current_account.id) %>
-      <div class="mt-4">
-        <%= button_to "Excluir", "/supporting_documents/#{document.id}", method: :delete, form: { data: { turbo_confirm: "Excluir este documento?" } }, class: "text-margem underline underline-offset-2" %>
-      </div>
+    <% if can_delete %>
+      <%= form_with url: "/supporting_documents/#{document.id}", method: :delete, html: { id: "document-destroy", data: { turbo_confirm: "Excluir este documento?" } } do %>
+      <% end %>
     <% end %>
   </div>
 </div>

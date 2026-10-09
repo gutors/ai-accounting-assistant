@@ -28,4 +28,5 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 - Typed NF: amount, date, payee editable; observation always editable.
 - Tipo cannot change. Attached photo cannot be replaced; XML picker only if none attached.
 - Save, delete (no month), and SEFAZ confirm live on this page.
-- Approved comp: `.impeccable/mocks/decision/evidence-pane.webp`
+- SEFAZ notice + `Usar dados da SEFAZ` is full-width after h1 and before the split (this FIRST VIEWPORT + HTML prototype). `.impeccable/mocks/decision/evidence-pane.webp` is the approved **Prova à esquerda** raster, not authority for that band (generation miss, same class as abbreviated Chave/Observação).
+- Approved comp: `.impeccable/mocks/decision/evidence-pane.webp` (composition of panes; not the SEFAZ-band arrangement)
