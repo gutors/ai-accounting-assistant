@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_05_210000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_09_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -175,6 +175,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_05_210000) do
     t.string "sefaz_titular_cnpj"
     t.datetime "updated_at", null: false
     t.bigint "principal_coordinator_account_id", null: false
+    t.boolean "bank_fee_exception_active", default: true, null: false
+    t.boolean "accountant_fee_exception_active", default: true, null: false
     t.index "lower((name)::text)", name: "index_organizations_on_lower_name", unique: true
     t.index ["principal_coordinator_account_id"], name: "index_organizations_on_principal_coordinator_account_id"
   end

@@ -49,6 +49,7 @@ Rails.application.routes.draw do
   post "/extra_exception_kinds", to: "extra_exception_kinds#create"
   patch "/extra_exception_kinds/:id", to: "extra_exception_kinds#update"
   delete "/extra_exception_kinds/:id", to: "extra_exception_kinds#destroy"
+  patch "/base_document_exceptions/:kind", to: "base_document_exceptions#update"
 
   post "/months", to: "months#create"
   get "/months/:year_month", to: "months#show"

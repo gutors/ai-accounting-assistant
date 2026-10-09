@@ -229,9 +229,11 @@ New copy: `Início`, `Inclua e acompanhe seus documentos de suporte em Documento
 header · nav
 Configuração                                    (h1)
 Contador                                        (h2)
+  labels text-ink-soft; values font-medium
   cadastro (no presentation name): Nome de apresentação / CPF/CNPJ (preencher apenas números) / Razão social / PIX / Email para envio  [Salvar contador]
+  #tax_id tax-id-mask: CPF grouping through 11 digits, CNPJ grouping from the 12th; extra digits dropped
   leitura (presentation name exists): those five values as labeled font-medium text, formatted CPF/CNPJ on read  [Editar]
-  GET /setup?edit=accountant: the five fields as inputs  [Salvar contador]
+  GET /setup?edit=accountant: the five fields as inputs; #tax_id prefills formatted  [Salvar contador]
 Armazenamento do pacote mensal                  (h2)
   cadastro (no URL): Cole a URL da pasta do Google Drive; URL da pasta do Google Drive  [Salvar arquivo]
   leitura (URL exists): labeled font-medium text plus [Editar]
@@ -242,28 +244,34 @@ Certificado Digital A1 - Para consulta na SEFAZ (h2)
   ▸ Instalar certificado   ← details with Arquivo [Limpar] / Senha [Instalar certificado]
 
 Contas bancárias                                (h2)
-  Banco do Brasil  Conta Principal  ag 1234  extrato-conta-principal  Desativar  Editar
+  Banco do Brasil  Conta Principal  ag 1234  extrato-conta-principal  Ativa  Desativar  Editar
   Santander        Parada                    extrato-parada  Inativa  Reativar  Editar
-  one section form: Nome / Banco / Agência/Conta Corrente  [Adicionar conta]
+  ▸ Adicionar conta   ← details; open on edit or bank 422; summary still Adicionar conta
+    one section form: Nome / Banco / Agência/Conta Corrente  [Adicionar conta] or [Salvar conta]
   Editar is GET /setup?edit=bank_account&bank_account_id={id}; submit [Salvar conta]
 Tipos extras de exceção                         (h2)
   Justificativa                                 ← column heading; no intro under the h2
-  Tarifa bancária   Tarifa cobrada pelo banco; não há documento fiscal a anexar.
-  Honorário do contador   Honorário do contador neste fechamento; isento de documento de suporte.
-  Doação            Doação pontual sem nota.                 Desativar  Excluir
-  form: Nome / Justificativa  [Adicionar tipo extra]
+  Tarifa bancária   Tarifa cobrada pelo banco; não há documento fiscal a anexar.  Ativo  Desativar
+  Honorário do contador   Honorário do contador neste fechamento; isento de documento de suporte.  Ativo  Desativar
+  Doação            Doação pontual sem nota.                 Ativo  Desativar  Excluir
+  base rows: Ativo/Inativo and Desativar/Ativar, no Excluir
+  ▸ Adicionar tipo extra   ← details; open on create 422
+    form: Nome / Justificativa  [Adicionar tipo extra]
 ```
 
-- Contador is cadastro when there is no presentation name; after that name exists the five values are labeled-text chrome (`p.font-medium`) plus `Editar`. Cadastro and `GET /setup?edit=accountant` keep the input chrome. Formatted CPF/CNPJ on read.
+- Contador is cadastro when there is no presentation name; after that name exists the five values are labeled-text chrome (`p.font-medium`) plus `Editar`. Labels are `text-ink-soft` (not `font-medium`). Cadastro and `GET /setup?edit=accountant` keep the input chrome. `#tax_id` uses `tax-id-mask` (CPF through eleven digits, CNPJ from the twelfth). Formatted CPF/CNPJ on read and on the edit input.
 - Armazenamento do pacote mensal is cadastro when there is no URL (`Cole a URL da pasta do Google Drive`, label `URL da pasta do Google Drive`, `[Salvar arquivo]`). After a URL exists it is labeled `font-medium` text plus `Editar`. `GET /setup?edit=package_archive` is `input#url` with `[Confirmar]`.
 - Certificate: heading `Certificado Digital A1 - Para consulta na SEFAZ`. Empty line `Não há certificado A1 instalado. Use Instalar certificado.` when none. When a certificate exists, titular / validity / `Remover` (quiet, margem) stay outside the fold. Arquivo / Senha sit in `<details>` whose `<summary>` is `Instalar certificado`. Arquivo has `Limpar` beside the file control. A `422` from `POST /sefaz_certificate` re-renders that details `open`. HTML `422` does not write Senha into the HTML.
 - Bank account rows are `li[data-row="bank-account"]`: four cells in order bank presentation name,
-  name, agência/conta corrente, `extrato-{slug}`; `Inativa` in `ink-soft` when inactive; quiet
+  name, agência/conta corrente, `extrato-{slug}`; Situação `Ativa` or `Inativa` in `ink-soft`; quiet
   `Desativar` / `Reativar` on the row; `Editar` fills the one section form as PATCH `Salvar conta`.
-  Empty POST is `Adicionar conta`. Label `Agência/Conta Corrente`. No per-row edit fold.
+  The add/edit form sits in `<details>` whose `<summary>` is `Adicionar conta` (`open` on edit or
+  bank `422`). Empty POST is `Adicionar conta`. Label `Agência/Conta Corrente`. No per-row edit fold.
 - Extra exception kinds are `li[data-row="extra-exception-kind"]` (name plus justification). The
   two base document-exception kinds sit first as `li[data-row="base-document-exception"]` with
-  fixed copy, not as catalog rows. There is no `Nenhum tipo extra`.
+  fixed copy, not as catalog rows. Every exception-kind row including the two base names shows
+  `Ativo` or `Inativo`; base rows have Desativar/Ativar and no Excluir. Extra create sits in
+  `<details>` whose `<summary>` is `Adicionar tipo extra`. There is no `Nenhum tipo extra`.
 - Forms are two columns from 768px where fields are short (accountant form: 2 columns).
 - New copy: `Configuração` (h1), `Editar`.
 
@@ -289,6 +297,7 @@ Pagamentos                                      (h2)
                                                              Observação do casamento [    ]
                                                              [Confirmar casamento]
                                                              [Marcar tarifa] [Marcar honorário] [Doação]
+                                                             (Marcar tarifa / Marcar honorário absent when that offer is inactive)
   12/05/2026  Tarifa Pacote de Serviços        R$ 155,00   Tarifa bancária
               Conta Principal                              Desmarcar exceção
   ▸ Casar vários pagamentos com um documento               ← details with the N:1 form
@@ -315,7 +324,8 @@ Documentos sem casamento                        (h2)
   observation, `Tarifa bancária`, `Honorário do contador`, or the extra kind name), the
   `Sugestão` / `Sugestão de exceção` text when present, then either the quiet undo action or,
   for `missing`, `<details><summary>Resolver</summary>` holding the match form and the exception
-  buttons. That `<details>` is `open` exactly when a suggestion or exception suggestion exists.
+  buttons. `Marcar tarifa` / `Marcar honorário` are absent from Resolver when that organization's
+  matching offer is inactive. That `<details>` is `open` exactly when a suggestion or exception suggestion exists.
 - N:1 form: after the payments list, inside `<details><summary>Casar vários pagamentos com um
   documento</summary>`, same condition as today.
 - Pool `li[data-row="pool-document"][data-document-id]`: checkbox (when the document has no month

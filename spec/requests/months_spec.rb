@@ -1530,6 +1530,61 @@ RSpec.describe "Months", type: :request do
     expect(details.has_attribute?("open")).to eq(false)
   end
 
+  it "GET month omits Marcar tarifa when bank_fee offer inactive" do
+    _account, organization, _month, statement = signed_open_month
+    payment = plant_payment(statement, 22000)
+    organization.update!(bank_fee_exception_active: false)
+
+    get "/months/2026-05"
+
+    details = resolver_details(row(response.body, "payment", payment_id: payment.id))
+    expect(details.at_css('input[name="kind"][value="bank_fee"]')).to be_nil
+    expect(details.at_css('input[type="submit"][value="Marcar tarifa"]')).to be_nil
+    expect(details.at_css('input[type="submit"][value="Marcar honorário"]')).to be_present
+  end
+
+  it "GET month omits Marcar honorario when accountant_fee offer inactive" do
+    _account, organization, _month, statement = signed_open_month
+    payment = plant_payment(statement, 22000)
+    organization.update!(accountant_fee_exception_active: false)
+
+    get "/months/2026-05"
+
+    details = resolver_details(row(response.body, "payment", payment_id: payment.id))
+    expect(details.at_css('input[name="kind"][value="accountant_fee"]')).to be_nil
+    expect(details.at_css('input[type="submit"][value="Marcar honorário"]')).to be_nil
+  end
+
+  it "GET month keeps Tarifa bancaria after bank_fee offer hidden" do
+    _account, organization, _month, statement = signed_open_month
+    payment = plant_payment(statement, 22000)
+    payment.mark_document_exception("bank_fee")
+    organization.update!(bank_fee_exception_active: false)
+
+    get "/months/2026-05"
+
+    payment_row = row(response.body, "payment", payment_id: payment.id)
+    expect(payment_row.text).to include("Tarifa bancária")
+    expect(payment_row.text).not_to include("Documento faltante")
+    expect(payment_row.text).to include("Desmarcar exceção")
+  end
+
+  it "GET B month still Marcar tarifa while A bank_fee offer inactive" do
+    account_a, org_a = plant_coordinator(email: "a@example.com", organization_name: "A")
+    account_b, org_b = plant_coordinator(email: "b@example.com", organization_name: "B")
+    org_a.update!(bank_fee_exception_active: false)
+    _month_b, statement_b = plant_month(org_b)
+    payment_b = plant_payment(statement_b, 22000)
+    sign_in_as(account_b, organization: org_b)
+
+    get "/months/2026-05"
+
+    details = resolver_details(row(response.body, "payment", payment_id: payment_b.id))
+    expect(details.at_css('input[type="submit"][value="Marcar tarifa"]')).to be_present
+    expect(org_a.reload.bank_fee_exception_active).to eq(false)
+    expect(account_a).to be_present
+  end
+
   it "present statement folds the upload form under Substituir extrato" do
     _account, _organization, _month, statement = signed_open_month
     attach_statement_files(statement)

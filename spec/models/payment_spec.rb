@@ -57,6 +57,26 @@ RSpec.describe Payment, type: :model do
     expect(payment).to be_missing_document
   end
 
+  it "rejects bank_fee when organization offer is inactive" do
+    payment = plant_payment(statement, 22000)
+    organization.update!(bank_fee_exception_active: false)
+
+    payment.mark_document_exception("bank_fee")
+
+    expect(payment.errors[:base]).to include("Informe um tipo de exceção permitido")
+    expect(payment.reload.document_exception_kind).to be_nil
+  end
+
+  it "rejects accountant_fee when organization offer is inactive" do
+    payment = plant_payment(statement, 22000)
+    organization.update!(accountant_fee_exception_active: false)
+
+    payment.mark_document_exception("accountant_fee")
+
+    expect(payment.errors[:base]).to include("Informe um tipo de exceção permitido")
+    expect(payment.reload.document_exception_kind).to be_nil
+  end
+
   it "rejects kind doacao" do
     payment = plant_payment(statement, 22000)
 

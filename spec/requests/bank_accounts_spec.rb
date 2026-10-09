@@ -65,6 +65,29 @@ RSpec.describe "Bank accounts", type: :request do
     expect(toast_node(response.body).text).to include("Pronto.")
   end
 
+  it "POST blank name opens Adicionar conta details on 422" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    post "/bank_accounts", params: { name: "", compe: "001", coordinates: "ag 1234" }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(organization.bank_accounts.count).to eq(0)
+    details = bank_account_add_details(response.body)
+    expect(details.has_attribute?("open")).to eq(true)
+  end
+
+  it "POST valid bank account then GET setup keeps Adicionar conta details closed" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    post "/bank_accounts", params: { name: "Conta Principal", compe: "001", coordinates: "ag 1234" }
+
+    expect(response).to have_http_status(:found)
+    get "/setup"
+    expect(bank_account_add_details(response.body).has_attribute?("open")).to eq(false)
+  end
+
   it "POST colliding slug returns 422 add form with submitted fields and no toast" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)

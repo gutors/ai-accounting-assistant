@@ -8,29 +8,30 @@
   <section>
     <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Contador</h2>
     <% accountant_reading = @organization.accountant_presentation_name.present? && !@accountant_editing %>
+    <% accountant_label = "mb-1 block text-ink-soft" %>
     <% if @organization.accountant_presentation_name.blank? %>
       <p class="mb-4">Cadastre o contador</p>
     <% end %>
     <% if accountant_reading %>
       <div class="grid max-w-3xl gap-4 md:grid-cols-2">
         <div>
-          <label for="presentation_name" class="mb-1 block font-medium">Nome de apresentação</label>
+          <label for="presentation_name" class="<%= accountant_label %>">Nome de apresentação</label>
           <p id="presentation_name" class="font-medium"><%= @organization.accountant_presentation_name %></p>
         </div>
         <div>
-          <label for="tax_id" class="mb-1 block font-medium">CPF/CNPJ (preencher apenas números)</label>
+          <label for="tax_id" class="<%= accountant_label %>">CPF/CNPJ (preencher apenas números)</label>
           <p id="tax_id" class="font-medium"><%= BrazilianTaxId.format(@organization.accountant_tax_id) %></p>
         </div>
         <div>
-          <label for="legal_name" class="mb-1 block font-medium">Razão social</label>
+          <label for="legal_name" class="<%= accountant_label %>">Razão social</label>
           <p id="legal_name" class="font-medium"><%= @organization.accountant_legal_name %></p>
         </div>
         <div>
-          <label for="pix_key" class="mb-1 block font-medium">PIX</label>
+          <label for="pix_key" class="<%= accountant_label %>">PIX</label>
           <p id="pix_key" class="font-medium"><%= @organization.accountant_pix_key %></p>
         </div>
         <div>
-          <label for="destination_email" class="mb-1 block font-medium">Email para envio</label>
+          <label for="destination_email" class="<%= accountant_label %>">Email para envio</label>
           <p id="destination_email" class="font-medium"><%= @organization.package_destination_email %></p>
         </div>
         <div class="md:col-span-2">
@@ -40,23 +41,23 @@
     <% else %>
       <%= form_with url: "/accountant", method: :patch, class: "grid max-w-3xl gap-4 md:grid-cols-2" do %>
         <div>
-          <label for="presentation_name" class="mb-1 block font-medium">Nome de apresentação</label>
+          <label for="presentation_name" class="<%= accountant_label %>">Nome de apresentação</label>
           <%= text_field_tag :presentation_name, @organization.accountant_presentation_name.to_s, id: "presentation_name", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
         </div>
         <div>
-          <label for="tax_id" class="mb-1 block font-medium">CPF/CNPJ (preencher apenas números)</label>
-          <%= text_field_tag :tax_id, @organization.accountant_tax_id.to_s, id: "tax_id", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
+          <label for="tax_id" class="<%= accountant_label %>">CPF/CNPJ (preencher apenas números)</label>
+          <%= text_field_tag :tax_id, BrazilianTaxId.format(@organization.accountant_tax_id).to_s, id: "tax_id", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off", inputmode: "numeric", data: { controller: "tax-id-mask", action: "input->tax-id-mask#typed" } %>
         </div>
         <div>
-          <label for="legal_name" class="mb-1 block font-medium">Razão social</label>
+          <label for="legal_name" class="<%= accountant_label %>">Razão social</label>
           <%= text_field_tag :legal_name, @organization.accountant_legal_name.to_s, id: "legal_name", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "organization" %>
         </div>
         <div>
-          <label for="pix_key" class="mb-1 block font-medium">PIX</label>
+          <label for="pix_key" class="<%= accountant_label %>">PIX</label>
           <%= text_field_tag :pix_key, @organization.accountant_pix_key.to_s, id: "pix_key", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
         </div>
         <div>
-          <label for="destination_email" class="mb-1 block font-medium">Email para envio</label>
+          <label for="destination_email" class="<%= accountant_label %>">Email para envio</label>
           <%= email_field_tag :destination_email, @organization.package_destination_email.to_s, id: "destination_email", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "email" %>
         </div>
         <div class="md:col-span-2">
@@ -142,7 +143,7 @@
                 <p class="text-meta text-ink-soft"><%= bank_account.coordinates %></p>
                 <p class="text-meta text-ink-soft">extrato-<%= bank_account.slug %></p>
               </div>
-              <span class="text-ink-soft"><%= bank_account.active? ? "" : "Inativa" %></span>
+              <span class="text-ink-soft"><%= bank_account.active? ? "Ativa" : "Inativa" %></span>
               <span>
                 <% if bank_account.active? %>
                   <%= button_to "Desativar", "/bank_accounts/#{bank_account.id}", method: :patch, params: { active: false }, class: "text-margem underline underline-offset-2" %>
@@ -158,7 +159,9 @@
     <% end %>
 
     <% editing = @editing_bank_account %>
-    <%= form_with url: (editing ? "/bank_accounts/#{editing.id}" : "/bank_accounts"), method: (editing ? :patch : :post), class: "grid max-w-3xl gap-4 md:grid-cols-2" do %>
+    <details<% if editing.present? || @bank_account_form_open %> open<% end %>>
+      <summary class="cursor-pointer font-medium text-caixa">Adicionar conta</summary>
+      <%= form_with url: (editing ? "/bank_accounts/#{editing.id}" : "/bank_accounts"), method: (editing ? :patch : :post), class: "mt-3 grid max-w-3xl gap-4 md:grid-cols-2" do %>
       <div>
         <label for="name" class="mb-1 block font-medium">Nome</label>
         <%= text_field_tag :name, @bank_account_form[:name], id: "name", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
@@ -175,6 +178,7 @@
         <%= submit_tag editing ? "Salvar conta" : "Adicionar conta", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
       </div>
     <% end %>
+    </details>
   </section>
 
   <section>
@@ -188,11 +192,19 @@
         <span></span>
       </li>
       <% ExtraExceptionKind::BASE_NAMES.each do |name| %>
+        <% kind = ExtraExceptionKind::BASE_OFFER_KINDS.fetch(name) %>
+        <% offered = @organization.public_send(:"#{kind}_exception_active?") %>
         <li data-row="base-document-exception" class="ledger-row ledger-extras">
           <p class="font-medium"><%= name %></p>
           <p><%= ExtraExceptionKind::BASE_JUSTIFICATIONS.fetch(name) %></p>
-          <span></span>
-          <span></span>
+          <span class="text-ink-soft"><%= offered ? "Ativo" : "Inativo" %></span>
+          <span>
+            <% if offered %>
+              <%= button_to "Desativar", "/base_document_exceptions/#{kind}", method: :patch, params: { active: false }, class: "text-margem underline underline-offset-2" %>
+            <% else %>
+              <%= button_to "Ativar", "/base_document_exceptions/#{kind}", method: :patch, params: { active: true }, class: "text-caixa underline underline-offset-2" %>
+            <% end %>
+          </span>
           <span></span>
         </li>
       <% end %>
@@ -200,12 +212,12 @@
         <li data-row="extra-exception-kind" data-extra-exception-kind-id="<%= extra_exception_kind.id %>" class="ledger-row ledger-extras">
           <p class="font-medium"><%= extra_exception_kind.name %></p>
           <p><%= extra_exception_kind.justification %></p>
-          <span class="text-ink-soft"><%= extra_exception_kind.active? ? "" : "Desativado" %></span>
+          <span class="text-ink-soft"><%= extra_exception_kind.active? ? "Ativo" : "Inativo" %></span>
           <span>
             <% if extra_exception_kind.active? %>
               <%= button_to "Desativar", "/extra_exception_kinds/#{extra_exception_kind.id}", method: :patch, params: { active: false }, class: "text-margem underline underline-offset-2" %>
             <% else %>
-              <%= button_to "Reativar", "/extra_exception_kinds/#{extra_exception_kind.id}", method: :patch, params: { active: true }, class: "text-caixa underline underline-offset-2" %>
+              <%= button_to "Ativar", "/extra_exception_kinds/#{extra_exception_kind.id}", method: :patch, params: { active: true }, class: "text-caixa underline underline-offset-2" %>
             <% end %>
           </span>
           <span>
@@ -217,7 +229,9 @@
       <% end %>
     </ul>
 
-    <%= form_with url: "/extra_exception_kinds", method: :post, class: "grid max-w-3xl gap-4 md:grid-cols-2" do %>
+    <details<% if @extra_exception_kind_form_open %> open<% end %>>
+      <summary class="cursor-pointer font-medium text-caixa">Adicionar tipo extra</summary>
+      <%= form_with url: "/extra_exception_kinds", method: :post, class: "mt-3 grid max-w-3xl gap-4 md:grid-cols-2" do %>
       <div>
         <label for="extra_exception_kind_name" class="mb-1 block font-medium">Nome</label>
         <%= text_field_tag :name, nil, id: "extra_exception_kind_name", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
@@ -230,5 +244,6 @@
         <%= submit_tag "Adicionar tipo extra", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
       </div>
     <% end %>
+    </details>
   </section>
 </div>

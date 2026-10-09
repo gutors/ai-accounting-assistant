@@ -18,6 +18,9 @@ accepted
 - **Storing the extra name as text on Payment.** Rejected: deactivate would rename the mark or orphan the label; #25 the deactivated kind remains on payments already marked.
 - **`kind=<name>` in the mark POST.** Rejected: a coordinator could include an extra named `bank_fee`, which is not a base presentation name, and collide with the enum.
 - **Document exception extra mark is an optional Payment association, xor Match and xor base kind (chosen).** `Payment` belongs to `ExtraExceptionKind` optionally (`extra_exception_kind_id`). Database check: at most one of `match_id`, `document_exception_kind`, `extra_exception_kind_id` is non-null. Missing document is all three absent. Mark POST accepts `kind=bank_fee` or `kind=accountant_fee` **or** `extra_exception_kind_id` of an active ExtraExceptionKind of the focused organization — not both. Confirming a Match still clears the extra FK. FK `ON DELETE restrict` is the unused-remove mechanism.
+- **Persist Tarifa/Honorário as ExtraExceptionKind so they share `active`.** Rejected: bases stay the Payment enum. An organization may hide a new mark via two booleans without deleting historical `document_exception_kind`.
+- **A text/json array of inactive keys.** Rejected: two closed enum members do not need a list type this app does not use.
+- **Base offer is two booleans on `organizations` (chosen).** `bank_fee_exception_active` and `accountant_fee_exception_active`, `boolean`, `null: false`, default `true`. `PATCH /base_document_exceptions/:kind` with `:kind` ∈ {`bank_fee`,`accountant_fee`} and `active`. Hiding an offer does not insert an ExtraExceptionKind row and does not clear payments already marked. A POST of an inactive base kind is `UNKNOWN_KIND`.
 
 ## Consequences
 

@@ -3,6 +3,43 @@ require "rails_helper"
 RSpec.describe Organization, type: :model do
   include ActiveSupport::Testing::TimeHelpers
 
+  it "update_accountant with punctuated CNPJ stores digits" do
+    organization = create_organization!(name: "ONG")
+
+    expect(organization.update_accountant(
+      presentation_name: "Ana Contábil",
+      tax_id: "11.222.333/0001-81",
+      legal_name: "Contábil LTDA"
+    )).to be(true)
+    expect(organization.accountant_tax_id).to eq("11222333000181")
+  end
+
+  it "apply_base_document_exception bank_fee false leaves accountant_fee true" do
+    organization = create_organization!(name: "ONG")
+
+    expect(organization.apply_base_document_exception("bank_fee", false)).to eq(true)
+    organization.reload
+    expect(organization.bank_fee_exception_active).to eq(false)
+    expect(organization.accountant_fee_exception_active).to eq(true)
+  end
+
+  it "apply_base_document_exception accountant_fee false leaves bank_fee true" do
+    organization = create_organization!(name: "ONG")
+
+    expect(organization.apply_base_document_exception("accountant_fee", false)).to eq(true)
+    organization.reload
+    expect(organization.accountant_fee_exception_active).to eq(false)
+    expect(organization.bank_fee_exception_active).to eq(true)
+  end
+
+  it "apply_base_document_exception bank_fee true after false" do
+    organization = create_organization!(name: "ONG")
+    organization.apply_base_document_exception("bank_fee", false)
+
+    expect(organization.apply_base_document_exception("bank_fee", true)).to eq(true)
+    expect(organization.reload.bank_fee_exception_active).to eq(true)
+  end
+
   it "persists trimmed accountant presentation name" do
     organization = create_organization!(name: "ONG")
 

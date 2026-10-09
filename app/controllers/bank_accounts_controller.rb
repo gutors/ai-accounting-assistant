@@ -15,6 +15,7 @@ class BankAccountsController < ApplicationController
       load_setup
       assign_bank_account_form_from_params
       prepare_bank_account_form
+      @bank_account_form_open = true
       render "setup/show", status: :unprocessable_content
     end
   end
