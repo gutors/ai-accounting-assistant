@@ -41,6 +41,9 @@ node_modules/
 .agents/
 .scratch/
 .harness-eval/
+.impeccable/mocks/
+.impeccable/questions/
+.impeccable/surfaces/
 
 # Lefthook machine-local overrides (lefthook.yml is committed)
 .lefthook-local.yml
