@@ -12,6 +12,7 @@ class ExtraExceptionKindsController < ApplicationController
       redirect_to "/setup", status: :found
     else
       load_setup
+      @extra_exception_kind_form_open = true
       render "setup/show", status: :unprocessable_content
     end
   end

@@ -74,6 +74,12 @@ class Payment < ApplicationRecord
       errors.add(:base, UNKNOWN_KIND)
       return
     end
+    organization = bank_statement.month.organization
+    offered = kind_value.to_s == "bank_fee" ? organization.bank_fee_exception_active? : organization.accountant_fee_exception_active?
+    unless offered
+      errors.add(:base, UNKNOWN_KIND)
+      return
+    end
     if match_id.present?
       errors.add(:base, MATCHED)
       return

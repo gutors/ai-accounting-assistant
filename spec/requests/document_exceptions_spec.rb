@@ -48,6 +48,30 @@ RSpec.describe "Document exceptions", type: :request do
     expect(response.body).not_to include("Tarifa bancária")
   end
 
+  it "POST bank_fee while offer inactive returns 422" do
+    _account, organization, _month, statement = signed_month
+    payment = plant_payment(statement, 22000)
+    organization.update!(bank_fee_exception_active: false)
+
+    post "/months/2026-05/payments/#{payment.id}/document_exception", params: { kind: "bank_fee" }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Informe um tipo de exceção permitido")
+    expect(payment.reload.document_exception_kind).to be_nil
+  end
+
+  it "POST accountant_fee while offer inactive returns 422" do
+    _account, organization, _month, statement = signed_month
+    payment = plant_payment(statement, 22000)
+    organization.update!(accountant_fee_exception_active: false)
+
+    post "/months/2026-05/payments/#{payment.id}/document_exception", params: { kind: "accountant_fee" }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Informe um tipo de exceção permitido")
+    expect(payment.reload.document_exception_kind).to be_nil
+  end
+
   it "POST kind doacao returns 422 Informe um tipo de excecao permitido" do
     _account, _organization, _month, statement = signed_month
     payment = plant_payment(statement, 22000)

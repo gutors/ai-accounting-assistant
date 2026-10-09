@@ -18,7 +18,20 @@ class Organization < ApplicationRecord
   has_many :justifications, dependent: :restrict_with_exception
   has_many :extra_exception_kinds, dependent: :restrict_with_exception
 
+  BASE_DOCUMENT_EXCEPTION_COLUMNS = {
+    "bank_fee" => :bank_fee_exception_active,
+    "accountant_fee" => :accountant_fee_exception_active
+  }.freeze
+
   validates :name, presence: true
+
+  def apply_base_document_exception(kind, active)
+    column = BASE_DOCUMENT_EXCEPTION_COLUMNS[kind.to_s]
+    return false unless column
+
+    update!(column => ActiveModel::Type::Boolean.new.cast(active))
+    true
+  end
 
   def self.register_coordinator(name:, email:)
     transaction do

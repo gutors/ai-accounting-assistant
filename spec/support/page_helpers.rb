@@ -263,6 +263,14 @@ module PageHelpers
     bank_accounts_section(body)&.css("form")&.find { |form| form.at_css("#name") && form.at_css("#compe") && form.at_css("#coordinates") }
   end
 
+  def bank_account_add_details(body)
+    bank_account_section_form(body)&.ancestors("details")&.first
+  end
+
+  def extra_kind_add_details(body)
+    extras_section(body)&.at_css('form[action="/extra_exception_kinds"]')&.ancestors("details")&.first
+  end
+
   def bank_account_row_edit_control(row_node)
     row_node.css("a, button").find { |node| node.text.strip == "Editar" }
   end

@@ -138,6 +138,10 @@ _Avoid_: receipt (unqualified, when the Brazilian document type is meant)
 A name the organization keeps, besides bank fee and accountant’s fee, for marking a document exception, together with a required sentence explaining why a payment of that kind needs no supporting document. Unique in that organization and distinct from the two base names. A deactivated kind remains on payments already marked and is not offered for new marks; an unused kind may be removed. Justification is stored on the catalog row and is not edited after include.
 _Avoid_: category, tag, extra (unqualified), exception type (when the document exception is meant)
 
+**Base document-exception offer**:
+Per organization, whether bank fee or accountant’s fee may be newly marked on a payment. Two booleans on the organization (`bank_fee_exception_active`, `accountant_fee_exception_active`), default on. Hiding an offer does not create an ExtraExceptionKind row and does not clear payments already marked. Setup Situação for those two names is Ativo or Inativo.
+_Avoid_: Extra exception kind (when the two Payment enum members are meant)
+
 **Document exception**:
 A payment the coordinator marked with an allowed kind (bank fee, accountant’s fee, or an extra exception kind) so it needs no match. The mark is per payment per month and only exists after the coordinator confirms it; it cannot coexist with a match.
 _Avoid_: missing document, exception suggestion (before confirmation)

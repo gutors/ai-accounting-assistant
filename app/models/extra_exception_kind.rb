@@ -1,5 +1,9 @@
 class ExtraExceptionKind < ApplicationRecord
   BASE_NAMES = [ "Tarifa bancária", "Honorário do contador" ].freeze
+  BASE_OFFER_KINDS = {
+    "Tarifa bancária" => "bank_fee",
+    "Honorário do contador" => "accountant_fee"
+  }.freeze
   BASE_JUSTIFICATIONS = {
     "Tarifa bancária" => "Tarifa cobrada pelo banco; não há documento fiscal a anexar.",
     "Honorário do contador" => "Honorário do contador neste fechamento; isento de documento de suporte."

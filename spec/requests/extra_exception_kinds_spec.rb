@@ -97,6 +97,17 @@ RSpec.describe "Extra exception kinds", type: :request do
     expect(organization.extra_exception_kinds.count).to eq(0)
   end
 
+  it "POST blank name with justification opens Adicionar tipo extra details" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    post "/extra_exception_kinds", params: { name: "", justification: "Doação pontual sem nota." }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(organization.extra_exception_kinds.count).to eq(0)
+    expect(extra_kind_add_details(response.body).has_attribute?("open")).to eq(true)
+  end
+
   it "POST blank name with justification returns 422" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
@@ -183,7 +194,8 @@ RSpec.describe "Extra exception kinds", type: :request do
 
     get "/setup"
     expect(response.body).to include("Doação")
-    expect(response.body).to include("Desativado")
+    expect(response.body).to include("Inativo")
+    expect(response.body).not_to include("Desativado")
   end
 
   it "PATCH extra exception kind active omits Desativado on that row" do
@@ -197,7 +209,9 @@ RSpec.describe "Extra exception kinds", type: :request do
     get "/setup"
     row = extra_kind_row(response.body, "Doação")
     expect(row).to include("Doação")
+    expect(row).to include("Ativo")
     expect(row).not_to include("Desativado")
+    expect(row).not_to include("Inativo")
   end
 
   it "DELETE unused Folha removes the row and redirects" do
@@ -213,6 +227,21 @@ RSpec.describe "Extra exception kinds", type: :request do
 
     get "/setup"
     expect(response.body).not_to include("Folha")
+  end
+
+  it "DELETE used Doacao 422 leaves extra kind details closed" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
+    _month, statement = plant_month(organization)
+    payment = plant_payment(statement, 22000)
+    payment.update!(extra_exception_kind: kind)
+
+    delete "/extra_exception_kinds/#{kind.id}"
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(ExtraExceptionKind.find(kind.id)).to eq(kind)
+    expect(extra_kind_add_details(response.body).has_attribute?("open")).to eq(false)
   end
 
   it "DELETE used Doacao returns 422" do

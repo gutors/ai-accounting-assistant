@@ -158,7 +158,7 @@ RSpec.describe "Setup", type: :request do
     accountant_input_ids.each do |id|
       expect(form.at_css("##{id}")["readonly"]).to be_nil
     end
-    expect(form.at_css("#tax_id")["value"]).to eq("11222333000181")
+    expect(form.at_css("#tax_id")["value"]).to eq("11.222.333/0001-81")
     expect_accountant_labels(response.body)
     expect(accountant_edit_control(response.body)).to be_nil
   end
@@ -244,7 +244,7 @@ RSpec.describe "Setup", type: :request do
       expect(input["readonly"]).to be_nil
       expect(input["disabled"]).to be_nil
     end
-    expect(form.at_css("#tax_id")["value"]).to eq("11222333000181")
+    expect(form.at_css("#tax_id")["value"]).to eq("11.222.333/0001-81")
     expect(form["class"]).to include("md:grid-cols-2")
     expect(accountant_section(response.body).at_css("p#presentation_name")).to be_nil
     expect_archive_leitura(response.body)
@@ -639,21 +639,190 @@ RSpec.describe "Setup", type: :request do
     expect(extras_section(response.body).text).to include("Honorário do contador")
   end
 
-  it "GET /setup fixed exception rows omit Desativar Reativar Excluir" do
+  it "GET /setup cadastro tax_id has tax-id-mask wiring" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
 
     get "/setup"
 
-    tarifa = base_exception_row(response.body, "Tarifa bancária")
-    honorario = base_exception_row(response.body, "Honorário do contador")
-    expect(tarifa).to be_present
-    expect(honorario).to be_present
-    [ tarifa, honorario ].each do |row|
-      expect(row.text).not_to include("Desativar")
-      expect(row.text).not_to include("Reativar")
-      expect(row.text).not_to include("Excluir")
+    field = accountant_form(response.body).at_css("#tax_id")
+    expect(field["readonly"]).to be_nil
+    expect(field["inputmode"]).to eq("numeric")
+    expect(field["data-controller"]).to eq("tax-id-mask")
+    expect(field["data-action"]).to eq("input->tax-id-mask#typed")
+  end
+
+  it "GET /setup leitura Contador labels are text-ink-soft" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    persist_standing_accountant(organization)
+
+    get "/setup"
+
+    section = accountant_section(response.body)
+    %w[presentation_name tax_id legal_name pix_key destination_email].each do |id|
+      label = section.at_css(%(label[for="#{id}"]))
+      expect(label["class"]).to include("text-ink-soft")
+      expect(label["class"]).not_to include("font-medium")
+      expect(section.at_css(%(p##{id}))["class"]).to include("font-medium")
     end
+    expect(section.at_css("h2")["class"]).not_to include("text-ink-soft")
+  end
+
+  it "GET /setup cadastro Contador labels are text-ink-soft and other sections keep font-medium" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    get "/setup"
+
+    section = accountant_section(response.body)
+    %w[presentation_name tax_id legal_name pix_key destination_email].each do |id|
+      label = section.at_css(%(label[for="#{id}"]))
+      expect(label["class"]).to include("text-ink-soft")
+      expect(label["class"]).not_to include("font-medium")
+    end
+    expect(archive_section(response.body).at_css('label[for="url"]')["class"]).to include("font-medium")
+    expect(certificate_section(response.body).at_css('label[for="passphrase"]')["class"]).to include("font-medium")
+    expect(bank_accounts_section(response.body).at_css('label[for="name"]')["class"]).to include("font-medium")
+    expect(extras_section(response.body).at_css('label[for="extra_exception_kind_name"]')["class"]).to include("font-medium")
+  end
+
+  it "GET /setup edit accountant Contador labels are text-ink-soft" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    persist_standing_accountant(organization)
+
+    get "/setup?edit=accountant"
+
+    section = accountant_section(response.body)
+    %w[presentation_name tax_id legal_name pix_key destination_email].each do |id|
+      label = section.at_css(%(label[for="#{id}"]))
+      expect(label["class"]).to include("text-ink-soft")
+      expect(label["class"]).not_to include("font-medium")
+    end
+  end
+
+  it "GET /setup bank add form sits in closed Adicionar conta details" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    get "/setup"
+
+    details = bank_account_add_details(response.body)
+    expect(details).to be_present
+    expect(details.has_attribute?("open")).to eq(false)
+    expect(details.at_css("summary").text.strip).to eq("Adicionar conta")
+    form = bank_account_section_form(response.body)
+    expect(form.at_css('input[type="submit"][value="Adicionar conta"]')).to be_present
+    expect(details.at_css("#certificate")).to be_nil
+    expect(page_doc(response.body).at_css("#certificate").ancestors("details")).not_to include(details)
+  end
+
+  it "GET /setup bank rows show Ativa and Inativa" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    principal = BankAccount.create_for(
+      organization: organization, name: "Conta Principal", compe: "001", coordinates: "ag 1234"
+    )
+    parada = BankAccount.create_for(organization: organization, name: "Parada", compe: "033")
+    parada.apply_from(active: false)
+
+    get "/setup"
+
+    principal_row = row(response.body, "bank-account", bank_account_id: principal.id)
+    parada_row = row(response.body, "bank-account", bank_account_id: parada.id)
+    expect(principal_row.text).to include("Ativa")
+    expect(principal_row.text).not_to include("Inativa")
+    expect(principal_row.text).to include("Desativar")
+    expect(parada_row.text).to include("Inativa")
+    expect(parada_row.text).not_to include("Ativa")
+    expect(parada_row.text).to include("Reativar")
+  end
+
+  it "GET /setup edit bank opens Adicionar conta details as PATCH" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    principal = BankAccount.create_for(
+      organization: organization, name: "Conta Principal", compe: "001", coordinates: "ag 1234"
+    )
+
+    get "/setup?edit=bank_account&bank_account_id=#{principal.id}"
+
+    details = bank_account_add_details(response.body)
+    expect(details.has_attribute?("open")).to eq(true)
+    expect(details.at_css("summary").text.strip).to eq("Adicionar conta")
+    form = bank_account_section_form(response.body)
+    expect(form["action"]).to eq("/bank_accounts/#{principal.id}")
+    expect(form.at_css('input[name="_method"][value="patch"]')).to be_present
+    expect(form.at_css('input[type="submit"][value="Salvar conta"]')).to be_present
+  end
+
+  it "GET /setup extra kind form sits in closed Adicionar tipo extra details" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    get "/setup"
+
+    details = extra_kind_add_details(response.body)
+    expect(details).to be_present
+    expect(details.has_attribute?("open")).to eq(false)
+    expect(details.at_css("summary").text.strip).to eq("Adicionar tipo extra")
+    form = extras_section(response.body).at_css('form[action="/extra_exception_kinds"]')
+    expect(form.at_css("#extra_exception_kind_name")).to be_present
+    expect(form.at_css('[name="justification"]')).to be_present
+    expect(form.at_css('input[type="submit"][value="Adicionar tipo extra"]')).to be_present
+  end
+
+  it "GET /setup extra kind rows show Ativo Inativo Desativar Ativar" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    ExtraExceptionKind.create_for(
+      organization: organization, name: "Doação", justification: "Doação pontual sem nota."
+    )
+    folha = ExtraExceptionKind.create_for(
+      organization: organization, name: "Folha", justification: "Isento de documento de suporte."
+    )
+    folha.apply_active(false)
+
+    get "/setup"
+
+    doacao = extra_kind_row(response.body, "Doação")
+    folha_row = extra_kind_row(response.body, "Folha")
+    expect(doacao.text).to include("Ativo")
+    expect(doacao.text).to include("Desativar")
+    expect(doacao.text).not_to include("Inativo")
+    expect(doacao.text).not_to include("Desativado")
+    expect(doacao.text).not_to include("Reativar")
+    expect(folha_row.text).to include("Inativo")
+    expect(folha_row.text).to include("Ativar")
+    expect(folha_row.text).not_to include("Ativo")
+    expect(folha_row.text).not_to include("Desativado")
+    expect(folha_row.text).not_to include("Reativar")
+    expect(folha_row.text).to include("Excluir")
+  end
+
+  it "GET /setup base exception rows show Ativo and Desativar" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    get "/setup"
+
+    expect(organization.extra_exception_kinds.count).to eq(0)
+    expect(organization.bank_fee_exception_active).to eq(true)
+    expect(organization.accountant_fee_exception_active).to eq(true)
+    %w[Tarifa\ bancária Honorário\ do\ contador].each do |name|
+      listed = base_exception_row(response.body, name)
+      actions = listed.css("button, input[type='submit']").map { |node| node["value"] || node.text.strip }
+      expect(listed.at_css("span.text-ink-soft").text).to eq("Ativo")
+      expect(actions).to include("Desativar")
+      expect(actions).not_to include("Excluir")
+      expect(actions).not_to include("Ativar")
+      expect(listed.text).not_to include("Inativo")
+    end
+    extra_names = rows(response.body, "extra-exception-kind").map(&:text).join
+    expect(extra_names).not_to include("Tarifa bancária")
+    expect(extra_names).not_to include("Honorário do contador")
+    expect(organization.extra_exception_kinds.count).to eq(0)
   end
 
   it "GET /setup extras section order is Tarifa Honorario Alfa Zeta" do
@@ -693,7 +862,7 @@ RSpec.describe "Setup", type: :request do
     expect(heading.ancestors("form")).to be_empty
     list = section.at_css("h2 + ul")
     expect(list.css("li").first["data-row"]).to eq("extras-column-headings")
-    expect(form.previous_element).to eq(list)
+    expect(form.ancestors("details").first.previous_element).to eq(list)
   end
 
   it "setup extra exception kind row shows justification and has no name or justification fields" do
@@ -740,7 +909,7 @@ RSpec.describe "Setup", type: :request do
     get "/setup"
 
     expect(extra_kind_row(response.body, "Ativa Extra").text).to include("Desativar")
-    expect(extra_kind_row(response.body, "Parada Extra").text).to include("Reativar")
+    expect(extra_kind_row(response.body, "Parada Extra").text).to include("Ativar")
   end
 
   it "setup unused extra exception kind Folha includes Excluir" do

@@ -182,13 +182,17 @@
                   <%= submit_tag "Confirmar casamento", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
                 <% end %>
                 <div class="flex flex-wrap gap-2">
-                  <%= form_with url: "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :post do %>
-                    <%= hidden_field_tag :kind, "bank_fee", id: "kind_bank_#{payment.id}" %>
-                    <%= submit_tag "Marcar tarifa", class: "rounded border border-ink px-4 py-2 text-ink" %>
+                  <% if @organization.bank_fee_exception_active? %>
+                    <%= form_with url: "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :post do %>
+                      <%= hidden_field_tag :kind, "bank_fee", id: "kind_bank_#{payment.id}" %>
+                      <%= submit_tag "Marcar tarifa", class: "rounded border border-ink px-4 py-2 text-ink" %>
+                    <% end %>
                   <% end %>
-                  <%= form_with url: "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :post do %>
-                    <%= hidden_field_tag :kind, "accountant_fee", id: "kind_accountant_#{payment.id}" %>
-                    <%= submit_tag "Marcar honorário", class: "rounded border border-ink px-4 py-2 text-ink" %>
+                  <% if @organization.accountant_fee_exception_active? %>
+                    <%= form_with url: "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :post do %>
+                      <%= hidden_field_tag :kind, "accountant_fee", id: "kind_accountant_#{payment.id}" %>
+                      <%= submit_tag "Marcar honorário", class: "rounded border border-ink px-4 py-2 text-ink" %>
+                    <% end %>
                   <% end %>
                   <% @active_extra_exception_kinds.each do |extra_exception_kind| %>
                     <%= form_with url: "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :post do %>

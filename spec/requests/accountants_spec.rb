@@ -1,6 +1,23 @@
 require "rails_helper"
 
 RSpec.describe "Accountants", type: :request do
+  it "PATCH accountant with masked CNPJ stores digits only" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    patch "/accountant", params: {
+      presentation_name: "Ana Contábil",
+      tax_id: "11.222.333/0001-81",
+      legal_name: "Contábil LTDA",
+      pix_key: "chave-pix",
+      destination_email: "ana@example.com"
+    }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/setup")
+    expect(organization.reload.accountant_tax_id).to eq("11222333000181")
+  end
+
   it "PATCH /accountant from cadastro persists Ana and toasts Pronto" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
