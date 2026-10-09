@@ -226,3 +226,7 @@ Proof: `bin/rspec spec/docs/setup_configuration_polish_spec.rb -e "visual-identi
 ## Handoff
 
 S1 ~16k + S2 ~12k + S3 ~15k + S4 ~15k + S5 ~44k = ~102k token floor. S1–S4 share `setup/show.html.erb`; S5 enters Payment, month, and the two Organization booleans but the running total stays under 150k. No split. One batch.
+
+- Where the boundary fell: one batch; C1–C28 closed on `5d7ff42` after checklist `88debd5`.
+- What the user settled mid-build: none.
+- What was abandoned: asserting month mark copy via `details.text` — submit values live on `input[type=submit][value]`, not in element text.
