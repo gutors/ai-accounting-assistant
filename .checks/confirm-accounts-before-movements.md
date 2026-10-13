@@ -97,6 +97,7 @@ Proof: `bin/rspec spec/requests/months_spec.rb -e "unconfirmed GET with tarifa u
 
 **C6** - Given criterion 2’s unconfirmed Presente month, when `POST /months/2026-05/account_confirmation` runs with no body fields, then the status is `302` to `/months/2026-05`, that Month’s `accounts_confirmed` is true, and the following GET is `200` with `[data-toast-kind="success"]` text `Pronto.`, with `h2` `Recebimentos`, `Pagamentos`, and `Documentos sem casamento`, with no `h2` `Confirmar contas para fechamento`, with summary `1 pagamento com documento faltante` in `text-margem`, and with a `li[data-row="payment"]` whose amount is `R$ 155,00`.
 Proof: `bin/rspec spec/requests/months_spec.rb -e "POST account_confirmation reveals movements and Pronto toast"`
+Proof: `bin/rspec spec/models/month_spec.rb -e "confirm_accounts on open month sets accounts_confirmed true"`
 
 **C7** - Given criterion 3’s mixed Presente/Falta unconfirmed month, when that POST runs, then `accounts_confirmed` is true, the following GET lists movements from `Conta Principal`, still includes `Falta o extrato de 1 conta ativa`, and `Conta Alfa` Situação text is exactly `Falta`.
 Proof: `bin/rspec spec/requests/months_spec.rb -e "POST account_confirmation with mixed Falta keeps Alfa Falta and lists Principal movements"`

@@ -33,6 +33,7 @@ RSpec.describe "Visual identity month bank rows" do
     expect(month).to include("Falta")
     expect(month).to include("margem")
     expect(month).to include("ledger name order")
+    expect(month).to include("two-column ledger (`Nome`, `Situação`)")
     expect(month).to include("Iniciar fechamento")
     expect(month).to include("Recebimentos")
     expect(month).to include("Pagamentos")

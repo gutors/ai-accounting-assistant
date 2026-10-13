@@ -1757,6 +1757,12 @@ RSpec.describe "Months", type: :request do
     expect(bank_names).to eq([ "Conta Alfa", "Conta Principal" ])
     section = confirm_section(response.body)
     expect(section).to be_present
+    head = section.at_css(".ledger-head.ledger-confirm")
+    expect(head.element_children.map { |node| node.text.strip }).to eq([ "Nome", "Situação" ])
+    confirm_rows = section.css("li.ledger-confirm")
+    expect(confirm_rows.map { |row| row.element_children.map { |cell| cell.text.strip } }).to eq(
+      [ [ "Conta Alfa", "Falta" ], [ "Conta Principal", "Presente" ] ]
+    )
     confirm_names = section.css("li.ledger-confirm p.font-medium").map { |node| node.text.strip }
     expect(confirm_names).to eq([ "Conta Alfa", "Conta Principal" ])
     expect(section.text).to include("Falta")

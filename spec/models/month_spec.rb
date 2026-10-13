@@ -12,6 +12,17 @@ RSpec.describe Month, type: :model do
     expect(month.accounts_confirmed).to eq(false)
   end
 
+  it "confirm_accounts on open month sets accounts_confirmed true" do
+    month = Month.open(organization: organization, year_month: "2026-05")
+    expect(month.accounts_confirmed).to eq(false)
+
+    month.confirm_accounts
+
+    expect(month.errors).to be_empty
+    expect(month.reload.accounts_confirmed).to eq(true)
+    expect(organization.months.where(year_month: "2026-05").count).to eq(1)
+  end
+
   it "confirm_accounts refuses when closed" do
     month = Month.open(organization: organization, year_month: "2026-05")
     month.update_columns(closed: true, accounts_confirmed: false)
