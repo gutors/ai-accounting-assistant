@@ -167,3 +167,7 @@ Proof: `bin/rspec spec/docs/visual_identity_month_bank_rows_spec.rb -e "visual-i
 ## Handoff
 
 S1 ~11k (model + controller + both statement specs + `show.html.erb`) + S2 ~3k (same persist path) + S3 ~21k (`show.html.erb` + `months_spec.rb` 69 KB counted once) + S4 ~17k (`design.md` + CSS + docs spec; `show` / `months_spec` not paid twice) = ~52k unique-file floor. All four slices stay under 150k and share the month bank ledger. No split. One batch.
+
+- Where the boundary fell: C1–C16 closed on `45e0be5`.
+- What the user settled mid-build: none.
+- What was abandoned: slicing `design.md` Contas bancárias at the ASCII `Recebimentos` heading for C16 — that cut never reached the amended bullets. The proof reads the whole `month` section.
