@@ -13,6 +13,21 @@ class MonthsController < ApplicationController
     end
   end
 
+  def account_confirmation
+    month = find_month
+    return unless month
+
+    month.confirm_accounts
+    if month.errors.empty?
+      redirect_success("/months/#{month.year_month}")
+    else
+      @month = month
+      @month_error = month.errors[:base].first
+      load_month_page
+      render :show, status: :unprocessable_content
+    end
+  end
+
   def show
     month = find_month
     return unless month

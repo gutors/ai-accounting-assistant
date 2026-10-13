@@ -1,4 +1,5 @@
 <% content_for :title, "#{@organization.name} — #{@month.year_month}" %>
+<% movements_visible = @month.accounts_confirmed? || @month.closed? %>
 <% missing_count = @missing_document_payments.size %>
 <% accounts_without_statement = @active_bank_accounts.count { |bank_account| @statements_by_account_id[bank_account.id].nil? } %>
 
@@ -21,13 +22,17 @@
 </div>
 
 <p class="mt-6">
-  <% if missing_count.zero? %>
-    <span>Nenhum documento faltante.</span>
+  <% if movements_visible %>
+    <% if missing_count.zero? %>
+      <span>Nenhum documento faltante.</span>
+    <% else %>
+      <span class="text-margem"><%= missing_count %> <%= missing_count == 1 ? "pagamento" : "pagamentos" %> com documento faltante.</span>
+    <% end %>
+    <% if accounts_without_statement.positive? %>
+      <span>Falta o extrato de <%= accounts_without_statement %> <%= accounts_without_statement == 1 ? "conta ativa" : "contas ativas" %>.</span>
+    <% end %>
   <% else %>
-    <span class="text-margem"><%= missing_count %> <%= missing_count == 1 ? "pagamento" : "pagamentos" %> com documento faltante.</span>
-  <% end %>
-  <% if accounts_without_statement.positive? %>
-    <span>Falta o extrato de <%= accounts_without_statement %> <%= accounts_without_statement == 1 ? "conta ativa" : "contas ativas" %>.</span>
+    <span>Insira os extratos das contas bancárias com as quais deseja realizar o fechamento.</span>
   <% end %>
 </p>
 
@@ -95,6 +100,37 @@
     <% end %>
   </section>
 
+  <% unless movements_visible %>
+    <section id="confirm-step">
+      <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Confirmar contas para fechamento</h2>
+      <% unless @active_bank_accounts.empty? %>
+        <div class="ledger-sheet">
+          <div class="ledger-row ledger-head ledger-confirm" aria-hidden="true">
+            <span>Nome</span>
+            <span>Situação</span>
+          </div>
+          <ul>
+            <% @active_bank_accounts.each do |bank_account| %>
+              <% statement = @statements_by_account_id[bank_account.id] %>
+              <li class="ledger-row ledger-confirm">
+                <p class="font-medium"><%= bank_account.name %></p>
+                <% if statement %>
+                  <p>Presente</p>
+                <% else %>
+                  <p class="text-margem">Falta</p>
+                <% end %>
+              </li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+      <%= form_with url: "/months/#{@month.year_month}/account_confirmation", method: :post, html: { class: "mt-4" } do %>
+        <%= submit_tag "Iniciar fechamento", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+      <% end %>
+    </section>
+  <% end %>
+
+  <% if movements_visible %>
   <section>
     <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Recebimentos</h2>
     <% if @inflows.any? %>
@@ -288,4 +324,5 @@
       </div>
     <% end %>
   </section>
+  <% end %>
 </div>

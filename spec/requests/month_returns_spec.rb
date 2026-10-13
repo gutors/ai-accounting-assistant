@@ -106,4 +106,17 @@ RSpec.describe "Return unmatched-in-package document", type: :request do
     expect(response).to have_http_status(:not_found)
     expect(document.reload.month_id).to eq(month_b.id)
   end
+
+  it "POST return on unconfirmed month returns 404" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    month, _statement = plant_month(organization, accounts_confirmed: false)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+    document.update!(month_id: month.id)
+
+    post "/months/2026-05/supporting_documents/#{document.id}/return"
+
+    expect(response).to have_http_status(:not_found)
+    expect(document.reload.month_id).to eq(month.id)
+  end
 end

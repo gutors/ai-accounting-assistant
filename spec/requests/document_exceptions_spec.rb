@@ -391,4 +391,16 @@ RSpec.describe "Document exceptions", type: :request do
 
     expect(row(response.body, "payment", payment_id: payment.id, status: "extra")).not_to be_nil
   end
+
+  it "POST document_exception on unconfirmed month returns 404" do
+    _account, _organization, _month, statement = signed_month
+    month = statement.month
+    month.update!(accounts_confirmed: false)
+    payment = plant_payment(statement, 22000)
+
+    post "/months/2026-05/payments/#{payment.id}/document_exception", params: { kind: "bank_fee" }
+
+    expect(response).to have_http_status(:not_found)
+    expect(payment.reload.missing_document?).to eq(true)
+  end
 end

@@ -53,6 +53,7 @@ Rails.application.routes.draw do
 
   post "/months", to: "months#create"
   get "/months/:year_month", to: "months#show"
+  post "/months/:year_month/account_confirmation", to: "months#account_confirmation"
   post "/months/:year_month/close", to: "months#close"
   post "/months/:year_month/reopen", to: "months#reopen"
   post "/months/:year_month/restore", to: "months#restore"

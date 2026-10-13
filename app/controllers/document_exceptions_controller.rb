@@ -2,7 +2,7 @@ class DocumentExceptionsController < ApplicationController
   before_action :require_coordinator_organization
 
   def create
-    month = find_opened_month
+    month = find_month_with_visible_movements
     return unless month
 
     payment = payment_on(month)
@@ -26,7 +26,7 @@ class DocumentExceptionsController < ApplicationController
   end
 
   def destroy
-    month = find_opened_month
+    month = find_month_with_visible_movements
     return unless month
 
     payment = payment_on(month)
@@ -44,21 +44,6 @@ class DocumentExceptionsController < ApplicationController
   end
 
   private
-
-  def find_opened_month
-    unless Month.valid_year_month?(params[:year_month])
-      head :not_found
-      return
-    end
-
-    month = focused_organization.months.find_by(year_month: params[:year_month])
-    unless month
-      head :not_found
-      return
-    end
-
-    month
-  end
 
   def payment_on(month)
     payment = Payment.joins(:bank_statement).find_by(id: params[:id], bank_statements: { month_id: month.id })

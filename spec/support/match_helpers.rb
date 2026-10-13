@@ -1,11 +1,16 @@
 module MatchHelpers
-  def plant_month(organization, year_month: "2026-05")
+  def plant_month(organization, year_month: "2026-05", accounts_confirmed: true)
     month = Month.open(organization: organization, year_month: year_month)
     bank_account = organization.bank_accounts.order(:id).first
     bank_account ||= BankAccount.create_for(organization: organization, name: "Conta Principal", compe: "001")
     statement = month.bank_statements.find_by(bank_account: bank_account)
     statement ||= BankStatement.create!(month: month, bank_account: bank_account)
-    [ month, statement ]
+    month.update!(accounts_confirmed: accounts_confirmed)
+    [ month.reload, statement ]
+  end
+
+  def mark_accounts_confirmed!(organization, year_month: "2026-05")
+    organization.months.find_by!(year_month: year_month).update!(accounts_confirmed: true)
   end
 
   def plant_payment(statement, amount_cents, history: "Pix", occurred_on: Date.new(2026, 5, 20))

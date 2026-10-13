@@ -2,7 +2,7 @@ class MatchesController < ApplicationController
   before_action :require_coordinator_organization
 
   def create
-    month = find_opened_month
+    month = find_month_with_visible_movements
     return unless month
 
     payment_ids = Array(params[:payment_ids]).map(&:to_i).reject(&:zero?).uniq
@@ -37,7 +37,7 @@ class MatchesController < ApplicationController
   end
 
   def destroy
-    month = find_opened_month
+    month = find_month_with_visible_movements
     return unless month
 
     match = month.matches.find_by(id: params[:id])
@@ -55,22 +55,5 @@ class MatchesController < ApplicationController
       load_month_page
       render "months/show", status: :unprocessable_content
     end
-  end
-
-  private
-
-  def find_opened_month
-    unless Month.valid_year_month?(params[:year_month])
-      head :not_found
-      return
-    end
-
-    month = focused_organization.months.find_by(year_month: params[:year_month])
-    unless month
-      head :not_found
-      return
-    end
-
-    month
   end
 end

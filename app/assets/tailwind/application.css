@@ -110,6 +110,10 @@
     padding-left: 12px;
   }
 
+  #confirm-step .ledger-sheet {
+    max-width: 28rem;
+  }
+
   .ledger-head {
     color: var(--color-ink-soft);
     font-weight: 500;
@@ -201,6 +205,10 @@
 
     .ledger-month-bank [data-cell="documents"] {
       overflow: hidden;
+    }
+
+    .ledger-confirm {
+      grid-template-columns: minmax(0, 1fr) 6.5rem;
     }
 
     .ledger-extras {

@@ -2,7 +2,7 @@ class MonthReturnsController < ApplicationController
   before_action :require_coordinator_organization
 
   def create
-    month = find_month
+    month = find_month_with_visible_movements
     return unless month
 
     document = focused_organization.supporting_documents.find_by(
@@ -24,22 +24,5 @@ class MonthReturnsController < ApplicationController
       load_month_page
       render "months/show", status: :unprocessable_content
     end
-  end
-
-  private
-
-  def find_month
-    unless Month.valid_year_month?(params[:year_month])
-      head :not_found
-      return
-    end
-
-    month = focused_organization.months.find_by(year_month: params[:year_month])
-    unless month
-      head :not_found
-      return
-    end
-
-    month
   end
 end
