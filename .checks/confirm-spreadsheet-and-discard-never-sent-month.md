@@ -30,6 +30,8 @@ Touches `Month#confirm_accounts` so an open Month also needs at least one BankSt
 | --- | --- | --- |
 | Never-sent is `closed` false and `month_folder_id` blank | No new column. Reopen already keeps `month_folder_id`. Discard allowed only when both hold | `closed_at` that survives reopen — extra migration; #116 named the existing folder id. `!closed?` alone — a reopened month would be deletable after Drive had a `{YYYY-MM}` |
 | Discard is `DELETE /months/:year_month` | HTML form; success `302` `/`; ineligible `422` with `Só é possível excluir um fechamento aberto que nunca foi enviado.`; missing `404`. No Drive call | `POST /months/:year_month/discard` — #116 named DELETE. Soft-delete / `discarded_at` — the unique `year_month` must free so `Abrir mês` works again (C12) |
+| Confirm spreadsheet means a BankStatement with `spreadsheet` attached | `Month#spreadsheet_present?` is `bank_statements.joins(:spreadsheet_attachment).exists?`. GET and `confirm_accounts` share it | Infer from any BankStatement row (`Presente` without a file) — `plant_month` already creates that row; #116 named a spreadsheet |
+| Discard keeps `bank_statements` `restrict_with_exception` | `Month#discard_never_sent` destroys statements then the Month, under `with_lock` | `dependent: :destroy` on `bank_statements` — any `Month#destroy` would wipe movements; restrict stays the safety net for other callers |
 
 - Nothing else in this change is hard to reverse. Requiring a spreadsheet on the existing confirm POST is a condition on that write, not a new contract
 

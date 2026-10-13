@@ -14,6 +14,8 @@ RSpec.describe Month, type: :model do
 
   it "confirm_accounts on open month sets accounts_confirmed true" do
     month = Month.open(organization: organization, year_month: "2026-05")
+    bank_account = BankAccount.create_for(organization: organization, name: "Conta Principal", compe: "001")
+    BankStatement.import(month: month, bank_account: bank_account, pdf: nil, spreadsheet: bb_xlsx)
     expect(month.accounts_confirmed).to eq(false)
 
     month.confirm_accounts
@@ -21,6 +23,15 @@ RSpec.describe Month, type: :model do
     expect(month.errors).to be_empty
     expect(month.reload.accounts_confirmed).to eq(true)
     expect(organization.months.where(year_month: "2026-05").count).to eq(1)
+  end
+
+  it "confirm_accounts refuses without a spreadsheet statement" do
+    month = Month.open(organization: organization, year_month: "2026-05")
+
+    month.confirm_accounts
+
+    expect(month.errors[:base]).to include("Inclua o extrato planilha de pelo menos uma conta bancária.")
+    expect(month.reload.accounts_confirmed).to eq(false)
   end
 
   it "confirm_accounts refuses when closed" do
@@ -31,6 +42,35 @@ RSpec.describe Month, type: :model do
 
     expect(month.errors[:base]).to include("Mês fechado")
     expect(month.reload.accounts_confirmed).to eq(false)
+  end
+
+  it "discard_never_sent destroys an open month with blank month_folder_id" do
+    month = Month.open(organization: organization, year_month: "2026-05")
+
+    month.discard_never_sent
+
+    expect(month.errors).to be_empty
+    expect(organization.months.where(year_month: "2026-05").count).to eq(0)
+  end
+
+  it "discard_never_sent refuses when closed" do
+    month = Month.open(organization: organization, year_month: "2026-05")
+    month.update_columns(closed: true)
+
+    month.discard_never_sent
+
+    expect(month.errors[:base]).to include("Só é possível excluir um fechamento aberto que nunca foi enviado.")
+    expect(organization.months.find_by!(year_month: "2026-05")).to be_closed
+  end
+
+  it "discard_never_sent refuses when month_folder_id is present" do
+    month = Month.open(organization: organization, year_month: "2026-05")
+    month.update_columns(month_folder_id: "drive-folder")
+
+    month.discard_never_sent
+
+    expect(month.errors[:base]).to include("Só é possível excluir um fechamento aberto que nunca foi enviado.")
+    expect(organization.months.find_by!(year_month: "2026-05").month_folder_id).to eq("drive-folder")
   end
 
   it "accounts_confirmed backfill closed or with statement true else false" do

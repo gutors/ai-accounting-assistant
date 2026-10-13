@@ -215,14 +215,14 @@ RSpec.describe "Months", type: :request do
     expect(response.body).not_to include("Conta Beta")
   end
 
-  it "DELETE /months/2026-05 returns 404 and keeps the Month" do
-    account, organization = plant_coordinator
-    sign_in_as(account, organization: organization)
-    post "/months", params: { year_month: "2026-05" }
+  it "unauthenticated DELETE /months/2026-05 responds 302 to /login" do
+    _account, organization = plant_coordinator
+    Month.open(organization: organization, year_month: "2026-05")
 
     delete "/months/2026-05"
 
-    expect(response).to have_http_status(:not_found)
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/login")
     expect(organization.months.where(year_month: "2026-05").count).to eq(1)
   end
 
@@ -1732,7 +1732,8 @@ RSpec.describe "Months", type: :request do
     expect(form).to be_present
     submit = form.at_css('input[type="submit"][value="Iniciar fechamento"]')
     expect(submit).to be_present
-    expect(submit["disabled"]).to be_nil
+    expect(submit["disabled"]).to eq("disabled")
+    expect(error_notice_text(response.body)).to eq("Inclua o extrato planilha de pelo menos uma conta bancária.")
     expect(response.body).to include("Insira os extratos das contas bancárias com as quais deseja realizar o fechamento.")
     expect(headings).not_to include("Recebimentos")
     expect(headings).not_to include("Pagamentos")
@@ -1772,6 +1773,7 @@ RSpec.describe "Months", type: :request do
     submit = section.at_css('input[type="submit"][value="Iniciar fechamento"]')
     expect(submit).to be_present
     expect(submit["disabled"]).to be_nil
+    expect(response.body).not_to include("Inclua o extrato planilha de pelo menos uma conta bancária.")
   end
 
   it "unconfirmed GET with no active accounts still shows confirm step" do
@@ -1784,7 +1786,10 @@ RSpec.describe "Months", type: :request do
     expect(response.body).to include("Nenhuma conta bancária ativa")
     headings = month_h2s(response.body)
     expect(headings).to include("Confirmar contas para fechamento")
-    expect(page_doc(response.body).at_css('input[type="submit"][value="Iniciar fechamento"]')).to be_present
+    submit = page_doc(response.body).at_css('input[type="submit"][value="Iniciar fechamento"]')
+    expect(submit).to be_present
+    expect(submit["disabled"]).to eq("disabled")
+    expect(error_notice_text(response.body)).to eq("Inclua o extrato planilha de pelo menos uma conta bancária.")
     expect(headings).not_to include("Recebimentos")
     expect(headings).not_to include("Pagamentos")
     expect(headings).not_to include("Documentos sem casamento")
@@ -1844,8 +1849,12 @@ RSpec.describe "Months", type: :request do
 
     post "/months/2026-05/account_confirmation"
 
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/months/2026-05")
     expect(organization.months.find_by!(year_month: "2026-05").accounts_confirmed).to eq(true)
     get "/months/2026-05"
+    expect(month_h2s(response.body)).to include("Pagamentos")
+    expect(month_h2s(response.body)).not_to include("Confirmar contas para fechamento")
     expect(response.body).to include("Conta Principal")
     expect(rows(response.body, "payment")).not_to be_empty
     expect(response.body).to include("Falta o extrato de 1 conta ativa")
@@ -1853,11 +1862,25 @@ RSpec.describe "Months", type: :request do
     expect(alfa_row.at_css('[data-cell="situation"]').text.strip).to eq("Falta")
   end
 
-  it "second POST account_confirmation is idempotent" do
+  it "POST account_confirmation without spreadsheet returns 422" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
     BankAccount.create_for(organization: organization, name: "Conta Principal", compe: "001")
     post "/months", params: { year_month: "2026-05" }
+
+    post "/months/2026-05/account_confirmation"
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(error_notice_text(response.body)).to eq("Inclua o extrato planilha de pelo menos uma conta bancária.")
+    expect(organization.months.find_by!(year_month: "2026-05").accounts_confirmed).to eq(false)
+  end
+
+  it "second POST account_confirmation is idempotent" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    bank_account = BankAccount.create_for(organization: organization, name: "Conta Principal", compe: "001")
+    post "/months", params: { year_month: "2026-05" }
+    post "/months/2026-05/bank_statements", params: { bank_account_id: bank_account.id, spreadsheet: bb_xlsx }
     post "/months/2026-05/account_confirmation"
 
     post "/months/2026-05/account_confirmation"
@@ -1903,6 +1926,108 @@ RSpec.describe "Months", type: :request do
     expect(response).to have_http_status(:unprocessable_content)
     expect(error_notice_text(response.body)).to eq("Mês fechado")
     expect(month.reload.accounts_confirmed).to eq(false)
+  end
+
+  it "DELETE never-sent empty month redirects home and frees year_month" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    post "/months", params: { year_month: "2026-05" }
+
+    delete "/months/2026-05"
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/")
+    expect(organization.months.where(year_month: "2026-05").count).to eq(0)
+
+    follow_redirect!
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_node(response.body).text).to include("Pronto.")
+    expect(response.body).to include("Nenhum mês aberto")
+
+    post "/months", params: { year_month: "2026-05" }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/months/2026-05")
+    expect(organization.months.where(year_month: "2026-05").count).to eq(1)
+  end
+
+  it "DELETE never-sent month destroys statements matches and nullifies documents" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    month, statement = plant_month(organization, accounts_confirmed: true)
+    attach_statement_files(statement)
+    payment = plant_payment(statement, 22000)
+    plant_inflow(statement, 6300)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    Match.confirm(month: month, payments: [ payment ], supporting_documents: [ document ])
+    expect(document.reload.month_id).to eq(month.id)
+
+    expect(PackageArchiveWriter).not_to receive(:current)
+    delete "/months/2026-05"
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/")
+    expect(organization.months.where(year_month: "2026-05")).to be_empty
+    expect(BankStatement.where(id: statement.id)).to be_empty
+    expect(Payment.where(id: payment.id)).to be_empty
+    expect(Inflow.where(bank_statement_id: statement.id)).to be_empty
+    expect(Match.where(month_id: month.id)).to be_empty
+    expect(document.reload.month_id).to be_nil
+  end
+
+  it "DELETE closed month returns 422" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    month = Month.open(organization: organization, year_month: "2026-05")
+    month.update!(closed: true)
+
+    delete "/months/2026-05"
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(error_notice_text(response.body)).to eq("Só é possível excluir um fechamento aberto que nunca foi enviado.")
+    expect(month.reload).to be_closed
+    expect(organization.months.where(year_month: "2026-05").count).to eq(1)
+  end
+
+  it "DELETE reopened month returns 422" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    month = Month.open(organization: organization, year_month: "2026-05")
+    month.update!(closed: false, month_folder_id: "drive-folder")
+
+    delete "/months/2026-05"
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(error_notice_text(response.body)).to eq("Só é possível excluir um fechamento aberto que nunca foi enviado.")
+    expect(organization.months.find_by!(year_month: "2026-05").month_folder_id).to eq("drive-folder")
+  end
+
+  it "DELETE invalid or missing month returns 404" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    Month.open(organization: organization, year_month: "2026-04")
+
+    delete "/months/2026-13"
+
+    expect(response).to have_http_status(:not_found)
+    expect(organization.months.count).to eq(1)
+
+    delete "/months/2026-05"
+
+    expect(response).to have_http_status(:not_found)
+    expect(organization.months.where(year_month: "2026-04").count).to eq(1)
+  end
+
+  it "submitter DELETE month returns 404" do
+    _coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    Month.open(organization: organization, year_month: "2026-05")
+    sign_in_as(submitter, organization: organization)
+
+    delete "/months/2026-05"
+
+    expect(response).to have_http_status(:not_found)
+    expect(organization.months.where(year_month: "2026-05").count).to eq(1)
   end
 
   it "confirmed GET missing-document payment includes Resolver" do

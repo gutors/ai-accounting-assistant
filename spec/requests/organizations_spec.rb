@@ -314,6 +314,67 @@ RSpec.describe "Organization home", type: :request do
     expect(headings).to include("Pessoas")
   end
 
+  def month_delete_form(row, year_month)
+    row.css("form").find do |form|
+      form["action"] == "/months/#{year_month}" && form.at_css('input[name="_method"][value="delete"]')
+    end
+  end
+
+  it "never-sent open month row includes Excluir with turbo confirm" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    Month.open(organization: organization, year_month: "2026-05")
+
+    get "/"
+
+    month_row = rows(response.body, "month").first
+    expect(month_row.text).to include("Aberto")
+    form = month_delete_form(month_row, "2026-05")
+    expect(form).to be_present
+    expect(form["data-turbo-confirm"]).to eq("Excluir este fechamento?")
+    expect(form.at_css('button, input[type="submit"]').text).to include("Excluir")
+  end
+
+  it "reopened month row omits Excluir" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    month = Month.open(organization: organization, year_month: "2026-05")
+    month.update!(closed: false, month_folder_id: "drive-folder")
+
+    get "/"
+
+    month_row = rows(response.body, "month").first
+    expect(month_row.text).to include("Aberto")
+    expect(month_delete_form(month_row, "2026-05")).to be_nil
+    expect(month_row.text).not_to include("Excluir")
+  end
+
+  it "confirmed never-sent month row includes Excluir" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    month = Month.open(organization: organization, year_month: "2026-05")
+    month.update!(accounts_confirmed: true)
+
+    get "/"
+
+    month_row = rows(response.body, "month").first
+    form = month_delete_form(month_row, "2026-05")
+    expect(form).to be_present
+    expect(form["data-turbo-confirm"]).to eq("Excluir este fechamento?")
+    expect(form.at_css('button, input[type="submit"]').text).to include("Excluir")
+  end
+
+  it "submitter home omits Excluir" do
+    _coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    Month.open(organization: organization, year_month: "2026-05")
+    sign_in_as(submitter, organization: organization)
+
+    get "/"
+
+    expect(response.body).not_to include("Excluir")
+  end
+
   it "closed month row says Fechado" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
@@ -326,6 +387,8 @@ RSpec.describe "Organization home", type: :request do
     expect(month_row.at_css('a[href="/months/2026-05"]')).not_to be_nil
     expect(month_row.text).to include("Fechado")
     expect(month_row.text).not_to include("Aberto")
+    expect(month_row.text).not_to include("Excluir")
+    expect(month_delete_form(month_row, "2026-05")).to be_nil
   end
 
   it "submitter home says Inicio and points to Documentos" do
