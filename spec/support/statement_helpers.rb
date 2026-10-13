@@ -24,6 +24,23 @@ module StatementHelpers
     fixture_file_upload("extrato-pagseguro-maio-2026.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
   end
 
+  def pagseguro_movements_xlsx(rows, filename: "pagseguro-row.xlsx")
+    path = Rails.root.join("tmp", filename)
+    workbook = RubyXL::Workbook.new
+    sheet = workbook[0]
+    PagseguroSpreadsheet::HEADERS.each_with_index { |name, index| sheet.add_cell(0, index, name) }
+    rows.each_with_index do |movement, offset|
+      row = offset + 1
+      sheet.add_cell(row, 0, movement.fetch(:data, "11/05/2026"))
+      sheet.add_cell(row, 1, movement.fetch(:tipo, "Pix enviado"))
+      sheet.add_cell(row, 2, movement.fetch(:descricao, "VITOR CASTRO FERREIRA"))
+      sheet.add_cell(row, 3, movement[:entradas]) unless movement[:entradas].nil?
+      sheet.add_cell(row, 4, movement[:saidas]) unless movement[:saidas].nil?
+    end
+    workbook.write(path.to_s)
+    Rack::Test::UploadedFile.new(path.to_s, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+  end
+
   def upload_path(name, content, content_type)
     path = Rails.root.join("tmp", name)
     File.binwrite(path, content)

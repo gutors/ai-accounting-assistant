@@ -139,6 +139,101 @@ RSpec.describe BankStatement, type: :model do
     expect(inflow.history).to eq("Rendimento da conta — Rendimento líquido sobre dinheiro em conta")
   end
 
+  it "PagSeguro Entradas 0 and Saidas 1512,40 persists one Payment 151240 cents" do
+    spreadsheet = pagseguro_movements_xlsx(
+      [ { entradas: "0", saidas: "1512,40" } ],
+      filename: "pagseguro-zero-string.xlsx"
+    )
+    statement = BankStatement.import(month: month, bank_account: pagseguro_account, pdf: pagseguro_pdf, spreadsheet: spreadsheet)
+
+    expect(statement.payments.count).to eq(1)
+    expect(statement.inflows.count).to eq(0)
+    payment = statement.payments.first
+    expect(payment.amount_cents).to eq(151240)
+    expect(payment.occurred_on).to eq(Date.new(2026, 5, 11))
+  end
+
+  it "PagSeguro Entradas 0,00 and Saidas 1512,40 persists one Payment 151240 cents" do
+    spreadsheet = pagseguro_movements_xlsx(
+      [ { entradas: "0,00", saidas: "1512,40" } ],
+      filename: "pagseguro-zero-comma.xlsx"
+    )
+    statement = BankStatement.import(month: month, bank_account: pagseguro_account, pdf: pagseguro_pdf, spreadsheet: spreadsheet)
+
+    expect(statement.payments.count).to eq(1)
+    expect(statement.inflows.count).to eq(0)
+    expect(statement.payments.first.amount_cents).to eq(151240)
+  end
+
+  it "PagSeguro Excel numeric 0 Entradas and Saidas 1512.4 persists one Payment 151240 cents" do
+    spreadsheet = pagseguro_movements_xlsx(
+      [ { entradas: 0, saidas: 1512.4 } ],
+      filename: "pagseguro-excel-zero.xlsx"
+    )
+    statement = BankStatement.import(month: month, bank_account: pagseguro_account, pdf: pagseguro_pdf, spreadsheet: spreadsheet)
+
+    expect(statement.payments.count).to eq(1)
+    expect(statement.inflows.count).to eq(0)
+    expect(statement.payments.first.amount_cents).to eq(151240)
+  end
+
+  it "PagSeguro only Entradas 155,00 persists one Inflow 15500 cents" do
+    spreadsheet = pagseguro_movements_xlsx(
+      [ { entradas: "155,00", tipo: "Pix recebido", descricao: "Padaria Central" } ],
+      filename: "pagseguro-only-entradas.xlsx"
+    )
+    statement = BankStatement.import(month: month, bank_account: pagseguro_account, pdf: pagseguro_pdf, spreadsheet: spreadsheet)
+
+    expect(statement.inflows.count).to eq(1)
+    expect(statement.payments.count).to eq(0)
+    expect(statement.inflows.first.amount_cents).to eq(15500)
+  end
+
+  it "PagSeguro Entradas 0 and Saidas 0 persists zero movements" do
+    spreadsheet = pagseguro_movements_xlsx(
+      [ { entradas: "0", saidas: "0" } ],
+      filename: "pagseguro-both-zero.xlsx"
+    )
+    statement = BankStatement.import(month: month, bank_account: pagseguro_account, pdf: pagseguro_pdf, spreadsheet: spreadsheet)
+
+    expect(statement).to be_persisted
+    expect(statement.inflows.count).to eq(0)
+    expect(statement.payments.count).to eq(0)
+  end
+
+  it "PagSeguro both columns greater than zero prefers Entradas Inflow 15500 cents" do
+    spreadsheet = pagseguro_movements_xlsx(
+      [ { entradas: "155,00", saidas: "1512,40" } ],
+      filename: "pagseguro-both-valued.xlsx"
+    )
+    statement = BankStatement.import(month: month, bank_account: pagseguro_account, pdf: pagseguro_pdf, spreadsheet: spreadsheet)
+
+    expect(statement.inflows.count).to eq(1)
+    expect(statement.payments.count).to eq(0)
+    expect(statement.inflows.first.amount_cents).to eq(15500)
+  end
+
+  it "COMPE 290 import does not persist amount_cents 0" do
+    zeros = pagseguro_movements_xlsx(
+      [
+        { entradas: "0", tipo: "Pix recebido", descricao: "zero string" },
+        { entradas: "0,00", tipo: "Pix recebido", descricao: "zero comma" },
+        { entradas: 0, tipo: "Pix recebido", descricao: "excel zero" },
+        { saidas: "0", descricao: "saidas zero" },
+        { entradas: "0", saidas: "0", descricao: "both zero" },
+        { entradas: "0", saidas: "1512,40", descricao: "zero entradas valued saidas" }
+      ],
+      filename: "pagseguro-zero-encodings.xlsx"
+    )
+    zeros_statement = BankStatement.import(month: month, bank_account: pagseguro_account, pdf: pagseguro_pdf, spreadsheet: zeros)
+    expect(zeros_statement.inflows.where(amount_cents: 0)).to be_empty
+    expect(zeros_statement.payments.where(amount_cents: 0)).to be_empty
+
+    fixture_statement = BankStatement.import(month: month, bank_account: pagseguro_account, pdf: pagseguro_pdf, spreadsheet: pagseguro_xlsx)
+    expect(fixture_statement.inflows.where(amount_cents: 0)).to be_empty
+    expect(fixture_statement.payments.where(amount_cents: 0)).to be_empty
+  end
+
   it "replace keeps one BankStatement and only new movements" do
     BankStatement.import(month: month, bank_account: bb_account, pdf: statement_pdf, spreadsheet: bb_xlsx)
     statement = BankStatement.import(month: month, bank_account: bb_account, pdf: statement_pdf, spreadsheet: one_row_csv)
