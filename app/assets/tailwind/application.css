@@ -196,7 +196,7 @@
     }
 
     .ledger-month-bank {
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 6.5rem minmax(0, 1.5fr);
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 6.5rem minmax(0, 1.2fr) minmax(0, 1.5fr);
     }
 
     .ledger-extras {

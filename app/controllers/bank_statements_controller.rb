@@ -31,6 +31,7 @@ class BankStatementsController < ApplicationController
     else
       @month = month
       @import_error = statement.errors[:base].first
+      @import_bank_account_id = bank_account.id
       load_month_page
       render "months/show", status: :unprocessable_content
     end

@@ -75,7 +75,7 @@ One account at a bank, belonging to an organization (several allowed, including 
 _Avoid_: bank (when the account is meant), apelido, PIX (when the organization’s keys on the account are meant)
 
 **Bank statement**:
-The list of bank movements from one bank account for the month. An organization may have more than one bank account. For each bank account and month the coordinator chooses: upload PDF plus CSV/XLSX, or Open Finance (JSON). The accountant’s PDF is optional when Open Finance is used. Payments for that month do not exist in the system until the coordinator inserts the statement; that is typically the following calendar month or later.
+The list of bank movements from one bank account for the month. An organization may have more than one bank account. For each bank account and month the coordinator chooses: upload a CSV/XLSX spreadsheet (PDF optional), or Open Finance (JSON; the accountant’s PDF stays optional). **Presente** means a BankStatement row exists for that active account and month (spreadsheet attached). Payments for that month do not exist in the system until the coordinator inserts the statement; that is typically the following calendar month or later.
 _Avoid_: OFX, extract file (as the concept)
 
 **Inflow**:

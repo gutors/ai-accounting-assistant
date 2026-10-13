@@ -82,10 +82,66 @@ RSpec.describe "Bank statements", type: :request do
     post "/months/2026-05/bank_statements", params: { bank_account_id: bank_account.id }
 
     expect(response).to have_http_status(:unprocessable_content)
-    expect(error_notice_text(response.body)).to eq("Envie o PDF e a planilha")
+    expect(error_notice_text(response.body)).to eq("Envie a planilha")
   end
 
-  it "POST pdf only returns 422 Envie o PDF e a planilha" do
+  it "POST spreadsheet only persists statement without pdf" do
+    _account, organization, bank_account = open_with_account
+
+    post "/months/2026-05/bank_statements", params: {
+      bank_account_id: bank_account.id, spreadsheet: bb_xlsx
+    }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/months/2026-05")
+    statements = BankStatement.joins(:month).where(months: { organization_id: organization.id })
+    expect(statements.count).to eq(1)
+    statement = statements.first
+    expect(statement.bank_account_id).to eq(bank_account.id)
+    expect(statement.spreadsheet).to be_attached
+    expect(statement.spreadsheet.filename.to_s).to eq("extrato-maio-2026.xlsx")
+    expect(statement.pdf).not_to be_attached
+  end
+
+  it "GET after spreadsheet-only shows Presente Planilha and no Pdf" do
+    _account, _organization, bank_account = open_with_account
+    post "/months/2026-05/bank_statements", params: {
+      bank_account_id: bank_account.id, spreadsheet: bb_xlsx
+    }
+
+    get "/months/2026-05"
+
+    account_row = row(response.body, "bank-account", bank_account_id: bank_account.id)
+    documents = account_row.at_css('[data-cell="documents"]')
+    expect(account_row.text).to include("Presente")
+    expect(documents.text).to include("Planilha")
+    expect(documents.text).to include("extrato-maio-2026.xlsx")
+    expect(documents.text).not_to include("Pdf")
+    expect(account_row.at_css('[data-cell="situation"]').text.strip).to eq("Presente")
+    expect(response.body).not_to include("Falta o extrato")
+  end
+
+  it "POST pdf and spreadsheet shows Pdf then Planilha in Documentos" do
+    _account, organization, bank_account = open_with_account
+
+    post "/months/2026-05/bank_statements", params: {
+      bank_account_id: bank_account.id, pdf: statement_pdf, spreadsheet: bb_xlsx
+    }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/months/2026-05")
+    statement = BankStatement.joins(:month).where(months: { organization_id: organization.id }).first
+    expect(statement.pdf).to be_attached
+    expect(statement.spreadsheet).to be_attached
+
+    get "/months/2026-05"
+    account_row = row(response.body, "bank-account", bank_account_id: bank_account.id)
+    lines = account_row.at_css('[data-cell="documents"]').css("p").map { |node| node.text.strip }
+    expect(lines).to eq([ "Pdf extrato-maio-2026.pdf", "Planilha extrato-maio-2026.xlsx" ])
+    expect(account_row.at_css('[data-cell="situation"]').text.strip).to eq("Presente")
+  end
+
+  it "POST pdf only returns 422 Envie a planilha" do
     _account, organization, bank_account = open_with_account
 
     post "/months/2026-05/bank_statements", params: {
@@ -93,20 +149,33 @@ RSpec.describe "Bank statements", type: :request do
     }
 
     expect(response).to have_http_status(:unprocessable_content)
-    expect(response.body).to include("Envie o PDF e a planilha")
+    expect(error_notice_text(response.body)).to eq("Envie a planilha")
     expect(BankStatement.joins(:month).where(months: { organization_id: organization.id }).count).to eq(0)
   end
 
-  it "POST spreadsheet only returns 422 Envie o PDF e a planilha" do
+  it "POST without files returns 422 Envie a planilha" do
     _account, organization, bank_account = open_with_account
 
-    post "/months/2026-05/bank_statements", params: {
-      bank_account_id: bank_account.id, spreadsheet: bb_xlsx
-    }
+    post "/months/2026-05/bank_statements", params: { bank_account_id: bank_account.id }
 
     expect(response).to have_http_status(:unprocessable_content)
-    expect(response.body).to include("Envie o PDF e a planilha")
+    expect(error_notice_text(response.body)).to eq("Envie a planilha")
     expect(BankStatement.joins(:month).where(months: { organization_id: organization.id }).count).to eq(0)
+  end
+
+  it "POST without files opens Incluir extrato on the failing account" do
+    _account, organization, bank_account = open_with_account
+    other = BankAccount.create_for(organization: organization, name: "Conta Alfa", compe: "033")
+
+    post "/months/2026-05/bank_statements", params: { bank_account_id: bank_account.id }
+
+    expect(error_notice_text(response.body)).to eq("Envie a planilha")
+    failing = row(response.body, "bank-account", bank_account_id: bank_account.id)
+    other_row = row(response.body, "bank-account", bank_account_id: other.id)
+    failing_details = failing.css("details").find { |node| node.at_css("summary")&.text&.strip == "Incluir extrato" }
+    other_details = other_row.css("details").find { |node| node.at_css("summary")&.text&.strip == "Incluir extrato" }
+    expect(failing_details.has_attribute?("open")).to eq(true)
+    expect(other_details.has_attribute?("open")).to eq(false)
   end
 
   it "POST BB scrambled headers returns 422 Nao foi possivel ler a planilha" do
@@ -249,7 +318,7 @@ RSpec.describe "Bank statements", type: :request do
     expect(BankStatement.joins(:month).where(months: { organization_id: organization.id }).count).to eq(0)
   end
 
-  it "POST ofx spreadsheet returns 422 Envie o PDF e a planilha" do
+  it "POST ofx spreadsheet returns 422 Envie a planilha" do
     _account, organization, bank_account = open_with_account
 
     post "/months/2026-05/bank_statements", params: {
@@ -257,8 +326,49 @@ RSpec.describe "Bank statements", type: :request do
     }
 
     expect(response).to have_http_status(:unprocessable_content)
-    expect(response.body).to include("Envie o PDF e a planilha")
+    expect(error_notice_text(response.body)).to eq("Envie a planilha")
     expect(BankStatement.joins(:month).where(months: { organization_id: organization.id }).count).to eq(0)
+  end
+
+  it "POST replace without pdf keeps existing pdf" do
+    _account, _organization, bank_account = open_with_account
+    post "/months/2026-05/bank_statements", params: {
+      bank_account_id: bank_account.id, pdf: statement_pdf, spreadsheet: bb_xlsx
+    }
+
+    post "/months/2026-05/bank_statements", params: {
+      bank_account_id: bank_account.id, spreadsheet: one_row_csv
+    }
+
+    expect(bank_account.bank_statements.count).to eq(1)
+    statement = bank_account.bank_statements.last
+    expect(statement.pdf.filename.to_s).to eq("extrato-maio-2026.pdf")
+    expect(statement.spreadsheet.filename.to_s).to eq("replace.csv")
+
+    get "/months/2026-05"
+    documents = row(response.body, "bank-account", bank_account_id: bank_account.id).at_css('[data-cell="documents"]')
+    expect(documents.text).to include("Pdf extrato-maio-2026.pdf")
+    expect(documents.text).to include("Planilha")
+    expect(documents.text).to include("replace.csv")
+  end
+
+  it "POST pdf onto spreadsheet-only attaches pdf" do
+    _account, _organization, bank_account = open_with_account
+    post "/months/2026-05/bank_statements", params: {
+      bank_account_id: bank_account.id, spreadsheet: bb_xlsx
+    }
+
+    post "/months/2026-05/bank_statements", params: {
+      bank_account_id: bank_account.id, pdf: statement_pdf, spreadsheet: bb_xlsx
+    }
+
+    expect(bank_account.bank_statements.last.pdf.filename.to_s).to eq("extrato-maio-2026.pdf")
+
+    get "/months/2026-05"
+    documents = row(response.body, "bank-account", bank_account_id: bank_account.id).at_css('[data-cell="documents"]')
+    expect(documents.text).to include("Pdf extrato-maio-2026.pdf")
+    expect(documents.text).to include("Planilha")
+    expect(documents.text).to include("extrato-maio-2026.xlsx")
   end
 
   it "POST BB row dated 2026-04-01 returns 422 fora de 2026-05" do

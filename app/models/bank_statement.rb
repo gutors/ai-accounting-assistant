@@ -1,7 +1,7 @@
 class BankStatement < ApplicationRecord
   MAX_BYTES = 10_485_760
   SPREADSHEET_EXT = %w[.csv .xlsx].freeze
-  MISSING_FILES = "Envie o PDF e a planilha"
+  MISSING_SPREADSHEET = "Envie a planilha"
   UNREADABLE = "Não foi possível ler a planilha"
   UNSUPPORTED_BANK = "Este banco ainda não tem leitura de planilha"
   OVERSIZE = "Cada arquivo pode ter no máximo 10 MB"
@@ -35,12 +35,12 @@ class BankStatement < ApplicationRecord
       return self
     end
 
-    if pdf.blank? || spreadsheet.blank? || !spreadsheet_ext?(spreadsheet)
-      errors.add(:base, MISSING_FILES)
+    if spreadsheet.blank? || !spreadsheet_ext?(spreadsheet)
+      errors.add(:base, MISSING_SPREADSHEET)
       return self
     end
 
-    if oversized?(pdf) || oversized?(spreadsheet)
+    if (pdf.present? && oversized?(pdf)) || oversized?(spreadsheet)
       errors.add(:base, OVERSIZE)
       return self
     end
@@ -109,7 +109,7 @@ class BankStatement < ApplicationRecord
           payments.create!(attrs)
         end
       end
-      self.pdf.attach(pdf)
+      self.pdf.attach(pdf) if pdf.present?
       self.spreadsheet.attach(spreadsheet)
     end
   end

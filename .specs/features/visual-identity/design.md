@@ -284,8 +284,9 @@ maio de 2026                                        [ Fechar para envio ]     (o
 2 pagamentos com documento faltante.  Falta o extrato de 1 conta ativa.
 <notice>
 Contas bancárias                                (h2)
-  Conta Principal   ag 1234      Presente   extrato.pdf, extrato.xlsx    ▸ Substituir extrato
-  Conta Alfa                     Falta      PDF [..] Planilha [..] [Enviar extrato]
+  Conta Principal   ag 1234      Presente   Pdf extrato.pdf              ▸ Substituir extrato
+                                         Planilha extrato.xlsx
+  Conta Alfa                     Falta                                   ▸ Incluir extrato
 Recebimentos                                    (h2)
   04/05/2026  Pix - Recebido                   R$ 63,00
               Conta Principal
@@ -314,9 +315,12 @@ Documentos sem casamento                        (h2)
     `N pagamentos com documento faltante`. The missing-document sentence is `margem` when N > 0.
   - `Falta o extrato de 1 conta ativa` / `Falta o extrato de N contas ativas`; omitted when
     every active account has its statement.
-- Bank account rows `li[data-row="bank-account"]`: name and coordinates | `Presente` with the
-  two filenames in meta, or `Falta` in `margem` | when absent the upload form is inline; when
-  present it is inside `<details><summary>Substituir extrato</summary>`. Closed month: no form.
+- Bank account rows `li[data-row="bank-account"]`: name and coordinates | Situação `Presente`
+  or `Falta` in `margem` (no filenames) | Documentos: `Pdf {filename}` when a PDF is attached
+  (omitted otherwise), `Planilha {filename}` when a spreadsheet is attached, one per line, no
+  wrap | when Falta and the month is open, `<details><summary>Incluir extrato</summary>` (closed
+  until a `422` for that account); when Presente and open, `<details><summary>Substituir
+  extrato</summary>`. Closed month: no form.
 - Inflows `li[data-row="inflow"]`: date | history + account | amount. No status cell.
 - Payments `li[data-row="payment"][data-payment-id][data-status]`, `data-status` one of
   `missing`, `matched`, `bank_fee`, `accountant_fee`, `extra`. A `missing` row carries the red
@@ -330,8 +334,8 @@ Documentos sem casamento                        (h2)
   documento</summary>`, same condition as today.
 - Pool `li[data-row="pool-document"][data-document-id]`: checkbox (when the document has no month
   and the month is open) with the payee as its label | amount | `Devolver` when applicable.
-- New copy: the summary sentences, `Resolver`, `Substituir extrato`, `Casar vários pagamentos
-  com um documento`, month names.
+- New copy: the summary sentences, `Resolver`, `Incluir extrato`, `Substituir extrato`, `Casar
+  vários pagamentos com um documento`, month names, Documentos `Pdf` / `Planilha`.
 
 ### `documents` — `GET /supporting_documents`
 
