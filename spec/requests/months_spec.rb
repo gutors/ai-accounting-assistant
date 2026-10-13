@@ -1673,9 +1673,13 @@ RSpec.describe "Months", type: :request do
     )
     account_row = row(response.body, "bank-account", bank_account_id: statement.bank_account_id)
     cells = account_row.element_children
+    expect(cells.size).to eq(5)
+    expect(cells[0].text.strip).to eq(statement.bank_account.name)
+    expect(cells[1].text.strip).to eq(statement.bank_account.coordinates.to_s)
     expect(cells[2]["data-cell"]).to eq("situation")
     expect(cells[3]["data-cell"]).to eq("documents")
     expect(cells[3]["class"]).to include("whitespace-nowrap")
+    expect(cells[4].at_css("summary").text.strip).to eq("Substituir extrato")
   end
 
   it "two accounts only Presente row lists Pdf and Planilha filenames" do

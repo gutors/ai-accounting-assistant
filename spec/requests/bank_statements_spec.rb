@@ -169,6 +169,7 @@ RSpec.describe "Bank statements", type: :request do
 
     post "/months/2026-05/bank_statements", params: { bank_account_id: bank_account.id }
 
+    expect(response).to have_http_status(:unprocessable_content)
     expect(error_notice_text(response.body)).to eq("Envie a planilha")
     failing = row(response.body, "bank-account", bank_account_id: bank_account.id)
     other_row = row(response.body, "bank-account", bank_account_id: other.id)
@@ -314,7 +315,7 @@ RSpec.describe "Bank statements", type: :request do
     }
 
     expect(response).to have_http_status(:unprocessable_content)
-    expect(response.body).to include("Cada arquivo pode ter no máximo 10 MB")
+    expect(error_notice_text(response.body)).to eq("Cada arquivo pode ter no máximo 10 MB")
     expect(BankStatement.joins(:month).where(months: { organization_id: organization.id }).count).to eq(0)
   end
 
