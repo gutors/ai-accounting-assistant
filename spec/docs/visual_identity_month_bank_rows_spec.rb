@@ -50,4 +50,16 @@ RSpec.describe "Visual identity month bank rows" do
     expect(checks).to include("are omitted")
     expect(checks).to include("after confirmation or while closed")
   end
+
+  it "visual-identity month disables confirm without a spreadsheet" do
+    design = Rails.root.join(".specs/features/visual-identity/design.md").read
+    month = design.split("### `month` — `GET /months/:year_month`", 2).last.split("### `documents` —", 2).first
+
+    expect(month).to include("Iniciar fechamento")
+    expect(month).to include("disabled")
+    expect(month).to include("Inclua o extrato planilha de pelo menos uma conta bancária.")
+    expect(month).to include("at least one Presente")
+    expect(month).to include("mixed Falta allowed")
+    expect(month).to include("Close-for-send still requires every active account’s statement")
+  end
 end

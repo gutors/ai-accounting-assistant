@@ -186,9 +186,9 @@ Selecione um mês para abrir o fechamento ou escolha um na lista abaixo.
 Abrir o fechamento mensal                      (h2)
   Mês  [ select today − 12 through today + 12, previous calendar month selected ]  [ Abrir mês ]
 Meses                                          (h2)
-  Mês | AAAA-MM | Status                       ← column names; from 768px
-  maio de 2026    2026-05    Aberto            ← li[data-row="month"]; link on month_title
-  abril de 2026   2026-04    Fechado
+  Mês | AAAA-MM | Status |                     ← last column is the action; from 768px
+  maio de 2026    2026-05    Aberto   Excluir  ← never-sent Aberto; Turbo Excluir este fechamento?
+  abril de 2026   2026-04    Fechado           ← Fechado and reopened Aberto omit Excluir
 Pessoas                                        (h2)
   Coordenadores            | Submitters         ← two columns from 768px
    ana@…       Revogar     |  joao@…   Revogar
@@ -204,7 +204,10 @@ Convites pendentes                             (h2, full width)
   `bg-caixa text-white`; others are secondary.
 - Open-month form is the first section after the page title. Months list is a ledger of
   `li[data-row="month"]`: `month_title` linked, `year_month` in meta tabular figures, then
-  `Aberto` or `Fechado` in `ink-soft`. `Nenhum mês aberto` stays as the empty state.
+  `Aberto` or `Fechado` in `ink-soft`, then a last action column. `Excluir` is on `Aberto`
+  rows that have never been closed-for-send (`month_folder_id` blank), with Turbo confirm
+  `Excluir este fechamento?`. `Fechado` and reopened `Aberto` rows omit it.
+  `Nenhum mês aberto` stays as the empty state.
 - Invite forms sit under their list inside the column. The `Convidar coordenador` /
   `Convidar submitter` headings become the `<legend>`-style labels of those forms; the submit
   stays `Convidar`.
@@ -293,7 +296,9 @@ Confirmar contas para fechamento                (h2)
   Nome           Situação
   Conta Alfa     Falta                         ← Falta in margem; ledger name order
   Conta Principal Presente
-  [Iniciar fechamento]
+  [Iniciar fechamento]                         ← disabled while no account has a spreadsheet;
+                                                   notice: Inclua o extrato planilha de pelo menos uma conta bancária.
+                                                   enabled with at least one Presente (mixed Falta allowed)
 ```
 
 Recebimentos, Pagamentos, and Documentos sem casamento are omitted while unconfirmed and open.
@@ -344,7 +349,11 @@ Documentos sem casamento                        (h2)
 - After Contas bancárias, while unconfirmed and open: a step `Confirmar contas para
   fechamento` lists each active account’s name with `Presente` or `Falta` (`Falta` in
   `margem`) in ledger name order, two-column ledger (`Nome`, `Situação`), submit
-  `Iniciar fechamento`. That step is absent after confirmation or while closed.
+  `Iniciar fechamento`. While that step is shown and no account has a spreadsheet
+  statement, `Iniciar fechamento` is disabled and the notice is `Inclua o extrato
+  planilha de pelo menos uma conta bancária.`; with at least one Presente it stays
+  enabled (mixed Falta allowed). Close-for-send still requires every active account’s statement.
+  That step is absent after confirmation or while closed.
   `Recebimentos`, `Pagamentos`, and `Documentos sem casamento` are omitted until then.
   After confirmation (or while closed), the missing-document summary and those three
   sections match today’s band; the confirm step is absent.
