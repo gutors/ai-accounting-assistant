@@ -33,8 +33,7 @@ class StatementSpreadsheet
   end
 
   def self.present_amount?(value)
-    return false if value.nil?
-
-    value.to_s.strip.present?
+    cents = BrlCents.parse(value)
+    cents.is_a?(Integer) && cents.positive?
   end
 end
