@@ -19,4 +19,34 @@ RSpec.describe "Visual identity month bank rows" do
     expect(checks).not_to include("its upload form has no `<details>` ancestor")
     expect(checks).not_to include("Envie o PDF e a planilha")
   end
+
+  it "visual-identity month confirms accounts before movements" do
+    design = Rails.root.join(".specs/features/visual-identity/design.md").read
+    month = design.split("### `month` — `GET /months/:year_month`", 2).last.split("### `documents` —", 2).first
+    checks = Rails.root.join(".specs/features/visual-identity/checks.md").read
+
+    expect(month).to include("accounts_confirmed")
+    expect(month).to include("Insira os extratos das contas bancárias com as quais deseja realizar o fechamento.")
+    expect(month).to include("not the missing-document count")
+    expect(month).to include("Confirmar contas para fechamento")
+    expect(month).to include("Presente")
+    expect(month).to include("Falta")
+    expect(month).to include("margem")
+    expect(month).to include("ledger name order")
+    expect(month).to include("Iniciar fechamento")
+    expect(month).to include("Recebimentos")
+    expect(month).to include("Pagamentos")
+    expect(month).to include("Documentos sem casamento")
+    expect(month).to include("are omitted")
+    expect(month).to include("After confirmation (or while closed)")
+    expect(month).to include("the confirm step is absent")
+    expect(checks).to include("Insira os extratos das contas bancárias com as quais deseja realizar o fechamento.")
+    expect(checks).to include("Confirmar contas para fechamento")
+    expect(checks).to include("Iniciar fechamento")
+    expect(checks).to include("Recebimentos")
+    expect(checks).to include("Pagamentos")
+    expect(checks).to include("Documentos sem casamento")
+    expect(checks).to include("are omitted")
+    expect(checks).to include("after confirmation or while closed")
+  end
 end

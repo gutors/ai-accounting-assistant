@@ -66,6 +66,8 @@ Proof: `bin/rspec spec/assets/views_palette_spec.rb -e "views use token utilitie
 
 ### S2 - Month ledger
 
+While `accounts_confirmed` is false and the month is open, the summary is `Insira os extratos das contas bancárias com as quais deseja realizar o fechamento.` (not the missing-document count); after Contas bancárias a step `Confirmar contas para fechamento` lists each active account’s name with `Presente` or `Falta` (`Falta` in `margem`) in ledger name order and submit `Iniciar fechamento`; `Recebimentos`, `Pagamentos`, and `Documentos sem casamento` are omitted. C18–C37 describe the page after confirmation or while closed.
+
 **C17** - Coordinator `GET /months/2026-05`: the `<h1>` text includes `maio de 2026` and the body includes `2026-05` (LEDGER-01, AC 13)
 Proof: `bin/rspec spec/requests/months_spec.rb -e "month title is maio de 2026 with 2026-05 under it"`
 
