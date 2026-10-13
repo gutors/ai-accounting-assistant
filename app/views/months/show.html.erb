@@ -47,6 +47,7 @@
     <% else %>
       <div class="ledger-sheet">
         <div class="ledger-row ledger-head ledger-month-bank" aria-hidden="true">
+          <span>Banco</span>
           <span>Nome</span>
           <span>Agência/conta</span>
           <span>Situação</span>
@@ -57,6 +58,7 @@
           <% @active_bank_accounts.each do |bank_account| %>
             <% statement = @statements_by_account_id[bank_account.id] %>
             <li data-row="bank-account" data-bank-account-id="<%= bank_account.id %>" class="ledger-row ledger-month-bank">
+              <p class="font-medium"><%= bank_account.bank.presentation_name %></p>
               <p class="font-medium"><%= bank_account.name %></p>
               <p class="text-meta text-ink-soft"><%= bank_account.coordinates %></p>
               <div data-cell="situation">
@@ -66,12 +68,14 @@
                   <p class="text-margem">Falta</p>
                 <% end %>
               </div>
-              <div data-cell="documents" class="<%= "whitespace-nowrap" if statement %>">
+              <div data-cell="documents">
                 <% if statement&.pdf&.attached? %>
-                  <p>Pdf <%= statement.pdf.filename %></p>
+                  <% pdf_line = "Pdf #{statement.pdf.filename}" %>
+                  <p class="truncate text-meta text-ink-soft" title="<%= pdf_line %>"><%= pdf_line %></p>
                 <% end %>
                 <% if statement&.spreadsheet&.attached? %>
-                  <p>Planilha <%= statement.spreadsheet.filename %></p>
+                  <% spreadsheet_line = "Planilha #{statement.spreadsheet.filename}" %>
+                  <p class="truncate text-meta text-ink-soft" title="<%= spreadsheet_line %>"><%= spreadsheet_line %></p>
                 <% end %>
               </div>
               <div>

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-28T14:04:57-03:00",
+  "generatedAt": "2026-10-13T17:40:00-03:00",
   "title": "Design System: Fechamento mensal",
   "extensions": {
     "colorMeta": {
@@ -159,7 +159,7 @@
       {
         "name": "md",
         "value": "768px",
-        "purpose": "Wide gutter, four-track ledger rows, two-column forms, and the people list begin here. Display type is the token size from this width; below it, 1.75rem."
+        "purpose": "Wide gutter, ruled ledger sheets (head and body share one column template), two-column forms, and the people list begin here. Display type is the token size from this width; below it, 1.75rem."
       }
     ]
   },
@@ -208,9 +208,9 @@
       "name": "Ledger Row",
       "kind": "custom",
       "refersTo": "notice",
-      "description": "A payment with a missing document: four tracks, tabular amount, red margin. Inflows have no status cell.",
-      "html": "<ul class=\"ds-ledger\"><li class=\"ds-row\" data-status=\"missing\"><time class=\"ds-row-date\">11/05/2026</time><div><p class=\"ds-row-primary\">Pix enviado — Padaria Central</p><p class=\"ds-row-meta\">Conta Principal</p></div><p class=\"ds-row-amount\">R$ 220,00</p><p class=\"ds-row-status\">Documento faltante</p></li></ul>",
-      "css": ".ds-ledger { list-style: none; margin: 0; padding: 0; font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; color: var(--color-ink); max-width: 72rem; } .ds-row { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr) 8rem 12rem; column-gap: 16px; row-gap: 4px; align-items: start; border-bottom: 1px solid var(--color-rule); padding: 12px 0; } .ds-row[data-status=\"missing\"] { border-left: 3px solid var(--color-margem); padding-left: 12px; } .ds-row-date { font-variant-numeric: tabular-nums; } .ds-row-primary { margin: 0; font-weight: 500; } .ds-row-meta { margin: 0; color: var(--color-ink-soft); font-size: 0.8125rem; line-height: 1.125rem; } .ds-row-amount { margin: 0; text-align: right; font-weight: 500; font-variant-numeric: tabular-nums; } .ds-row-status { margin: 0; color: var(--color-margem); }"
+      "description": "A payment with a missing document: five tracks, vertical rules, tabular amount, red margin, actions in their own column. Head and body share the template.",
+      "html": "<div class=\"ds-ledger\"><div class=\"ds-row ds-head\" aria-hidden=\"true\"><span>Data</span><span>Histórico</span><span class=\"ds-row-amount\">Valor</span><span>Status</span><span>Ações</span></div><ul class=\"ds-ledger-list\"><li class=\"ds-row\" data-status=\"missing\"><time class=\"ds-row-date\">11/05/2026</time><div><p class=\"ds-row-primary\">Pix enviado — Padaria Central</p><p class=\"ds-row-meta\">Conta Principal</p></div><p class=\"ds-row-amount\">R$ 220,00</p><p class=\"ds-row-status\">Documento faltante</p><button class=\"ds-row-action\" type=\"button\">Resolver</button></li></ul></div>",
+      "css": ".ds-ledger { font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; color: var(--color-ink); max-width: 72rem; } .ds-ledger-list { list-style: none; margin: 0; padding: 0; } .ds-row { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr) 8rem 12rem 11rem; align-items: stretch; border-bottom: 1px solid var(--color-rule); } .ds-row > * { min-width: 0; padding: 3px 10px; border-right: 1px solid var(--color-rule); } .ds-row > *:last-child { border-right: 0; } .ds-head { color: var(--color-ink-soft); font-size: 0.8125rem; font-weight: 500; line-height: 1.125rem; border-bottom: 1px solid var(--color-ink); } .ds-head > * { padding-top: 4px; padding-bottom: 6px; } .ds-row[data-status=\"missing\"] { border-left: 3px solid var(--color-margem); } .ds-row[data-status=\"missing\"] > *:first-child { padding-left: 12px; } .ds-row-date { font-variant-numeric: tabular-nums; white-space: nowrap; } .ds-row-primary, .ds-row-meta, .ds-row-amount, .ds-row-status { margin: 0; } .ds-row-primary { font-weight: 500; } .ds-row-meta { color: var(--color-ink-soft); font-size: 0.8125rem; line-height: 1.125rem; } .ds-row-amount { text-align: right; font-weight: 500; font-variant-numeric: tabular-nums; } .ds-row-status { color: var(--color-margem); } .ds-row-action { background: none; border: none; padding: 3px 10px; color: var(--color-caixa); font: inherit; font-weight: 500; text-align: left; cursor: pointer; } .ds-row-action:focus-visible { outline: 2px solid var(--color-caixa); outline-offset: 2px; }"
     },
     {
       "name": "Closed-Month Stamp",
@@ -249,7 +249,7 @@
     "northStar": "Livro-caixa",
     "overview": "The interface is a well-kept Brazilian cash book. The page is cool ledger paper. Every list of money is a ruled row: date, history, amount, status, with figures in tabular numbers and the amount on the right. The only loud device is the red margin. It marks a payment that still lacks a document, and an error. A month page with no red is ready to close.\n\nDensity follows the coordinator's laptop ritual. One left-aligned column, sections separated by a rule, status always visible, and the form that changes a row folded into a disclosure the person opens. The submitter's phone uses the same tokens, stacked. Nothing is a card. Nothing floats.\n\nThe closed month is an ink stamp, the only double-ruled mark in the system. The app mark repeats the same three strokes — a green field, two paper rules, one red margin — and carries no wordmark. When no organization is focused, the header reads the product name in the same medium weight as an organization name.",
     "keyCharacteristics": [
-      "**Ruled rows.** Money is aligned columns, not cards.",
+      "**Ruled rows.** Record lists are a ledger sheet: vertical and horizontal rules, not cards.",
       "**One red margin.** Red appears only on a missing document or an error.",
       "**Flat paper.** Depth is a hairline rule, not a shadow.",
       "**The stamp.** A closed month is inked and double-ruled. Nothing else is boxed.",
@@ -273,7 +273,12 @@
       },
       {
         "name": "The Ledger Column Rule",
-        "body": "Every list of money is a ruled row with aligned columns and tabular figures. The amount is right-aligned.",
+        "body": "Every record list is a ruled sheet with aligned columns, vertical rules, and tabular figures. The amount is right-aligned. Status and each action occupy their own columns.",
+        "section": "layout"
+      },
+      {
+        "name": "The Shared Track Rule",
+        "body": "Head and body of a sheet use the same column template. Action tracks are fixed rem, never `auto` or `max-content`: the header cell is empty, and a content-sized track would let the row drift off the rule.",
         "section": "layout"
       },
       {
@@ -295,7 +300,9 @@
     "dos": [
       "**Do** set a missing-document row and an error notice with a 3px left border in `margem` and 12px of inset.",
       "**Do** fill a primary action with `caixa`, a sheet-white label, weight 600, and 8px by 16px padding.",
-      "**Do** separate sections with a ruling line under the heading.",
+      "**Do** separate sections with a ruling line under the heading, and draw each record list as one flat ruled sheet with vertical rules between cells.",
+      "**Do** keep payment rows denser than other lists, with Status and Ações as separate columns.",
+      "**Do** give the header row and every data row of a sheet the same column template; size action tracks in rem, not auto.",
       "**Do** self-host IBM Plex Sans and IBM Plex Mono. The page makes no third-party font request.",
       "**Do** draw focus as a 2px solid `caixa` ring, offset 2px, on every control."
     ],

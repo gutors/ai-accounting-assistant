@@ -149,7 +149,7 @@
     }
 
     .ledger-invite {
-      grid-template-columns: minmax(0, 1.6fr) 8.5rem minmax(9rem, 1fr) auto auto;
+      grid-template-columns: minmax(0, 1.6fr) 8.5rem minmax(9rem, 1fr) 10.5rem 6rem;
     }
 
     .ledger-pay {
@@ -196,7 +196,11 @@
     }
 
     .ledger-month-bank {
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 6.5rem minmax(0, 1.2fr) minmax(0, 1.5fr);
+      grid-template-columns: minmax(7.5rem, 0.85fr) minmax(0, 1fr) minmax(0, 0.8fr) 6.5rem minmax(0, 1.4fr) 11rem;
+    }
+
+    .ledger-month-bank [data-cell="documents"] {
+      overflow: hidden;
     }
 
     .ledger-extras {

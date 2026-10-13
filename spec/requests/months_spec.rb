@@ -1661,7 +1661,7 @@ RSpec.describe "Months", type: :request do
     expect(account_row.text).not_to include("Substituir extrato")
   end
 
-  it "month bank ledger head and rows are Nome Agencia Situacao Documentos actions" do
+  it "month bank ledger head and rows are Banco Nome Agencia Situacao Documentos actions" do
     _account, _organization, _month, statement = signed_open_month
     attach_statement_files(statement)
 
@@ -1669,17 +1669,20 @@ RSpec.describe "Months", type: :request do
 
     head = page_doc(response.body).at_css(".ledger-head.ledger-month-bank")
     expect(head.element_children.map { |node| node.text.strip }).to eq(
-      [ "Nome", "Agência/conta", "Situação", "Documentos", "" ]
+      [ "Banco", "Nome", "Agência/conta", "Situação", "Documentos", "" ]
     )
     account_row = row(response.body, "bank-account", bank_account_id: statement.bank_account_id)
     cells = account_row.element_children
-    expect(cells.size).to eq(5)
-    expect(cells[0].text.strip).to eq(statement.bank_account.name)
-    expect(cells[1].text.strip).to eq(statement.bank_account.coordinates.to_s)
-    expect(cells[2]["data-cell"]).to eq("situation")
-    expect(cells[3]["data-cell"]).to eq("documents")
-    expect(cells[3]["class"]).to include("whitespace-nowrap")
-    expect(cells[4].at_css("summary").text.strip).to eq("Substituir extrato")
+    expect(cells.size).to eq(6)
+    expect(cells[0].text.strip).to eq(statement.bank_account.bank.presentation_name)
+    expect(cells[1].text.strip).to eq(statement.bank_account.name)
+    expect(cells[2].text.strip).to eq(statement.bank_account.coordinates.to_s)
+    expect(cells[3]["data-cell"]).to eq("situation")
+    expect(cells[4]["data-cell"]).to eq("documents")
+    expect(cells[4]["class"].to_s).not_to include("whitespace-nowrap")
+    expect(cells[4].at_css("p")["class"]).to include("text-meta")
+    expect(cells[4].at_css("p")["class"]).to include("truncate")
+    expect(cells[5].at_css("summary").text.strip).to eq("Substituir extrato")
   end
 
   it "two accounts only Presente row lists Pdf and Planilha filenames" do

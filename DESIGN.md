@@ -190,11 +190,13 @@ One family, self-hosted, Latin subset, `font-display: swap`. IBM Plex Sans at 40
 
 The content column is 72rem, left-aligned, inside the viewport. The page gutter is the narrow step on a phone and the wide step from 768px. Below the header (minimum height 3.5rem) the title sits one page-step down; sections stack one section-step apart; the column ends with the page-end step.
 
-From 768px every record list is a ruled sheet: 1px vertical `rule` between cells, 1px horizontal `rule` between rows, snug cell padding (6px by 10px; payment rows 3px vertical). A payment row is five tracks: 9.5rem for the date (`time`, nowrap, tabular), a flexible history, 8rem for the amount, then status and actions as separate columns. The header row uses soft-ink labels (the Pagamentos Data label is ink and semibold as the visual sort key) and a 1px ink underline. Below 768px the header hides, cells stack, and vertical rules drop. Other lists (months, people, invites, banks, documents, administration) share this sheet grammar with their own tracks. Rows have no fill. Short forms cap at 28rem; two-column forms and the people list begin at 768px. Navigation wraps under the organization name below 640px.
+From 768px every record list is a ruled sheet: 1px vertical `rule` between cells, 1px horizontal `rule` between rows, snug cell padding (6px by 10px; payment rows 3px vertical). Head and body rows of one sheet share one column template. A payment row is five tracks: 9.5rem for the date (`time`, nowrap, tabular), a flexible history, 8rem for the amount, 12rem for status, 11rem for actions. A month Contas bancárias row is six tracks: Banco, Nome, Agência/conta, Situação (6.5rem), Documentos (filenames in meta, truncated inside the cell), then the statement action (11rem). A home Convites pendentes row is five tracks: E-mail, Tipo (8.5rem), Status, Reenviar e-mail (10.5rem), Cancelar (6rem). The header row uses soft-ink labels (the Pagamentos Data label is ink and semibold as the visual sort key) and a 1px ink underline. Below 768px the header hides, cells stack, and vertical rules drop. Other lists (months, people, setup banks, documents, administration) share this sheet grammar with their own tracks. Rows have no fill. Short forms cap at 28rem; two-column forms and the people list begin at 768px. Navigation wraps under the organization name below 640px.
 
 The month page leads with the month in words, the folder name in meta under it, and one summary sentence: missing documents first (in margin red when any remain), missing statements second. There is no horizontal scroll at 390px.
 
 **The Ledger Column Rule.** Every record list is a ruled sheet with aligned columns, vertical rules, and tabular figures. The amount is right-aligned. Status and each action occupy their own columns.
+
+**The Shared Track Rule.** Head and body of a sheet use the same column template. Action tracks are fixed rem, never `auto` or `max-content`: the header cell is empty, and a content-sized track would let the row drift off the rule.
 
 ## Elevation & Depth
 
@@ -245,7 +247,7 @@ A paper bar with a 1px ruling line along its bottom. Left: the mark at 1.25rem a
 
 ### Ledger row
 
-A list item in a CSS grid sheet (`.ledger-sheet` / `.ledger-row`), not a table and not a card. Direct children are cells. Money lists run date, primary text with a soft-ink meta line under it, amount, status, then actions (Desfazer casamento, Resolver, Desmarcar exceção) in their own column — not stacked inside status. A missing document adds the red margin (3px left border, 12px inset on the first cell) and the status words in margin red. Bank, invite, and extras lists split situação and each quiet action into their own columns. Inflows have no status or actions cell. One sheet per section; do not group rows into status bands.
+A list item in a CSS grid sheet (`.ledger-sheet` / `.ledger-row`), not a table and not a card. Direct children are cells. Head and body share the sheet’s column template. Money lists run date, primary text with a soft-ink meta line under it, amount, status, then actions (Desfazer casamento, Resolver, Desmarcar exceção) in their own column — not stacked inside status. A missing document adds the red margin (3px left border, 12px inset on the first cell) and the status words in margin red. Bank, invite, and extras lists split situação and each quiet action into their own columns. Inflows have no status or actions cell. One sheet per section; do not group rows into status bands.
 
 ### Notice
 
@@ -263,6 +265,7 @@ Inline, ink on paper: "Mês fechado", weight 600, the double rule from Shapes. I
 - **Do** fill a primary action with `caixa`, a sheet-white label, weight 600, and 8px by 16px padding.
 - **Do** separate sections with a ruling line under the heading, and draw each record list as one flat ruled sheet with vertical rules between cells.
 - **Do** keep payment rows denser than other lists, with Status and Ações as separate columns.
+- **Do** give the header row and every data row of a sheet the same column template; size action tracks in rem, not auto.
 - **Do** self-host IBM Plex Sans and IBM Plex Mono. The page makes no third-party font request.
 - **Do** draw focus as a 2px solid `caixa` ring, offset 2px, on every control.
 
