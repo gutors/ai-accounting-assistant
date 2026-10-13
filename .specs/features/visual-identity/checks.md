@@ -43,7 +43,7 @@ Proof: `bin/rspec spec/requests/sessions_spec.rb -e "GET /login renders the head
 **C9** - `GET /denied`: a `<header>` containing `Fechamento mensal` with no `<nav>` inside it, and `Você não foi convidado a usar este sistema.` (SHELL-01, AC 9)
 Proof: `bin/rspec spec/requests/denied_spec.rb -e "GET /denied renders the header without nav and the denied sentence"`
 
-**C10** - `@import_error`: `POST /months/2026-05/bank_statements` without files renders `422` whose `Envie o PDF e a planilha` is the text of a `<p role="alert" data-notice="error">` (SHELL-01, AC 10)
+**C10** - `@import_error`: `POST /months/2026-05/bank_statements` without files renders `422` whose `Envie a planilha` is the text of a `<p role="alert" data-notice="error">` (SHELL-01, AC 10)
 Proof: `bin/rspec spec/requests/bank_statements_spec.rb -e "import error renders as a data-notice error alert"`
 
 **C11** - `@month_error`: `POST /months/2026-05/close` with a missing document renders `422` whose `Há documento faltante` is the text of a `<p role="alert" data-notice="error">` (SHELL-01, AC 10)
@@ -123,8 +123,8 @@ Proof: `bin/rspec spec/requests/close_spec.rb -e "closed month shows the stamp a
 **C35** - Open month, active account with a statement: its upload form is inside a `<details>` whose `<summary>` is `Substituir extrato` (LEDGER-01, AC 22)
 Proof: `bin/rspec spec/requests/months_spec.rb -e "present statement folds the upload form under Substituir extrato"`
 
-**C36** - Open month, active account without a statement: its upload form has no `<details>` ancestor (LEDGER-01, AC 22)
-Proof: `bin/rspec spec/requests/months_spec.rb -e "absent statement shows the upload form inline"`
+**C36** - Open month, active account without a statement: its upload form is inside a `<details>` whose `<summary>` is `Incluir extrato` (LEDGER-01, AC 22)
+Proof: `bin/rspec spec/requests/months_spec.rb -e "absent statement folds the upload form under Incluir extrato"`
 
 **C37** - With 2 missing payments and 1 unmatched document, the form whose submit is `Confirmar casamento N:1` is inside a `<details>` whose `<summary>` is `Casar vários pagamentos com um documento` (LEDGER-01, AC 23)
 Proof: `bin/rspec spec/requests/matches_spec.rb -e "N:1 form folds under Casar varios pagamentos com um documento"`
@@ -213,7 +213,7 @@ Proof: `bin/rspec spec/requests/justifications_spec.rb -e "justification edit fo
 | `data-row` names (9) | `payment` C24 · `inflow` C29 · `pool-document` C29 · `bank-account` C29, C42 · `month` C38 · `extra-exception-kind` C43 · `document` C44 · `justification` C46 · header has none (not a row) C6 | - |
 | `Resolver` open state (3) | suggestion C31 · exception suggestion C32 · neither C33 | - |
 | statement upload fold (2) | present C35 · absent C36 | - |
-| `<details>` summaries (4) | `Resolver` C30 · `Substituir extrato` C35 · `Casar vários pagamentos com um documento` C37 · `Editar` on document C44 | bank-account `Editar` is a GET on `/setup` (C42), not a summary |
+| `<details>` summaries (5) | `Resolver` C30 · `Incluir extrato` C36 · `Substituir extrato` C35 · `Casar vários pagamentos com um documento` C37 · `Editar` on document C44 | bank-account `Editar` is a GET on `/setup` (C42), not a summary |
 | month state on home (2) | `Aberto` C38 · `Fechado` C39 | - |
 | closed-month page (2) | stamp present C34 · no `<details>` C34 | - |
 | home h1 by access (2) | coordinator `Meses` C38 · submitter `Início` C41 | - |

@@ -1597,9 +1597,16 @@ RSpec.describe "Months", type: :request do
     details = form.ancestors("details").first
     expect(details).not_to be_nil
     expect(details.at_css("summary").text.strip).to eq("Substituir extrato")
+    expect(details.has_attribute?("open")).to eq(false)
+    expect(details.text).to include("PDF")
+    expect(details.text).to include("Incluir PDF")
+    expect(details.text).to include("Planilha")
+    expect(details.text).to include("Incluir planilha")
+    expect(details.at_css('input[type="submit"][value="Enviar extrato"]')).to be_present
+    expect(account_row.css("summary").map { |node| node.text.strip }).not_to include("Incluir extrato")
   end
 
-  it "absent statement shows the upload form inline" do
+  it "absent statement folds the upload form under Incluir extrato" do
     _account, organization, _month, _statement = signed_open_month
     bank_account = BankAccount.create_for(organization: organization, name: "Conta Alfa", compe: "033")
 
@@ -1608,6 +1615,90 @@ RSpec.describe "Months", type: :request do
     account_row = row(response.body, "bank-account", bank_account_id: bank_account.id)
     form = account_row.css("form").find { |node| node["action"] == "/months/2026-05/bank_statements" }
     expect(form).not_to be_nil
-    expect(form.ancestors("details")).to be_empty
+    details = form.ancestors("details").first
+    expect(details).not_to be_nil
+    expect(details.at_css("summary").text.strip).to eq("Incluir extrato")
+    expect(details.has_attribute?("open")).to eq(false)
+    expect(details.text).to include("PDF")
+    expect(details.text).to include("Incluir PDF")
+    expect(details.text).to include("Planilha")
+    expect(details.text).to include("Incluir planilha")
+    expect(details.at_css('input[type="submit"][value="Enviar extrato"]')).to be_present
+    expect(account_row.css("summary").map { |node| node.text.strip }).not_to include("Substituir extrato")
+  end
+
+  it "Falta row Situacao is Falta and Documentos has no Pdf or Planilha" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    bank_account = BankAccount.create_for(organization: organization, name: "Conta Principal", compe: "001")
+    post "/months", params: { year_month: "2026-05" }
+
+    get "/months/2026-05"
+
+    account_row = row(response.body, "bank-account", bank_account_id: bank_account.id)
+    expect(account_row.at_css(".text-margem").text.strip).to eq("Falta")
+    documents = account_row.at_css('[data-cell="documents"]')
+    expect(documents.text).not_to include("Pdf")
+    expect(documents.text).not_to include("Planilha")
+    expect(account_row.at_css('[data-cell="situation"]').text.strip).to eq("Falta")
+  end
+
+  it "closed Presente row keeps Documentos and omits statement forms" do
+    _account, organization, month, _statement = signed_open_month
+    bank_account = organization.bank_accounts.order(:id).first
+    post "/months/2026-05/bank_statements", params: {
+      bank_account_id: bank_account.id, pdf: statement_pdf, spreadsheet: bb_xlsx
+    }
+    month.update!(closed: true)
+
+    get "/months/2026-05"
+
+    account_row = row(response.body, "bank-account", bank_account_id: bank_account.id)
+    expect(account_row.at_css('[data-cell="situation"]').text.strip).to eq("Presente")
+    lines = account_row.at_css('[data-cell="documents"]').css("p").map { |node| node.text.strip }
+    expect(lines).to eq([ "Pdf extrato-maio-2026.pdf", "Planilha extrato-maio-2026.xlsx" ])
+    expect(account_row.text).not_to include("Incluir extrato")
+    expect(account_row.text).not_to include("Substituir extrato")
+  end
+
+  it "month bank ledger head and rows are Nome Agencia Situacao Documentos actions" do
+    _account, _organization, _month, statement = signed_open_month
+    attach_statement_files(statement)
+
+    get "/months/2026-05"
+
+    head = page_doc(response.body).at_css(".ledger-head.ledger-month-bank")
+    expect(head.element_children.map { |node| node.text.strip }).to eq(
+      [ "Nome", "Agência/conta", "Situação", "Documentos", "" ]
+    )
+    account_row = row(response.body, "bank-account", bank_account_id: statement.bank_account_id)
+    cells = account_row.element_children
+    expect(cells.size).to eq(5)
+    expect(cells[0].text.strip).to eq(statement.bank_account.name)
+    expect(cells[1].text.strip).to eq(statement.bank_account.coordinates.to_s)
+    expect(cells[2]["data-cell"]).to eq("situation")
+    expect(cells[3]["data-cell"]).to eq("documents")
+    expect(cells[3]["class"]).to include("whitespace-nowrap")
+    expect(cells[4].at_css("summary").text.strip).to eq("Substituir extrato")
+  end
+
+  it "two accounts only Presente row lists Pdf and Planilha filenames" do
+    _account, organization, _month, statement = signed_open_month
+    attach_statement_files(statement)
+    falta = BankAccount.create_for(organization: organization, name: "Conta Alfa", compe: "033")
+
+    get "/months/2026-05"
+
+    presente_row = row(response.body, "bank-account", bank_account_id: statement.bank_account_id)
+    falta_row = row(response.body, "bank-account", bank_account_id: falta.id)
+    presente_docs = presente_row.at_css('[data-cell="documents"]')
+    expect(presente_docs.text).to include("Pdf")
+    expect(presente_docs.text).to include("extrato.pdf")
+    expect(presente_docs.text).to include("Planilha")
+    expect(presente_docs.text).to include("extrato.xlsx")
+    expect(falta_row.at_css(".text-margem").text.strip).to eq("Falta")
+    expect(falta_row.at_css('[data-cell="documents"]').text).not_to include("Pdf")
+    expect(falta_row.at_css('[data-cell="documents"]').text).not_to include("Planilha")
+    expect(falta_row.at_css('[data-cell="situation"]').text.strip).to eq("Falta")
   end
 end

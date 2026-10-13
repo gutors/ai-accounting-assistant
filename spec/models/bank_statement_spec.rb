@@ -86,14 +86,17 @@ RSpec.describe BankStatement, type: :model do
     statement = BankStatement.import(month: month, bank_account: bb_account, pdf: statement_pdf, spreadsheet: nil)
 
     expect(statement).not_to be_persisted
+    expect(statement.errors[:base]).to include("Envie a planilha")
     expect(BankStatement.count).to eq(0)
   end
 
-  it "rejects import without pdf" do
+  it "import without pdf persists spreadsheet only" do
     statement = BankStatement.import(month: month, bank_account: bb_account, pdf: nil, spreadsheet: bb_xlsx)
 
-    expect(statement).not_to be_persisted
-    expect(BankStatement.count).to eq(0)
+    expect(statement).to be_persisted
+    expect(statement.spreadsheet).to be_attached
+    expect(statement.spreadsheet.filename.to_s).to eq("extrato-maio-2026.xlsx")
+    expect(statement.pdf).not_to be_attached
   end
 
   it "rejects BB xlsx whose headers are not the eleven names" do
@@ -272,7 +275,27 @@ RSpec.describe BankStatement, type: :model do
     statement = BankStatement.import(month: month, bank_account: bb_account, pdf: statement_pdf, spreadsheet: ofx_file)
 
     expect(statement).not_to be_persisted
+    expect(statement.errors[:base]).to include("Envie a planilha")
     expect(BankStatement.count).to eq(0)
+  end
+
+  it "replace without pdf keeps the attached pdf" do
+    BankStatement.import(month: month, bank_account: bb_account, pdf: statement_pdf, spreadsheet: bb_xlsx)
+    statement = BankStatement.import(month: month, bank_account: bb_account, pdf: nil, spreadsheet: one_row_csv)
+
+    expect(BankStatement.where(month: month, bank_account: bb_account).count).to eq(1)
+    expect(statement.pdf).to be_attached
+    expect(statement.pdf.filename.to_s).to eq("extrato-maio-2026.pdf")
+    expect(statement.spreadsheet.filename.to_s).to eq("replace.csv")
+  end
+
+  it "import pdf onto spreadsheet-only attaches pdf" do
+    BankStatement.import(month: month, bank_account: bb_account, pdf: nil, spreadsheet: bb_xlsx)
+    statement = BankStatement.import(month: month, bank_account: bb_account, pdf: statement_pdf, spreadsheet: bb_xlsx)
+
+    expect(statement.pdf).to be_attached
+    expect(statement.pdf.filename.to_s).to eq("extrato-maio-2026.pdf")
+    expect(statement.spreadsheet.filename.to_s).to eq("extrato-maio-2026.xlsx")
   end
 
   it "rejects BB movement whose date is not in 2026-05" do

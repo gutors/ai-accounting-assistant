@@ -50,6 +50,7 @@
           <span>Nome</span>
           <span>Agência/conta</span>
           <span>Situação</span>
+          <span>Documentos</span>
           <span></span>
         </div>
         <ul>
@@ -58,26 +59,28 @@
             <li data-row="bank-account" data-bank-account-id="<%= bank_account.id %>" class="ledger-row ledger-month-bank">
               <p class="font-medium"><%= bank_account.name %></p>
               <p class="text-meta text-ink-soft"><%= bank_account.coordinates %></p>
-              <div>
+              <div data-cell="situation">
                 <% if statement %>
                   <p>Presente</p>
-                  <p class="text-meta text-ink-soft"><%= statement.pdf.filename %></p>
-                  <p class="text-meta text-ink-soft"><%= statement.spreadsheet.filename %></p>
                 <% else %>
                   <p class="text-margem">Falta</p>
                 <% end %>
               </div>
+              <div data-cell="documents" class="<%= "whitespace-nowrap" if statement %>">
+                <% if statement&.pdf&.attached? %>
+                  <p>Pdf <%= statement.pdf.filename %></p>
+                <% end %>
+                <% if statement&.spreadsheet&.attached? %>
+                  <p>Planilha <%= statement.spreadsheet.filename %></p>
+                <% end %>
+              </div>
               <div>
                 <% unless @month.closed? %>
-                  <% if statement %>
-                    <details>
-                      <summary class="cursor-pointer font-medium text-caixa">Substituir extrato</summary>
-                      <div class="mt-3 rounded border border-rule bg-sheet p-4">
-                        <%= render "months/statement_form", month: @month, bank_account: bank_account %>
-                      </div>
-                    </details>
-                  <% else %>
-                    <%= render "months/statement_form", month: @month, bank_account: bank_account %>
+                  <%= tag.details open: @import_bank_account_id.to_s == bank_account.id.to_s do %>
+                    <summary class="cursor-pointer font-medium text-caixa"><%= statement ? "Substituir extrato" : "Incluir extrato" %></summary>
+                    <div class="mt-3 rounded border border-rule bg-sheet p-4">
+                      <%= render "months/statement_form", month: @month, bank_account: bank_account %>
+                    </div>
                   <% end %>
                 <% end %>
               </div>
