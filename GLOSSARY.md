@@ -74,6 +74,10 @@ _Avoid_: bank account, Outro (as a typed institution)
 One account at a bank, belonging to an organization (several allowed, including two at the same bank). Identity is a unique name (UI, month-folder slug, and what the accountant reads in the statements folder), the bank, and optional free-text bank coordinates; it is active or inactive, never deleted; the organization’s PIX keys are not part of it.
 _Avoid_: bank (when the account is meant), apelido, PIX (when the organization’s keys on the account are meant)
 
+**Accounts confirmation**:
+The coordinator’s persisted agreement on a Month that the statement set is ready to work as movements; until then those three lists stay off the month page and there is no movement to match; upload still writes the BankStatement; replacing a statement does not clear it; not session.
+_Avoid_: Presente (per-account file), close-for-send
+
 **Bank statement**:
 The list of bank movements from one bank account for the month. An organization may have more than one bank account. For each bank account and month the coordinator chooses: upload a CSV/XLSX spreadsheet (PDF optional), or Open Finance (JSON; the accountant’s PDF stays optional). **Presente** means a BankStatement row exists for that active account and month (spreadsheet attached). Payments for that month do not exist in the system until the coordinator inserts the statement; that is typically the following calendar month or later.
 _Avoid_: OFX, extract file (as the concept)

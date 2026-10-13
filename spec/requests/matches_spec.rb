@@ -610,4 +610,33 @@ RSpec.describe "Matches", type: :request do
     expect(details).not_to be_nil
     expect(details.at_css("summary").text.strip).to eq("Casar vários pagamentos com um documento")
   end
+
+  it "POST match on unconfirmed month returns 404" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    _month, statement = plant_month(organization, accounts_confirmed: false)
+    payment = plant_payment(statement, 22000)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    expect do
+      post "/months/2026-05/matches", params: {
+        payment_ids: [ payment.id ], supporting_document_ids: [ document.id ]
+      }
+    end.not_to change(Match, :count)
+
+    expect(response).to have_http_status(:not_found)
+  end
+
+  it "POST match on confirmed month persists 302" do
+    account, organization, _month, statement = signed_month
+    payment = plant_payment(statement, 22000)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    post "/months/2026-05/matches", params: {
+      payment_ids: [ payment.id ], supporting_document_ids: [ document.id ]
+    }
+
+    expect(response).to have_http_status(:found)
+    expect(Match.count).to eq(1)
+  end
 end

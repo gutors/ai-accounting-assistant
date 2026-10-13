@@ -41,6 +41,7 @@ RSpec.describe "Screens", type: :system do
 
     month = Month.open(organization: norte, year_month: "2026-05")
     statement = BankStatement.create!(month: month, bank_account: principal)
+    month.update!(accounts_confirmed: true)
     attach_statement_files(statement)
     plant_inflow(statement, 6300)
     plant_payment(statement, 22000, history: "Pix enviado — Padaria Central", occurred_on: Date.new(2026, 5, 11))

@@ -277,6 +277,29 @@ Tipos extras de exceção                         (h2)
 
 ### `month` — `GET /months/:year_month`
 
+Open and `accounts_confirmed` false:
+
+```
+header · nav
+maio de 2026                                        [ Fechar para envio ]
+2026-05
+Insira os extratos das contas bancárias com as quais deseja realizar o fechamento.
+<notice>
+Contas bancárias                                (h2)
+  Conta Principal   ag 1234      Presente   Pdf extrato.pdf              ▸ Substituir extrato
+                                         Planilha extrato.xlsx
+  Conta Alfa                     Falta                                   ▸ Incluir extrato
+Confirmar contas para fechamento                (h2)
+  Nome           Situação
+  Conta Alfa     Falta                         ← Falta in margem; ledger name order
+  Conta Principal Presente
+  [Iniciar fechamento]
+```
+
+Recebimentos, Pagamentos, and Documentos sem casamento are omitted while unconfirmed and open.
+
+After confirmation, or while closed (even if `accounts_confirmed` is false):
+
 ```
 header · nav
 maio de 2026                                        [ Fechar para envio ]     (open)
@@ -310,11 +333,21 @@ Documentos sem casamento                        (h2)
   display size; `2026-05` directly under it in meta `ink-soft` (it is the month folder name the
   accountant sees). Right side: the primary action when open; when closed, the stamp
   `[data-stamp="closed"]` `Mês fechado` and the two secondary buttons.
-- Summary line, body size, under the title: missing documents first, statements second.
+- Summary line, body size, under the title. While `accounts_confirmed` is false and the month
+  is open, the summary is `Insira os extratos das contas bancárias com as quais deseja
+  realizar o fechamento.` (not the missing-document count). After confirmation (or while
+  closed), missing documents first, statements second:
   - `Nenhum documento faltante` when none; `1 pagamento com documento faltante`;
     `N pagamentos com documento faltante`. The missing-document sentence is `margem` when N > 0.
   - `Falta o extrato de 1 conta ativa` / `Falta o extrato de N contas ativas`; omitted when
     every active account has its statement.
+- After Contas bancárias, while unconfirmed and open: a step `Confirmar contas para
+  fechamento` lists each active account’s name with `Presente` or `Falta` (`Falta` in
+  `margem`) in ledger name order, two-column ledger (`Nome`, `Situação`), submit
+  `Iniciar fechamento`. That step is absent after confirmation or while closed.
+  `Recebimentos`, `Pagamentos`, and `Documentos sem casamento` are omitted until then.
+  After confirmation (or while closed), the missing-document summary and those three
+  sections match today’s band; the confirm step is absent.
 - Bank account rows `li[data-row="bank-account"]`: name and coordinates | Situação `Presente`
   or `Falta` in `margem` (no filenames) | Documentos: `Pdf {filename}` when a PDF is attached
   (omitted otherwise), `Planilha {filename}` when a spreadsheet is attached, one per line, no

@@ -94,6 +94,33 @@ class ApplicationController < ActionController::Base
     false
   end
 
+  def find_focused_month
+    unless Month.valid_year_month?(params[:year_month])
+      head :not_found
+      return
+    end
+
+    month = focused_organization.months.find_by(year_month: params[:year_month])
+    unless month
+      head :not_found
+      return
+    end
+
+    month
+  end
+
+  def find_month_with_visible_movements
+    month = find_focused_month
+    return unless month
+
+    unless month.accounts_confirmed? || month.closed?
+      head :not_found
+      return
+    end
+
+    month
+  end
+
   def load_month_page
     @organization = focused_organization
     @active_bank_accounts = @organization.bank_accounts.where(active: true).includes(:bank).order(:name)

@@ -67,6 +67,7 @@ RSpec.describe "Bank statements", type: :request do
     post "/months/2026-05/bank_statements", params: {
       bank_account_id: bank_account.id, pdf: statement_pdf, spreadsheet: bb_xlsx
     }
+    mark_accounts_confirmed!(bank_account.organization)
     get "/months/2026-05"
 
     expect(response.body).to include("Recebimentos")
@@ -299,6 +300,7 @@ RSpec.describe "Bank statements", type: :request do
     post "/months/2026-05/bank_statements", params: {
       bank_account_id: bank_account.id, pdf: statement_pdf, spreadsheet: bb_xlsx
     }
+    mark_accounts_confirmed!(bank_account.organization)
     bank_account.apply_from(active: false)
 
     get "/months/2026-05"
@@ -420,6 +422,7 @@ RSpec.describe "Bank statements", type: :request do
     post "/months/2026-05/bank_statements", params: {
       bank_account_id: bank_account.id, pdf: statement_pdf, spreadsheet: bb_xlsx
     }
+    mark_accounts_confirmed!(bank_account.organization)
     get "/months/2026-05"
 
     section = response.body[response.body.index("Pagamentos")..]
@@ -433,6 +436,7 @@ RSpec.describe "Bank statements", type: :request do
     post "/months/2026-05/bank_statements", params: {
       bank_account_id: bank_account.id, pdf: statement_pdf, spreadsheet: bb_xlsx
     }
+    mark_accounts_confirmed!(organization)
     payment = bank_account.bank_statements.last.payments.find_by!(amount_cents: 15500)
     document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
     post "/months/2026-05/matches", params: {
@@ -466,6 +470,52 @@ RSpec.describe "Bank statements", type: :request do
     expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include("Mês fechado")
     expect(month.bank_statements.find(existing_id).payments.count).to be > 1
+  end
+
+  it "POST statement on unconfirmed month keeps flag false and hides payments" do
+    _account, organization, bank_account = open_with_account
+
+    post "/months/2026-05/bank_statements", params: {
+      bank_account_id: bank_account.id, spreadsheet: bb_xlsx
+    }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/months/2026-05")
+    statements = BankStatement.joins(:month).where(months: { organization_id: organization.id })
+    expect(statements.count).to eq(1)
+    statement = statements.first
+    expect(statement.payments.find_by(amount_cents: 15500)).to be_present
+    expect(organization.months.find_by!(year_month: "2026-05").accounts_confirmed).to eq(false)
+
+    get "/months/2026-05"
+    headings = page_doc(response.body).css("h2").map { |node| node.text.strip }
+    expect(headings).not_to include("Recebimentos")
+    expect(headings).not_to include("Pagamentos")
+    expect(headings).not_to include("Documentos sem casamento")
+    expect(rows(response.body, "inflow")).to be_empty
+    expect(rows(response.body, "payment")).to be_empty
+    expect(rows(response.body, "pool-document")).to be_empty
+    account_row = row(response.body, "bank-account", bank_account_id: bank_account.id)
+    expect(account_row.at_css('[data-cell="situation"]').text.strip).to eq("Presente")
+  end
+
+  it "POST replace after confirmation keeps accounts_confirmed and Pagamentos" do
+    _account, organization, bank_account = open_with_account
+    post "/months/2026-05/bank_statements", params: {
+      bank_account_id: bank_account.id, pdf: statement_pdf, spreadsheet: bb_xlsx
+    }
+    post "/months/2026-05/account_confirmation"
+
+    post "/months/2026-05/bank_statements", params: {
+      bank_account_id: bank_account.id, spreadsheet: one_row_csv
+    }
+
+    expect(organization.months.find_by!(year_month: "2026-05").bank_statements.count).to eq(1)
+    expect(organization.months.find_by!(year_month: "2026-05").accounts_confirmed).to eq(true)
+    get "/months/2026-05"
+    headings = page_doc(response.body).css("h2").map { |node| node.text.strip }
+    expect(headings).not_to include("Confirmar contas para fechamento")
+    expect(headings).to include("Pagamentos")
   end
 
   it "submitter POST bank_statements persists no statement and responds 404" do
