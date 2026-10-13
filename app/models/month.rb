@@ -86,6 +86,19 @@ class Month < ApplicationRecord
     self
   end
 
+  def confirm_accounts
+    errors.clear
+    with_lock do
+      if closed?
+        errors.add(:base, CLOSED)
+        next
+      end
+
+      update!(accounts_confirmed: true)
+    end
+    self
+  end
+
   private
 
   def close_blocker

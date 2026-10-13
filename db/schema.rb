@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_09_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_13_180000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -155,6 +155,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_09_120000) do
     t.bigint "organization_id", null: false
     t.datetime "updated_at", null: false
     t.string "year_month", null: false
+    t.boolean "accounts_confirmed", default: false, null: false
     t.index ["organization_id", "year_month"], name: "index_months_on_organization_id_and_year_month", unique: true
     t.index ["organization_id"], name: "index_months_on_organization_id"
   end

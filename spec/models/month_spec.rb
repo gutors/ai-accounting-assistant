@@ -5,6 +5,40 @@ RSpec.describe Month, type: :model do
     @organization ||= create_organization!(name: "ONG")
   end
 
+  it "Month.open leaves accounts_confirmed false" do
+    month = Month.open(organization: organization, year_month: "2026-06")
+
+    expect(month).to be_persisted
+    expect(month.accounts_confirmed).to eq(false)
+  end
+
+  it "confirm_accounts refuses when closed" do
+    month = Month.open(organization: organization, year_month: "2026-05")
+    month.update_columns(closed: true, accounts_confirmed: false)
+
+    month.confirm_accounts
+
+    expect(month.errors[:base]).to include("Mês fechado")
+    expect(month.reload.accounts_confirmed).to eq(false)
+  end
+
+  it "accounts_confirmed backfill closed or with statement true else false" do
+    require Rails.root.join("db/migrate/20261013180000_add_accounts_confirmed_to_months.rb")
+
+    closed_month = Month.open(organization: organization, year_month: "2026-04")
+    closed_month.update_columns(closed: true, accounts_confirmed: false)
+    with_statement, _statement = plant_month(organization, year_month: "2026-05")
+    with_statement.update_columns(accounts_confirmed: false)
+    neither = Month.open(organization: organization, year_month: "2026-07")
+    expect(neither.accounts_confirmed).to eq(false)
+
+    ActiveRecord::Base.connection.execute(AddAccountsConfirmedToMonths::BACKFILL_SQL)
+
+    expect(closed_month.reload.accounts_confirmed).to eq(true)
+    expect(with_statement.reload.accounts_confirmed).to eq(true)
+    expect(neither.reload.accounts_confirmed).to eq(false)
+  end
+
   it "opens 2026-05 for the organization" do
     month = Month.open(organization: organization, year_month: "2026-05")
 
