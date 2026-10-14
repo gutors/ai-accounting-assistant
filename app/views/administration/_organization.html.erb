@@ -9,7 +9,7 @@
     </div>
     <div class="mt-4 flex flex-wrap items-center gap-3">
       <%= button_to "Confirmar", "/administration/name/confirm", method: :post, params: { organization_id: organization.id }, class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
-      <%= button_to "Corrigir", "/administration/correct", method: :post, class: "rounded border border-ink px-4 py-2 text-ink" %>
+      <%= button_to "Corrigir", "/administration/correct", method: :post, class: "ds-btn-secondary" %>
     </div>
   <% elsif @name_organization&.id == organization.id && @name_phase == :field %>
     <%= form_with url: "/administration/name/continue", method: :post, id: "name_correction_form" do %>
@@ -45,7 +45,7 @@
     </div>
     <div class="mt-4 flex flex-wrap items-center gap-3">
       <%= button_to "Confirmar", "/administration/email/confirm", method: :post, params: { organization_id: organization.id }, class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
-      <%= button_to "Corrigir", "/administration/correct", method: :post, class: "rounded border border-ink px-4 py-2 text-ink" %>
+      <%= button_to "Corrigir", "/administration/correct", method: :post, class: "ds-btn-secondary" %>
     </div>
   <% elsif @email_organization&.id == organization.id && @email_phase == :field %>
     <div class="border-b border-rule pb-2 mb-2">

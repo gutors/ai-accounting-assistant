@@ -378,7 +378,7 @@ RSpec.describe "Months", type: :request do
     _month, statement = plant_month(organization)
     payment = plant_payment(statement, 22000)
 
-    get "/months/2026-05"
+    get "/months/2026-05/matches"
 
     expect(response.body).to include("Doação")
     expect(response.body).to include("name=\"extra_exception_kind_id\"")
@@ -602,11 +602,11 @@ RSpec.describe "Months", type: :request do
 
     get "/months/2026-05"
 
-    rows = rows_html(response.body, "payment")
-    suggested = rows.select { |row| row.split("<form").first.include?("Sugestão") }
+    rows = page_doc(response.body).css('li[data-row="payment"]')
+    suggested = rows.select { |row| row.at_css('[data-cell="status"]').text.include?("Sugestão") }
     expect(suggested.size).to eq(1)
-    expect(suggested.first).to include("value=\"#{first.id}\"")
-    expect(suggested.first).not_to include("value=\"#{second.id}\"")
+    expect(suggested.first["data-payment-id"]).to eq(first.id.to_s)
+    expect(suggested.first["data-payment-id"]).not_to eq(second.id.to_s)
   end
 
   it "GET two equal docs name hit assigns Padaria Central not Mercado Silva" do
@@ -1057,8 +1057,10 @@ RSpec.describe "Months", type: :request do
 
     get "/months/2026-05"
 
-    expect(response.body).to include("Doação")
     expect(payment_status_html(response.body, history: "Pix enviado")).not_to include("Sugestão de exceção")
+    expect(response.body).not_to include("name=\"extra_exception_kind_id\"")
+    get "/months/2026-05/matches"
+    expect(response.body).to include("Doação")
   end
 
   it "GET org A omits Sugestao of org B payee" do
@@ -1133,9 +1135,11 @@ RSpec.describe "Months", type: :request do
 
     get "/months/2026-05"
 
-    form = payment_row_html(response.body, history: "Pix enviado — Padaria Central")
-    expect(selected_named_values(form, "payment_ids[]")).to include(payment.id.to_s)
-    expect(selected_named_values(form, "supporting_document_ids[]")).to include(document.id.to_s)
+    status = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
+    expect(status).to include("Sugestão Padaria Central")
+    expect(payment).to be_missing_document
+    expect(document).to be_present
+    expect(payment_row_html(response.body, history: "Pix enviado — Padaria Central")).not_to include("payment_ids[]")
   end
 
   it "GET 1:1 form does not select Mercado Silva" do
@@ -1146,22 +1150,24 @@ RSpec.describe "Months", type: :request do
 
     get "/months/2026-05"
 
-    form = payment_row_html(response.body, history: "Pix enviado — Padaria Central")
-    expect(selected_named_values(form, "supporting_document_ids[]")).not_to include(mercado.id.to_s)
+    status = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
+    expect(status).to include("Sugestão Padaria Central")
+    expect(status).not_to include("Mercado Silva")
+    expect(mercado).to be_present
   end
 
   it "GET format-2 N:1 form selects both payment ids and the document id" do
     account, organization, _month, statement = signed_open_month
-    ten = plant_payment(statement, 10000, history: "Pix enviado — Dez")
-    twelve = plant_payment(statement, 12000, history: "Pix enviado — Doze")
+    plant_payment(statement, 10000, history: "Pix enviado — Dez")
+    plant_payment(statement, 12000, history: "Pix enviado — Doze")
     document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
 
     get "/months/2026-05"
 
-    form = n1_match_form_html(response.body)
-    expect(form).to include("/months/2026-05/matches")
-    expect(selected_named_values(form, "payment_ids[]")).to include(ten.id.to_s, twelve.id.to_s)
-    expect(selected_named_values(form, "supporting_document_ids[]")).to include(document.id.to_s)
+    expect(n1_match_form_html(response.body)).to eq("")
+    expect(payment_status_html(response.body, history: "Pix enviado — Dez")).to include("Sugestão Padaria Central")
+    expect(payment_status_html(response.body, history: "Pix enviado — Doze")).to include("Sugestão Padaria Central")
+    expect(document).to be_present
   end
 
   it "GET two format-2 N:1 form selects the pair with lowest payment id" do
@@ -1175,15 +1181,16 @@ RSpec.describe "Months", type: :request do
 
     get "/months/2026-05"
 
-    form = n1_match_form_html(response.body)
-    expect(form).to include("/months/2026-05/matches")
-    selected_payments = selected_named_values(form, "payment_ids[]")
-    selected_documents = selected_named_values(form, "supporting_document_ids[]")
+    expect(n1_match_form_html(response.body)).to eq("")
     expect(ten.id).to be < fourteen.id
-    expect(selected_payments).to include(ten.id.to_s, twelve.id.to_s)
-    expect(selected_payments).not_to include(fourteen.id.to_s, sixteen.id.to_s)
-    expect(selected_documents).to include(padaria.id.to_s)
-    expect(selected_documents).not_to include(mercado.id.to_s)
+    expect(payment_status_html(response.body, history: "Pix enviado — Dez")).to include("Sugestão Padaria Central")
+    expect(payment_status_html(response.body, history: "Pix enviado — Doze")).to include("Sugestão Padaria Central")
+    expect(payment_status_html(response.body, history: "Pix enviado — Catorze")).to include("Sugestão Mercado Silva")
+    expect(payment_status_html(response.body, history: "Pix enviado — Dezesseis")).to include("Sugestão Mercado Silva")
+    expect(twelve).to be_present
+    expect(sixteen).to be_present
+    expect(padaria).to be_present
+    expect(mercado).to be_present
   end
 
   it "GET justification form selects both member document ids" do
@@ -1195,36 +1202,37 @@ RSpec.describe "Months", type: :request do
 
     get "/months/2026-05"
 
-    form = payment_row_html(response.body, history: "Pix enviado — Gasto")
-    selected_documents = selected_named_values(form, "supporting_document_ids[]")
-    expect(selected_documents).to include(padaria.id.to_s, mercado.id.to_s)
+    status = payment_status_html(response.body, history: "Pix enviado — Gasto")
+    expect(status).to include("Sugestão")
+    expect(status).to include("Padaria Central")
+    expect(status).to include("Mercado Silva")
   end
 
   it "GET format-2 1:1 form does not select Padaria Central" do
     account, organization, _month, statement = signed_open_month
     plant_payment(statement, 10000, history: "Pix enviado — Dez")
     plant_payment(statement, 12000, history: "Pix enviado — Doze")
-    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
 
     get "/months/2026-05"
 
-    ten_form = payment_row_html(response.body, history: "Pix enviado — Dez")
-    twelve_form = payment_row_html(response.body, history: "Pix enviado — Doze")
-    expect(selected_named_values(ten_form, "supporting_document_ids[]")).not_to include(document.id.to_s)
-    expect(selected_named_values(twelve_form, "supporting_document_ids[]")).not_to include(document.id.to_s)
+    ten = payment_row_html(response.body, history: "Pix enviado — Dez")
+    twelve = payment_row_html(response.body, history: "Pix enviado — Doze")
+    expect(ten).to include("Sugestão")
+    expect(twelve).to include("Sugestão")
+    expect(ten).not_to include("name=\"supporting_document_ids[]\"")
+    expect(twelve).not_to include("name=\"supporting_document_ids[]\"")
   end
 
   it "POST format-2 1:1 form as shown returns 422 and leaves both unmatched" do
     account, organization, _month, statement = signed_open_month
-    plant_payment(statement, 10000, history: "Pix enviado — Dez")
+    dez = plant_payment(statement, 10000, history: "Pix enviado — Dez")
     plant_payment(statement, 12000, history: "Pix enviado — Doze")
     plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
 
-    get "/months/2026-05"
-    form = payment_row_html(response.body, history: "Pix enviado — Dez")
     post "/months/2026-05/matches", params: {
-      payment_ids: selected_named_values(form, "payment_ids[]"),
-      supporting_document_ids: selected_named_values(form, "supporting_document_ids[]")
+      payment_ids: [ dez.id ],
+      supporting_document_ids: []
     }
 
     expect(response).to have_http_status(:unprocessable_content)
@@ -1247,8 +1255,11 @@ RSpec.describe "Months", type: :request do
 
     get "/months/2026-05"
 
-    form = payment_row_html(response.body, history: "Pix enviado — Padaria Central")
-    expect(selected_named_values(form, "supporting_document_ids[]")).to include(document.id.to_s)
+    status = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
+    expect(status).to include("Sugestão")
+    expect(status).to include("Padaria Central")
+    expect(payment_row_html(response.body, history: "Pix enviado — Padaria Central")).not_to include("name=\"supporting_document_ids[]\"")
+    expect(document).to be_present
   end
 
   it "GET justification form selects both members when suggestion has one payment" do
@@ -1260,9 +1271,12 @@ RSpec.describe "Months", type: :request do
 
     get "/months/2026-05"
 
-    form = payment_row_html(response.body, history: "Pix enviado — Gasto")
-    selected_documents = selected_named_values(form, "supporting_document_ids[]")
-    expect(selected_documents).to include(padaria.id.to_s, mercado.id.to_s)
+    status = payment_status_html(response.body, history: "Pix enviado — Gasto")
+    expect(status).to include("Sugestão")
+    expect(status).to include("Padaria Central")
+    expect(status).to include("Mercado Silva")
+    expect(padaria).to be_present
+    expect(mercado).to be_present
   end
 
   it "GET open month lists Padaria close checkbox and Fechar turbo confirm" do
@@ -1378,12 +1392,6 @@ RSpec.describe "Months", type: :request do
 
   # Ledger arrangement (visual-identity C17–C25, C29–C33, C35, C36)
 
-  def resolver_details(row)
-    details = row.css("details").select { |node| node.at_css("summary")&.text&.strip == "Resolver" }
-    expect(details.size).to eq(1)
-    details.first
-  end
-
   it "month title is maio de 2026 with 2026-05 under it" do
     signed_open_month
 
@@ -1492,12 +1500,10 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     payment_row = row(response.body, "payment", payment_id: payment.id)
-    details = resolver_details(payment_row)
-    forms = payment_row.css("form")
-    expect(forms).not_to be_empty
-    expect(forms.all? { |form| form.ancestors.include?(details) }).to eq(true)
-    html = payment_row.to_html
-    expect(html.index("Documento faltante")).to be < html.index("<details")
+    expect(payment_row.text).to include("Documento faltante")
+    expect(payment_row.text).not_to include("Resolver")
+    expect(payment_row.css("form")).to be_empty
+    expect(payment_row.css("details")).to be_empty
   end
 
   it "Resolver is open when a suggestion exists" do
@@ -1507,8 +1513,9 @@ RSpec.describe "Months", type: :request do
 
     get "/months/2026-05"
 
-    details = resolver_details(row(response.body, "payment", payment_id: payment.id))
-    expect(details.has_attribute?("open")).to eq(true)
+    payment_row = row(response.body, "payment", payment_id: payment.id)
+    expect(payment_row.text).to include("Sugestão Padaria Central")
+    expect(payment_row.text).not_to include("Resolver")
   end
 
   it "Resolver is open when an exception suggestion exists" do
@@ -1518,8 +1525,9 @@ RSpec.describe "Months", type: :request do
 
     get "/months/2026-05"
 
-    details = resolver_details(row(response.body, "payment", payment_id: payment.id))
-    expect(details.has_attribute?("open")).to eq(true)
+    payment_row = row(response.body, "payment", payment_id: payment.id)
+    expect(payment_row.text).to include("Sugestão de exceção")
+    expect(payment_row.text).not_to include("Resolver")
   end
 
   it "Resolver is closed when no suggestion exists" do
@@ -1528,8 +1536,10 @@ RSpec.describe "Months", type: :request do
 
     get "/months/2026-05"
 
-    details = resolver_details(row(response.body, "payment", payment_id: payment.id))
-    expect(details.has_attribute?("open")).to eq(false)
+    payment_row = row(response.body, "payment", payment_id: payment.id)
+    expect(payment_row.text).to include("Documento faltante")
+    expect(payment_row.text).not_to include("Sugestão")
+    expect(payment_row.text).not_to include("Resolver")
   end
 
   it "GET month omits Marcar tarifa when bank_fee offer inactive" do
@@ -1539,10 +1549,9 @@ RSpec.describe "Months", type: :request do
 
     get "/months/2026-05"
 
-    details = resolver_details(row(response.body, "payment", payment_id: payment.id))
-    expect(details.at_css('input[name="kind"][value="bank_fee"]')).to be_nil
-    expect(details.at_css('input[type="submit"][value="Marcar tarifa"]')).to be_nil
-    expect(details.at_css('input[type="submit"][value="Marcar honorário"]')).to be_present
+    expect(response.body).not_to include("Marcar tarifa")
+    expect(response.body).not_to include("Marcar honorário")
+    expect(payment).to be_missing_document
   end
 
   it "GET month omits Marcar honorario when accountant_fee offer inactive" do
@@ -1552,9 +1561,8 @@ RSpec.describe "Months", type: :request do
 
     get "/months/2026-05"
 
-    details = resolver_details(row(response.body, "payment", payment_id: payment.id))
-    expect(details.at_css('input[name="kind"][value="accountant_fee"]')).to be_nil
-    expect(details.at_css('input[type="submit"][value="Marcar honorário"]')).to be_nil
+    expect(response.body).not_to include("Marcar honorário")
+    expect(payment).to be_missing_document
   end
 
   it "GET month keeps Tarifa bancaria after bank_fee offer hidden" do
@@ -1568,7 +1576,7 @@ RSpec.describe "Months", type: :request do
     payment_row = row(response.body, "payment", payment_id: payment.id)
     expect(payment_row.text).to include("Tarifa bancária")
     expect(payment_row.text).not_to include("Documento faltante")
-    expect(payment_row.text).to include("Desmarcar exceção")
+    expect(payment_row.text).not_to include("Desmarcar exceção")
   end
 
   it "GET B month still Marcar tarifa while A bank_fee offer inactive" do
@@ -1579,12 +1587,12 @@ RSpec.describe "Months", type: :request do
     payment_b = plant_payment(statement_b, 22000)
     sign_in_as(account_b, organization: org_b)
 
-    get "/months/2026-05"
+    get "/months/2026-05/matches"
 
-    details = resolver_details(row(response.body, "payment", payment_id: payment_b.id))
-    expect(details.at_css('input[type="submit"][value="Marcar tarifa"]')).to be_present
+    expect(response.body).to include("Marcar tarifa")
     expect(org_a.reload.bank_fee_exception_active).to eq(false)
     expect(account_a).to be_present
+    expect(payment_b).to be_missing_document
   end
 
   it "present statement folds the upload form under Substituir extrato" do
@@ -1707,10 +1715,6 @@ RSpec.describe "Months", type: :request do
     expect(falta_row.at_css('[data-cell="situation"]').text.strip).to eq("Falta")
   end
 
-  def month_h2s(body)
-    page_doc(body).css("h2").map { |node| node.text.strip }
-  end
-
   def confirm_section(body)
     page_doc(body).css("section").find { |section| section.at_css("h2")&.text&.strip == "Confirmar contas para fechamento" }
   end
@@ -1829,9 +1833,10 @@ RSpec.describe "Months", type: :request do
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
     expect(toast_node(response.body).text).to include("Pronto.")
     headings = month_h2s(response.body)
-    expect(headings).to include("Recebimentos")
-    expect(headings).to include("Pagamentos")
-    expect(headings).to include("Documentos sem casamento")
+    expect(month_fold_summaries(response.body)).to eq([ "Pagamentos", "Documentos sem casamento", "Recebimentos" ])
+    expect(headings).not_to include("Recebimentos")
+    expect(headings).not_to include("Pagamentos")
+    expect(headings).not_to include("Documentos sem casamento")
     expect(headings).not_to include("Confirmar contas para fechamento")
     summary = page_doc(response.body).at_css("p.mt-6 .text-margem")
     expect(summary.text).to include("1 pagamento com documento faltante")
@@ -1853,7 +1858,8 @@ RSpec.describe "Months", type: :request do
     expect(response).to redirect_to("/months/2026-05")
     expect(organization.months.find_by!(year_month: "2026-05").accounts_confirmed).to eq(true)
     get "/months/2026-05"
-    expect(month_h2s(response.body)).to include("Pagamentos")
+    expect(month_fold_summaries(response.body)).to include("Pagamentos")
+    expect(month_h2s(response.body)).not_to include("Pagamentos")
     expect(month_h2s(response.body)).not_to include("Confirmar contas para fechamento")
     expect(response.body).to include("Conta Principal")
     expect(rows(response.body, "payment")).not_to be_empty
@@ -1890,10 +1896,8 @@ RSpec.describe "Months", type: :request do
     expect(month.accounts_confirmed).to eq(true)
     expect(organization.months.where(year_month: "2026-05").count).to eq(1)
     follow_redirect!
-    headings = month_h2s(response.body)
-    expect(headings).to include("Recebimentos")
-    expect(headings).to include("Pagamentos")
-    expect(headings).to include("Documentos sem casamento")
+    expect(month_fold_summaries(response.body)).to eq([ "Pagamentos", "Documentos sem casamento", "Recebimentos" ])
+    expect(month_h2s(response.body)).not_to include("Recebimentos")
     expect(toast_node(response.body).text).to include("Pronto.")
   end
 
@@ -2042,7 +2046,7 @@ RSpec.describe "Months", type: :request do
     follow_redirect!
 
     payment_row = rows(response.body, "payment").find { |row| row.text.include?("R$ 155,00") }
-    expect(payment_row.text).to include("Resolver")
+    expect(payment_row.text).not_to include("Resolver")
   end
 
   it "unconfirmed close with Falta still Importe o extrato" do
@@ -2069,38 +2073,5 @@ RSpec.describe "Months", type: :request do
     expect(response).to have_http_status(:unprocessable_content)
     expect(error_notice_text(response.body)).to eq("Há documento faltante")
     expect(organization.months.find_by!(year_month: "2026-05").closed?).to eq(false)
-  end
-
-  it "confirmed or closed month GET includes Casar pagamentos before Fechar or stamp" do
-    account, organization = plant_coordinator
-    sign_in_as(account, organization: organization)
-    month, _statement = plant_month(organization)
-
-    get "/months/2026-05"
-
-    link = page_doc(response.body).css("a").find { |node| node.text.strip == "Casar pagamentos" }
-    expect(link).to be_present
-    expect(link["href"]).to eq("/months/2026-05/matches")
-    cluster_html = link.parent.to_html
-    expect(cluster_html.index("Casar pagamentos")).to be < cluster_html.index("Fechar para envio")
-
-    month.update!(closed: true)
-    get "/months/2026-05"
-
-    link = page_doc(response.body).css("a").find { |node| node.text.strip == "Casar pagamentos" }
-    expect(link["href"]).to eq("/months/2026-05/matches")
-    cluster_html = link.parent.to_html
-    expect(cluster_html.index("Casar pagamentos")).to be < cluster_html.index("data-stamp=\"closed\"")
-  end
-
-  it "unconfirmed open month GET omits Casar pagamentos" do
-    account, organization = plant_coordinator
-    sign_in_as(account, organization: organization)
-    plant_month(organization, accounts_confirmed: false)
-
-    get "/months/2026-05"
-
-    texts = page_doc(response.body).css("a").map { |node| node.text.strip }
-    expect(texts).not_to include("Casar pagamentos")
   end
 end

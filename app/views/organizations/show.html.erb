@@ -96,7 +96,7 @@
               <label for="email" class="mb-1 block">E-mail</label>
               <div class="flex flex-wrap gap-2">
                 <%= email_field_tag :email, nil, id: "email", class: "min-w-0 grow rounded border border-rule bg-sheet px-3 py-2", autocomplete: "email" %>
-                <%= submit_tag "Convidar", class: "rounded border border-ink px-4 py-2 text-ink" %>
+                <%= submit_tag "Convidar", class: "ds-btn-secondary" %>
               </div>
             </fieldset>
           <% end %>
@@ -128,7 +128,7 @@
               <label for="submitter_email" class="mb-1 block">E-mail</label>
               <div class="flex flex-wrap gap-2">
                 <%= email_field_tag :email, nil, id: "submitter_email", class: "min-w-0 grow rounded border border-rule bg-sheet px-3 py-2", autocomplete: "email" %>
-                <%= submit_tag "Convidar", class: "rounded border border-ink px-4 py-2 text-ink" %>
+                <%= submit_tag "Convidar", class: "ds-btn-secondary" %>
               </div>
             </fieldset>
           <% end %>

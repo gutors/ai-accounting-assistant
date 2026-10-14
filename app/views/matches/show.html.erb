@@ -159,13 +159,13 @@
       <div class="mt-4 flex flex-wrap items-center gap-3">
         <%= submit_tag "Confirmar casamento", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
         <% if @organization.bank_fee_exception_active? %>
-          <%= button_tag "Marcar tarifa", type: "submit", name: "kind", value: "bank_fee", formaction: "/months/#{@month.year_month}/document_exceptions", class: "rounded border border-ink px-4 py-2 text-ink" %>
+          <%= button_tag "Marcar tarifa", type: "submit", name: "kind", value: "bank_fee", formaction: "/months/#{@month.year_month}/document_exceptions", class: "ds-btn-secondary" %>
         <% end %>
         <% if @organization.accountant_fee_exception_active? %>
-          <%= button_tag "Marcar honorário", type: "submit", name: "kind", value: "accountant_fee", formaction: "/months/#{@month.year_month}/document_exceptions", class: "rounded border border-ink px-4 py-2 text-ink" %>
+          <%= button_tag "Marcar honorário", type: "submit", name: "kind", value: "accountant_fee", formaction: "/months/#{@month.year_month}/document_exceptions", class: "ds-btn-secondary" %>
         <% end %>
         <% @active_extra_exception_kinds.each do |extra_exception_kind| %>
-          <%= button_tag extra_exception_kind.name, type: "submit", name: "extra_exception_kind_id", value: extra_exception_kind.id, formaction: "/months/#{@month.year_month}/document_exceptions", class: "rounded border border-ink px-4 py-2 text-ink" %>
+          <%= button_tag extra_exception_kind.name, type: "submit", name: "extra_exception_kind_id", value: extra_exception_kind.id, formaction: "/months/#{@month.year_month}/document_exceptions", class: "ds-btn-secondary" %>
         <% end %>
       </div>
     <% end %>

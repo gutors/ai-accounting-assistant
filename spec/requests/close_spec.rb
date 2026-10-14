@@ -49,7 +49,9 @@ RSpec.describe "Close for send", type: :request do
     stamp = page_doc(response.body).at_css('[data-stamp="closed"]')
     expect(stamp).not_to be_nil
     expect(stamp.text.strip).to eq("Mês fechado")
-    expect(response.body).not_to include("<details")
+    expect(response.body).not_to include("Incluir extrato")
+    expect(response.body).not_to include("Substituir extrato")
+    expect(page_doc(response.body).css("details.month-fold")).not_to be_empty
   end
 
   it "month error renders as a data-notice error alert" do

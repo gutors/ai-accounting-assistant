@@ -90,6 +90,7 @@ RSpec.describe "Visual identity month bank rows" do
     expect(matches).to include("Documentos somam mais")
     expect(matches).to include("stay after confirm")
     expect(month).to include("Casar pagamentos")
-    expect(month).to include("after confirmation or while closed")
+    expect(month).to include("only while open and")
+    expect(month).to include("confirmed")
   end
 end

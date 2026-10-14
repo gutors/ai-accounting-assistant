@@ -23,8 +23,7 @@ class MonthsController < ApplicationController
     else
       @month = month
       @month_error = month.errors[:base].first
-      load_month_page
-      render :show, status: :unprocessable_content
+      render_month_show(status: :unprocessable_content)
     end
   end
 
@@ -33,7 +32,7 @@ class MonthsController < ApplicationController
     return unless month
 
     @month = month
-    load_month_page
+    render_month_show
   end
 
   def close
@@ -53,8 +52,7 @@ class MonthsController < ApplicationController
     else
       @month = month
       @month_error = month.errors[:base].first
-      load_month_page
-      render :show, status: :unprocessable_content
+      render_month_show(status: :unprocessable_content)
     end
   end
 
@@ -68,8 +66,7 @@ class MonthsController < ApplicationController
     else
       @month = month
       @month_error = month.errors[:base].first
-      load_month_page
-      render :show, status: :unprocessable_content
+      render_month_show(status: :unprocessable_content)
     end
   end
 
@@ -83,8 +80,7 @@ class MonthsController < ApplicationController
     else
       @month = month
       @month_error = month.errors[:base].first
-      load_month_page
-      render :show, status: :unprocessable_content
+      render_month_show(status: :unprocessable_content)
     end
   end
 
@@ -104,6 +100,14 @@ class MonthsController < ApplicationController
   end
 
   private
+
+  def render_month_show(status: :ok)
+    return unless assign_matches_account_filter
+
+    load_month_page
+    apply_bank_account_movement_filter
+    render :show, status: status
+  end
 
   def find_month
     unless Month.valid_year_month?(params[:year_month])

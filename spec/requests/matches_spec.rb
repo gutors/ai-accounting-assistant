@@ -104,9 +104,11 @@ RSpec.describe "Matches", type: :request do
     get "/months/2026-05"
     status = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
     expect(status).to include("Casado")
-    expect(status).to include("Padaria Central")
+    expect(status).not_to include("Padaria Central")
     expect(status).not_to include("Documento faltante")
     expect(status).not_to include("Sugestão")
+    row = page_doc(response.body).css('li[data-row="payment"]').find { |node| node.text.include?("Pix enviado — Padaria Central") }
+    expect(row.at_css('[data-cell="document"]').text.strip).to eq("Padaria Central")
   end
 
   it "POST suggested lesser without observation returns 422" do
@@ -166,10 +168,12 @@ RSpec.describe "Matches", type: :request do
     get "/months/2026-05"
     status = payment_status_html(response.body, history: "Pix enviado — Gasto")
     expect(status).to include("Casado")
-    expect(status).to include("Padaria Central")
-    expect(status).to include("Mercado Silva")
+    expect(status).not_to include("Padaria Central")
+    expect(status).not_to include("Mercado Silva")
     expect(status).not_to include("Documento faltante")
     expect(status).not_to include("Sugestão")
+    row = page_doc(response.body).css('li[data-row="payment"]').find { |node| node.text.include?("Pix enviado — Gasto") }
+    expect(row.at_css('[data-cell="document"]').text.strip).to eq("Padaria Central, Mercado Silva")
   end
 
   it "POST justification members greater than payment persists Match" do
@@ -602,13 +606,8 @@ RSpec.describe "Matches", type: :request do
 
     get "/months/2026-05"
 
-    form = page_doc(response.body).css("form").find do |node|
-      node.at_css('input[type="submit"][value="Confirmar casamento N:1"]')
-    end
-    expect(form).not_to be_nil
-    details = form.ancestors("details").first
-    expect(details).not_to be_nil
-    expect(details.at_css("summary").text.strip).to eq("Casar vários pagamentos com um documento")
+    expect(response.body).not_to include("Casar vários pagamentos com um documento")
+    expect(response.body).not_to include("Confirmar casamento N:1")
   end
 
   it "POST match on unconfirmed month returns 404" do

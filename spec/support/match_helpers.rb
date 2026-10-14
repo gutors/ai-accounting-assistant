@@ -46,7 +46,7 @@ module MatchHelpers
   end
 
   def recebimentos_html(body)
-    body[body.index("Recebimentos")...body.index("Pagamentos")]
+    body[body.index("Recebimentos")..]
   end
 
   def pagamentos_html(body)
@@ -58,7 +58,11 @@ module MatchHelpers
   end
 
   def payment_status_html(body, history:)
-    payment_row_html(body, history: history).split("<form").first
+    html = payment_row_html(body, history: history)
+    cell = Nokogiri::HTML.fragment(html).at_css('[data-cell="status"]')
+    return cell.to_html if cell
+
+    html.split("<form").first
   end
 
   def selected_named_values(html, name)
