@@ -12,7 +12,7 @@
     <%= render "administration/record", name: @pending["name"], email: @pending["email"] %>
     <div class="mt-6 flex flex-wrap items-center gap-3">
       <%= button_to "Confirmar", "/administration/confirm", method: :post, class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
-      <%= button_to "Corrigir", "/administration/correct", method: :post, class: "rounded border border-ink px-4 py-2 text-ink" %>
+      <%= button_to "Corrigir", "/administration/correct", method: :post, class: "ds-btn-secondary" %>
     </div>
   <% else %>
     <p class="mt-4">Cadastre a organização e o coordenador que vai fechá-la.</p>
