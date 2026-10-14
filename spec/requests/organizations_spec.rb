@@ -333,6 +333,11 @@ RSpec.describe "Organization home", type: :request do
     expect(form).to be_present
     expect(form["data-turbo-confirm"]).to eq("Excluir este fechamento?")
     expect(form.at_css('button, input[type="submit"]').text).to include("Excluir")
+    head = page_doc(response.body).at_css(".ledger-head.ledger-month")
+    expect(head.element_children.map { |node| node.text.strip }).to eq([ "Mês", "AAAA-MM", "Status", "" ])
+    expect(month_row.element_children.size).to eq(4)
+    expect(month_row.element_children[2].text.strip).to eq("Aberto")
+    expect(month_delete_form(month_row.element_children.last, "2026-05")).to be_present
   end
 
   it "reopened month row omits Excluir" do

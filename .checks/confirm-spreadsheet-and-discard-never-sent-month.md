@@ -101,7 +101,7 @@ Proof: `bin/rspec spec/docs/visual_identity_month_bank_rows_spec.rb -e "visual-i
 
 ### S2 - Discard never-sent from home · 8 files · 80 KB · ~20k
 
-**C8** - Given a signed-in coordinator, Month `2026-05` open, `closed` false, `month_folder_id` nil, when `GET /` runs, then that `li[data-row="month"]` includes `Aberto`, includes a control whose text is `Excluir` posting `DELETE /months/2026-05`, and that form’s `data-turbo-confirm` is `Excluir este fechamento?`
+**C8** - Given a signed-in coordinator, Month `2026-05` open, `closed` false, `month_folder_id` nil, when `GET /` runs, then that `li[data-row="month"]` includes `Aberto`, includes a control whose text is `Excluir` posting `DELETE /months/2026-05`, and that form’s `data-turbo-confirm` is `Excluir este fechamento?`. The Meses heading row is `Mês`, `AAAA-MM`, `Status`, then an empty last column; `Excluir` is the last cell of the month row, after Status.
 Proof: `bin/rspec spec/requests/organizations_spec.rb -e "never-sent open month row includes Excluir with turbo confirm"`
 
 **C9** - Given Month `2026-05` is closed (`closed` true), when `GET /` runs, then that month row includes `Fechado` and does not include `Excluir`.
@@ -157,6 +157,7 @@ Proof: `bin/rspec spec/docs/home_open_month_list_spec.rb -e "visual-identity hom
 | unconfirmed GET confirm enablement (3) | no statement disabled C1 · no active accounts disabled C2 · mixed enabled C3 | - |
 | confirm POST outcomes (3) | no spreadsheet 422 C4 · mixed 302 C5 · closed 422 C6 | - |
 | home Excluir visibility (4) | never-sent open C8 · closed omit C9 · reopened omit C10 · confirmed never-sent C11 | - |
+| home Meses arrangement (2) | empty last heading column C8 · `Excluir` last cell after Status C8 | - |
 | DELETE outcomes (7) | empty never-sent 302 C12 · with data 302 C13 · closed 422 C14 · folder id 422 C15 · invalid year_month 404 C16 · missing 404 C16 · submitter 404 C17 | - |
 | designed screens this cut binds (2) | `month` C1–C7 · `home` C8–C12, C18 | - |
 | visual-identity screens this cut does not bind (4) | — | `login`, `denied`, `setup`, `documents` — out of scope |
