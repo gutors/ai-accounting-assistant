@@ -307,38 +307,40 @@ After confirmation, or while closed (even if `accounts_confirmed` is false):
 
 ```
 header · nav
-maio de 2026                       Casar pagamentos [ Fechar para envio ]     (open)
-2026-05                            Casar pagamentos ⌈Mês fechado⌉ [Restaurar pasta] [Reabrir]  (closed)
+Voltar para Início → /
+maio de 2026                       [ Casar pagamentos ]  [ Fechar para envio ]     (open, confirmed)
+2026-05
+                                   [Restaurar pasta] [Reabrir]                    (closed)
+                                   ⌈Mês fechado⌉ under 2026-05, not on the action row
 2 pagamentos com documento faltante.  Falta o extrato de 1 conta ativa.
 <notice>
-Contas bancárias                                (h2)
+Contas bancárias                                (h2, not in details)
   Conta Principal   ag 1234      Presente   Pdf extrato.pdf              ▸ Substituir extrato
                                          Planilha extrato.xlsx
   Conta Alfa                     Falta                                   ▸ Incluir extrato
-Recebimentos                                    (h2)
-  04/05/2026  Pix - Recebido                   R$ 63,00
-              Conta Principal
-Pagamentos                                      (h2)
-▌ 11/05/2026  Pix enviado — Padaria Central   R$ 220,00   Documento faltante
-▌             Conta Principal                              Sugestão Padaria Central
-▌                                                          ▾ Resolver (open: suggestion exists)
-                                                             ☐ Padaria Central  ☐ Mercado Silva
-                                                             Observação do casamento [    ]
-                                                             [Confirmar casamento]
-                                                             [Marcar tarifa] [Marcar honorário] [Doação]
-                                                             (Marcar tarifa / Marcar honorário absent when that offer is inactive)
-  12/05/2026  Tarifa Pacote de Serviços        R$ 155,00   Tarifa bancária
-              Conta Principal                              Desmarcar exceção
-  ▸ Casar vários pagamentos com um documento               ← details with the N:1 form
-Documentos sem casamento                        (h2)
-  ☐ Padaria Central                            R$ 220,00   Devolver
+[ Todas ]  Conta Alfa  Conta Principal     ← after Contas; ?bank_account_id=; Pagamentos + Recebimentos only
+▾ Pagamentos                                (details open; summary heading, no h2)
+  Data  Histórico  Valor  Status  Documento
+▌ 11/05 Pix enviado — Padaria Central  R$ 220,00  Documento faltante
+▌             Conta Principal                      Sugestão Padaria Central
+  13/05 Energia                         R$ 340,00  Casado              Enel, CEMIG
+  15/05 Honorários                      R$ 800,00  Honorário do contador
+▾ Documentos sem casamento
+  Data  Favorecido  Tipo  Valor  Foto  Devolver
+  11/05 ☐ Padaria Central  Recibo  R$ 220,00  foto.jpg
+  18/05 Material de limpeza Recibo R$ 50,00  danfe.jpg  Devolver
+▾ Recebimentos                              (last)
+  Data  Histórico  Valor
+  04/05 Pix - Recebido  Conta Principal  R$ 63,00
 ```
 
 - Title: `<h1>` is the month in words (`maio de 2026`, from `pt-BR.date.month_names`) in
   display size; `2026-05` directly under it in meta `ink-soft` (it is the month folder name the
-  accountant sees). Right side: quiet `Casar pagamentos` to `GET /months/:year_month/matches`
-  after confirmation or while closed, then the primary action when open; when closed, the stamp
-  `[data-stamp="closed"]` `Mês fechado` and the two secondary buttons.
+  accountant sees). Quiet `Voltar para Início` is first in `<main>`, to `/`. Right side: `Casar
+  pagamentos` `.ds-btn-secondary` to `GET /months/:year_month/matches` only while open and
+  confirmed, before `Fechar para envio`; when closed, the stamp `[data-stamp="closed"]`
+  `Mês fechado` `.stamp-closed` sits under `YYYY-MM` (not on the action row) and title-right is
+  only `Restaurar pasta` and `Reabrir`.
 - Summary line, body size, under the title. While `accounts_confirmed` is false and the month
   is open, the summary is `Insira os extratos das contas bancárias com as quais deseja
   realizar o fechamento.` (not the missing-document count). After confirmation (or while
@@ -357,28 +359,34 @@ Documentos sem casamento                        (h2)
   That step is absent after confirmation or while closed.
   `Recebimentos`, `Pagamentos`, and `Documentos sem casamento` are omitted until then.
   After confirmation (or while closed), the missing-document summary and those three
-  sections match today’s band; the confirm step is absent.
+  lists appear as `<details open class="month-fold">` with summary headings (Recebimentos
+  last); chips sit after Contas; the confirm step is absent.
 - Bank account rows `li[data-row="bank-account"]`: name and coordinates | Situação `Presente`
   or `Falta` in `margem` (no filenames) | Documentos: `Pdf {filename}` when a PDF is attached
   (omitted otherwise), `Planilha {filename}` when a spreadsheet is attached, one per line, no
   wrap | when Falta and the month is open, `<details><summary>Incluir extrato</summary>` (closed
   until a `422` for that account); when Presente and open, `<details><summary>Substituir
   extrato</summary>`. Closed month: no form.
-- Inflows `li[data-row="inflow"]`: date | history + account | amount. No status cell.
+- Account chips: `role="group"` `aria-label` `Conta bancária`; `Todas` then active accounts by
+  name; `?bank_account_id=`; default all; Pagamentos and Recebimentos only; pool unfiltered;
+  unknown, foreign, or inactive id `404`.
+- Inflows `li[data-row="inflow"]`: date | history + account | amount. No status cell. Last fold.
+  No `Documento faltante`.
 - Payments `li[data-row="payment"][data-payment-id][data-status]`, `data-status` one of
   `missing`, `matched`, `bank_fee`, `accountant_fee`, `extra`. A `missing` row carries the red
-  margin. Status cell shows the status words (`Documento faltante`, `Casado` + payees +
-  observation, `Tarifa bancária`, `Honorário do contador`, or the extra kind name), the
-  `Sugestão` / `Sugestão de exceção` text when present, then either the quiet undo action or,
-  for `missing`, `<details><summary>Resolver</summary>` holding the match form and the exception
-  buttons. `Marcar tarifa` / `Marcar honorário` are absent from Resolver when that organization's
-  matching offer is inactive. That `<details>` is `open` exactly when a suggestion or exception suggestion exists.
-- N:1 form: after the payments list, inside `<details><summary>Casar vários pagamentos com um
-  documento</summary>`, same condition as today.
-- Pool `li[data-row="pool-document"][data-document-id]`: checkbox (when the document has no month
-  and the month is open) with the payee as its label | amount | `Devolver` when applicable.
-- New copy: the summary sentences, `Resolver`, `Incluir extrato`, `Substituir extrato`, `Casar
-  vários pagamentos com um documento`, `Casar pagamentos`, month names, Documentos `Pdf` / `Planilha`.
+  margin. Columns: Data, Histórico, Valor, Status, Documento. There is no Ações, no `Resolver`,
+  no N:1 fold, no `Marcar tarifa` / `Marcar honorário` / extra submit, no `Desfazer casamento`,
+  no `Desmarcar exceção`. Status cell shows the status words (`Documento faltante`, `Casado` +
+  observation, `Tarifa bancária`, `Honorário do contador`, or the extra kind name) and
+  `Sugestão` / `Sugestão de exceção` meta when present. Documento is matched payee names,
+  comma-separated; empty on missing and on every exception.
+- Pool `li[data-row="pool-document"][data-document-id]`: Data (`time` `document_on`), Favorecido
+  (checkbox `form="close-month"` when the document has no month and the month is open, payee as
+  label), Tipo `Recibo` / `Nota fiscal`, Valor, Foto (filename as `text-caixa` underlined
+  `url_for` of the photo blob, same tab; empty when no photo), then `Devolver` when `month_id`
+  is this Month. Closed month: no checkbox and no Devolver. Empty: `Nenhum documento sem casamento`.
+- New copy: `Voltar para Início`, the summary sentences, `Incluir extrato`, `Substituir extrato`,
+  `Casar pagamentos`, month names, Documentos `Pdf` / `Planilha`, pool `Foto`.
 
 ### `matches` — `GET /months/:year_month/matches`
 

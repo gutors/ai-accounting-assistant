@@ -190,7 +190,7 @@ One family, self-hosted, Latin subset, `font-display: swap`. IBM Plex Sans at 40
 
 The content column is 72rem, left-aligned, inside the viewport. The page gutter is the narrow step on a phone and the wide step from 768px. Below the header (minimum height 3.5rem) the title sits one page-step down; sections stack one section-step apart; the column ends with the page-end step.
 
-From 768px every record list is a ruled sheet: 1px vertical `rule` between cells, 1px horizontal `rule` between rows, snug cell padding (6px by 10px; payment rows 3px vertical). Head and body rows of one sheet share one column template. A payment row is five tracks: 9.5rem for the date (`time`, nowrap, tabular), a flexible history, 8rem for the amount, 12rem for status, 11rem for actions. A month Contas bancárias row is six tracks: Banco, Nome, Agência/conta, Situação (6.5rem), Documentos (filenames in meta, truncated inside the cell), then the statement action (11rem). A home Convites pendentes row is five tracks: E-mail, Tipo (8.5rem), Status, Reenviar e-mail (10.5rem), Cancelar (6rem). The header row uses soft-ink labels (the Pagamentos Data label is ink and semibold as the visual sort key) and a 1px ink underline. Below 768px the header hides, cells stack, and vertical rules drop. Other lists (months, people, setup banks, documents, administration) share this sheet grammar with their own tracks. Rows have no fill. Short forms cap at 28rem; two-column forms and the people list begin at 768px. Navigation wraps under the organization name below 640px.
+From 768px every record list is a ruled sheet: 1px vertical `rule` between cells, 1px horizontal `rule` between rows, snug cell padding (6px by 10px; payment rows 3px vertical). Head and body rows of one sheet share one column template. A month payment row is five tracks: 9.5rem for the date (`time`, nowrap, tabular), a flexible history, 8rem for the amount, 12rem for status, 11rem for Documento (matched payee names). A month Contas bancárias row is six tracks: Banco, Nome, Agência/conta, Situação (6.5rem), Documentos (filenames in meta, truncated inside the cell), then the statement action (11rem). A home Convites pendentes row is five tracks: E-mail, Tipo (8.5rem), Status, Reenviar e-mail (10.5rem), Cancelar (6rem). The header row uses soft-ink labels (the Pagamentos Data label is ink and semibold as the visual sort key) and a 1px ink underline. Below 768px the header hides, cells stack, and vertical rules drop. Other lists (months, people, setup banks, documents, administration) share this sheet grammar with their own tracks. Rows have no fill. Short forms cap at 28rem; two-column forms and the people list begin at 768px. Navigation wraps under the organization name below 640px.
 
 The month page leads with the month in words, the folder name in meta under it, and one summary sentence: missing documents first (in margin red when any remain), missing statements second. There is no horizontal scroll at 390px.
 
@@ -223,8 +223,8 @@ The red margin is a 3px left border with 12px of inset, on the row and on the er
 ### Buttons
 
 - **Shape:** 4px corner. Primary and secondary share 8px vertical and 16px horizontal padding.
-- **Primary:** ledger-green fill, sheet-white label, weight 600. This is "Fechar para envio", "Entrar com Google", "Incluir documento", and every other commit action. No hover recolor. Focus uses the global ring.
-- **Secondary:** transparent fill, 1px ink border, ink label at body weight. "Reabrir", "Restaurar pasta", "Convidar", and the exception actions ("Marcar tarifa", "Marcar honorário").
+- **Primary:** ledger-green fill, sheet-white label, weight 600. Class `.ds-btn-primary`. This is "Fechar para envio", "Entrar com Google", "Incluir documento", and every other commit action. No hover recolor. Focus uses the global ring.
+- **Secondary:** transparent fill, 1px ink border, ink label at body weight. Class `.ds-btn-secondary`. "Casar pagamentos", "Reabrir", "Restaurar pasta", "Convidar", "Corrigir", and the exception actions ("Marcar tarifa", "Marcar honorário").
 - **Quiet:** no border and no fill. An underline sits 2px under the words. Destructive words (revoke, delete, undo a match, deactivate) are margin red. Other quiet words, including "Sair" and inline links, are ledger green.
 
 ### Chips
@@ -247,7 +247,7 @@ A paper bar with a 1px ruling line along its bottom. Left: the mark at 1.25rem a
 
 ### Ledger row
 
-A list item in a CSS grid sheet (`.ledger-sheet` / `.ledger-row`), not a table and not a card. Direct children are cells. Head and body share the sheet’s column template. Money lists run date, primary text with a soft-ink meta line under it, amount, status, then actions (Desfazer casamento, Resolver, Desmarcar exceção) in their own column — not stacked inside status. A missing document adds the red margin (3px left border, 12px inset on the first cell) and the status words in margin red. Bank, invite, and extras lists split situação and each quiet action into their own columns. Inflows have no status or actions cell. One sheet per section; do not group rows into status bands.
+A list item in a CSS grid sheet (`.ledger-sheet` / `.ledger-row`), not a table and not a card. Direct children are cells. Head and body share the sheet’s column template. The month payment sheet runs date, primary text with a soft-ink meta line under it, amount, Status, then Documento (payee names) as separate columns — not stacked inside status. Matching undo (`Resolver`, `Desfazer casamento`, `Desmarcar exceção`) is not a month-row action; it lives on the matches screen. A missing document adds the red margin (3px left border, 12px inset on the first cell) and the status words in margin red. Bank, invite, and extras lists split situação and each quiet action into their own columns. Inflows have no status or actions cell. One sheet per section; do not group rows into status bands.
 
 ### Notice
 
@@ -255,7 +255,7 @@ An alert paragraph: margin-red text, 3px margin-red left border, 12px inset. It 
 
 ### Stamp
 
-Inline, ink on paper: "Mês fechado", weight 600, the double rule from Shapes. It replaces the primary close action on a closed month and sits beside the two secondary actions.
+Inline, ink on paper: "Mês fechado", weight 600, title size, the double rule from Shapes. Class `.stamp-closed`. It sits under the month title and `YYYY-MM`, not on the action row. Closed-month actions are only `Restaurar pasta` and `Reabrir`. `Casar pagamentos` is absent while the month is closed.
 
 ## Do's and Don'ts
 
@@ -264,7 +264,7 @@ Inline, ink on paper: "Mês fechado", weight 600, the double rule from Shapes. I
 - **Do** set a missing-document row and an error notice with a 3px left border in `margem` and 12px of inset.
 - **Do** fill a primary action with `caixa`, a sheet-white label, weight 600, and 8px by 16px padding.
 - **Do** separate sections with a ruling line under the heading, and draw each record list as one flat ruled sheet with vertical rules between cells.
-- **Do** keep payment rows denser than other lists, with Status and Ações as separate columns.
+- **Do** keep payment rows denser than other lists, with Status and Documento as separate columns on the month payment sheet.
 - **Do** give the header row and every data row of a sheet the same column template; size action tracks in rem, not auto.
 - **Do** self-host IBM Plex Sans and IBM Plex Mono. The page makes no third-party font request.
 - **Do** draw focus as a 2px solid `caixa` ring, offset 2px, on every control.
