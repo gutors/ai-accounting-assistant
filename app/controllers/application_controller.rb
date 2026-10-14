@@ -121,6 +121,57 @@ class ApplicationController < ActionController::Base
     month
   end
 
+  def matches_screen?
+    params[:screen].to_s == "matches"
+  end
+
+  def assign_matches_account_filter
+    raw = params[:bank_account_id]
+    if raw.blank?
+      @bank_account_id = nil
+      return true
+    end
+
+    account = focused_organization.bank_accounts.find_by(id: raw, active: true)
+    unless account
+      head :not_found
+      return false
+    end
+
+    @bank_account_id = account.id
+    true
+  end
+
+  def load_matches_page
+    load_month_page
+    return unless @bank_account_id
+
+    @payments = @payments.select { |payment| payment.bank_statement.bank_account_id == @bank_account_id }
+    @missing_document_payments = @payments.select(&:missing_document?)
+  end
+
+  def after_month_mutate_path(month)
+    return "/months/#{month.year_month}" unless matches_screen?
+
+    path = "/months/#{month.year_month}/matches"
+    id = @bank_account_id || params[:bank_account_id].presence
+    id.present? ? "#{path}?bank_account_id=#{id}" : path
+  end
+
+  def render_after_month_mutate(month, message)
+    @month = month
+    @month_error = message
+    if matches_screen?
+      return unless assign_matches_account_filter
+
+      load_matches_page
+      render "matches/show", status: :unprocessable_content
+    else
+      load_month_page
+      render "months/show", status: :unprocessable_content
+    end
+  end
+
   def load_month_page
     @organization = focused_organization
     @active_bank_accounts = @organization.bank_accounts.where(active: true).includes(:bank).order(:name)

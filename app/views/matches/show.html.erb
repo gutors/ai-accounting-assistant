@@ -1,0 +1,173 @@
+<% content_for :title, "#{@organization.name} — #{@month.year_month}" %>
+<% missing_count = @missing_document_payments.size %>
+<% matches_query = { screen: "matches", bank_account_id: @bank_account_id }.compact %>
+
+<div data-controller="month-match">
+  <div class="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
+    <div>
+      <h1 class="text-[1.75rem] leading-[1.1] font-semibold tracking-[-0.02em] md:text-display"><%= month_title(@month.year_month) %></h1>
+      <p class="mt-1 text-meta text-ink-soft"><%= @month.year_month %></p>
+    </div>
+    <%= link_to "Voltar ao mês", "/months/#{@month.year_month}", class: "text-caixa underline underline-offset-2" %>
+  </div>
+
+  <div class="mt-6 flex flex-wrap gap-2" role="group" aria-label="Conta bancária">
+    <% if @bank_account_id.nil? %>
+      <%= link_to "Todas", "/months/#{@month.year_month}/matches", aria: { current: "true" }, class: "rounded bg-caixa px-3 py-1 font-semibold text-white" %>
+    <% else %>
+      <%= link_to "Todas", "/months/#{@month.year_month}/matches", class: "rounded border border-ink px-3 py-1" %>
+    <% end %>
+    <% @active_bank_accounts.each do |bank_account| %>
+      <% if @bank_account_id == bank_account.id %>
+        <%= link_to bank_account.name, "/months/#{@month.year_month}/matches?bank_account_id=#{bank_account.id}", aria: { current: "true" }, class: "rounded bg-caixa px-3 py-1 font-semibold text-white" %>
+      <% else %>
+        <%= link_to bank_account.name, "/months/#{@month.year_month}/matches?bank_account_id=#{bank_account.id}", class: "rounded border border-ink px-3 py-1" %>
+      <% end %>
+    <% end %>
+  </div>
+
+  <% if missing_count.zero? %>
+    <p class="mt-6">Nenhum documento faltante.</p>
+  <% else %>
+    <p class="mt-6 text-margem"><%= missing_count %> <%= missing_count == 1 ? "pagamento" : "pagamentos" %> com documento faltante.</p>
+  <% end %>
+
+  <% if @month_error.present? %>
+    <%= render "shared/notice", message: @month_error %>
+  <% end %>
+
+  <div class="match-split mt-10">
+    <section>
+      <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Pagamentos</h2>
+      <% if @payments.any? %>
+        <div class="ledger-sheet">
+          <div class="ledger-row ledger-head ledger-pay ledger-match-pay" aria-hidden="true">
+            <span></span>
+            <span class="sort-key">Data</span>
+            <span>Histórico</span>
+            <span class="ledger-amount">Valor</span>
+            <span>Status</span>
+          </div>
+          <ul>
+            <% @payments.each do |payment| %>
+              <% status = payment_status(payment) %>
+              <% suggestion = @suggestions_by_payment_id[payment.id] %>
+              <% exception_suggestion = @exception_suggestions_by_payment_id[payment.id] %>
+              <li data-row="payment" data-payment-id="<%= payment.id %>" data-status="<%= status %>" data-cents="<%= payment.amount_cents %>" class="ledger-row ledger-pay ledger-match-pay<%= " is-block" if status == "missing" %>">
+                <span>
+                  <% if !@month.closed? && status == "missing" %>
+                    <%= check_box_tag "payment_ids[]", payment.id, false, id: "match_pay_#{payment.id}", form: "match-confirm", data: { action: "month-match#toggle" } %>
+                  <% elsif !@month.closed? && status == "matched" %>
+                    <%= button_to "×", "/months/#{@month.year_month}/matches/#{payment.match_id}", method: :delete, params: matches_query, class: "font-medium text-margem", aria: { label: "Desfazer casamento" } %>
+                  <% elsif !@month.closed? && %w[bank_fee accountant_fee extra].include?(status) %>
+                    <%= button_to "×", "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :delete, params: matches_query, class: "font-medium text-margem", aria: { label: "Desmarcar exceção" } %>
+                  <% end %>
+                </span>
+                <time datetime="<%= payment.occurred_on.iso8601 %>" class="tabular-nums"><%= l(payment.occurred_on) %></time>
+                <div>
+                  <% if !@month.closed? && status == "missing" %>
+                    <label for="match_pay_<%= payment.id %>" class="font-medium"><%= payment.history %></label>
+                  <% else %>
+                    <p class="font-medium"><%= payment.history %></p>
+                  <% end %>
+                  <p class="text-meta text-ink-soft"><%= payment.bank_statement.bank_account.name %></p>
+                </div>
+                <p data-cell="amount" class="font-medium tabular-nums"><%= format_reais(payment.amount_cents) %></p>
+                <div>
+                  <% if status == "missing" %>
+                    <p class="font-medium text-margem">Documento faltante</p>
+                    <% if suggestion %>
+                      <p class="text-meta text-ink-soft">Sugestão <%= suggestion.supporting_documents.map(&:payee).join(", ") %></p>
+                    <% elsif exception_suggestion %>
+                      <p class="text-meta text-ink-soft">Sugestão de exceção</p>
+                    <% end %>
+                  <% elsif status == "matched" %>
+                    <p class="font-medium">Casado</p>
+                    <p class="text-meta text-ink-soft"><%= payment.match.supporting_documents.map(&:payee).join(", ") %></p>
+                    <% if payment.match.observation.present? %>
+                      <p class="text-meta text-ink-soft"><%= payment.match.observation %></p>
+                    <% end %>
+                  <% elsif status == "bank_fee" %>
+                    <p class="font-medium">Tarifa bancária</p>
+                  <% elsif status == "accountant_fee" %>
+                    <p class="font-medium">Honorário do contador</p>
+                  <% elsif status == "extra" %>
+                    <p class="font-medium"><%= payment.extra_exception_kind.name %></p>
+                  <% end %>
+                </div>
+              </li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+    </section>
+
+    <section>
+      <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Documentos sem casamento</h2>
+      <% if @unmatched_documents.empty? %>
+        <p>Nenhum documento sem casamento</p>
+      <% else %>
+        <div class="ledger-sheet">
+          <div class="ledger-row ledger-head ledger-match-pool" aria-hidden="true">
+            <span></span>
+            <span>Data</span>
+            <span>Favorecido</span>
+            <span class="ledger-amount">Valor</span>
+            <span>Tipo</span>
+          </div>
+          <ul>
+            <% @unmatched_documents.each do |document| %>
+              <li data-row="pool-document" data-document-id="<%= document.id %>" data-cents="<%= document.amount_cents %>" class="ledger-row ledger-match-pool">
+                <span>
+                  <% if !@month.closed? %>
+                    <%= check_box_tag "supporting_document_ids[]", document.id, false, id: "match_doc_#{document.id}", form: "match-confirm", data: { action: "month-match#toggle" } %>
+                  <% end %>
+                </span>
+                <time datetime="<%= document.document_on.iso8601 %>" class="tabular-nums"><%= l(document.document_on) %></time>
+                <% if !@month.closed? %>
+                  <label for="match_doc_<%= document.id %>" class="font-medium"><%= document.payee %></label>
+                <% else %>
+                  <p class="font-medium"><%= document.payee %></p>
+                <% end %>
+                <p data-cell="amount" class="font-medium tabular-nums"><%= format_reais(document.amount_cents) %></p>
+                <p class="text-meta text-ink-soft"><%= document.recibo? ? "Recibo" : "Nota fiscal" %></p>
+              </li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+    </section>
+  </div>
+
+  <% unless @month.closed? %>
+    <%= form_with url: "/months/#{@month.year_month}/matches", method: :post, html: { id: "match-confirm", class: "match-confirm" } do %>
+      <%= hidden_field_tag :screen, "matches" %>
+      <% if @bank_account_id %>
+        <%= hidden_field_tag :bank_account_id, @bank_account_id %>
+      <% end %>
+      <p class="font-medium tabular-nums">
+        Pagamentos <span data-month-match-target="sumPayments">R$ 0,00</span>
+        <span class="text-ink-soft"> · </span>
+        Documentos <span data-month-match-target="sumDocuments">R$ 0,00</span>
+        <span class="text-ink-soft"> · </span>
+        <span data-month-match-target="verdict"></span>
+      </p>
+      <div class="mt-4 max-w-md">
+        <label for="observation_match" class="mb-1 block font-medium">Observação do casamento</label>
+        <%= text_area_tag :observation, nil, id: "observation_match", rows: 2, class: "w-full rounded border border-rule bg-sheet px-3 py-2" %>
+      </div>
+      <div class="mt-4 flex flex-wrap items-center gap-3">
+        <%= submit_tag "Confirmar casamento", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+        <% if @organization.bank_fee_exception_active? %>
+          <%= button_tag "Marcar tarifa", type: "submit", name: "kind", value: "bank_fee", formaction: "/months/#{@month.year_month}/document_exceptions", class: "rounded border border-ink px-4 py-2 text-ink" %>
+        <% end %>
+        <% if @organization.accountant_fee_exception_active? %>
+          <%= button_tag "Marcar honorário", type: "submit", name: "kind", value: "accountant_fee", formaction: "/months/#{@month.year_month}/document_exceptions", class: "rounded border border-ink px-4 py-2 text-ink" %>
+        <% end %>
+        <% @active_extra_exception_kinds.each do |extra_exception_kind| %>
+          <%= button_tag extra_exception_kind.name, type: "submit", name: "extra_exception_kind_id", value: extra_exception_kind.id, formaction: "/months/#{@month.year_month}/document_exceptions", class: "rounded border border-ink px-4 py-2 text-ink" %>
+        <% end %>
+      </div>
+    <% end %>
+  <% end %>
+</div>

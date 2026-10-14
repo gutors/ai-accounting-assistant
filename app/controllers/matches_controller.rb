@@ -1,6 +1,16 @@
 class MatchesController < ApplicationController
   before_action :require_coordinator_organization
 
+  def show
+    month = find_month_with_visible_movements
+    return unless month
+
+    @month = month
+    return unless assign_matches_account_filter
+
+    load_matches_page
+  end
+
   def create
     month = find_month_with_visible_movements
     return unless month
@@ -27,12 +37,9 @@ class MatchesController < ApplicationController
       observation: params[:observation]
     )
     if match.errors.empty?
-      redirect_to "/months/#{month.year_month}", status: :found
+      redirect_to after_month_mutate_path(month), status: :found
     else
-      @month = month
-      @month_error = match.errors[:base].first
-      load_month_page
-      render "months/show", status: :unprocessable_content
+      render_after_month_mutate(month, match.errors[:base].first)
     end
   end
 
@@ -48,12 +55,9 @@ class MatchesController < ApplicationController
 
     match.dissolve
     if match.errors.empty?
-      redirect_to "/months/#{month.year_month}", status: :found
+      redirect_to after_month_mutate_path(month), status: :found
     else
-      @month = month
-      @month_error = match.errors[:base].first
-      load_month_page
-      render "months/show", status: :unprocessable_content
+      render_after_month_mutate(month, match.errors[:base].first)
     end
   end
 end

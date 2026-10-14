@@ -53,6 +53,7 @@ Rails.application.routes.draw do
 
   post "/months", to: "months#create"
   get "/months/:year_month", to: "months#show"
+  get "/months/:year_month/matches", to: "matches#show"
   delete "/months/:year_month", to: "months#destroy"
   post "/months/:year_month/account_confirmation", to: "months#account_confirmation"
   post "/months/:year_month/close", to: "months#close"
@@ -62,6 +63,7 @@ Rails.application.routes.draw do
   post "/months/:year_month/bank_statements", to: "bank_statements#create"
   post "/months/:year_month/matches", to: "matches#create"
   delete "/months/:year_month/matches/:id", to: "matches#destroy"
+  post "/months/:year_month/document_exceptions", to: "document_exceptions#create"
   post "/months/:year_month/payments/:id/document_exception", to: "document_exceptions#create"
   delete "/months/:year_month/payments/:id/document_exception", to: "document_exceptions#destroy"
 
