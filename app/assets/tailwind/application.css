@@ -145,7 +145,7 @@
 
   @media (min-width: 768px) {
     .ledger-month {
-      grid-template-columns: minmax(0, 1fr) 8rem 8rem;
+      grid-template-columns: minmax(0, 1fr) 8rem 8rem 6rem;
     }
 
     .ledger-people {

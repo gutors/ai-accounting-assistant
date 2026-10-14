@@ -45,6 +45,7 @@
             <span>Mês</span>
             <span>AAAA-MM</span>
             <span>Status</span>
+            <span></span>
           </div>
           <ul>
             <% @months.each do |month| %>
@@ -52,6 +53,11 @@
                 <%= link_to month_title(month.year_month), "/months/#{month.year_month}", class: "font-medium text-caixa underline underline-offset-2" %>
                 <span class="text-meta text-ink-soft tabular-nums"><%= month.year_month %></span>
                 <span class="text-ink-soft"><%= month.closed? ? "Fechado" : "Aberto" %></span>
+                <span>
+                  <% if month.never_sent? %>
+                    <%= button_to "Excluir", "/months/#{month.year_month}", method: :delete, form: { data: { turbo_confirm: "Excluir este fechamento?" } }, class: "text-margem underline underline-offset-2" %>
+                  <% end %>
+                </span>
               </li>
             <% end %>
           </ul>

@@ -125,7 +125,7 @@
         </div>
       <% end %>
       <%= form_with url: "/months/#{@month.year_month}/account_confirmation", method: :post, html: { class: "mt-4" } do %>
-        <%= submit_tag "Iniciar fechamento", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+        <%= submit_tag "Iniciar fechamento", class: "rounded bg-caixa px-4 py-2 font-semibold text-white", disabled: !@month.spreadsheet_present? %>
       <% end %>
     </section>
   <% end %>

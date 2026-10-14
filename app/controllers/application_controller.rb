@@ -136,6 +136,9 @@ class ApplicationController < ActionController::Base
     @exception_suggestions_by_payment_id = exception_suggestions_on_month
     @format_2_suggestion = format_2_suggestion_on_month
     @focusable_organizations = current_account.organizations.order(:name)
+    if !@month.accounts_confirmed? && !@month.closed? && !@month.spreadsheet_present?
+      @month_error ||= Month::CONFIRM_NEEDS_SPREADSHEET
+    end
   end
 
   def load_setup

@@ -8,6 +8,8 @@ class Month < ApplicationRecord
   MISSING_ACCOUNTANT = "Cadastre o contador"
   WRITE_FAILED = "Não foi possível gravar no arquivo do pacote"
   INVALID = "Informe um mês válido"
+  CONFIRM_NEEDS_SPREADSHEET = "Inclua o extrato planilha de pelo menos uma conta bancária."
+  NOT_NEVER_SENT = "Só é possível excluir um fechamento aberto que nunca foi enviado."
 
   belongs_to :organization
 
@@ -93,10 +95,36 @@ class Month < ApplicationRecord
         errors.add(:base, CLOSED)
         next
       end
+      unless spreadsheet_present?
+        errors.add(:base, CONFIRM_NEEDS_SPREADSHEET)
+        next
+      end
 
       update!(accounts_confirmed: true)
     end
     self
+  end
+
+  def discard_never_sent
+    errors.clear
+    with_lock do
+      unless never_sent?
+        errors.add(:base, NOT_NEVER_SENT)
+        next
+      end
+
+      bank_statements.find_each(&:destroy!)
+      destroy!
+    end
+    self
+  end
+
+  def spreadsheet_present?
+    bank_statements.joins(:spreadsheet_attachment).exists?
+  end
+
+  def never_sent?
+    !closed? && month_folder_id.blank?
   end
 
   private

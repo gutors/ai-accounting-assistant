@@ -14,4 +14,18 @@ RSpec.describe "Home open month list sources" do
     expect(section).to include("Aberto")
     expect(section).to include("Fechado")
   end
+
+  it "visual-identity home Meses has Excluir on never-sent Aberto rows" do
+    text = Rails.root.join(".specs/features/visual-identity/design.md").read
+    section = text.split("### `home` — `GET /` (coordinator)", 2).last.split("### `home` — `GET /` (submitter)", 2).first
+
+    expect(section).to include("Mês | AAAA-MM | Status")
+    expect(section).to include("last action")
+    expect(section).to include("Excluir")
+    expect(section).to include("never been closed-for-send")
+    expect(section).to include("Excluir este fechamento?")
+    expect(section).to include("Fechado")
+    expect(section).to include("reopened")
+    expect(section).to include("omit")
+  end
 end

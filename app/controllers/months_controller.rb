@@ -88,6 +88,21 @@ class MonthsController < ApplicationController
     end
   end
 
+  def destroy
+    month = find_month
+    return unless month
+
+    month.discard_never_sent
+    if month.errors.empty?
+      redirect_success("/")
+    else
+      @month_error = month.errors[:base].first
+      load_home
+      toast_now(kind: "error", message: @month_error)
+      render "organizations/show", status: :unprocessable_content
+    end
+  end
+
   private
 
   def find_month
