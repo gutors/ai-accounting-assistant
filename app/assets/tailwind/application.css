@@ -62,6 +62,49 @@
 
 /* B · Réguas: one flat ruled sheet per record list. */
 @layer components {
+  .ds-btn-primary,
+  .ds-btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 1rem;
+    line-height: 1.5rem;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .ds-btn-primary {
+    border: 0;
+    background: var(--color-caixa);
+    color: var(--color-sheet);
+    font-weight: 600;
+  }
+
+  .ds-btn-secondary {
+    border: 1px solid var(--color-ink);
+    background: transparent;
+    color: var(--color-ink);
+    font-weight: 400;
+  }
+
+  .stamp-closed {
+    display: inline-block;
+    margin-top: 12px;
+    border-radius: 2px;
+    border: 2px solid var(--color-ink);
+    outline: 1px solid var(--color-ink);
+    outline-offset: 3px;
+    padding: 2px 8px;
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1.5rem;
+  }
+
   .file-field:has(input:disabled) {
     pointer-events: none;
     opacity: 0.5;
@@ -136,6 +179,16 @@
   .ledger-head > * {
     padding-top: 4px;
     padding-bottom: 6px;
+  }
+
+  .month-fold > summary {
+    cursor: pointer;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-rule);
+    font-size: 1.125rem;
+    line-height: 1.5rem;
+    font-weight: 600;
   }
 
   .ledger-head .sort-key {
@@ -236,6 +289,19 @@
 
     .ledger-match-pool {
       grid-template-columns: 1.75rem 7rem minmax(0, 1fr) 6.5rem 6.5rem;
+    }
+
+    .ledger-overview-pay {
+      grid-template-columns: 9.5rem minmax(0, 1fr) 8rem 12rem minmax(8rem, 11rem);
+    }
+
+    .ledger-overview-pay > * {
+      padding-top: 3px;
+      padding-bottom: 3px;
+    }
+
+    .ledger-overview-pool {
+      grid-template-columns: 9.5rem minmax(0, 1fr) 7rem 8rem minmax(0, 11rem) 6rem;
     }
   }
 

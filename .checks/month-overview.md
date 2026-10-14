@@ -35,6 +35,8 @@ Touches `GET /months/:year_month` (Voltar, three open folds, chips, Documento co
 | --- | --- | --- |
 | Month GET filter | `GET /months/:year_month` accepts optional `?bank_account_id=` (integer id of an active BankAccount on the focused organization); omit query for all. Filters Pagamentos and Recebimentos. Pool membership and Contas do not follow it. Missing-document count follows it. Unknown, foreign, or inactive id is `404` (same membership helper as matches) | Client-only chips without a query (HTML mock). Filtering the pool. Ignoring a bad id with `200` |
 
+- Month GET and matches GET share `apply_bank_account_movement_filter` after `load_month_page` (payments, missing-document count, and inflows). Rejected: a second membership helper on `MonthsController` that would drift from `assign_matches_account_filter`’s 404 table
+- Payment Status and Documento cells expose `data-cell="status"` and `data-cell="document"`. Rejected: scraping column index, which breaks when suggestion meta wraps
 - Nothing else in this change is hard to reverse. Folds always `open`, blockers then Contas then the book, chips after Contas, Casar secondary and open-only, stamp under the title, and Documento payee names are product locks in `.design/month-overview.md` and reversible in that table
 
 ## Screens (ui)

@@ -425,8 +425,7 @@ RSpec.describe "Bank statements", type: :request do
     mark_accounts_confirmed!(bank_account.organization)
     get "/months/2026-05"
 
-    section = response.body[response.body.index("Pagamentos")..]
-    dates = section.scan(/datetime="(\d{4}-\d{2}-\d{2})"/).flatten
+    dates = page_doc(response.body).css('li[data-row="payment"] time').map { |node| node["datetime"] }
     expect(dates.size).to be >= 2
     expect(dates).to eq(dates.sort)
   end
@@ -514,8 +513,9 @@ RSpec.describe "Bank statements", type: :request do
     expect(organization.months.find_by!(year_month: "2026-05").accounts_confirmed).to eq(true)
     get "/months/2026-05"
     headings = page_doc(response.body).css("h2").map { |node| node.text.strip }
+    summaries = page_doc(response.body).css("details.month-fold > summary").map { |node| node.text.strip }
     expect(headings).not_to include("Confirmar contas para fechamento")
-    expect(headings).to include("Pagamentos")
+    expect(summaries).to include("Pagamentos")
   end
 
   it "submitter POST bank_statements persists no statement and responds 404" do

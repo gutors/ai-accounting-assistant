@@ -144,10 +144,15 @@ class ApplicationController < ActionController::Base
 
   def load_matches_page
     load_month_page
+    apply_bank_account_movement_filter
+  end
+
+  def apply_bank_account_movement_filter
     return unless @bank_account_id
 
     @payments = @payments.select { |payment| payment.bank_statement.bank_account_id == @bank_account_id }
     @missing_document_payments = @payments.select(&:missing_document?)
+    @inflows = @inflows.select { |inflow| inflow.bank_statement.bank_account_id == @bank_account_id }
   end
 
   def after_month_mutate_path(month)
@@ -179,7 +184,7 @@ class ApplicationController < ActionController::Base
     @inflows = Inflow.joins(:bank_statement).where(bank_statements: { month_id: @month.id }).includes(bank_statement: :bank_account).order(:occurred_on, :id)
     @payments = Payment.joins(:bank_statement).where(bank_statements: { month_id: @month.id }).includes(:extra_exception_kind, match: :supporting_documents, bank_statement: :bank_account).order(:occurred_on, :id)
     @active_extra_exception_kinds = @organization.extra_exception_kinds.where(active: true).order(:name)
-    @unmatched_documents = @organization.supporting_documents.unmatched.listed.where(
+    @unmatched_documents = @organization.supporting_documents.unmatched.listed.with_attached_photo.where(
       month_id: @month.closed? ? @month.id : [ nil, @month.id ]
     )
     @missing_document_payments = @payments.select(&:missing_document?)

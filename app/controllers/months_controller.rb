@@ -31,9 +31,11 @@ class MonthsController < ApplicationController
   def show
     month = find_month
     return unless month
+    return unless assign_matches_account_filter
 
     @month = month
     load_month_page
+    apply_bank_account_movement_filter
   end
 
   def close

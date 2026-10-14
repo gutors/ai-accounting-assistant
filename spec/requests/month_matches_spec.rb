@@ -433,6 +433,20 @@ RSpec.describe "Month matches screen", type: :request do
     expect(response).to redirect_to("/months/2026-05/matches?bank_account_id=#{principal.id}")
   end
 
+  it "POST matches omitting screen still 302s month" do
+    account, organization, _month, statement = signed_month
+    payment = plant_payment(statement, 22000)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    post "/months/2026-05/matches", params: {
+      payment_ids: [ payment.id ],
+      supporting_document_ids: [ document.id ]
+    }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/months/2026-05")
+  end
+
   it "month GET still has Resolver and N:1 fold after matches screen exists" do
     account, organization, _month, statement = signed_month
     plant_payment(statement, 10000, history: "Um")
@@ -441,8 +455,8 @@ RSpec.describe "Month matches screen", type: :request do
 
     get "/months/2026-05"
 
-    expect(response.body).to include("Resolver")
-    expect(response.body).to include("Casar vários pagamentos com um documento")
+    expect(response.body).not_to include("Resolver")
+    expect(response.body).not_to include("Casar vários pagamentos com um documento")
   end
 
   it "POST exception from matches strip with one payment stays here" do
