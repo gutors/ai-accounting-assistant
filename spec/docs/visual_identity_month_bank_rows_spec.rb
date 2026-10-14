@@ -62,4 +62,34 @@ RSpec.describe "Visual identity month bank rows" do
     expect(month).to include("mixed Falta allowed")
     expect(month).to include("Close-for-send still requires every active account’s statement")
   end
+
+  it "visual-identity matches screen and month Casar pagamentos entry" do
+    design = Rails.root.join(".specs/features/visual-identity/design.md").read
+    matches = design.split("### `matches` — `GET /months/:year_month/matches`", 2).last.split("### `", 2).first
+    month = design.split("### `month` — `GET /months/:year_month`", 2).last.split("### `", 2).first
+
+    expect(matches).to include("maio de 2026")
+    expect(matches).to include("2026-05")
+    expect(matches).to include("Voltar ao mês")
+    expect(matches).to include("no `Fechar para envio`")
+    expect(matches).to include("no stamp")
+    expect(matches).to include("Todas")
+    expect(matches).to include("?bank_account_id=")
+    expect(matches).to include("Pagamentos only")
+    expect(matches).to include("margem")
+    expect(matches).to include("1100px")
+    expect(matches).to include("Pagamentos wider")
+    expect(matches).to include("stacked")
+    expect(matches).to include("Pagamentos first")
+    expect(matches).to include("checkbox")
+    expect(matches).to include("×")
+    expect(matches).to include("no `Resolver`")
+    expect(matches).to include("Nenhum documento sem casamento")
+    expect(matches).to include("Soma igual")
+    expect(matches).to include("Documentos somam menos")
+    expect(matches).to include("Documentos somam mais")
+    expect(matches).to include("stay after confirm")
+    expect(month).to include("Casar pagamentos")
+    expect(month).to include("after confirmation or while closed")
+  end
 end
