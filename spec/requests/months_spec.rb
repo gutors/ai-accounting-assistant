@@ -2341,6 +2341,29 @@ RSpec.describe "Months", type: :request do
     expect(casar["href"]).to eq("/months/2026-05/matches?bank_account_id=#{principal.id}")
   end
 
+  it "POST close 422 keeps bank_account_id filter on re-render" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    BankAccount.create_for(organization: organization, name: "Conta Alfa", compe: "001")
+    principal = BankAccount.create_for(organization: organization, name: "Conta Principal", compe: "033")
+    month, alfa_statement = plant_month(organization)
+    principal_statement = BankStatement.create!(month: month, bank_account: principal)
+    plant_payment(principal_statement, 22000, history: "Pix enviado — Padaria Central")
+    plant_payment(alfa_statement, 45000, history: "TED — Energia Ltda")
+
+    get "/months/2026-05", params: { bank_account_id: principal.id }
+    post "/months/2026-05/close", params: { bank_account_id: principal.id }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    current = month_chip_links(response.body).find { |node| node["aria-current"] == "true" }
+    expect(current.text.strip).to eq("Conta Principal")
+    pagamentos = month_fold(response.body, "Pagamentos")
+    expect(pagamentos.text).to include("Pix enviado — Padaria Central")
+    expect(pagamentos.text).not_to include("TED — Energia Ltda")
+    doc = page_doc(response.body)
+    expect(doc.at_css('input[name="bank_account_id"][value="' + principal.id.to_s + '"]')).to be_present
+  end
+
   it "GET month unfiltered missing count is two and filtered none omits margem" do
     _account, organization = plant_coordinator
     sign_in_as(_account, organization: organization)

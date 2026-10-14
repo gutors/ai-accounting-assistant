@@ -21,11 +21,15 @@
     <% if movements_visible && !@month.closed? %>
       <%= link_to "Casar pagamentos", casar_href, class: "ds-btn-secondary" %>
     <% end %>
+    <% month_post_params = @bank_account_id ? { bank_account_id: @bank_account_id } : {} %>
     <% if @month.closed? %>
-      <%= button_to "Restaurar pasta", "/months/#{@month.year_month}/restore", method: :post, form: { data: { turbo_confirm: "Restaurar a pasta do mês no arquivo do pacote?" } }, class: "ds-btn-secondary" %>
-      <%= button_to "Reabrir", "/months/#{@month.year_month}/reopen", method: :post, form: { data: { turbo_confirm: "Reabrir o mês?" } }, class: "ds-btn-secondary" %>
+      <%= button_to "Restaurar pasta", "/months/#{@month.year_month}/restore", method: :post, params: month_post_params, form: { data: { turbo_confirm: "Restaurar a pasta do mês no arquivo do pacote?" } }, class: "ds-btn-secondary" %>
+      <%= button_to "Reabrir", "/months/#{@month.year_month}/reopen", method: :post, params: month_post_params, form: { data: { turbo_confirm: "Reabrir o mês?" } }, class: "ds-btn-secondary" %>
     <% else %>
       <%= form_with url: "/months/#{@month.year_month}/close", method: :post, html: { id: "close-month", data: { turbo_confirm: "Fechar o mês para envio?" } } do %>
+        <% if @bank_account_id %>
+          <%= hidden_field_tag :bank_account_id, @bank_account_id %>
+        <% end %>
         <%= submit_tag "Fechar para envio", class: "ds-btn-primary" %>
       <% end %>
     <% end %>
