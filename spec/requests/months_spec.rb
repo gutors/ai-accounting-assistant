@@ -2455,9 +2455,10 @@ RSpec.describe "Months", type: :request do
       supporting_documents: [ padaria, mercado ],
       observation: "desconto não documentado"
     )
-    other = plant_payment(statement, 18000, history: "Pix enviado — Outro")
+    other = plant_payment(statement, 10000, history: "Pix enviado — Outro")
+    pair = plant_payment(statement, 8000, history: "Pix enviado — Par")
     n1 = plant_recibo(organization, account, payee: "Padaria Central", amount: "180,00", date: "2026-05-13")
-    Match.confirm(month: month, payments: [ other ], supporting_documents: [ n1 ])
+    Match.confirm(month: month, payments: [ other, pair ], supporting_documents: [ n1 ])
 
     get "/months/2026-05"
 
@@ -2472,6 +2473,7 @@ RSpec.describe "Months", type: :request do
     expect(matched.text).not_to include("Desfazer casamento")
     n1_row = row(response.body, "payment", payment_id: other.id)
     expect(n1_row.at_css('[data-cell="document"]').text.strip).to eq("Padaria Central")
+    expect(row(response.body, "payment", payment_id: pair.id).at_css('[data-cell="document"]').text.strip).to eq("Padaria Central")
   end
 
   it "GET month exception Status empty Documento no Desmarcar including closed deactivated extra" do
