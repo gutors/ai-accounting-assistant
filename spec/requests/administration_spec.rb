@@ -148,8 +148,7 @@ RSpec.describe "Administration", type: :request do
       expect(confirm.ancestors("form").first["action"]).to eq("/administration/confirm")
       correct = group.css("button").find { |button| button.text.strip == "Corrigir" }
       expect(correct.ancestors("form").first["action"]).to eq("/administration/correct")
-      expect(correct["class"]).to include("border")
-      expect(correct["class"]).to include("border-ink")
+      expect(correct["class"]).to include("ds-btn-secondary")
     end
   end
 
@@ -760,7 +759,7 @@ RSpec.describe "Administration", type: :request do
       expect(confirm.ancestors("form").first["action"]).to eq("/administration/name/confirm")
       correct = group.css("button").find { |button| button.text.strip == "Corrigir" }
       expect(correct.ancestors("form").first["action"]).to eq("/administration/correct")
-      expect(correct["class"]).to include("border-ink")
+      expect(correct["class"]).to include("ds-btn-secondary")
       get "/administration"
       expect(organization_row(sul).text).to include("ONG Sul")
       expect(organization_row(sul).text).to include("Editar")

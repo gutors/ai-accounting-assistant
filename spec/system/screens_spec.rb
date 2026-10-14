@@ -147,7 +147,8 @@ RSpec.describe "Screens", type: :system do
 
     at_viewport(390) do
       visit "/months/2026-05"
-      expect(page).to have_css('li[data-status="missing"] details[open]')
+      expect(page).to have_css('li[data-status="missing"]')
+      expect(page).to have_css("details.month-fold[open]", text: "Pagamentos")
       expect(scroll_width).to be <= 390
     end
   end
