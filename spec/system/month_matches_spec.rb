@@ -64,25 +64,34 @@ RSpec.describe "Month matches layout", type: :system do
     expect(stacked["trackCount"]).to eq(1)
     expect(stacked["headings"]).to eq([ "Pagamentos", "Documentos sem casamento" ])
 
+    source = Rails.root.join("app/assets/tailwind/application.css").read
+    expect(source).to include("@media (min-width: 1100px)")
+    expect(source).to include("@media (min-width: 768px)")
+
     page.driver.resize(768, 900)
     density = page.evaluate_script(<<~JS)
       (function() {
         const row = document.querySelector('li[data-row="payment"]');
+        const pool = document.querySelector('li[data-row="pool-document"]');
         const child = row.firstElementChild;
         const rowStyle = getComputedStyle(row);
         const childStyle = getComputedStyle(child);
         return {
           rowDisplay: rowStyle.display,
+          poolDisplay: pool ? getComputedStyle(pool).display : null,
           paddingTop: childStyle.paddingTop,
           paddingBottom: childStyle.paddingBottom,
+          borderLeft: rowStyle.borderLeftWidth,
           className: row.className
         };
       })()
     JS
     expect(density["rowDisplay"]).to eq("grid")
+    expect(density["poolDisplay"]).to eq("grid")
     expect(density["className"]).to include("ledger-pay")
     expect(density["paddingTop"]).to eq("3px")
     expect(density["paddingBottom"]).to eq("3px")
+    expect(density["borderLeft"]).to eq("3px")
   end
 
   it "totalling line sums and verdicts including empty side" do
@@ -102,6 +111,14 @@ RSpec.describe "Month matches layout", type: :system do
       expect(page).to have_text("Documentos R$ 220,00")
       expect(page).to have_text("Soma igual")
     end
+    ink = page.evaluate_script(<<~JS)
+      (function() {
+        const line = document.querySelector(".match-confirm");
+        const style = getComputedStyle(line);
+        return { borderTopWidth: style.borderTopWidth, borderTopColor: style.borderTopColor };
+      })()
+    JS
+    expect(ink["borderTopWidth"]).to eq("1px")
 
     padaria.click
     menos.click

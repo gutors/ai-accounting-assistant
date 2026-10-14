@@ -192,6 +192,8 @@ Proof: `bin/rspec spec/requests/document_exceptions_spec.rb -e "POST document_ex
 Proof: `bin/rspec spec/requests/matches_spec.rb -e "POST match while closed returns 422 Mes fechado"`
 Proof: `bin/rspec spec/requests/matches_spec.rb -e "DELETE match while closed returns 422 Mes fechado"`
 Proof: `bin/rspec spec/requests/document_exceptions_spec.rb -e "POST extra_exception_kind_id while closed returns 422 Mes fechado"`
+Proof: `bin/rspec spec/requests/month_matches_spec.rb -e "POST strip exception on unconfirmed month returns 404"`
+Proof: `bin/rspec spec/requests/month_matches_spec.rb -e "POST strip exception while closed returns 422 Mes fechado"`
 
 ### S10 - Binding visual-identity · 2 files · 30 KB · ~8k
 
