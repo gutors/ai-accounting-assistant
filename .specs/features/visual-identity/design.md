@@ -307,8 +307,8 @@ After confirmation, or while closed (even if `accounts_confirmed` is false):
 
 ```
 header · nav
-maio de 2026                                        [ Fechar para envio ]     (open)
-2026-05                                             ⌈Mês fechado⌉ [Restaurar pasta] [Reabrir]  (closed)
+maio de 2026                       Casar pagamentos [ Fechar para envio ]     (open)
+2026-05                            Casar pagamentos ⌈Mês fechado⌉ [Restaurar pasta] [Reabrir]  (closed)
 2 pagamentos com documento faltante.  Falta o extrato de 1 conta ativa.
 <notice>
 Contas bancárias                                (h2)
@@ -336,7 +336,8 @@ Documentos sem casamento                        (h2)
 
 - Title: `<h1>` is the month in words (`maio de 2026`, from `pt-BR.date.month_names`) in
   display size; `2026-05` directly under it in meta `ink-soft` (it is the month folder name the
-  accountant sees). Right side: the primary action when open; when closed, the stamp
+  accountant sees). Right side: quiet `Casar pagamentos` to `GET /months/:year_month/matches`
+  after confirmation or while closed, then the primary action when open; when closed, the stamp
   `[data-stamp="closed"]` `Mês fechado` and the two secondary buttons.
 - Summary line, body size, under the title. While `accounts_confirmed` is false and the month
   is open, the summary is `Insira os extratos das contas bancárias com as quais deseja
@@ -377,7 +378,32 @@ Documentos sem casamento                        (h2)
 - Pool `li[data-row="pool-document"][data-document-id]`: checkbox (when the document has no month
   and the month is open) with the payee as its label | amount | `Devolver` when applicable.
 - New copy: the summary sentences, `Resolver`, `Incluir extrato`, `Substituir extrato`, `Casar
-  vários pagamentos com um documento`, month names, Documentos `Pdf` / `Planilha`.
+  vários pagamentos com um documento`, `Casar pagamentos`, month names, Documentos `Pdf` / `Planilha`.
+
+### `matches` — `GET /months/:year_month/matches`
+
+```
+header · nav
+maio de 2026                                        Voltar ao mês
+2026-05
+[ Todas ]  Conta Alfa  Conta Principal
+1 pagamento com documento faltante.                 ← margem when N > 0
+Pagamentos (~60%)                 Documentos sem casamento
+☐ 11/05  Pix — Padaria   220,00 Faltante   ☐ 11/05 Padaria  220,00 Recibo
+× 15/05  Honorários      800,00 Casado
+Pagamentos R$ 220,00 · Documentos R$ 220,00 · Soma igual
+Observação do casamento  [Confirmar casamento] [Marcar tarifa] …
+```
+
+- Title month in words (`maio de 2026`) plus `2026-05` in meta under it. Quiet `Voltar ao mês`.
+  no `Fechar para envio` and no stamp.
+- Chips `Todas` then active accounts by name, `?bank_account_id=`, default all, Pagamentos only.
+- Missing-count copy (`Nenhum documento faltante.` / `1 pagamento com documento faltante.` /
+  `N pagamentos com documento faltante.`) and `margem` when N > 0.
+- Two sheets from 1100px (Pagamentos wider), stacked below with Pagamentos first. Payment first
+  cell checkbox vs `×`; no `Resolver`. Pool columns Data / Favorecido / Valor / Tipo; empty
+  `Nenhum documento sem casamento`.
+- Totalling line and the three verdicts (`Soma igual`, `Documentos somam menos`, `Documentos somam mais`); stay after confirm.
 
 ### `documents` — `GET /supporting_documents`
 

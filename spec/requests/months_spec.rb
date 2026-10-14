@@ -2070,4 +2070,37 @@ RSpec.describe "Months", type: :request do
     expect(error_notice_text(response.body)).to eq("Há documento faltante")
     expect(organization.months.find_by!(year_month: "2026-05").closed?).to eq(false)
   end
+
+  it "confirmed or closed month GET includes Casar pagamentos before Fechar or stamp" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    month, _statement = plant_month(organization)
+
+    get "/months/2026-05"
+
+    link = page_doc(response.body).css("a").find { |node| node.text.strip == "Casar pagamentos" }
+    expect(link).to be_present
+    expect(link["href"]).to eq("/months/2026-05/matches")
+    cluster_html = link.parent.to_html
+    expect(cluster_html.index("Casar pagamentos")).to be < cluster_html.index("Fechar para envio")
+
+    month.update!(closed: true)
+    get "/months/2026-05"
+
+    link = page_doc(response.body).css("a").find { |node| node.text.strip == "Casar pagamentos" }
+    expect(link["href"]).to eq("/months/2026-05/matches")
+    cluster_html = link.parent.to_html
+    expect(cluster_html.index("Casar pagamentos")).to be < cluster_html.index("data-stamp=\"closed\"")
+  end
+
+  it "unconfirmed open month GET omits Casar pagamentos" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    plant_month(organization, accounts_confirmed: false)
+
+    get "/months/2026-05"
+
+    texts = page_doc(response.body).css("a").map { |node| node.text.strip }
+    expect(texts).not_to include("Casar pagamentos")
+  end
 end

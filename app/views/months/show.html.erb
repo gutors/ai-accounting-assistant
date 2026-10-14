@@ -9,6 +9,9 @@
     <p class="mt-1 text-meta text-ink-soft"><%= @month.year_month %></p>
   </div>
   <div class="flex flex-wrap items-center gap-3">
+    <% if movements_visible %>
+      <%= link_to "Casar pagamentos", "/months/#{@month.year_month}/matches", class: "text-caixa underline underline-offset-2" %>
+    <% end %>
     <% if @month.closed? %>
       <span data-stamp="closed" class="inline-block rounded-[2px] border-2 border-ink px-2 py-0.5 font-semibold outline outline-1 outline-offset-[3px] outline-ink">Mês fechado</span>
       <%= button_to "Restaurar pasta", "/months/#{@month.year_month}/restore", method: :post, form: { data: { turbo_confirm: "Restaurar a pasta do mês no arquivo do pacote?" } }, class: "rounded border border-ink px-4 py-2 text-ink" %>
