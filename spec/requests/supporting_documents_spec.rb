@@ -2989,6 +2989,17 @@ RSpec.describe "Supporting documents", type: :request do
     expect(document.chave).to eq(nfce_chave)
   end
 
+  it "POST empty kind photo QR without chave infers nota_fiscal" do
+    signed_in
+    stub_photo_symbols("recibo.jpg", chave: nil, qr_url: nfce_qr_url)
+
+    post "/supporting_documents", params: {
+      kind: "", amount: "155,00", date: "2026-05-11", payee: "Padaria Central", photo: photo_jpg("recibo.jpg")
+    }
+
+    expect(SupportingDocument.last.kind).to eq("nota_fiscal")
+  end
+
   it "POST empty kind without file returns 422 Informe se e nota fiscal ou recibo" do
     _account, organization = signed_in
 

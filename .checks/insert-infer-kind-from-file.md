@@ -83,6 +83,8 @@ Proof: `bin/rspec spec/models/supporting_document_spec.rb -e "insert empty kind 
 **C5** - Given `PhotoSymbols` for filename `recibo.jpg` returns `qr_url` `https://www.sefaz.rs.gov.br/NFCE/NFCE-COM.aspx?p=43260511222333000181650010000000011123456781|2|1|1` and chave `43260511222333000181650010000000011123456781`, when a coordinator POSTs empty `kind`, that JPEG, those three typed fields, and no XML, then the persisted kind is `nota_fiscal` and chave is that 44-digit value.
 Proof: `bin/rspec spec/requests/supporting_documents_spec.rb -e "POST empty kind photo QR infers nota_fiscal"`
 Proof: `bin/rspec spec/models/supporting_document_spec.rb -e "insert empty kind photo QR persists nota_fiscal"`
+Proof: `bin/rspec spec/requests/supporting_documents_spec.rb -e "POST empty kind photo QR without chave infers nota_fiscal"`
+Proof: `bin/rspec spec/models/supporting_document_spec.rb -e "insert empty kind photo QR without chave persists nota_fiscal"`
 
 **C6** - When a coordinator POSTs empty `kind`, amount `155,00`, date `2026-05-11`, payee `Padaria Central`, and neither photo nor XML, then no SupportingDocument is persisted, the status is `422`, and `[data-notice="error"]` and `[data-toast-kind="error"]` are `Informe se é nota fiscal ou recibo`.
 Proof: `bin/rspec spec/requests/supporting_documents_spec.rb -e "POST empty kind without file returns 422 Informe se e nota fiscal ou recibo"`
@@ -131,7 +133,7 @@ Proof: `bin/rspec spec/models/supporting_document_spec.rb -e "insert empty kind 
 
 | Set (size) | Member -> proof | Unproven |
 | --- | --- | --- |
-| blank-kind classify (5) | empty+XML `nota_fiscal` C3 · empty+photo 44-digit chave C1 · empty+photo `qr_url` C5 · empty+photo miss `recibo` C2 · empty no file `BAD_KIND` C6 | - |
+| blank-kind classify (6) | empty+XML `nota_fiscal` C3 · empty+photo 44-digit chave C1 · empty+photo `qr_url` with chave C5 · empty+photo `qr_url` without chave C5 · empty+photo miss `recibo` C2 · empty no file `BAD_KIND` C6 | - |
 | posted kind kept (3) | `recibo` C7 · `nota_fiscal` C8 · garbage `invoice` `BAD_KIND` C9 | - |
 | XML vs photo chave when kind empty (1) | XML chave wins C4 | - |
 | field path after infer (3) | NF `PhotoFields` `photo` C10 · recibo typed ignores `PhotoFields` C11 · scan before persist/`BAD_KIND` C12 | - |

@@ -1146,6 +1146,13 @@ RSpec.describe SupportingDocument, type: :model do
     expect(doc.chave).to eq(nfce_chave)
   end
 
+  it "insert empty kind photo QR without chave persists nota_fiscal" do
+    stub_photo_symbols("recibo.jpg", chave: nil, qr_url: nfce_qr_url)
+    doc = insert_doc(kind: "")
+
+    expect(doc.kind).to eq("nota_fiscal")
+  end
+
   it "insert empty kind without file is BAD_KIND" do
     doc = insert_doc(kind: "", photo: nil, xml: nil)
 
