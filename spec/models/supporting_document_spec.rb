@@ -1102,6 +1102,123 @@ RSpec.describe SupportingDocument, type: :model do
     expect(doc.reload.payee).to eq("Mercado Silva")
   end
 
+  it "insert empty kind photo chave persists nota_fiscal" do
+    stub_photo_symbols("recibo.jpg", chave: nfe_chave)
+    doc = insert_doc(kind: "")
+
+    expect(SupportingDocument.where(organization: organization).count).to eq(1)
+    expect(doc.kind).to eq("nota_fiscal")
+    expect(doc.chave).to eq(nfe_chave)
+  end
+
+  it "insert empty kind photo miss persists recibo" do
+    stub_photo_symbols("recibo.jpg", chave: nil, qr_url: nil)
+    doc = insert_doc(kind: "")
+
+    expect(SupportingDocument.where(organization: organization).count).to eq(1)
+    expect(doc.kind).to eq("recibo")
+    expect(doc.chave).to be_nil
+    expect(doc.xml).not_to be_attached
+  end
+
+  it "insert empty kind XML persists nota_fiscal uploaded_xml" do
+    doc = insert_doc(kind: "", photo: nil, xml: authorized_xml)
+
+    expect(doc.kind).to eq("nota_fiscal")
+    expect(doc.chave).to eq(nfe_chave)
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.fields_origin).to eq("uploaded_xml")
+  end
+
+  it "insert empty kind XML chave wins over photo chave" do
+    stub_photo_symbols("danfe.jpg", chave: other_chave)
+    doc = insert_doc(kind: "", photo: photo_jpg("danfe.jpg"), xml: authorized_xml)
+
+    expect(doc.kind).to eq("nota_fiscal")
+    expect(doc.chave).to eq(nfe_chave)
+  end
+
+  it "insert empty kind photo QR persists nota_fiscal" do
+    stub_photo_symbols("recibo.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
+    doc = insert_doc(kind: "")
+
+    expect(doc.kind).to eq("nota_fiscal")
+    expect(doc.chave).to eq(nfce_chave)
+  end
+
+  it "insert empty kind photo QR without chave persists nota_fiscal" do
+    stub_photo_symbols("recibo.jpg", chave: nil, qr_url: nfce_qr_url)
+    doc = insert_doc(kind: "")
+
+    expect(doc.kind).to eq("nota_fiscal")
+  end
+
+  it "insert empty kind without file is BAD_KIND" do
+    doc = insert_doc(kind: "", photo: nil, xml: nil)
+
+    expect(doc).not_to be_persisted
+    expect(SupportingDocument.where(organization: organization).count).to eq(0)
+    expect(doc.errors[:base]).to include(SupportingDocument::BAD_KIND)
+  end
+
+  it "insert kind recibo keeps recibo when photo has chave" do
+    stub_photo_symbols("recibo.jpg", chave: nfe_chave)
+    doc = insert_doc(kind: "recibo")
+
+    expect(doc.kind).to eq("recibo")
+    expect(doc.chave).to be_nil
+    expect(doc.xml).not_to be_attached
+  end
+
+  it "insert kind nota_fiscal keeps nota_fiscal on photo miss" do
+    stub_photo_symbols("recibo.jpg", chave: nil, qr_url: nil)
+    doc = insert_doc(kind: "nota_fiscal", xml: nil)
+
+    expect(doc.kind).to eq("nota_fiscal")
+  end
+
+  it "insert kind invoice with photo is BAD_KIND" do
+    doc = insert_doc(kind: "invoice")
+
+    expect(doc).not_to be_persisted
+    expect(SupportingDocument.where(organization: organization).count).to eq(0)
+    expect(doc.errors[:base]).to include(SupportingDocument::BAD_KIND)
+  end
+
+  it "insert empty kind photo fields origin photo stays correctable" do
+    stub_photo_symbols("recibo.jpg", chave: nfe_chave)
+    stub_photo_fields("recibo.jpg")
+    doc = insert_doc(kind: "", amount: nil, date: nil, payee: nil, xml: nil)
+    doc.apply(payee: "Mercado Silva")
+
+    expect(doc.kind).to eq("nota_fiscal")
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.document_on).to eq(Date.new(2026, 5, 11))
+    expect(doc.fields_origin).to eq("photo")
+    expect(doc.reload.payee).to eq("Mercado Silva")
+  end
+
+  it "insert empty kind photo miss keeps typed payee" do
+    stub_photo_symbols("recibo.jpg", chave: nil, qr_url: nil)
+    stub_photo_fields("recibo.jpg", payee: "Mercado Silva")
+    doc = insert_doc(kind: "")
+
+    expect(doc.payee).to eq("Padaria Central")
+    expect(doc.fields_origin).to eq("typed")
+  end
+
+  it "insert empty kind photo scans PhotoSymbols before persist" do
+    photo = photo_jpg("recibo.jpg")
+    expect(PhotoSymbols.current).to receive(:scan).with(
+      hash_including(bytes: "jpeg-bytes", filename: "recibo.jpg")
+    ).and_call_original
+
+    doc = insert_doc(kind: "", photo: photo)
+
+    expect(doc).to be_persisted
+    expect(doc.errors[:base]).not_to include(SupportingDocument::BAD_KIND)
+  end
+
   it "insert uploaded XML chave wins over photo chave" do
     stub_photo_symbols("danfe.jpg", chave: other_chave)
     doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("danfe.jpg"), xml: authorized_xml)

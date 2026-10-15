@@ -2910,10 +2910,100 @@ RSpec.describe "Supporting documents", type: :request do
     expect(form.at_css("#photo")["disabled"]).to be_nil
   end
 
-  it "POST empty kind returns 422 Informe se e nota fiscal ou recibo" do
+  it "POST empty kind photo chave infers Nota fiscal" do
+    _account, organization = signed_in
+    stub_photo_symbols("recibo.jpg", chave: nfe_chave)
+
+    post "/supporting_documents", params: {
+      kind: "", amount: "155,00", date: "2026-05-11", payee: "Padaria Central", photo: photo_jpg("recibo.jpg")
+    }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/supporting_documents")
+    expect(SupportingDocument.where(organization: organization).count).to eq(1)
+    document = SupportingDocument.last
+    expect(document.kind).to eq("nota_fiscal")
+    expect(document.chave).to eq(nfe_chave)
+
+    get "/supporting_documents"
+    expect(row(response.body, "document", document_id: document.id).at_css('[data-cell="kind"]').text.strip).to eq("Nota fiscal")
+  end
+
+  it "POST empty kind photo miss infers Recibo" do
+    _account, organization = signed_in
+    stub_photo_symbols("recibo.jpg", chave: nil, qr_url: nil)
+
+    post "/supporting_documents", params: {
+      kind: "", amount: "155,00", date: "2026-05-11", payee: "Padaria Central", photo: photo_jpg("recibo.jpg")
+    }
+
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.where(organization: organization).count).to eq(1)
+    document = SupportingDocument.last
+    expect(document.kind).to eq("recibo")
+    expect(document.chave).to be_nil
+    expect(document.xml).not_to be_attached
+
+    get "/supporting_documents"
+    expect(row(response.body, "document", document_id: document.id).at_css('[data-cell="kind"]').text.strip).to eq("Recibo")
+  end
+
+  it "POST empty kind XML infers nota_fiscal uploaded_xml" do
     _account, organization = signed_in
 
-    post "/supporting_documents", params: recibo_params.merge(kind: "")
+    post "/supporting_documents", params: { kind: "", xml: authorized_xml }
+
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.where(organization: organization).count).to eq(1)
+    document = SupportingDocument.last
+    expect(document.kind).to eq("nota_fiscal")
+    expect(document.chave).to eq(nfe_chave)
+    expect(document.amount_cents).to eq(15500)
+    expect(document.fields_origin).to eq("uploaded_xml")
+  end
+
+  it "POST empty kind XML chave wins over photo chave" do
+    signed_in
+    stub_photo_symbols("danfe.jpg", chave: other_chave)
+
+    post "/supporting_documents", params: {
+      kind: "", photo: photo_jpg("danfe.jpg"), xml: authorized_xml
+    }
+
+    expect(response).to have_http_status(:found)
+    document = SupportingDocument.last
+    expect(document.kind).to eq("nota_fiscal")
+    expect(document.chave).to eq(nfe_chave)
+  end
+
+  it "POST empty kind photo QR infers nota_fiscal" do
+    signed_in
+    stub_photo_symbols("recibo.jpg", chave: nfce_chave, qr_url: nfce_qr_url)
+
+    post "/supporting_documents", params: {
+      kind: "", amount: "155,00", date: "2026-05-11", payee: "Padaria Central", photo: photo_jpg("recibo.jpg")
+    }
+
+    document = SupportingDocument.last
+    expect(document.kind).to eq("nota_fiscal")
+    expect(document.chave).to eq(nfce_chave)
+  end
+
+  it "POST empty kind photo QR without chave infers nota_fiscal" do
+    signed_in
+    stub_photo_symbols("recibo.jpg", chave: nil, qr_url: nfce_qr_url)
+
+    post "/supporting_documents", params: {
+      kind: "", amount: "155,00", date: "2026-05-11", payee: "Padaria Central", photo: photo_jpg("recibo.jpg")
+    }
+
+    expect(SupportingDocument.last.kind).to eq("nota_fiscal")
+  end
+
+  it "POST empty kind without file returns 422 Informe se e nota fiscal ou recibo" do
+    _account, organization = signed_in
+
+    post "/supporting_documents", params: { kind: "", amount: "155,00", date: "2026-05-11", payee: "Padaria Central" }
 
     expect(SupportingDocument.where(organization: organization).count).to eq(0)
     expect(response).to have_http_status(:unprocessable_content)
@@ -2921,6 +3011,72 @@ RSpec.describe "Supporting documents", type: :request do
     toast = toast_node(response.body)
     expect(toast["data-toast-kind"]).to eq("error")
     expect(toast.text).to include(SupportingDocument::BAD_KIND)
+  end
+
+  it "POST kind recibo keeps recibo when photo has chave" do
+    signed_in
+    stub_photo_symbols("recibo.jpg", chave: nfe_chave)
+
+    post "/supporting_documents", params: recibo_params(photo: photo_jpg("recibo.jpg"))
+
+    document = SupportingDocument.last
+    expect(document.kind).to eq("recibo")
+    expect(document.chave).to be_nil
+    expect(document.xml).not_to be_attached
+  end
+
+  it "POST kind nota_fiscal keeps nota_fiscal on photo miss" do
+    signed_in
+    stub_photo_symbols("recibo.jpg", chave: nil, qr_url: nil)
+
+    post "/supporting_documents", params: nota_params(photo: photo_jpg("recibo.jpg"))
+
+    expect(SupportingDocument.last.kind).to eq("nota_fiscal")
+  end
+
+  it "POST kind invoice with photo returns 422 Informe se e nota fiscal ou recibo" do
+    _account, organization = signed_in
+
+    post "/supporting_documents", params: recibo_params.merge(kind: "invoice")
+
+    expect(SupportingDocument.where(organization: organization).count).to eq(0)
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(error_notice_text(response.body)).to eq(SupportingDocument::BAD_KIND)
+    toast = toast_node(response.body)
+    expect(toast["data-toast-kind"]).to eq("error")
+    expect(toast.text).to include(SupportingDocument::BAD_KIND)
+  end
+
+  it "POST empty kind photo fields origin photo then PATCH payee redirects" do
+    signed_in
+    stub_photo_symbols("recibo.jpg", chave: nfe_chave)
+    stub_photo_fields("recibo.jpg")
+
+    post "/supporting_documents", params: { kind: "", photo: photo_jpg("recibo.jpg") }
+
+    document = SupportingDocument.last
+    expect(document.kind).to eq("nota_fiscal")
+    expect(document.amount_cents).to eq(15500)
+    expect(document.document_on).to eq(Date.new(2026, 5, 11))
+    expect(document.payee).to eq("Padaria Central")
+    expect(document.fields_origin).to eq("photo")
+    patch "/supporting_documents/#{document.id}", params: { payee: "Mercado Silva" }
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.find(document.id).payee).to eq("Mercado Silva")
+  end
+
+  it "POST empty kind photo miss keeps typed payee" do
+    signed_in
+    stub_photo_symbols("recibo.jpg", chave: nil, qr_url: nil)
+    stub_photo_fields("recibo.jpg", payee: "Mercado Silva")
+
+    post "/supporting_documents", params: {
+      kind: "", amount: "155,00", date: "2026-05-11", payee: "Padaria Central", photo: photo_jpg("recibo.jpg")
+    }
+
+    document = SupportingDocument.last
+    expect(document.payee).to eq("Padaria Central")
+    expect(document.fields_origin).to eq("typed")
   end
 
   it "GET edit coordinator 200 Editar documento" do

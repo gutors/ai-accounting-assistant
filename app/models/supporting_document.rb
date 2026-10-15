@@ -97,18 +97,28 @@ class SupportingDocument < ApplicationRecord
 
     attrs = attrs.symbolize_keys
 
-    next_kind = attrs.key?(:kind) ? attrs[:kind].to_s : kind.to_s
+    incoming_photo = uploaded?(attrs[:photo]) ? attrs[:photo] : nil
+    incoming_xml = uploaded?(attrs[:xml]) ? attrs[:xml] : nil
+    posted_kind = attrs.key?(:kind) ? attrs[:kind].to_s : kind.to_s
+    next_kind = posted_kind
+    infer_from_photo = false
     unless %w[nota_fiscal recibo].include?(next_kind)
-      errors.add(:base, BAD_KIND)
-      return self
+      if next_kind.present? || persisted?
+        errors.add(:base, BAD_KIND)
+        return self
+      elsif incoming_xml
+        next_kind = "nota_fiscal"
+      elsif incoming_photo
+        infer_from_photo = true
+      else
+        errors.add(:base, BAD_KIND)
+        return self
+      end
     end
     if persisted? && attrs.key?(:kind) && next_kind != kind.to_s
       errors.add(:base, KIND_LOCKED)
       return self
     end
-
-    incoming_photo = uploaded?(attrs[:photo]) ? attrs[:photo] : nil
-    incoming_xml = uploaded?(attrs[:xml]) ? attrs[:xml] : nil
 
     if incoming_photo
       if oversized?(incoming_photo)
@@ -140,6 +150,33 @@ class SupportingDocument < ApplicationRecord
       return self
     end
 
+    photo_symbols = PhotoSymbols::Symbols.new(chave: nil, qr_url: nil)
+    extract_source = nil
+    photo_scanned = false
+    ocr_text = nil
+    ocr_computed = false
+    lazy_ocr = lambda {
+      unless ocr_computed
+        ocr_text = PhotoOcr.text(extract_source[:bytes])
+        ocr_computed = true
+      end
+      ocr_text
+    }
+    if infer_from_photo
+      extract_source = { bytes: read_bytes(incoming_photo), filename: filename_of(incoming_photo) }
+      photo_symbols = PhotoSymbols.current.scan(
+        bytes: extract_source[:bytes],
+        filename: extract_source[:filename],
+        text: lazy_ocr
+      )
+      photo_scanned = true
+      next_kind = if forty_four_digits(photo_symbols.chave) || photo_symbols.qr_url.present?
+        "nota_fiscal"
+      else
+        "recibo"
+      end
+    end
+
     if next_kind == "recibo" && incoming_xml
       errors.add(:base, RECIBO_XML)
       return self
@@ -160,18 +197,10 @@ class SupportingDocument < ApplicationRecord
     public_fields = nil
     photo_fields = nil
     confirm_pending = sefaz_confirm_pending
-    photo_symbols = PhotoSymbols::Symbols.new(chave: nil, qr_url: nil)
-    extract_source = photo_source_for_extract(incoming_photo, next_kind) if parsed_nfe.nil? && next_kind == "nota_fiscal"
-    ocr_text = nil
-    ocr_computed = false
-    lazy_ocr = lambda {
-      unless ocr_computed
-        ocr_text = PhotoOcr.text(extract_source[:bytes])
-        ocr_computed = true
-      end
-      ocr_text
-    }
-    if extract_source
+    if !photo_scanned && parsed_nfe.nil? && next_kind == "nota_fiscal"
+      extract_source = photo_source_for_extract(incoming_photo, next_kind)
+    end
+    if extract_source && !photo_scanned
       photo_symbols = PhotoSymbols.current.scan(
         bytes: extract_source[:bytes],
         filename: extract_source[:filename],
