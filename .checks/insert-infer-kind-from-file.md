@@ -144,6 +144,6 @@ Proof: `bin/rspec spec/models/supporting_document_spec.rb -e "insert empty kind 
 
 S1 ~51k + S2 ~51k + S3 ~51k if the 131 KB request spec and 58 KB model spec are counted in every slice they touch. Unique files on this cut (`supporting_document.rb`, both specs, the task) ≈ 204 KB / 4 ≈ 51k. Running total stays under 150k and the surface stays `SupportingDocument#submit` plus the supporting-documents HTTP insert. No split. One batch.
 
-- Where the boundary fell: not yet — extract only.
+- Where the boundary fell: C1–C12 closed in the implementation commit on this branch. No split.
 - What the user settled mid-build: none.
-- What was abandoned: none.
+- What was abandoned: the documents-list-mask-and-actions request example `POST empty kind returns 422` posted a photo; that claim is superseded. Its successor is C6 (`POST empty kind without file`). Garbage posted `kind` does not infer (C9), which is already in Landing.
