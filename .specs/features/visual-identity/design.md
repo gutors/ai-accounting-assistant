@@ -426,14 +426,18 @@ header · nav
 Documentos de suporte                           (h1)
 <notice>
 Incluir documento                               (h2)
-  Tipo [v]        Valor [    ]      ← two columns from 768px, one on phone
-  Data [today]    Favorecido [    ]
-  Chave de acesso (opcional) [               ]   ← hidden when Tipo is Recibo
-  Observação (opcional) [                    ]
-  Foto [file] [Limpar]     XML [file] [Limpar]   ← XML hidden when Tipo is Recibo
-  [Incluir documento]
-  Recibo: hiding chave and XML (photo only)
-  HTML 422 fallback echoes Tipo, Valor, Data, Favorecido, Chave, Observação; file inputs stay empty
+  empty: proof square is the only file control (click or drop). One file: foto or XML.
+         book: Inclua o documento. Valor, data e favorecido saem do arquivo.
+  after identify, two columns from 768px (proof stacks first below 768px):
+  left proof: preview + Limpar inside the square
+  right 28rem: Arquivo [Foto|XML locked]  Tipo [locked]
+               Valor / Data / Favorecido with origin under each
+               Chave de acesso (opcional)  ← hidden when Tipo is Recibo
+               Observação (opcional)
+               [Incluir documento]
+  identifying: Identificando o arquivo…
+  HTML 422 fallback echoes Arquivo, Tipo, Valor, Data, Favorecido, Chave, Observação;
+         the square's file input stays in the form (Turbo Stream 422 does not replace it)
 Sem mês                                         (h2)
   Data | Favorecido | Tipo | Valor | Ações
   11/05/2026  Padaria Central     Recibo   R$ 155,00   ▸ Editar
@@ -451,9 +455,12 @@ Justificativas                                  (h2)
 
 - Phone-first: one column, full-width inputs, the insert form is the first section because it is
   the submitter's job.
-- Insert Foto and XML each have `Limpar` beside the file control.
-- HTML `422` fallback on `POST /supporting_documents` echoes Tipo, Valor, Data, Favorecido, Chave,
-  and Observação; file inputs stay empty.
+- Insert has one file control: the proof square. `Limpar` sits inside the loaded square and
+  returns it to empty without a persist. There is no second Foto or XML chip on insert.
+- `GET /supporting_documents/:id/edit` has no XML file control. Arquivo is Foto or XML, locked.
+  The file cannot be replaced; copy: `O arquivo não pode ser alterado. Exclua o documento e inclua novamente.`
+- HTML `422` fallback on `POST /supporting_documents` echoes Arquivo, Tipo, Valor, Data, Favorecido, Chave,
+  and Observação; the square's file input stays in the form.
 - Document rows `li[data-row="document"][data-document-id]`: date | payee (filenames, chave,
   observation, month status as meta under payee) | Tipo | amount | Ações (`Editar` disclosure;
   `Excluir` in Ações, not inside the edit panel). Kind is not a meta line under payee. Editar
