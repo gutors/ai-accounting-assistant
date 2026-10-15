@@ -29,26 +29,9 @@ RSpec.describe "Keep form on 422", type: :system do
     visit "/supporting_documents"
     xml_path = write_upload("nota.xml", "<nfe/>")
 
-    within("form[action='/supporting_documents']") do
-      fill_in "amount", with: "155,00"
-      fill_in "date", with: "2026-05-11"
-      fill_in "payee", with: "Padaria Central"
-      fill_in "observation", with: "pago em dinheiro"
-      select "Nota fiscal", from: "kind"
-      attach_file "xml", xml_path, make_visible: true
-      select "Recibo", from: "kind"
-      page.execute_script("document.getElementById('xml').disabled = false")
-      click_button "Incluir documento"
-    end
-
-    expect(page).to have_css("[data-notice=error]", text: "Recibo não tem XML")
-    expect(page).to have_css("[data-toast-kind=error]", text: "Recibo não tem XML")
-    expect(page).to have_select("kind", selected: "Recibo")
-    expect(page).to have_field("amount", with: "155,00")
-    expect(page).to have_field("date", with: "2026-05-11")
-    expect(page).to have_field("payee", with: "Padaria Central")
-    expect(page).to have_field("observation", with: "pago em dinheiro")
-    expect(find("#xml", visible: :all).value).to include("nota.xml")
+    attach_file "file", xml_path, make_visible: true
+    expect(page).to have_css("[data-notice=error]", text: "O XML da nota fiscal não pôde ser lido")
+    expect(find("#file", visible: :all).value).to include("nota.xml")
   end
 
   it "insert 422 after Pronto still shows the error toast" do
@@ -56,30 +39,18 @@ RSpec.describe "Keep form on 422", type: :system do
     sign_in_through_google(account)
     visit "/supporting_documents"
     photo_path = write_upload("recibo.jpg", "jpeg-bytes")
-    xml_path = write_upload("nota.xml", "<nfe/>")
 
-    within("form[action='/supporting_documents']") do
-      fill_in "amount", with: "155,00"
-      fill_in "date", with: "2026-05-11"
-      fill_in "payee", with: "Padaria Central"
-      attach_file "photo", photo_path, make_visible: true
-      select "Recibo", from: "kind"
-      click_button "Incluir documento"
-    end
+    attach_file "file", photo_path, make_visible: true
+    expect(page).to have_field("arquivo", with: "Foto", disabled: true)
+    fill_in "amount", with: "155,00"
+    fill_in "date", with: "2026-05-11"
+    fill_in "payee", with: "Padaria Central"
+    click_button "Incluir documento"
     expect(page).to have_css("[data-toast-kind=success]", text: "Pronto.")
 
-    within("form[action='/supporting_documents']") do
-      fill_in "amount", with: "155,00"
-      fill_in "date", with: "2026-05-11"
-      fill_in "payee", with: "Padaria Central"
-      select "Nota fiscal", from: "kind"
-      attach_file "xml", xml_path, make_visible: true
-      select "Recibo", from: "kind"
-      page.execute_script("document.getElementById('xml').disabled = false")
-      click_button "Incluir documento"
-    end
-    expect(page).to have_css("[data-notice=error]", text: "Recibo não tem XML")
-    expect(page).to have_css("[data-toast-kind=error]", text: "Recibo não tem XML")
+    page.execute_script("document.querySelector('form[action=\"/supporting_documents\"]').requestSubmit()")
+    expect(page).to have_css("[data-notice=error]", text: "Envie a foto ou o XML")
+    expect(page).to have_css("[data-toast-kind=error]", text: "Envie a foto ou o XML")
     expect(page).to have_css("#toast-host [data-toast-kind=error]")
   end
 
@@ -90,10 +61,10 @@ RSpec.describe "Keep form on 422", type: :system do
     photo_path = write_upload("recibo.jpg", "jpeg-bytes")
 
     within("form[action='/supporting_documents']") do
-      attach_file "photo", photo_path, make_visible: true
-      expect(find("#photo", visible: :all).value).to include("recibo.jpg")
-      find("#photo", visible: :all).sibling("button", text: "Limpar").click
-      expect(find("#photo", visible: :all).value).to eq("")
+      attach_file "file", photo_path, make_visible: true
+      expect(find("#file", visible: :all).value).to include("recibo.jpg")
+      click_button "Limpar"
+      expect(find("#file", visible: :all).value).to eq("")
     end
     expect(page).to have_current_path("/supporting_documents")
   end

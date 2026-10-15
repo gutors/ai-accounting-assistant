@@ -457,6 +457,7 @@ Justificativas                                  (h2)
   the submitter's job.
 - Insert has one file control: the proof square. `Limpar` sits inside the loaded square and
   returns it to empty without a persist. There is no second Foto or XML chip on insert.
+  Both files or neither is `422` `Envie a foto ou o XML`.
 - `GET /supporting_documents/:id/edit` has no XML file control. Arquivo is Foto or XML, locked.
   The file cannot be replaced; copy: `O arquivo não pode ser alterado. Exclua o documento e inclua novamente.`
 - HTML `422` fallback on `POST /supporting_documents` echoes Arquivo, Tipo, Valor, Data, Favorecido, Chave,

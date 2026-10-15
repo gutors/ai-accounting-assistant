@@ -7,39 +7,12 @@
 <div class="mt-10 space-y-12">
   <section>
     <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Incluir documento</h2>
-    <% insert_nf = params[:kind] == "nota_fiscal" %>
-    <%= form_with url: "/supporting_documents", method: :post, multipart: true, class: "grid max-w-3xl gap-4 md:grid-cols-2", data: { controller: "document-kind" } do %>
-      <div>
-        <label for="kind" class="mb-1 block font-medium">Tipo</label>
-        <%= select_tag :kind, options_for_select([ [ "Nota fiscal", "nota_fiscal" ], [ "Recibo", "recibo" ] ], params[:kind].presence), include_blank: true, id: "kind", class: "w-full rounded border border-rule bg-sheet px-3 py-2", data: { action: "change->document-kind#sync", document_kind_target: "kind" } %>
-      </div>
-      <div>
-        <label for="amount" class="mb-1 block font-medium">Valor</label>
-        <%= text_field_tag :amount, params[:amount].presence || "0,00", id: "amount", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off", inputmode: "numeric", data: { controller: "money-mask", action: "input->money-mask#typed" } %>
-      </div>
-      <div>
-        <label for="date" class="mb-1 block font-medium">Data</label>
-        <%= date_field_tag :date, params[:date].presence || Date.current, id: "date", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
-      </div>
-      <div>
-        <label for="payee" class="mb-1 block font-medium">Favorecido</label>
-        <%= text_field_tag :payee, params[:payee], id: "payee", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
-      </div>
-      <div class="md:col-span-2<%= " hidden" unless insert_nf %>" <%= "hidden" unless insert_nf %> data-document-kind-target="nfOnly">
-        <label for="chave" class="mb-1 block font-medium">Chave de acesso (opcional)</label>
-        <%= text_field_tag :chave, params[:chave], id: "chave", class: "w-full rounded border border-rule bg-sheet px-3 py-2 font-mono text-meta", autocomplete: "off", disabled: !insert_nf %>
-      </div>
-      <div class="md:col-span-2">
-        <label for="observation" class="mb-1 block font-medium">Observação (opcional)</label>
-        <%= text_area_tag :observation, params[:observation], id: "observation", class: "w-full rounded border border-rule bg-sheet px-3 py-2", rows: 3 %>
-      </div>
-      <%= render "shared/file_field", name: :photo, id: "photo", field_label: "Foto", action_label: "Incluir foto" %>
-      <div<% unless insert_nf %> class="hidden" hidden<% end %> data-document-kind-target="nfOnly">
-        <%= render "shared/file_field", name: :xml, id: "xml", field_label: "XML", action_label: "Incluir XML", disabled: !insert_nf %>
-      </div>
-      <div class="md:col-span-2">
-        <%= submit_tag "Incluir documento", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
-      </div>
+    <%= form_with url: "/supporting_documents", method: :post, multipart: true, class: "mt-4 grid items-start gap-12 md:grid-cols-[minmax(0,1fr)_28rem] md:gap-8", data: { controller: "document-identify" } do %>
+      <aside class="rounded border border-rule bg-sheet p-4">
+        <%= file_field_tag :file, id: "file", accept: "image/*,.pdf,application/pdf,.xml,application/xml,text/xml", class: "sr-only", tabindex: -1, data: { document_identify_target: "input", action: "change->document-identify#identify" } %>
+        <%= render "supporting_documents/insert_preview" %>
+      </aside>
+      <%= render "supporting_documents/insert_book" %>
     <% end %>
   </section>
 

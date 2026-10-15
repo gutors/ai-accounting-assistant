@@ -149,7 +149,7 @@ RSpec.describe "Supporting documents", type: :request do
     form = insert_form(response.body)
     expect(form.at_css('label[for="date"]').text.strip).to eq("Data")
     date = form.at_css("input#date[type=date]")
-    expect(date["value"]).to eq("2026-10-05")
+    expect(html_visible?(date)).to eq(false)
   end
 
   it "GET Editar date stays document_on" do
@@ -199,24 +199,15 @@ RSpec.describe "Supporting documents", type: :request do
     first_section = page.css("section").first
     form = first_section.css("form").find { |node| node["action"] == "/supporting_documents" && node["method"] == "post" }
     expect(form).not_to be_nil
-    expect(form["class"]).to include("md:grid-cols-2")
+    expect(form["class"]).to include("md:grid-cols-[minmax(0,1fr)_28rem]")
     expect(form.at_css('input[type="submit"][value="Incluir documento"]')).not_to be_nil
-    expect(form.css("label").map { |label| label["for"] }).to eq(
-      %w[kind amount date payee chave observation photo xml]
-    )
-    expect(form.at_css("[data-file-field='photo']").text).to include("Incluir foto").and include("Nenhum arquivo")
-    expect(form.at_css("[data-file-field='xml']").text).to include("Incluir XML")
-    expect(form.at_css("input#chave").parent["class"]).to include("md:col-span-2")
-    expect(form.at_css("#observation").parent["class"]).to include("md:col-span-2")
-    expect(selected_option_value(form.at_css("select#kind"))).to eq("")
+    expect(form.at_css('label[for="photo"]')).to be_nil
+    expect(form.at_css('label[for="xml"]')).to be_nil
+    expect(form.css('input[type="file"]').size).to eq(1)
+    expect(html_visible?(form.at_css("select#kind"))).to eq(false)
     chave = form.at_css("input#chave")
-    xml = form.at_css("input#xml")
     expect(chave).not_to be_nil
-    expect(xml).not_to be_nil
-    expect(chave["disabled"]).to be_present
-    expect(xml["disabled"]).to be_present
-    expect(html_visible?(chave)).to be false
-    expect(html_visible?(xml)).to be false
+    expect(html_visible?(chave)).to eq(false)
   end
 
   def limpar_next_to(form, input_id)
@@ -235,8 +226,8 @@ RSpec.describe "Supporting documents", type: :request do
       payee: form.at_css("#payee")["value"].to_s,
       observation: form.at_css("#observation").text,
       chave: form.at_css("#chave")["value"].to_s,
-      photo: form.at_css("#photo"),
-      xml: form.at_css("#xml")
+      photo: form.at_css("#file"),
+      xml: form.at_css("#file")
     }
   end
 
@@ -277,8 +268,8 @@ RSpec.describe "Supporting documents", type: :request do
     get "/supporting_documents"
 
     form = insert_form(response.body)
-    expect(limpar_next_to(form, "photo")).to be_present
-    expect(limpar_next_to(form, "xml")).to be_present
+    expect(form.at_css("#file")).not_to be_nil
+    expect(form.css("button").none? { |button| html_visible?(button) && button.text.strip == "Limpar" }).to eq(true)
     notice = error_notice(response.body)
     expect(notice.attribute("hidden")).not_to be_nil
     expect(notice.parent.name).to eq("main")
@@ -317,13 +308,9 @@ RSpec.describe "Supporting documents", type: :request do
     expect(selected_option_value(page.at_css("select#kind"))).to eq("nota_fiscal")
     expect(page.at_css('label[for="chave"]').text.strip).to eq("Chave de acesso (opcional)")
     chave = page.at_css("input#chave")
-    xml = page.at_css("input#xml")
     expect(html_visible?(chave)).to be true
-    expect(html_visible?(xml)).to be true
-    expect(chave["disabled"]).to be_nil
-    expect(xml["disabled"]).to be_nil
-    expect(page.at_css("[data-file-field='xml']").text).to include("Nenhum arquivo")
-    expect(page.at_css("[data-file-field='xml']").text).to include("Incluir XML")
+    expect(page.at_css("input#xml")).to be_nil
+    expect(page.at_css("#arquivo")["value"]).to eq("Foto")
   end
 
   it "POST recibo photo without XML persists chave nil and Pronto toast" do
@@ -358,7 +345,7 @@ RSpec.describe "Supporting documents", type: :request do
   it "POST recibo with XML returns 422 and error toast" do
     _account, organization = signed_in
 
-    post "/supporting_documents", params: recibo_params(xml: xml_file)
+    post "/supporting_documents", params: recibo_params(photo: nil, xml: xml_file)
 
     expect(SupportingDocument.where(organization: organization).count).to eq(0)
     expect(response).to have_http_status(:unprocessable_content)
@@ -379,15 +366,14 @@ RSpec.describe "Supporting documents", type: :request do
 
     expect(SupportingDocument.where(organization: organization).count).to eq(0)
     expect(response).to have_http_status(:unprocessable_content)
-    expect(error_notice_text(response.body)).to eq("Envie a foto e/ou o XML")
+    expect(error_notice_text(response.body)).to eq("Envie a foto ou o XML")
     toast = toast_node(response.body)
     expect(toast["data-toast-kind"]).to eq("error")
-    expect(toast.text).to include("Envie a foto e/ou o XML")
+    expect(toast.text).to include("Envie a foto ou o XML")
     fields = echoed_insert_fields(response.body)
     expect(fields[:kind]).to eq("nota_fiscal")
     expect_echoed_document_texts(fields)
     expect_empty_file_input(fields[:photo])
-    expect_empty_file_input(fields[:xml])
     expect_no_stash(before, organization)
   end
 
@@ -396,7 +382,7 @@ RSpec.describe "Supporting documents", type: :request do
     before = session_blob_stash(organization)
 
     post "/supporting_documents", params: recibo_params(
-      photo: photo_jpg, xml: xml_file, observation: "pago em dinheiro"
+      photo: nil, xml: xml_file, observation: "pago em dinheiro"
     )
 
     expect(SupportingDocument.where(organization: organization).count).to eq(0)
@@ -445,8 +431,8 @@ RSpec.describe "Supporting documents", type: :request do
     expect(response.media_type).to include("turbo-stream")
     notice = turbo_stream_for(response.body, "[data-notice=error]")
     toast = turbo_stream_for(response.body, "toast-host")
-    expect(notice.text).to include("Envie a foto e/ou o XML")
-    expect(toast.text).to include("Envie a foto e/ou o XML")
+    expect(notice.text).to include("Envie a foto ou o XML")
+    expect(toast.text).to include("Envie a foto ou o XML")
     expect(Nokogiri::HTML::DocumentFragment.parse(response.body).at_css('form[action="/supporting_documents"]')).to be_nil
   end
 
@@ -557,7 +543,7 @@ RSpec.describe "Supporting documents", type: :request do
   it "POST recibo with xml returns 422 Recibo nao tem XML" do
     _account, organization = signed_in
 
-    post "/supporting_documents", params: recibo_params(xml: xml_file)
+    post "/supporting_documents", params: recibo_params(photo: nil, xml: xml_file)
 
     expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include("Recibo não tem XML")
@@ -611,19 +597,18 @@ RSpec.describe "Supporting documents", type: :request do
 
     post "/supporting_documents", params: nota_params(photo: photo_jpg, xml: authorized_xml)
 
-    expect(response).to have_http_status(:found)
-    doc = SupportingDocument.last
-    expect(doc.photo).to be_attached
-    expect(doc.xml).to be_attached
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(error_notice_text(response.body)).to eq("Envie a foto ou o XML")
+    expect(SupportingDocument.count).to eq(0)
   end
 
-  it "POST nota_fiscal without files returns 422 Envie a foto e/ou o XML" do
+  it "POST nota_fiscal without files returns 422 Envie a foto ou o XML" do
     _account, organization = signed_in
 
     post "/supporting_documents", params: nota_params
 
     expect(response).to have_http_status(:unprocessable_content)
-    expect(error_notice_text(response.body)).to eq("Envie a foto e/ou o XML")
+    expect(error_notice_text(response.body)).to eq("Envie a foto ou o XML")
     expect(SupportingDocument.where(organization: organization).count).to eq(0)
   end
 
@@ -1360,7 +1345,7 @@ RSpec.describe "Supporting documents", type: :request do
     expect(response.body).to include("Valor, data e favorecido vêm da nota e não podem ser alterados")
   end
 
-  it "POST chave resumo without files returns 422 Envie a foto e/ou o XML" do
+  it "POST chave resumo without files returns 422 Envie a foto ou o XML" do
     _account, organization = signed_in
     install_a1(organization)
     SefazConsulta.current.set(
@@ -1371,7 +1356,7 @@ RSpec.describe "Supporting documents", type: :request do
     post "/supporting_documents", params: { kind: "nota_fiscal", chave: nfe_chave }
 
     expect(response).to have_http_status(:unprocessable_content)
-    expect(response.body).to include("Envie a foto e/ou o XML")
+    expect(response.body).to include("Envie a foto ou o XML")
     expect(SupportingDocument.where(organization: organization).count).to eq(0)
   end
 
@@ -1535,7 +1520,7 @@ RSpec.describe "Supporting documents", type: :request do
     install_a1(organization)
     stub_xml_consulta(vnf: "100.00", emit: "Outro")
     post "/supporting_documents", params: {
-      kind: "nota_fiscal", photo: photo_jpg, xml: authorized_xml(vnf: "155.00"), chave: nfe_chave
+      kind: "nota_fiscal", xml: authorized_xml(vnf: "155.00"), chave: nfe_chave
     }
     id = SupportingDocument.last.id
 
@@ -1555,7 +1540,7 @@ RSpec.describe "Supporting documents", type: :request do
     install_a1(organization)
     stub_xml_consulta(vnf: "100.00", emit: "Outro")
     post "/supporting_documents", params: {
-      kind: "nota_fiscal", photo: photo_jpg, xml: authorized_xml(vnf: "155.00"), chave: nfe_chave
+      kind: "nota_fiscal", xml: authorized_xml(vnf: "155.00"), chave: nfe_chave
     }
     id = SupportingDocument.last.id
 
@@ -1569,7 +1554,7 @@ RSpec.describe "Supporting documents", type: :request do
 
   it "PATCH kind recibo on locked nota returns 422 KIND_LOCKED" do
     signed_in
-    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg, xml: authorized_xml }
+    post "/supporting_documents", params: { kind: "nota_fiscal", xml: authorized_xml }
     id = SupportingDocument.last.id
 
     patch "/supporting_documents/#{id}", params: { kind: "recibo" }
@@ -2073,7 +2058,7 @@ RSpec.describe "Supporting documents", type: :request do
     signed_in
     stub_photo_symbols("danfe.jpg", chave: other_chave)
 
-    post "/supporting_documents", params: { kind: "nota_fiscal", photo: photo_jpg("danfe.jpg"), xml: authorized_xml }
+    post "/supporting_documents", params: { kind: "nota_fiscal", xml: authorized_xml }
 
     expect(SupportingDocument.last.amount_cents).to eq(15500)
     expect(SupportingDocument.last.chave).to eq(nfe_chave)
@@ -2388,7 +2373,7 @@ RSpec.describe "Supporting documents", type: :request do
     stub_photo_fields("danfe.jpg")
 
     post "/supporting_documents", params: {
-      kind: "nota_fiscal", photo: photo_jpg("danfe.jpg"), xml: xml_file("nota.xml", "<nfe><")
+      kind: "nota_fiscal", xml: xml_file("nota.xml", "<nfe><")
     }
 
     expect(response).to have_http_status(:unprocessable_content)
@@ -2580,7 +2565,7 @@ RSpec.describe "Supporting documents", type: :request do
     expect(response.body).to include('id="date"')
     expect(response.body).to include('id="payee"')
     expect(response.body).to include('id="chave"')
-    expect(response.body).to include('id="photo"')
+    expect(response.body).to include('id="file"')
   end
 
   it "confirm identified SEFAZ on photo-filled nota when consulta errors returns 422" do
@@ -2745,12 +2730,10 @@ RSpec.describe "Supporting documents", type: :request do
     page = page_doc(response.body)
     proof = page.at_css("[data-edit=proof]")
     expect(proof.text).to include("Nenhuma foto")
-    expect(proof.text).not_to include("A foto não pode ser alterada")
+    expect(proof.text).to include("autorizada.xml")
     expect(page.at_css("input#photo")).to be_nil
-    xml_field = page.at_css("[data-file-field='xml']")
-    expect(xml_field.text).to include("autorizada.xml")
-    expect(page.at_css("#xml")["disabled"]).to be_present
-    expect(xml_field.css("button").none? { |button| button.text.strip == "Limpar" }).to eq(true)
+    expect(page.at_css("input#xml")).to be_nil
+    expect(page.at_css("#arquivo")["value"]).to eq("XML")
   end
 
   it "PATCH new photo on attached photo returns 422 and keeps filename" do
@@ -2805,10 +2788,8 @@ RSpec.describe "Supporting documents", type: :request do
     get "/supporting_documents"
 
     form = insert_form(response.body)
-    field = form.at_css("[data-file-field='photo']")
-    expect(form.at_css("#photo")["disabled"]).to be_nil
-    expect(field.text).to include("Nenhum arquivo")
-    expect(limpar_next_to(form, "photo")).to be_present
+    expect(form.at_css("#file")).not_to be_nil
+    expect(form.at_css("#file")["disabled"]).to be_nil
   end
 
   it "GET Editar kind is disabled and insert kind stays enabled" do
@@ -2825,7 +2806,7 @@ RSpec.describe "Supporting documents", type: :request do
     )
 
     get "/supporting_documents"
-    expect(insert_form(response.body).at_css("#kind")["disabled"]).to be_nil
+    expect(insert_form(response.body).at_css("#kind")["disabled"]).to be_present
 
     get "/supporting_documents/#{recibo.id}/edit"
     page = page_doc(response.body)
@@ -2837,7 +2818,7 @@ RSpec.describe "Supporting documents", type: :request do
     page = page_doc(response.body)
     expect(page.at_css("#kind")["disabled"]).to be_present
     expect(html_visible?(page.at_css("#chave"))).to be true
-    expect(html_visible?(page.at_css("#xml"))).to be true
+    expect(page.at_css("#xml")).to be_nil
   end
 
   it "PATCH kind recibo on nota_fiscal returns 422 and keeps kind" do
@@ -2889,11 +2870,9 @@ RSpec.describe "Supporting documents", type: :request do
     get "/supporting_documents"
 
     kind = insert_form(response.body).at_css("select#kind")
-    expect(kind.at_css("option[value='nota_fiscal']")["selected"]).to be_nil
-    expect(kind.at_css("option[value='recibo']")["selected"]).to be_nil
+    expect(html_visible?(kind)).to eq(false)
     expect(kind.at_css('option[value="nota_fiscal"]').text.strip).to eq("Nota fiscal")
     expect(kind.at_css('option[value="recibo"]').text.strip).to eq("Recibo")
-    expect(selected_option_value(kind)).to eq("")
   end
 
   it "GET insert empty kind hides chave and xml" do
@@ -2903,11 +2882,8 @@ RSpec.describe "Supporting documents", type: :request do
 
     form = insert_form(response.body)
     expect(html_visible?(form.at_css("#chave"))).to be false
-    expect(html_visible?(form.at_css("#xml"))).to be false
-    expect(form.at_css("#chave")["disabled"]).to be_present
-    expect(form.at_css("#xml")["disabled"]).to be_present
-    expect(html_visible?(form.at_css("[data-file-field='photo']"))).to be true
-    expect(form.at_css("#photo")["disabled"]).to be_nil
+    expect(form.at_css("#xml")).to be_nil
+    expect(form.at_css("#file")).not_to be_nil
   end
 
   it "POST empty kind photo chave infers Nota fiscal" do
@@ -2967,7 +2943,7 @@ RSpec.describe "Supporting documents", type: :request do
     stub_photo_symbols("danfe.jpg", chave: other_chave)
 
     post "/supporting_documents", params: {
-      kind: "", photo: photo_jpg("danfe.jpg"), xml: authorized_xml
+      kind: "", xml: authorized_xml
     }
 
     expect(response).to have_http_status(:found)
@@ -3007,10 +2983,10 @@ RSpec.describe "Supporting documents", type: :request do
 
     expect(SupportingDocument.where(organization: organization).count).to eq(0)
     expect(response).to have_http_status(:unprocessable_content)
-    expect(error_notice_text(response.body)).to eq(SupportingDocument::BAD_KIND)
+    expect(error_notice_text(response.body)).to eq(SupportingDocument::NF_FILES)
     toast = toast_node(response.body)
     expect(toast["data-toast-kind"]).to eq("error")
-    expect(toast.text).to include(SupportingDocument::BAD_KIND)
+    expect(toast.text).to include(SupportingDocument::NF_FILES)
   end
 
   it "POST kind recibo keeps recibo when photo has chave" do
@@ -3068,7 +3044,6 @@ RSpec.describe "Supporting documents", type: :request do
   it "POST empty kind photo miss keeps typed payee" do
     signed_in
     stub_photo_symbols("recibo.jpg", chave: nil, qr_url: nil)
-    stub_photo_fields("recibo.jpg", payee: "Mercado Silva")
 
     post "/supporting_documents", params: {
       kind: "", amount: "155,00", date: "2026-05-11", payee: "Padaria Central", photo: photo_jpg("recibo.jpg")
@@ -3228,9 +3203,9 @@ RSpec.describe "Supporting documents", type: :request do
     get "/supporting_documents/#{id}/edit"
 
     page = page_doc(response.body)
-    expect(page.at_css("#amount")).to be_nil
-    expect(page.at_css("#date")).to be_nil
-    expect(page.at_css("#payee")).to be_nil
+    expect(page.at_css("#amount")["disabled"]).to be_present
+    expect(page.at_css("#date")["disabled"]).to be_present
+    expect(page.at_css("#payee")["disabled"]).to be_present
   end
 
   it "GET edit Excluir when month_id nil" do
@@ -3309,9 +3284,8 @@ RSpec.describe "Supporting documents", type: :request do
     get "/supporting_documents/#{document.id}/edit"
 
     page = page_doc(response.body)
-    expect(page.at_css('label[for="xml"]').text.strip).to eq("XML")
-    xml_field = page.at_css("[data-file-field='xml']")
-    expect(xml_field.css("button").any? { |button| button.text.strip == "Limpar" }).to eq(true)
+    expect(page.at_css('label[for="xml"]')).to be_nil
+    expect(page.at_css("#arquivo")["value"]).to eq("Foto")
   end
 
   it "DELETE month document 422 renders index not edit" do
@@ -3333,7 +3307,7 @@ RSpec.describe "Supporting documents", type: :request do
     install_a1(organization)
     stub_xml_consulta(vnf: "100.00", emit: "Outro")
     post "/supporting_documents", params: {
-      kind: "nota_fiscal", photo: photo_jpg, xml: authorized_xml(vnf: "155.00"), chave: nfe_chave
+      kind: "nota_fiscal", xml: authorized_xml(vnf: "155.00"), chave: nfe_chave
     }
     id = SupportingDocument.last.id
 
@@ -3341,5 +3315,406 @@ RSpec.describe "Supporting documents", type: :request do
 
     expect(response).to have_http_status(:unprocessable_content)
     expect(page_doc(response.body).at_css("h1").text.strip).to eq("Documentos de suporte")
+  end
+
+  def insert_section(body)
+    page_doc(body).css("section").first
+  end
+
+  def identify_stream_doc(body)
+    html = turbo_stream_nodes(body).map(&:inner_html).join
+    Nokogiri::HTML(html)
+  end
+
+  def origin_copy(doc, field)
+    doc.at_css(%([data-origin="#{field}"]))&.text&.strip
+  end
+
+  it "GET empty insert is file-first proof square" do
+    signed_in
+
+    get "/supporting_documents"
+
+    expect(response).to have_http_status(:ok)
+    section = insert_section(response.body)
+    expect(section.at_css("h2").text.strip).to eq("Incluir documento")
+    expect(section.at_css('label[for="photo"]')).to be_nil
+    expect(section.at_css('label[for="xml"]')).to be_nil
+    files = section.css('input[type="file"]')
+    expect(files.size).to eq(1)
+    expect(files.first["accept"]).to include("image/*")
+    expect(files.first["accept"]).to include(".xml")
+    expect(section.text).to include("Inclua o documento. Valor, data e favorecido saem do arquivo.")
+    %w[amount date payee kind arquivo].each do |id|
+      node = section.at_css("##{id}")
+      expect(node).not_to be_nil
+      expect(html_visible?(node)).to eq(false)
+    end
+    sem_mes = page_doc(response.body).css("section")[1]
+    expect(sem_mes.at_css("h2").text.strip).to eq("Sem mês")
+    expect(sem_mes.text).to include("Nenhum documento")
+  end
+
+  it "GET empty insert as submitter is file-first" do
+    account, organization = plant_submitter
+    sign_in_as(account, organization: organization)
+
+    get "/supporting_documents"
+
+    expect(response).to have_http_status(:ok)
+    section = insert_section(response.body)
+    expect(section.at_css('label[for="photo"]')).to be_nil
+    expect(section.at_css('label[for="xml"]')).to be_nil
+    expect(section.css('input[type="file"]').size).to eq(1)
+    expect(section.text).to include("Inclua o documento. Valor, data e favorecido saem do arquivo.")
+    expect(html_visible?(section.at_css("#amount"))).to eq(false)
+  end
+
+  it "POST identify authorized XML fills book without persisting" do
+    signed_in
+
+    post "/supporting_documents/identify", params: { file: authorized_xml("proc-nfe.xml") }, headers: turbo_stream_accept
+
+    expect(SupportingDocument.count).to eq(0)
+    expect(response).to have_http_status(:ok)
+    expect(turbo_stream_nodes(response.body).none? { |node|
+      node["target"] == "file" || node["targets"].to_s.include?("#file")
+    }).to eq(true)
+    doc = identify_stream_doc(response.body)
+    expect(doc.at_css("#arquivo")["value"]).to eq("XML")
+    expect(selected_option_value(doc.at_css("select#kind"))).to eq("nota_fiscal")
+    expect(doc.at_css("select#kind")["disabled"]).to be_present
+    expect(doc.at_css("#amount")["value"]).to eq("155,00")
+    expect(doc.at_css("#date")["value"]).to eq("2026-05-11")
+    expect(doc.at_css("#payee")["value"]).to eq("Padaria Central")
+    expect(doc.at_css("#chave")["value"]).to include("43260511222333000181550010000000011123456781")
+    %w[amount date payee].each do |field|
+      expect(origin_copy(doc, field)).to eq("XML autorizado")
+      expect(doc.at_css("##{field}")["disabled"]).to be_present
+    end
+    expect(doc.text).to include("proc-nfe.xml")
+    expect(doc.css("button").any? { |button| button.text.strip == "Limpar" }).to eq(true)
+  end
+
+  it "POST identify photo fields fills book unlocked" do
+    signed_in
+    stub_photo_fields("danfe.jpg")
+
+    post "/supporting_documents/identify", params: { file: photo_jpg("danfe.jpg") }, headers: turbo_stream_accept
+
+    expect(SupportingDocument.count).to eq(0)
+    expect(response).to have_http_status(:ok)
+    doc = identify_stream_doc(response.body)
+    expect(doc.at_css("#arquivo")["value"]).to eq("Foto")
+    expect(selected_option_value(doc.at_css("select#kind"))).to eq("nota_fiscal")
+    expect(doc.at_css("select#kind")["disabled"]).to be_present
+    expect(doc.at_css("#amount")["value"]).to eq("155,00")
+    expect(doc.at_css("#date")["value"]).to eq("2026-05-11")
+    expect(doc.at_css("#payee")["value"]).to eq("Padaria Central")
+    %w[amount date payee].each do |field|
+      expect(origin_copy(doc, field)).to eq("Lido da foto")
+      expect(doc.at_css("##{field}")["disabled"]).to be_nil
+    end
+  end
+
+  it "POST identify photo miss is recibo typed empty" do
+    signed_in
+
+    post "/supporting_documents/identify", params: { file: photo_jpg("empty.jpg") }, headers: turbo_stream_accept
+
+    expect(SupportingDocument.count).to eq(0)
+    expect(response).to have_http_status(:ok)
+    doc = identify_stream_doc(response.body)
+    expect(doc.at_css("#arquivo")["value"]).to eq("Foto")
+    expect(selected_option_value(doc.at_css("select#kind"))).to eq("recibo")
+    expect(doc.at_css("select#kind")["disabled"]).to be_present
+    expect(html_visible?(doc.at_css("#chave"))).to eq(false)
+    expect(doc.at_css("#amount")["value"].to_s).to eq("")
+    expect(doc.at_css("#date")["value"].to_s).to eq("")
+    expect(doc.at_css("#payee")["value"].to_s).to eq("")
+    %w[amount date payee].each do |field|
+      expect(origin_copy(doc, field)).to eq("Digitado")
+      expect(doc.at_css("##{field}")["disabled"]).to be_nil
+    end
+    expect(doc.at_css('input[type="submit"][value="Incluir documento"]')["disabled"]).to be_present
+  end
+
+  it "POST identify photo chave identified XML locks fields" do
+    account, organization = signed_in
+    install_a1(organization)
+    stub_photo_symbols("danfe.jpg", chave: nfe_chave)
+    stub_xml_consulta
+
+    post "/supporting_documents/identify", params: { file: photo_jpg("danfe.jpg") }, headers: turbo_stream_accept
+
+    expect(SupportingDocument.count).to eq(0)
+    expect(response).to have_http_status(:ok)
+    doc = identify_stream_doc(response.body)
+    expect(selected_option_value(doc.at_css("select#kind"))).to eq("nota_fiscal")
+    expect(doc.at_css("#amount")["value"]).to eq("155,00")
+    expect(doc.at_css("#date")["value"]).to eq("2026-05-11")
+    expect(doc.at_css("#payee")["value"]).to eq("Padaria Central")
+    %w[amount date payee].each do |field|
+      expect(origin_copy(doc, field)).to eq("XML autorizado")
+      expect(doc.at_css("##{field}")["disabled"]).to be_present
+    end
+    expect(account).to eq(account)
+  end
+
+  it "POST identify unreadable XML 422 keeps file input" do
+    signed_in
+
+    post "/supporting_documents/identify",
+      params: { file: xml_file("nota.xml", "<nfe><") },
+      headers: turbo_stream_accept
+
+    expect(SupportingDocument.count).to eq(0)
+    expect(response).to have_http_status(:unprocessable_content)
+    notice = turbo_stream_for(response.body, "[data-notice=error]")
+    toast = turbo_stream_for(response.body, "toast-host")
+    expect(notice.text).to include("O XML da nota fiscal não pôde ser lido")
+    expect(toast.text).to include("O XML da nota fiscal não pôde ser lido")
+    expect(turbo_stream_nodes(response.body).none? { |node|
+      node["target"] == "file" || node["targets"].to_s.include?("form[action=\"/supporting_documents\"]")
+    }).to eq(true)
+  end
+
+  it "unauthenticated POST identify 302 to login" do
+    post "/supporting_documents/identify", params: { file: photo_jpg }
+
+    expect(SupportingDocument.count).to eq(0)
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/login")
+  end
+
+  it "POST create authorized XML without kind persists nota_fiscal" do
+    _account, organization = signed_in
+
+    post "/supporting_documents", params: { xml: authorized_xml }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/supporting_documents")
+    doc = SupportingDocument.find_by!(organization: organization)
+    expect(doc.kind).to eq("nota_fiscal")
+    expect(doc.fields_origin).to eq("uploaded_xml")
+    expect(doc.xml).to be_attached
+    expect(doc.photo).not_to be_attached
+    expect(doc.amount_cents).to eq(15500)
+  end
+
+  it "POST create photo fields persists photo origin" do
+    _account, organization = signed_in
+    stub_photo_fields("danfe.jpg")
+
+    post "/supporting_documents", params: {
+      photo: photo_jpg("danfe.jpg"), amount: "155,00", date: "2026-05-11", payee: "Padaria Central"
+    }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/supporting_documents")
+    doc = SupportingDocument.find_by!(organization: organization)
+    expect(doc.photo).to be_attached
+    expect(doc.xml).not_to be_attached
+    expect(doc.fields_origin).to eq("photo")
+  end
+
+  it "POST create miss photo with typed values persists recibo" do
+    _account, organization = signed_in
+
+    post "/supporting_documents", params: {
+      photo: photo_jpg("empty.jpg"), amount: "48,90", date: "2026-05-12", payee: "Papelaria Lume"
+    }
+
+    expect(response).to have_http_status(:found)
+    doc = SupportingDocument.find_by!(organization: organization)
+    expect(doc.kind).to eq("recibo")
+    expect(doc.photo).to be_attached
+    expect(doc.xml).not_to be_attached
+    expect(doc.chave).to be_nil
+    expect(doc.fields_origin).to eq("typed")
+    expect(doc.amount_cents).to eq(4890)
+  end
+
+  it "POST create both photo and XML 422 xor" do
+    signed_in
+
+    post "/supporting_documents", params: nota_params(photo: photo_jpg, xml: authorized_xml)
+
+    expect(SupportingDocument.count).to eq(0)
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(error_notice_text(response.body)).to eq("Envie a foto ou o XML")
+  end
+
+  it "POST create neither file 422 xor" do
+    signed_in
+
+    post "/supporting_documents", params: { amount: "155,00", date: "2026-05-11", payee: "Padaria Central" }
+
+    expect(SupportingDocument.count).to eq(0)
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(error_notice_text(response.body)).to eq("Envie a foto ou o XML")
+  end
+
+  it "submitter identify then create XML is own account" do
+    coord, organization = plant_coordinator
+    other_org = create_organization!(name: "Outra")
+    Access.create!(account: coord, organization: other_org, kind: :coordinator)
+    sign_in_as(coord, organization: other_org)
+    post "/supporting_documents", params: { xml: authorized_xml, payee: "Outra ONG" }
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(submitter, organization: organization)
+
+    post "/supporting_documents/identify", params: { file: authorized_xml }, headers: turbo_stream_accept
+    expect(response).to have_http_status(:ok)
+    post "/supporting_documents", params: { xml: authorized_xml }
+
+    doc = SupportingDocument.find_by!(organization: organization, payee: "Padaria Central")
+    expect(doc.account_id).to eq(submitter.id)
+    get "/supporting_documents"
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Padaria Central")
+    expect(response.body).not_to include("Outra ONG")
+  end
+
+  it "GET edit photo-only has Arquivo Foto and no xml picker" do
+    account, organization = signed_in
+    document = SupportingDocument.insert(
+      organization: organization, account: account, kind: "nota_fiscal",
+      amount: "155,00", date: "2026-05-11", payee: "Padaria Central", photo: photo_named("nota-padaria-central.jpg")
+    )
+
+    get "/supporting_documents/#{document.id}/edit"
+
+    expect(response).to have_http_status(:ok)
+    page = page_doc(response.body)
+    expect(page.at_css('label[for="xml"]')).to be_nil
+    expect(page.at_css("input#xml")).to be_nil
+    arquivo = page.at_css("#arquivo")
+    expect(html_visible?(arquivo)).to eq(true)
+    expect(arquivo["value"]).to eq("Foto")
+    expect(arquivo["disabled"]).to be_present
+    expect(selected_option_value(page.at_css("select#kind"))).to eq("nota_fiscal")
+    expect(page.at_css("select#kind")["disabled"]).to be_present
+    proof = page.at_css("[data-edit=proof]")
+    expect(proof.text).to include("Foto ·")
+    expect(proof.text).to include("nota-padaria-central.jpg")
+    expect(proof.text).to include("O arquivo não pode ser alterado. Exclua o documento e inclua novamente.")
+  end
+
+  it "GET edit xml-only has Arquivo XML and no xml picker" do
+    account, organization = signed_in
+    document = SupportingDocument.insert(
+      organization: organization, account: account, kind: "nota_fiscal",
+      amount: "155,00", date: "2026-05-11", payee: "Padaria Central", photo: nil, xml: authorized_xml("nota-autorizada.xml")
+    )
+
+    get "/supporting_documents/#{document.id}/edit"
+
+    page = page_doc(response.body)
+    expect(page.at_css("#arquivo")["value"]).to eq("XML")
+    expect(page.at_css("input#xml")).to be_nil
+    expect(page.at_css("[data-edit=proof]").text).to include("nota-autorizada.xml")
+  end
+
+  it "PATCH xml onto photo-only 422 XML_LOCKED" do
+    signed_in
+    post "/supporting_documents", params: nota_params(photo: photo_jpg)
+    document = SupportingDocument.last
+    expect(document.xml).not_to be_attached
+
+    patch "/supporting_documents/#{document.id}", params: { xml: authorized_xml }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(error_notice_text(response.body)).to eq(SupportingDocument::XML_LOCKED)
+    expect(document.reload.xml).not_to be_attached
+  end
+
+  it "GET edit legacy both blobs Arquivo XML no picker PATCH keeps blobs" do
+    account, organization = signed_in
+    document = SupportingDocument.insert(
+      organization: organization, account: account, kind: "nota_fiscal",
+      amount: "155,00", date: "2026-05-11", payee: "Padaria Central", photo: photo_jpg("danfe.jpg"), xml: nil
+    )
+    document.xml.attach(io: StringIO.new(authorized_nfe_xml), filename: "legado.xml", content_type: "application/xml")
+
+    get "/supporting_documents/#{document.id}/edit"
+
+    page = page_doc(response.body)
+    expect(page.at_css("#arquivo")["value"]).to eq("XML")
+    expect(page.at_css("input#xml")).to be_nil
+    expect(page.at_css("[data-edit=proof]").text).to include("danfe.jpg")
+
+    patch "/supporting_documents/#{document.id}", params: { observation: "ok" }
+
+    expect(response).to have_http_status(:found)
+    document.reload
+    expect(document.photo).to be_attached
+    expect(document.xml).to be_attached
+  end
+
+  it "GET edit uploaded_xml origins XML autorizado locked" do
+    account, organization = signed_in
+    document = SupportingDocument.insert(
+      organization: organization, account: account, kind: "nota_fiscal",
+      amount: "155,00", date: "2026-05-11", payee: "Padaria Central", photo: nil, xml: authorized_xml
+    )
+
+    get "/supporting_documents/#{document.id}/edit"
+
+    page = page_doc(response.body)
+    %w[amount date payee].each do |field|
+      expect(page.at_css("##{field}")["disabled"]).to be_present
+      expect(origin_copy(page, field)).to eq("XML autorizado")
+    end
+  end
+
+  it "GET edit identified origins XML autorizado locked" do
+    account, organization = signed_in
+    install_a1(organization)
+    stub_photo_symbols("danfe.jpg", chave: nfe_chave)
+    stub_xml_consulta
+    document = SupportingDocument.insert(
+      organization: organization, account: account, kind: "nota_fiscal",
+      amount: nil, date: nil, payee: nil, photo: photo_jpg("danfe.jpg"), xml: nil
+    )
+    expect(document.fields_origin).to eq("identified")
+
+    get "/supporting_documents/#{document.id}/edit"
+
+    page = page_doc(response.body)
+    %w[amount date payee].each do |field|
+      expect(page.at_css("##{field}")["disabled"]).to be_present
+      expect(origin_copy(page, field)).to eq("XML autorizado")
+    end
+  end
+
+  it "GET edit photo origins Lido da foto unlocked" do
+    account, organization = signed_in
+    stub_photo_fields("danfe.jpg")
+    document = SupportingDocument.insert(
+      organization: organization, account: account, kind: "nota_fiscal",
+      amount: nil, date: nil, payee: nil, photo: photo_jpg("danfe.jpg"), xml: nil
+    )
+    expect(document.fields_origin).to eq("photo")
+
+    get "/supporting_documents/#{document.id}/edit"
+
+    page = page_doc(response.body)
+    %w[amount date payee].each do |field|
+      expect(page.at_css("##{field}")["disabled"]).to be_nil
+      expect(origin_copy(page, field)).to eq("Lido da foto")
+    end
+  end
+
+  it "GET edit typed origins Digitado" do
+    account, organization = signed_in
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
+
+    get "/supporting_documents/#{document.id}/edit"
+
+    page = page_doc(response.body)
+    %w[amount date payee].each do |field|
+      expect(origin_copy(page, field)).to eq("Digitado")
+    end
   end
 end

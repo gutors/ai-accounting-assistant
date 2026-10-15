@@ -1,0 +1,65 @@
+<% identification = @identification %>
+<% identified = identification.present? && identification.errors.empty? && identification.kind.present? %>
+<% loaded = identified || @insert_echo %>
+<% locked = identified && identification.fields_locked? %>
+<% nf = identified ? identification.nota_fiscal? : params[:kind] == "nota_fiscal" %>
+<% amount_value = identified ? amount_field_value(identification.amount_cents) : params[:amount] %>
+<% date_value = identified && identification.document_on ? identification.document_on.iso8601 : params[:date] %>
+<% payee_value = identified ? identification.payee : params[:payee] %>
+<% chave_value = identified ? identification.chave : params[:chave] %>
+<% kind_value = identified ? identification.kind : params[:kind] %>
+<% submit_disabled = identified && identification.recibo? && identification.amount_cents.to_i <= 0 %>
+<div id="identify-book" class="grid max-w-[28rem] gap-4">
+  <p class="max-w-[36ch] text-ink-soft<%= " hidden" if loaded %>" <%= "hidden" if loaded %> data-document-identify-target="wait">Inclua o documento. Valor, data e favorecido saem do arquivo.</p>
+  <div id="fields" class="grid gap-4<%= " hidden" unless loaded %>" <%= "hidden" unless loaded %> data-document-identify-target="fields">
+    <div>
+      <label for="arquivo" class="mb-1 block font-medium">Arquivo</label>
+      <%= text_field_tag :arquivo, identified ? identification.intake_arquivo : params[:arquivo], id: "arquivo", disabled: true, autocomplete: "off", class: "w-full rounded border border-rule bg-sheet px-3 py-2" %>
+    </div>
+    <div>
+      <label for="kind" class="mb-1 block font-medium">Tipo</label>
+      <%= select_tag :kind, options_for_select([ [ "Nota fiscal", "nota_fiscal" ], [ "Recibo", "recibo" ] ], kind_value), id: "kind", disabled: true, class: "w-full rounded border border-rule bg-sheet px-3 py-2" %>
+      <% if identified %>
+        <%= hidden_field_tag :kind, identification.kind %>
+      <% end %>
+    </div>
+    <div>
+      <label for="amount" class="mb-1 block font-medium">Valor</label>
+      <%= text_field_tag :amount, amount_value, id: "amount", disabled: locked, class: "w-full rounded border border-rule bg-sheet px-3 py-2 tabular-nums", autocomplete: "off", inputmode: "numeric", data: { controller: "money-mask", action: "input->money-mask#typed document-identify#typed" } %>
+      <% if locked %>
+        <%= hidden_field_tag :amount, amount_value %>
+      <% end %>
+      <p class="mt-1 text-meta text-ink-soft<%= " text-caixa" if locked %>" data-origin="amount"><%= identified ? identification.origin_stamp : "" %></p>
+    </div>
+    <div>
+      <label for="date" class="mb-1 block font-medium">Data</label>
+      <%= date_field_tag :date, date_value, id: "date", disabled: locked, class: "w-full rounded border border-rule bg-sheet px-3 py-2 tabular-nums", autocomplete: "off", data: { action: "input->document-identify#typed" } %>
+      <% if locked %>
+        <%= hidden_field_tag :date, date_value %>
+      <% end %>
+      <p class="mt-1 text-meta text-ink-soft<%= " text-caixa" if locked %>" data-origin="date"><%= identified ? identification.origin_stamp : "" %></p>
+    </div>
+    <div>
+      <label for="payee" class="mb-1 block font-medium">Favorecido</label>
+      <%= text_field_tag :payee, payee_value, id: "payee", disabled: locked, class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off", data: { action: "input->document-identify#typed" } %>
+      <% if locked %>
+        <%= hidden_field_tag :payee, payee_value %>
+      <% end %>
+      <p class="mt-1 text-meta text-ink-soft<%= " text-caixa" if locked %>" data-origin="payee"><%= identified ? identification.origin_stamp : "" %></p>
+    </div>
+    <div<%= " class=\"hidden\"" unless nf %> <%= "hidden" unless nf %>>
+      <label for="chave" class="mb-1 block font-medium">Chave de acesso (opcional)</label>
+      <%= text_field_tag :chave, chave_value, id: "chave", disabled: locked || !nf, class: "w-full rounded border border-rule bg-sheet px-3 py-2 font-mono text-meta", autocomplete: "off" %>
+      <% if locked && nf %>
+        <%= hidden_field_tag :chave, chave_value %>
+      <% end %>
+    </div>
+    <div>
+      <label for="observation" class="mb-1 block font-medium">Observação (opcional)</label>
+      <%= text_area_tag :observation, identified ? identification.observation : params[:observation], id: "observation", class: "w-full rounded border border-rule bg-sheet px-3 py-2", rows: 3 %>
+    </div>
+    <div class="mt-2 flex flex-wrap items-center gap-4">
+      <%= submit_tag "Incluir documento", disabled: submit_disabled, class: "rounded bg-caixa px-4 py-2 font-semibold text-white disabled:pointer-events-none disabled:opacity-50", data: { document_identify_target: "submit" } %>
+    </div>
+  </div>
+</div>

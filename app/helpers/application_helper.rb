@@ -41,4 +41,10 @@ module ApplicationHelper
   def format_chave(chave)
     chave.to_s.scan(/.{1,4}/).join(" ")
   end
+
+  def amount_field_value(cents)
+    return "" if cents.blank? || cents == 0
+
+    format_reais(cents).delete_prefix("R$ ").strip
+  end
 end

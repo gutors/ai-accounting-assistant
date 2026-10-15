@@ -16,7 +16,7 @@ RSpec.describe "Keep form on 422 sources" do
     expect(documents).to include("Favorecido")
     expect(documents).to include("Chave")
     expect(documents).to include("Observação")
-    expect(documents).to include("file inputs stay empty")
+    expect(documents).to include("the square's file input stays in the form")
 
     expect(setup).to include("Arquivo [Limpar]")
     expect(setup).to include("HTML `422` does not write Senha into the HTML")
