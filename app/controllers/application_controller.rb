@@ -145,6 +145,11 @@ class ApplicationController < ActionController::Base
   def load_matches_page
     load_month_page
     apply_bank_account_movement_filter
+    @unmatched_documents = @unmatched_documents.unscope(:order).order(document_on: :asc, id: :asc)
+    @next_suggestion_payment = Suggestion.next_one_payment(
+      @missing_document_payments,
+      @suggestions_by_payment_id
+    )
   end
 
   def apply_bank_account_movement_filter

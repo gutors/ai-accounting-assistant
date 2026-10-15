@@ -33,6 +33,15 @@ class Suggestion
     supporting_documents.map(&:id)
   end
 
+  def self.next_one_payment(payments, proposals_by_payment_id)
+    Array(payments).find do |payment|
+      next false unless payment.missing_document?
+
+      proposal = proposals_by_payment_id[payment.id]
+      proposal&.payments&.size == 1
+    end
+  end
+
   def self.name_hit?(payee, history)
     left = normalize_name(payee)
     right = normalize_name(history)

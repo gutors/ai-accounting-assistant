@@ -11,6 +11,16 @@ export default class extends Controller {
     this.recompute()
   }
 
+  applySuggestion(event) {
+    event.preventDefault()
+    const button = event.currentTarget
+    this.clearChecks()
+    this.checkPayment(button.dataset.paymentId)
+    ;(button.dataset.documentIds || "").split(",").filter(Boolean).forEach((id) => this.checkDocument(id))
+    this.recompute()
+    if (this.equalSums()) this.element.querySelector("#match-confirm")?.requestSubmit()
+  }
+
   recompute() {
     const pays = this.checkedRows('[data-row="payment"]')
     const docs = this.checkedRows('[data-row="pool-document"]')
@@ -43,5 +53,25 @@ export default class extends Controller {
   format(cents) {
     const value = (cents / 100).toFixed(2).replace(".", ",")
     return `R$ ${value.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`
+  }
+
+  equalSums() {
+    const pays = this.checkedRows('[data-row="payment"]')
+    const docs = this.checkedRows('[data-row="pool-document"]')
+    return pays.length > 0 && docs.length > 0 && this.cents(pays) === this.cents(docs)
+  }
+
+  clearChecks() {
+    this.element.querySelectorAll('input[type="checkbox"]').forEach((box) => { box.checked = false })
+  }
+
+  checkPayment(id) {
+    const box = this.element.querySelector(`[data-row="payment"][data-payment-id="${id}"] input[type="checkbox"]`)
+    if (box) box.checked = true
+  }
+
+  checkDocument(id) {
+    const box = this.element.querySelector(`[data-row="pool-document"][data-document-id="${id}"] input[type="checkbox"]`)
+    if (box) box.checked = true
   }
 }

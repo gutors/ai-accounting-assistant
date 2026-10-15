@@ -33,6 +33,9 @@ Touches `GET /months/:year_month/matches` (sticky band, next control, day/month 
 | One-way door | Literal shape | Alternative rejected |
 | --- | --- | --- |
 | None — composition, click, dates, and this-GET pool order are product locks in `.design/month-match.md` and reversible there. URL `GET /months/:year_month/matches` and origin-sensitive mutate redirects already shipped in #111; this cut does not reopen them | — | A new confirm endpoint for the suggestion click — would duplicate `POST /months/:year_month/matches` |
+| Next pick is `Suggestion.next_one_payment(payments, proposals_by_payment_id)` | Returns the first `missing_document?` payment in the given array whose proposal has `payments.size == 1`; `nil` when none. Sheet order and the account filter are the array the loader already built | A second Assigner pass, or picking in the ERB — would duplicate `payments.size == 1` and hide the table from the model spec |
+| Matches dates use locale `:day_month` `"%d/%m"` | `l(date, format: :day_month)` only in `matches/show` (sheets and next). Month GET keeps `l(date)` default `"%d/%m/%Y"` | Hardcoded `strftime` in the view — would skip the locale table the rest of the app uses |
+| This-GET pool order is a loader reorder | `load_matches_page` reorders `@unmatched_documents` with `document_on` asc, `id` asc. `SupportingDocument.listed` stays `document_on` desc, `id` desc | A new model scope used from the matches loader — other listed callers would inherit oldest-first by accident |
 
 - Nothing else in this change is hard to reverse
 

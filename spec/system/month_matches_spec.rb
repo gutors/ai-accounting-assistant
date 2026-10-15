@@ -106,23 +106,15 @@ RSpec.describe "Month matches layout", type: :system do
 
     payment.click
     padaria.click
-    within(".match-confirm") do
+    within("#match-confirm") do
       expect(page).to have_text("Pagamentos R$ 220,00")
       expect(page).to have_text("Documentos R$ 220,00")
       expect(page).to have_text("Soma igual")
     end
-    ink = page.evaluate_script(<<~JS)
-      (function() {
-        const line = document.querySelector(".match-confirm");
-        const style = getComputedStyle(line);
-        return { borderTopWidth: style.borderTopWidth, borderTopColor: style.borderTopColor };
-      })()
-    JS
-    expect(ink["borderTopWidth"]).to eq("1px")
 
     padaria.click
     menos.click
-    within(".match-confirm") do
+    within("#match-confirm") do
       expect(page).to have_text("Documentos R$ 200,00")
       expect(page).to have_text("Documentos somam menos")
       expect(page).to have_no_text("Soma igual")
@@ -130,13 +122,13 @@ RSpec.describe "Month matches layout", type: :system do
 
     menos.click
     mais.click
-    within(".match-confirm") do
+    within("#match-confirm") do
       expect(page).to have_text("Documentos R$ 250,00")
       expect(page).to have_text("Documentos somam mais")
     end
 
     mais.click
-    within(".match-confirm") do
+    within("#match-confirm") do
       expect(page).to have_text("Documentos R$ 0,00")
       expect(page).to have_text("Pagamentos R$ 220,00")
       expect(page).to have_no_text("Soma igual")
@@ -146,10 +138,76 @@ RSpec.describe "Month matches layout", type: :system do
 
     payment.click
     padaria.click
-    within(".match-confirm") do
+    within("#match-confirm") do
       expect(page).to have_text("Pagamentos R$ 0,00")
       expect(page).to have_text("Documentos R$ 220,00")
       expect(page).to have_no_text("Soma igual")
+    end
+  end
+
+  it "match top band is sticky with ink bottom and confirm has no ink top" do
+    account, _organization, _month = plant_open_matches
+    sign_in_through_google(account)
+    visit "/months/2026-05/matches"
+
+    expect(page).to have_css("h2", text: "Próxima sugestão")
+    expect(page).to have_css("#match-confirm")
+    styles = page.evaluate_script(<<~JS)
+      (function() {
+        const band = document.querySelector(".match-top");
+        const confirm = document.querySelector("#match-confirm");
+        const bandStyle = getComputedStyle(band);
+        const confirmStyle = getComputedStyle(confirm);
+        return {
+          containsHeading: band.querySelector("h2") && band.querySelector("h2").textContent.trim() === "Próxima sugestão",
+          containsConfirm: band.contains(confirm),
+          position: bandStyle.position,
+          top: bandStyle.top,
+          borderBottomWidth: bandStyle.borderBottomWidth,
+          confirmBorderTopWidth: confirmStyle.borderTopWidth
+        };
+      })()
+    JS
+    expect(styles["containsHeading"]).to eq(true)
+    expect(styles["containsConfirm"]).to eq(true)
+    expect(styles["position"]).to eq("sticky")
+    expect(styles["top"]).to eq("0px")
+    expect(styles["borderBottomWidth"]).to eq("1px")
+    expect(styles["confirmBorderTopWidth"]).to eq("0px")
+  end
+
+  it "next suggestion click with equal sums confirms and omits the heading" do
+    account, _organization, _month = plant_open_matches
+    sign_in_through_google(account)
+    visit "/months/2026-05/matches"
+
+    find(".match-next__hit").click
+    expect(page).to have_current_path("/months/2026-05/matches")
+    expect(Match.count).to eq(1)
+    row = find('li[data-row="payment"]', text: "Pix enviado — Padaria Central")
+    expect(row["data-status"]).to eq("matched")
+    expect(row).to have_text("Casado")
+    expect(page).to have_no_css('li[data-row="pool-document"]', text: "Padaria Central")
+    expect(page).to have_no_css("h2", text: "Próxima sugestão")
+  end
+
+  it "next suggestion click with lesser sums checks rows and does not persist" do
+    account, organization = plant_coordinator
+    month, statement = plant_month(organization)
+    plant_payment(statement, 150000, history: "TED — Aluguel sede", occurred_on: Date.new(2026, 5, 11))
+    plant_recibo(organization, account, payee: "Imobiliária Serra", amount: "1400,00", date: "2026-05-11")
+    sign_in_through_google(account)
+    visit "/months/2026-05/matches"
+
+    find(".match-next__hit").click
+    expect(Match.count).to eq(0)
+    pay = find('li[data-row="payment"][data-status="missing"]', text: "TED — Aluguel sede")
+    expect(pay.find('input[type="checkbox"]')).to be_checked
+    doc = find('li[data-row="pool-document"]', text: "Imobiliária Serra")
+    expect(doc.find('input[type="checkbox"]')).to be_checked
+    within("#match-confirm") do
+      expect(page).to have_text("Documentos somam menos")
+      expect(find("#observation_match").value).to eq("")
     end
   end
 end

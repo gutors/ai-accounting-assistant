@@ -396,11 +396,13 @@ maio de 2026                                        Voltar ao mês
 2026-05
 [ Todas ]  Conta Alfa  Conta Principal
 1 pagamento com documento faltante.                 ← margem when N > 0
+Próxima sugestão
+Pagamento 11/05 Pix — Padaria 220,00  casar com  Documento 11/05 Padaria 220,00
+Pagamentos R$ 220,00 · Documentos R$ 220,00 · Soma igual
+Observação do casamento  [Confirmar casamento] [Marcar tarifa] …
 Pagamentos (~60%)                 Documentos sem casamento
 ☐ 11/05  Pix — Padaria   220,00 Faltante   ☐ 11/05 Padaria  220,00 Recibo
 × 15/05  Honorários      800,00 Casado
-Pagamentos R$ 220,00 · Documentos R$ 220,00 · Soma igual
-Observação do casamento  [Confirmar casamento] [Marcar tarifa] …
 ```
 
 - Title month in words (`maio de 2026`) plus `2026-05` in meta under it. Quiet `Voltar ao mês`.
@@ -408,6 +410,10 @@ Observação do casamento  [Confirmar casamento] [Marcar tarifa] …
 - Chips `Todas` then active accounts by name, `?bank_account_id=`, default all, Pagamentos only.
 - Missing-count copy (`Nenhum documento faltante.` / `1 pagamento com documento faltante.` /
   `N pagamentos com documento faltante.`) and `margem` when N > 0.
+- Sticky band above the sheets: `Próxima sugestão` (Pagamento | `casar com` | Documento, day/month
+  + amount + payee) then totaling / observação / confirm / marks. Dates `11/05`. Pool oldest →
+  newest. click equal confirms. no `Casar` and no `Sugestão {payees}` on the payment row;
+  `Sugestão de exceção` stays on the row.
 - Two sheets from 1100px (Pagamentos wider), stacked below with Pagamentos first. Payment first
   cell checkbox vs `×`; no `Resolver`. Pool columns Data / Favorecido / Valor / Tipo; empty
   `Nenhum documento sem casamento`.

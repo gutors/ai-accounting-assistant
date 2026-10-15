@@ -419,6 +419,55 @@ RSpec.describe Suggestion, type: :model do
     expect(proposal_for(payment).supporting_documents).to eq([ document ])
   end
 
+  def proposals_by_payment_id
+    described_class.assign(organization).each_with_object({}) do |proposal, index|
+      proposal.payments.each { |payment| index[payment.id] = proposal }
+    end
+  end
+
+  it "next_one_payment picks the first 1:1 on the sheet" do
+    payment = plant_payment(statement, 22000, history: "Pix enviado — Padaria Central", occurred_on: Date.new(2026, 5, 11))
+    plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    expect(described_class.next_one_payment([ payment ], proposals_by_payment_id)).to eq(payment)
+  end
+
+  it "next_one_payment follows occurred_on on the filtered sheet" do
+    padaria = plant_payment(statement, 22000, history: "Pix enviado — Padaria Central", occurred_on: Date.new(2026, 5, 11))
+    norte = plant_payment(statement, 22000, history: "TED — Fornecedor Norte", occurred_on: Date.new(2026, 5, 4))
+    plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    plant_recibo(organization, account, payee: "Fornecedor Norte", amount: "220,00")
+    index = proposals_by_payment_id
+
+    expect(described_class.next_one_payment([ norte, padaria ], index)).to eq(norte)
+    expect(described_class.next_one_payment([ padaria ], index)).to eq(padaria)
+  end
+
+  it "next_one_payment includes a 1:N justification group" do
+    payment = plant_payment(statement, 15500, history: "Pix papelaria")
+    first = plant_recibo(organization, account, payee: "Papelaria Norte", amount: "100,00", date: "2026-05-13")
+    second = plant_recibo(organization, account, payee: "Papelaria Norte", amount: "55,00", date: "2026-05-14")
+    cover("155,00", [ first, second ])
+
+    expect(described_class.next_one_payment([ payment ], proposals_by_payment_id)).to eq(payment)
+  end
+
+  it "next_one_payment skips a payment with no document suggestion" do
+    payment = plant_payment(statement, 22000, history: "Pix enviado chave-pix")
+
+    expect(described_class.next_one_payment([ payment ], {})).to be_nil
+  end
+
+  it "next_one_payment skips format_2" do
+    ten = plant_payment(statement, 10000, history: "Dez")
+    twelve = plant_payment(statement, 12000, history: "Doze")
+    plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+    index = proposals_by_payment_id
+
+    expect(index[ten.id].payments.size).to eq(2)
+    expect(described_class.next_one_payment([ ten, twelve ], index)).to be_nil
+  end
+
   it "does not assign a justification group that includes a document of another month" do
     may, _may_statement = month_and_statement("2026-05")
     payment = plant_payment(statement("2026-06"), 20000)
