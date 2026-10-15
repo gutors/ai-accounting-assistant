@@ -63,7 +63,7 @@ RSpec.describe "Visual identity month bank rows" do
     expect(month).to include("Close-for-send still requires every active account’s statement")
   end
 
-  it "visual-identity matches screen and month Casar pagamentos entry" do
+  it "visual-identity matches screen sticky band next suggestion and day month dates" do
     design = Rails.root.join(".specs/features/visual-identity/design.md").read
     matches = design.split("### `matches` — `GET /months/:year_month/matches`", 2).last.split("### `", 2).first
     month = design.split("### `month` — `GET /months/:year_month`", 2).last.split("### `", 2).first
@@ -89,6 +89,14 @@ RSpec.describe "Visual identity month bank rows" do
     expect(matches).to include("Documentos somam menos")
     expect(matches).to include("Documentos somam mais")
     expect(matches).to include("stay after confirm")
+    expect(matches).to include("Próxima sugestão")
+    expect(matches).to include("casar com")
+    expect(matches).to include("11/05")
+    expect(matches).to include("oldest")
+    expect(matches).to include("click equal")
+    expect(matches).to include("no `Casar`")
+    expect(matches).to include("Sugestão {payees}")
+    expect(matches).to include("Sugestão de exceção")
     expect(month).to include("Casar pagamentos")
     expect(month).to include("only while open and")
     expect(month).to include("confirmed")

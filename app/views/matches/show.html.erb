@@ -36,6 +36,63 @@
     <%= render "shared/notice", message: @month_error %>
   <% end %>
 
+  <% unless @month.closed? %>
+    <div class="match-top">
+      <% if @next_suggestion_payment %>
+        <% proposal = @suggestions_by_payment_id.fetch(@next_suggestion_payment.id) %>
+        <% documents = proposal.supporting_documents %>
+        <section class="match-next">
+          <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Próxima sugestão</h2>
+          <button type="button" class="match-next__hit mt-4 w-full text-left" data-action="month-match#applySuggestion" data-payment-id="<%= @next_suggestion_payment.id %>" data-document-ids="<%= documents.map(&:id).join(",") %>">
+            <span class="match-next__side">
+              <span class="text-meta text-ink-soft">Pagamento</span>
+              <span class="tabular-nums"><%= l(@next_suggestion_payment.occurred_on, format: :day_month) %></span>
+              <span class="font-medium"><%= @next_suggestion_payment.history %></span>
+              <span class="font-medium tabular-nums"><%= format_reais(@next_suggestion_payment.amount_cents) %></span>
+            </span>
+            <span class="text-meta text-ink-soft">casar com</span>
+            <span class="match-next__side">
+              <span class="text-meta text-ink-soft">Documento</span>
+              <span class="tabular-nums"><%= l(documents.map(&:document_on).min, format: :day_month) %></span>
+              <span class="font-medium"><%= documents.map(&:payee).join(", ") %></span>
+              <span class="font-medium tabular-nums"><%= format_reais(documents.sum(&:amount_cents)) %></span>
+            </span>
+          </button>
+        </section>
+      <% end %>
+
+      <%= form_with url: "/months/#{@month.year_month}/matches", method: :post, html: { id: "match-confirm", class: "match-confirm" } do %>
+        <%= hidden_field_tag :screen, "matches" %>
+        <% if @bank_account_id %>
+          <%= hidden_field_tag :bank_account_id, @bank_account_id %>
+        <% end %>
+        <p class="font-medium tabular-nums">
+          Pagamentos <span data-month-match-target="sumPayments">R$ 0,00</span>
+          <span class="text-ink-soft"> · </span>
+          Documentos <span data-month-match-target="sumDocuments">R$ 0,00</span>
+          <span class="text-ink-soft"> · </span>
+          <span data-month-match-target="verdict"></span>
+        </p>
+        <div class="mt-4 max-w-md">
+          <label for="observation_match" class="mb-1 block font-medium">Observação do casamento</label>
+          <%= text_area_tag :observation, nil, id: "observation_match", rows: 2, class: "w-full rounded border border-rule bg-sheet px-3 py-2" %>
+        </div>
+        <div class="mt-4 flex flex-wrap items-center gap-3">
+          <%= submit_tag "Confirmar casamento", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+          <% if @organization.bank_fee_exception_active? %>
+            <%= button_tag "Marcar tarifa", type: "submit", name: "kind", value: "bank_fee", formaction: "/months/#{@month.year_month}/document_exceptions", class: "ds-btn-secondary" %>
+          <% end %>
+          <% if @organization.accountant_fee_exception_active? %>
+            <%= button_tag "Marcar honorário", type: "submit", name: "kind", value: "accountant_fee", formaction: "/months/#{@month.year_month}/document_exceptions", class: "ds-btn-secondary" %>
+          <% end %>
+          <% @active_extra_exception_kinds.each do |extra_exception_kind| %>
+            <%= button_tag extra_exception_kind.name, type: "submit", name: "extra_exception_kind_id", value: extra_exception_kind.id, formaction: "/months/#{@month.year_month}/document_exceptions", class: "ds-btn-secondary" %>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
   <div class="match-split mt-10">
     <section>
       <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Pagamentos</h2>
@@ -63,7 +120,7 @@
                     <%= button_to "×", "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :delete, params: matches_query, class: "font-medium text-margem", aria: { label: "Desmarcar exceção" } %>
                   <% end %>
                 </span>
-                <time datetime="<%= payment.occurred_on.iso8601 %>" class="tabular-nums"><%= l(payment.occurred_on) %></time>
+                <time datetime="<%= payment.occurred_on.iso8601 %>" class="tabular-nums"><%= l(payment.occurred_on, format: :day_month) %></time>
                 <div>
                   <% if !@month.closed? && status == "missing" %>
                     <label for="match_pay_<%= payment.id %>" class="font-medium"><%= payment.history %></label>
@@ -76,9 +133,7 @@
                 <div>
                   <% if status == "missing" %>
                     <p class="font-medium text-margem">Documento faltante</p>
-                    <% if suggestion %>
-                      <p class="text-meta text-ink-soft">Sugestão <%= suggestion.supporting_documents.map(&:payee).join(", ") %></p>
-                    <% elsif exception_suggestion %>
+                    <% if !suggestion && exception_suggestion %>
                       <p class="text-meta text-ink-soft">Sugestão de exceção</p>
                     <% end %>
                   <% elsif status == "matched" %>
@@ -123,7 +178,7 @@
                     <%= check_box_tag "supporting_document_ids[]", document.id, false, id: "match_doc_#{document.id}", form: "match-confirm", data: { action: "month-match#toggle" } %>
                   <% end %>
                 </span>
-                <time datetime="<%= document.document_on.iso8601 %>" class="tabular-nums"><%= l(document.document_on) %></time>
+                <time datetime="<%= document.document_on.iso8601 %>" class="tabular-nums"><%= l(document.document_on, format: :day_month) %></time>
                 <% if !@month.closed? %>
                   <label for="match_doc_<%= document.id %>" class="font-medium"><%= document.payee %></label>
                 <% else %>
@@ -139,35 +194,4 @@
     </section>
   </div>
 
-  <% unless @month.closed? %>
-    <%= form_with url: "/months/#{@month.year_month}/matches", method: :post, html: { id: "match-confirm", class: "match-confirm" } do %>
-      <%= hidden_field_tag :screen, "matches" %>
-      <% if @bank_account_id %>
-        <%= hidden_field_tag :bank_account_id, @bank_account_id %>
-      <% end %>
-      <p class="font-medium tabular-nums">
-        Pagamentos <span data-month-match-target="sumPayments">R$ 0,00</span>
-        <span class="text-ink-soft"> · </span>
-        Documentos <span data-month-match-target="sumDocuments">R$ 0,00</span>
-        <span class="text-ink-soft"> · </span>
-        <span data-month-match-target="verdict"></span>
-      </p>
-      <div class="mt-4 max-w-md">
-        <label for="observation_match" class="mb-1 block font-medium">Observação do casamento</label>
-        <%= text_area_tag :observation, nil, id: "observation_match", rows: 2, class: "w-full rounded border border-rule bg-sheet px-3 py-2" %>
-      </div>
-      <div class="mt-4 flex flex-wrap items-center gap-3">
-        <%= submit_tag "Confirmar casamento", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
-        <% if @organization.bank_fee_exception_active? %>
-          <%= button_tag "Marcar tarifa", type: "submit", name: "kind", value: "bank_fee", formaction: "/months/#{@month.year_month}/document_exceptions", class: "ds-btn-secondary" %>
-        <% end %>
-        <% if @organization.accountant_fee_exception_active? %>
-          <%= button_tag "Marcar honorário", type: "submit", name: "kind", value: "accountant_fee", formaction: "/months/#{@month.year_month}/document_exceptions", class: "ds-btn-secondary" %>
-        <% end %>
-        <% @active_extra_exception_kinds.each do |extra_exception_kind| %>
-          <%= button_tag extra_exception_kind.name, type: "submit", name: "extra_exception_kind_id", value: extra_exception_kind.id, formaction: "/months/#{@month.year_month}/document_exceptions", class: "ds-btn-secondary" %>
-        <% end %>
-      </div>
-    <% end %>
-  <% end %>
 </div>

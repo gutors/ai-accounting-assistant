@@ -2,6 +2,7 @@ pt-BR:
   date:
     formats:
       default: "%d/%m/%Y"
+      day_month: "%d/%m"
       month_title: "%B de %Y"
     month_names: [~, janeiro, fevereiro, março, abril, maio, junho, julho, agosto, setembro, outubro, novembro, dezembro]
   accesses:
