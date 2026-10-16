@@ -16,17 +16,17 @@ module CloseHelpers
     statement
   end
 
-  def plant_nota(organization, account, payee:, amount:, date: "2026-05-11")
+  def plant_nota(organization, account, payee:, amount:, date: "2026-05-11", legacy_photo: true)
     cents = BrlCents.parse(amount)
     vnf = format("%d.%02d", cents / 100, cents % 100)
-    SupportingDocument.insert(
+    document = SupportingDocument.insert(
       organization: organization,
       account: account,
       kind: "nota_fiscal",
       amount: amount,
       date: date,
       payee: payee,
-      photo: photo_named("nota-#{payee.parameterize}.jpg"),
+      photo: nil,
       xml: authorized_xml(
         "nota-#{payee.parameterize}.xml",
         vnf: vnf,
@@ -34,6 +34,10 @@ module CloseHelpers
         dhemi: "#{date}T10:00:00-03:00"
       )
     )
+    if legacy_photo && document.persisted?
+      document.photo.attach(photo_named("nota-#{payee.parameterize}.jpg"))
+    end
+    document
   end
 
   def writer

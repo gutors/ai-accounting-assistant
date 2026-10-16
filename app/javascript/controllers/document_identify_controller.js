@@ -33,9 +33,15 @@ export default class extends Controller {
       const body = await response.text()
       if (window.Turbo) window.Turbo.renderStreamMessage(body)
       if (!response.ok) {
-        this.waitTarget.textContent = "Inclua o documento. Valor, data e favorecido saem do arquivo."
+        this.resetWaitPrompt()
       }
+    }).catch(() => {
+      this.resetWaitPrompt()
     })
+  }
+
+  resetWaitPrompt() {
+    this.waitTarget.textContent = "Inclua o documento. Valor, data e favorecido saem do arquivo."
   }
 
   clear() {
@@ -47,7 +53,7 @@ export default class extends Controller {
     if (wait) {
       wait.hidden = false
       wait.classList.remove("hidden")
-      wait.textContent = "Inclua o documento. Valor, data e favorecido saem do arquivo."
+      this.resetWaitPrompt()
     }
     if (fields) {
       fields.hidden = true
