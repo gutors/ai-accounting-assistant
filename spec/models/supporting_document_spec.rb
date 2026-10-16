@@ -124,9 +124,8 @@ RSpec.describe SupportingDocument, type: :model do
   it "insert nota_fiscal with photo and xml attaches both" do
     doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg, xml: authorized_xml)
 
-    expect(doc).to be_persisted
-    expect(doc.photo).to be_attached
-    expect(doc.xml).to be_attached
+    expect(doc).not_to be_persisted
+    expect(doc.errors[:base]).to include(SupportingDocument::NF_FILES)
   end
 
   it "rejects nota_fiscal without photo and xml" do
@@ -721,7 +720,7 @@ RSpec.describe SupportingDocument, type: :model do
   end
 
   it "apply kind recibo on locked nota returns KIND_LOCKED" do
-    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg, xml: authorized_xml)
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml)
     doc.apply(kind: "recibo")
 
     expect(doc.errors[:base]).to include(SupportingDocument::KIND_LOCKED)
@@ -1134,8 +1133,8 @@ RSpec.describe SupportingDocument, type: :model do
     stub_photo_symbols("danfe.jpg", chave: other_chave)
     doc = insert_doc(kind: "", photo: photo_jpg("danfe.jpg"), xml: authorized_xml)
 
-    expect(doc.kind).to eq("nota_fiscal")
-    expect(doc.chave).to eq(nfe_chave)
+    expect(doc).not_to be_persisted
+    expect(doc.errors[:base]).to include(SupportingDocument::NF_FILES)
   end
 
   it "insert empty kind photo QR persists nota_fiscal" do
@@ -1158,7 +1157,7 @@ RSpec.describe SupportingDocument, type: :model do
 
     expect(doc).not_to be_persisted
     expect(SupportingDocument.where(organization: organization).count).to eq(0)
-    expect(doc.errors[:base]).to include(SupportingDocument::BAD_KIND)
+    expect(doc.errors[:base]).to include(SupportingDocument::NF_FILES)
   end
 
   it "insert kind recibo keeps recibo when photo has chave" do
@@ -1200,7 +1199,6 @@ RSpec.describe SupportingDocument, type: :model do
 
   it "insert empty kind photo miss keeps typed payee" do
     stub_photo_symbols("recibo.jpg", chave: nil, qr_url: nil)
-    stub_photo_fields("recibo.jpg", payee: "Mercado Silva")
     doc = insert_doc(kind: "")
 
     expect(doc.payee).to eq("Padaria Central")
@@ -1221,7 +1219,7 @@ RSpec.describe SupportingDocument, type: :model do
 
   it "insert uploaded XML chave wins over photo chave" do
     stub_photo_symbols("danfe.jpg", chave: other_chave)
-    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg("danfe.jpg"), xml: authorized_xml)
+    doc = insert_doc(kind: "nota_fiscal", photo: nil, xml: authorized_xml)
 
     expect(doc.amount_cents).to eq(15500)
     expect(doc.chave).to eq(nfe_chave)
@@ -1494,7 +1492,7 @@ RSpec.describe SupportingDocument, type: :model do
     stub_photo_fields("danfe.jpg")
     doc = insert_doc(
       kind: "nota_fiscal",
-      photo: photo_jpg("danfe.jpg"),
+      photo: nil,
       xml: xml_file("nota.xml", "<nfe><"),
       amount: nil,
       date: nil,
@@ -1728,5 +1726,88 @@ RSpec.describe SupportingDocument, type: :model do
 
     expect(doc.errors[:base]).to include(SupportingDocument::KIND_LOCKED)
     expect(doc.reload.kind).to eq("recibo")
+  end
+
+  it "insert infers kind from xml" do
+    doc = insert_doc(kind: "", photo: nil, xml: authorized_xml)
+
+    expect(doc.kind).to eq("nota_fiscal")
+  end
+
+  it "insert infers nota_fiscal from photo chave" do
+    stub_photo_symbols("danfe.jpg", chave: nfe_chave)
+    doc = insert_doc(kind: "", photo: photo_jpg("danfe.jpg"), xml: nil)
+
+    expect(doc.kind).to eq("nota_fiscal")
+    expect(doc.chave).to eq(nfe_chave)
+  end
+
+  it "insert infers nota_fiscal from identified XML" do
+    install_a1
+    stub_photo_symbols("danfe.jpg", chave: nfe_chave)
+    stub_xml_consulta
+    doc = insert_doc(kind: "", photo: photo_jpg("danfe.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+
+    expect(doc.kind).to eq("nota_fiscal")
+    expect(doc.fields_origin).to eq("identified")
+  end
+
+  it "insert infers nota_fiscal from public NFC-e" do
+    stub_photo_symbols("nfce.jpg", chave: nil, qr_url: nfce_qr_url)
+    stub_public_fields(nfce_qr_url)
+    doc = insert_doc(kind: "", photo: photo_jpg("nfce.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+
+    expect(doc.kind).to eq("nota_fiscal")
+    expect(doc.fields_origin).to eq("nfc_e_public")
+  end
+
+  it "insert infers nota_fiscal from photo fields" do
+    stub_photo_fields("danfe.jpg")
+    doc = insert_doc(kind: "", photo: photo_jpg("danfe.jpg"), xml: nil, amount: nil, date: nil, payee: nil)
+
+    expect(doc.kind).to eq("nota_fiscal")
+    expect(doc.fields_origin).to eq("photo")
+    expect(doc.amount_cents).to eq(15500)
+  end
+
+  it "insert infers recibo when photo extraction misses" do
+    stub_photo_symbols("empty.jpg", chave: nil, qr_url: nil)
+    doc = insert_doc(kind: "", photo: photo_jpg("empty.jpg"), xml: nil)
+
+    expect(doc.kind).to eq("recibo")
+    expect(doc.fields_origin).to eq("typed")
+  end
+
+  it "insert both photo and xml is xor" do
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg, xml: authorized_xml)
+
+    expect(doc).not_to be_persisted
+    expect(SupportingDocument.count).to eq(0)
+    expect(doc.errors[:base]).to include("Envie a foto ou o XML")
+  end
+
+  it "insert neither photo nor xml is xor" do
+    doc = insert_doc(kind: "", photo: nil, xml: nil)
+
+    expect(doc).not_to be_persisted
+    expect(SupportingDocument.count).to eq(0)
+    expect(doc.errors[:base]).to include("Envie a foto ou o XML")
+  end
+
+  it "insert infers nota_fiscal from photo fields on image-PDF" do
+    stub_photo_fields("foto.pdf")
+    doc = insert_doc(kind: "", photo: photo_with_ext("pdf"), xml: nil, amount: nil, date: nil, payee: nil)
+
+    expect(doc.kind).to eq("nota_fiscal")
+    expect(doc.fields_origin).to eq("photo")
+  end
+
+  it "apply xml on photo-only is XML_LOCKED" do
+    doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg, xml: nil)
+    expect(doc.xml).not_to be_attached
+    doc.apply(xml: authorized_xml)
+
+    expect(doc.errors[:base]).to include(SupportingDocument::XML_LOCKED)
+    expect(doc.reload.xml).not_to be_attached
   end
 end

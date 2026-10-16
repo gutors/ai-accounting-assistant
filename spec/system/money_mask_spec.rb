@@ -16,6 +16,13 @@ RSpec.describe "Money mask", type: :system do
     expect(page).to have_css("header nav")
   end
 
+  def write_upload(name, content)
+    path = Rails.root.join("tmp", name)
+    FileUtils.mkdir_p(path.dirname)
+    File.binwrite(path, content)
+    path
+  end
+
   def type_digits(locator)
     field = find(locator)
     field.send_keys("1")
@@ -30,6 +37,10 @@ RSpec.describe "Money mask", type: :system do
     account, _organization = plant_coordinator
     sign_in_through_google(account)
     visit "/supporting_documents"
+    photo_path = write_upload("recibo.jpg", "jpeg-bytes")
+
+    attach_file "file", photo_path, make_visible: true
+    expect(page).to have_field("amount", visible: true)
 
     field = find("#amount")
     expect(field.value).to eq("0,00")

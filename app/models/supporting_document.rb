@@ -5,10 +5,10 @@ class SupportingDocument < ApplicationRecord
   OBSERVATION_MAX = 2000
   RECIBO_PHOTO = "Envie a foto do recibo"
   RECIBO_XML = "Recibo não tem XML"
-  NF_FILES = "Envie a foto e/ou o XML"
+  NF_FILES = "Envie a foto ou o XML"
   MISSING_FIELDS = "Informe valor, data e favorecido"
-    BAD_KIND = "Informe se é nota fiscal ou recibo"
-  PHOTO_LOCKED = "A foto não pode ser alterada. Exclua o documento e inclua novamente."
+  BAD_KIND = "Informe se é nota fiscal ou recibo"
+  PHOTO_LOCKED = "O arquivo não pode ser alterado. Exclua o documento e inclua novamente."
   XML_LOCKED = "O XML não pode ser alterado. Exclua o documento e inclua novamente."
   KIND_LOCKED = "O tipo não pode ser alterado. Exclua o documento e inclua novamente."
   OVERSIZE = "Cada arquivo pode ter no máximo 10 MB"
@@ -36,10 +36,29 @@ class SupportingDocument < ApplicationRecord
 
   enum :kind, { nota_fiscal: "nota_fiscal", recibo: "recibo" }, validate: true
 
+  attr_accessor :preview_only, :intake_filename, :intake_arquivo
+
   scope :listed, -> { with_attached_photo.with_attached_xml.order(document_on: :desc, id: :desc) }
   scope :unmatched, -> { where(match_id: nil) }
 
-  def self.insert(organization:, account:, kind:, amount:, date:, payee:, observation: nil, photo: nil, xml: nil, chave: nil)
+  def self.identify(organization:, file: nil, photo: nil, xml: nil)
+    slotted_photo, slotted_xml = slot_uploads(file, photo, xml)
+    new(organization: organization).tap do |doc|
+      doc.preview_only = true
+      doc.submit(kind: "", photo: slotted_photo, xml: slotted_xml)
+    end
+  end
+
+  def self.slot_uploads(file, photo, xml)
+    probe = new
+    if probe.send(:uploaded?, file)
+      probe.send(:xml_ext?, file) ? [ nil, file ] : [ file, nil ]
+    else
+      [ photo, xml ]
+    end
+  end
+
+  def self.insert(organization:, account:, kind: nil, amount:, date:, payee:, observation: nil, photo: nil, xml: nil, chave: nil)
     new(organization: organization, account: account).tap do |doc|
       doc.submit(kind: kind, amount: amount, date: date, payee: payee, observation: observation, photo: photo, xml: xml, chave: chave)
     end
@@ -99,6 +118,10 @@ class SupportingDocument < ApplicationRecord
 
     incoming_photo = uploaded?(attrs[:photo]) ? attrs[:photo] : nil
     incoming_xml = uploaded?(attrs[:xml]) ? attrs[:xml] : nil
+    if !persisted? && incoming_photo && incoming_xml
+      errors.add(:base, NF_FILES)
+      return self
+    end
     posted_kind = attrs.key?(:kind) ? attrs[:kind].to_s : kind.to_s
     next_kind = posted_kind
     infer_from_photo = false
@@ -111,7 +134,7 @@ class SupportingDocument < ApplicationRecord
       elsif incoming_photo
         infer_from_photo = true
       else
-        errors.add(:base, BAD_KIND)
+        errors.add(:base, NF_FILES)
         return self
       end
     end
@@ -145,7 +168,7 @@ class SupportingDocument < ApplicationRecord
       errors.add(:base, PHOTO_LOCKED)
       return self
     end
-    if persisted? && incoming_xml && xml.attached?
+    if persisted? && incoming_xml
       errors.add(:base, XML_LOCKED)
       return self
     end
@@ -170,11 +193,7 @@ class SupportingDocument < ApplicationRecord
         text: lazy_ocr
       )
       photo_scanned = true
-      next_kind = if forty_four_digits(photo_symbols.chave) || photo_symbols.qr_url.present?
-        "nota_fiscal"
-      else
-        "recibo"
-      end
+      next_kind = "nota_fiscal"
     end
 
     if next_kind == "recibo" && incoming_xml
@@ -317,6 +336,27 @@ class SupportingDocument < ApplicationRecord
       payee
     end
 
+    if infer_from_photo
+      delivered = forty_four_digits(photo_symbols.chave).present? ||
+        photo_symbols.qr_url.present? ||
+        parsed_nfe.present? ||
+        identified_resumo.present? ||
+        public_fields.present? ||
+        photo_fields.present?
+      unless delivered
+        next_kind = "recibo"
+        parsed_nfe = nil
+        identified_xml = nil
+        identified_resumo = nil
+        public_fields = nil
+        photo_fields = nil
+        next_chave = nil
+        next_cents = attrs.key?(:amount) ? BrlCents.parse(attrs[:amount]) : amount_cents
+        next_on = attrs.key?(:date) ? parse_document_on(attrs[:date]) : document_on
+        next_payee = attrs.key?(:payee) ? attrs[:payee].to_s.strip : payee
+      end
+    end
+
     if fields_locked? && next_kind != "recibo" && parsed_nfe.nil?
       amount_changing = attrs.key?(:amount) && next_cents != amount_cents
       date_changing = attrs.key?(:date) && next_on != document_on
@@ -327,11 +367,11 @@ class SupportingDocument < ApplicationRecord
       end
     end
 
-    if next_cents.nil? || next_cents == 0 || next_on.nil? || next_payee.blank?
+    if !preview_only && (next_cents.nil? || next_cents == 0 || next_on.nil? || next_payee.blank?)
       errors.add(:base, MISSING_FIELDS)
       return self
     end
-    if next_payee.length > PAYEE_MAX
+    if next_payee && next_payee.length > PAYEE_MAX
       errors.add(:base, PAYEE_LENGTH)
       return self
     end
@@ -348,14 +388,16 @@ class SupportingDocument < ApplicationRecord
 
     will_have_photo = incoming_photo.present? || (persisted? && photo.attached?)
     will_have_xml = incoming_xml.present? || identified_xml.present? || (persisted? && xml.attached?)
-    if next_kind == "recibo"
-      unless will_have_photo
-        errors.add(:base, RECIBO_PHOTO)
+    unless preview_only
+      if next_kind == "recibo"
+        unless will_have_photo
+          errors.add(:base, RECIBO_PHOTO)
+          return self
+        end
+      elsif !will_have_photo && !will_have_xml
+        errors.add(:base, NF_FILES)
         return self
       end
-    elsif !will_have_photo && !will_have_xml
-      errors.add(:base, NF_FILES)
-      return self
     end
 
     next_origin = if next_kind == "recibo"
@@ -373,6 +415,9 @@ class SupportingDocument < ApplicationRecord
     end
     next_chave = nil if next_kind == "recibo"
     confirm_pending = false if next_kind == "recibo"
+
+    self.intake_arquivo = incoming_xml ? "XML" : "Foto"
+    self.intake_filename = filename_of(incoming_xml || incoming_photo) if incoming_xml || incoming_photo
 
     persist_document(
       kind: next_kind,
@@ -392,6 +437,23 @@ class SupportingDocument < ApplicationRecord
 
   def fields_locked?
     [ ORIGIN_UPLOADED_XML, ORIGIN_IDENTIFIED ].include?(fields_origin)
+  end
+
+  def origin_stamp
+    case fields_origin
+    when ORIGIN_UPLOADED_XML, ORIGIN_IDENTIFIED
+      "XML autorizado"
+    when ORIGIN_PHOTO
+      "Lido da foto"
+    when ORIGIN_NFC_E_PUBLIC
+      "Consulta NFC-e"
+    else
+      "Digitado"
+    end
+  end
+
+  def arquivo_kind
+    xml.attached? ? "XML" : "Foto"
   end
 
   def confirm_identified_sefaz
@@ -448,15 +510,12 @@ class SupportingDocument < ApplicationRecord
   private
 
   def persist_document(kind:, amount_cents:, document_on:, payee:, observation:, photo:, xml:, chave:, fields_origin:, identified_xml: nil, sefaz_confirm_pending: false)
+    assign_intake(
+      kind:, amount_cents:, document_on:, payee:, observation:, chave:, fields_origin:, sefaz_confirm_pending:
+    )
+    return if preview_only
+
     transaction do
-      self.kind = kind
-      self.amount_cents = amount_cents
-      self.document_on = document_on
-      self.payee = payee
-      self.observation = observation
-      self.chave = chave
-      self.fields_origin = fields_origin
-      self.sefaz_confirm_pending = sefaz_confirm_pending
       save!
       self.photo.attach(photo) if photo
       self.xml.attach(xml) if xml
@@ -469,6 +528,17 @@ class SupportingDocument < ApplicationRecord
       end
       self.xml.purge if recibo? && self.xml.attached?
     end
+  end
+
+  def assign_intake(kind:, amount_cents:, document_on:, payee:, observation:, chave:, fields_origin:, sefaz_confirm_pending:)
+    self.kind = kind
+    self.amount_cents = amount_cents
+    self.document_on = document_on
+    self.payee = payee
+    self.observation = observation
+    self.chave = chave
+    self.fields_origin = fields_origin
+    self.sefaz_confirm_pending = sefaz_confirm_pending
   end
 
   def fail_confirm

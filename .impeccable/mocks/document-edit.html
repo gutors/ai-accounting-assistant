@@ -83,8 +83,8 @@
       padding: 8px 12px;
     }
     textarea { min-height: 4.5rem; resize: vertical; }
-    select:disabled, input:disabled {
-      opacity: 0.5;
+    select:disabled, input:disabled, textarea:disabled {
+      background: var(--paper);
       pointer-events: none;
     }
     .chave {
@@ -181,29 +181,6 @@
     .evidence .cap { margin-top: 12px; }
     .evidence .lock { margin-top: 4px; }
 
-    .file-field {
-      margin-top: 16px;
-    }
-    .file-control {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      min-height: 2.5rem;
-      padding: 4px 4px 4px 12px;
-      background: var(--sheet);
-      border: 1px solid var(--rule);
-      border-radius: var(--control);
-    }
-    .file-control .empty { flex: 1; }
-    .chip {
-      flex-shrink: 0;
-      background: var(--caixa);
-      color: var(--sheet);
-      font-weight: 600;
-      padding: 8px 16px;
-      border-radius: var(--control);
-    }
-
     .book { display: grid; gap: 16px; max-width: 28rem; }
     .actions {
       display: flex;
@@ -273,20 +250,16 @@
             <p class="line meta">Pão e café — reunião da coordenação</p>
             <p class="sum">R$ 155,00</p>
           </div>
-          <p class="cap meta">nota-padaria-central.jpg</p>
-          <p class="lock meta">A foto não pode ser alterada. Exclua o documento e inclua novamente.</p>
-        </div>
-        <div class="file-field">
-          <label for="xml">XML</label>
-          <div class="file-control">
-            <span class="empty meta">Nenhum arquivo</span>
-            <span class="chip">Incluir XML</span>
-            <button class="sair" type="button">Limpar</button>
-          </div>
+          <p class="cap meta">Foto · nota-padaria-central.jpg</p>
+          <p class="lock meta">O arquivo não pode ser alterado. Exclua o documento e inclua novamente.</p>
         </div>
       </aside>
 
       <form class="book" action="/supporting_documents/1" method="post" onsubmit="return false">
+        <div>
+          <label for="arquivo">Arquivo</label>
+          <input id="arquivo" name="arquivo" value="Foto" disabled>
+        </div>
         <div>
           <label for="kind">Tipo</label>
           <select id="kind" name="kind" disabled>

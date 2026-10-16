@@ -16,58 +16,15 @@ RSpec.describe "Document kind chrome", type: :system do
     expect(page).to have_css("header nav")
   end
 
-  def open_insert_form
+  it "insert empty square hides Tipo until identify" do
     account, _organization = plant_coordinator
     sign_in_through_google(account)
     visit "/supporting_documents"
-    find("form[action='/supporting_documents']")
-  end
-
-  it "insert Nota fiscal shows chave and xml from empty kind" do
-    open_insert_form
 
     within("form[action='/supporting_documents']") do
-      chave = find("#chave", visible: :all)
-      xml = find("#xml", visible: :all)
-      expect(chave).not_to be_visible
-      expect(xml).not_to be_visible
-      select "Nota fiscal", from: "kind"
-      expect(find("#chave")).to be_visible
-      expect(find("[data-file-field='xml']")).to be_visible
-      expect(find("#chave")).not_to be_disabled
-      expect(find("#xml", visible: :all)).not_to be_disabled
-    end
-  end
-
-  it "insert Recibo hides chave and xml" do
-    open_insert_form
-
-    within("form[action='/supporting_documents']") do
-      select "Recibo", from: "kind"
-      chave = find("#chave", visible: :all)
-      xml = find("#xml", visible: :all)
-      expect(chave).not_to be_visible
-      expect(xml).not_to be_visible
-      expect(chave).to be_disabled
-      expect(xml).to be_disabled
-      photo = find("#photo", visible: :all)
-      expect(find("[data-file-field='photo']")).to be_visible
-      expect(photo).not_to be_disabled
-    end
-  end
-
-  it "insert Nota fiscal shows chave and xml again" do
-    open_insert_form
-
-    within("form[action='/supporting_documents']") do
-      select "Recibo", from: "kind"
-      select "Nota fiscal", from: "kind"
-      chave = find("#chave")
-      xml = find("#xml", visible: :all)
-      expect(chave).to be_visible
-      expect(find("[data-file-field='xml']")).to be_visible
-      expect(chave).not_to be_disabled
-      expect(xml).not_to be_disabled
+      expect(find("#kind", visible: :all)).not_to be_visible
+      expect(page).not_to have_css("#xml")
+      expect(page).to have_css("#file", visible: :all)
     end
   end
 end

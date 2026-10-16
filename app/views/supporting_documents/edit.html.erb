@@ -1,6 +1,7 @@
 <% content_for :title, "Editar documento" %>
 <% document = @document %>
 <% recibo = document.recibo? %>
+<% locked = document.fields_locked? %>
 <% can_delete = document.month_id.nil? && (coordinator_on_focus? || document.account_id == current_account.id) %>
 
 <p>
@@ -30,37 +31,44 @@
         <% end %>
       </div>
       <% if document.photo.attached? %>
-        <p class="mt-3 text-meta text-ink-soft"><%= document.photo.filename %></p>
+        <p class="mt-3 text-meta text-ink-soft">Foto · <%= document.photo.filename %></p>
+      <% elsif document.xml.attached? %>
+        <p class="mt-3 text-meta text-ink-soft">XML · <%= document.xml.filename %></p>
+      <% end %>
+      <% if document.photo.attached? || document.xml.attached? %>
         <p class="mt-1 text-meta text-ink-soft"><%= SupportingDocument::PHOTO_LOCKED %></p>
       <% end %>
+      <% if document.photo.attached? && document.xml.attached? %>
+        <p class="mt-1 text-meta text-ink-soft"><%= document.xml.filename %></p>
+      <% end %>
     </div>
-    <% unless recibo %>
-      <div class="mt-4">
-        <%= render "shared/file_field", name: :xml, id: "xml", field_label: "XML", action_label: "Incluir XML", filename: (document.xml.filename.to_s if document.xml.attached?), form: "document-edit" %>
-      </div>
-    <% end %>
   </aside>
 
   <div data-edit="book" class="max-w-[28rem]">
     <%= form_with url: "/supporting_documents/#{document.id}", method: :patch, multipart: true, html: { id: "document-edit" }, class: "grid gap-4" do %>
       <div>
+        <label for="arquivo" class="mb-1 block font-medium">Arquivo</label>
+        <%= text_field_tag :arquivo, document.arquivo_kind, id: "arquivo", disabled: true, autocomplete: "off", class: "w-full rounded border border-rule bg-sheet px-3 py-2" %>
+      </div>
+      <div>
         <label for="kind" class="mb-1 block font-medium">Tipo</label>
         <%= select_tag :kind, options_for_select([ [ "Nota fiscal", "nota_fiscal" ], [ "Recibo", "recibo" ] ], document.kind), id: "kind", disabled: true, class: "w-full rounded border border-rule bg-sheet px-3 py-2" %>
       </div>
-      <% unless document.fields_locked? %>
-        <div>
-          <label for="amount" class="mb-1 block font-medium">Valor</label>
-          <%= text_field_tag :amount, format_reais(document.amount_cents).delete_prefix("R$ ").strip, id: "amount", class: "w-full rounded border border-rule bg-sheet px-3 py-2 tabular-nums", autocomplete: "off", inputmode: "numeric", data: { controller: "money-mask", action: "input->money-mask#typed" } %>
-        </div>
-        <div>
-          <label for="date" class="mb-1 block font-medium">Data</label>
-          <%= date_field_tag :date, document.document_on.iso8601, id: "date", class: "w-full rounded border border-rule bg-sheet px-3 py-2 tabular-nums", autocomplete: "off" %>
-        </div>
-        <div>
-          <label for="payee" class="mb-1 block font-medium">Favorecido</label>
-          <%= text_field_tag :payee, document.payee, id: "payee", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
-        </div>
-      <% end %>
+      <div>
+        <label for="amount" class="mb-1 block font-medium">Valor</label>
+        <%= text_field_tag :amount, format_reais(document.amount_cents).delete_prefix("R$ ").strip, id: "amount", disabled: locked, class: "w-full rounded border border-rule bg-sheet px-3 py-2 tabular-nums", autocomplete: "off", inputmode: "numeric", data: { controller: "money-mask", action: "input->money-mask#typed" } %>
+        <p class="mt-1 text-meta text-ink-soft<%= " text-caixa" if locked %>" data-origin="amount"><%= document.origin_stamp %></p>
+      </div>
+      <div>
+        <label for="date" class="mb-1 block font-medium">Data</label>
+        <%= date_field_tag :date, document.document_on.iso8601, id: "date", disabled: locked, class: "w-full rounded border border-rule bg-sheet px-3 py-2 tabular-nums", autocomplete: "off" %>
+        <p class="mt-1 text-meta text-ink-soft<%= " text-caixa" if locked %>" data-origin="date"><%= document.origin_stamp %></p>
+      </div>
+      <div>
+        <label for="payee" class="mb-1 block font-medium">Favorecido</label>
+        <%= text_field_tag :payee, document.payee, id: "payee", disabled: locked, class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
+        <p class="mt-1 text-meta text-ink-soft<%= " text-caixa" if locked %>" data-origin="payee"><%= document.origin_stamp %></p>
+      </div>
       <% unless recibo %>
         <div>
           <label for="chave" class="mb-1 block font-medium">Chave de acesso (opcional)</label>

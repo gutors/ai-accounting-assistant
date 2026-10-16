@@ -9,7 +9,24 @@ class SupportingDocumentsController < ApplicationController
     @document = mutate_document
   end
 
+  def identify
+    photo, xml = SupportingDocument.slot_uploads(params[:file], params[:photo], params[:xml])
+    @identification = SupportingDocument.identify(organization: focused_organization, photo:, xml:)
+    if @identification.errors.any?
+      refuse_insert(@identification.errors[:base].first)
+    elsif turbo_stream_refusal?
+      render turbo_stream: [
+        turbo_stream.replace("identify-preview", partial: "supporting_documents/insert_preview"),
+        turbo_stream.replace("identify-book", partial: "supporting_documents/insert_book")
+      ]
+    else
+      load_documents
+      render :index, status: :ok
+    end
+  end
+
   def create
+    photo, xml = SupportingDocument.slot_uploads(params[:file], params[:photo], params[:xml])
     document = SupportingDocument.insert(
       organization: focused_organization,
       account: current_account,
@@ -18,8 +35,8 @@ class SupportingDocumentsController < ApplicationController
       date: params[:date],
       payee: params[:payee],
       observation: params[:observation],
-      photo: params[:photo],
-      xml: params[:xml],
+      photo: photo,
+      xml: xml,
       chave: params[:chave]
     )
 
@@ -109,6 +126,7 @@ class SupportingDocumentsController < ApplicationController
   end
 
   def refuse_insert(message)
+    @insert_echo = action_name == "create"
     @document_error = message
     toast_now(kind: "error", message: message)
     if turbo_stream_refusal?

@@ -7,11 +7,9 @@ RSpec.describe "Document insert form sources" do
 
     expect(section).to include("Chave de acesso (opcional)")
     expect(section).to include("Observação (opcional)")
-    expect(section).to match(/Data \[today\]/)
     expect(section).to include("two columns from 768px")
     expect(section).to include("the insert form is the first section")
-    expect(section).to include("Recibo")
-    expect(section).to include("hiding chave and XML")
-    expect(section).to include("photo only")
+    expect(section).to include("proof square is the only file control")
+    expect(section).to include("hidden when Tipo is Recibo")
   end
 end
