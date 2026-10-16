@@ -3353,6 +3353,12 @@ RSpec.describe "Supporting documents", type: :request do
     sem_mes = page_doc(response.body).css("section")[1]
     expect(sem_mes.at_css("h2").text.strip).to eq("Sem mês")
     expect(sem_mes.text).to include("Nenhum documento")
+    form = insert_form(response.body)
+    expect(form["class"]).to include("md:grid-cols-[minmax(0,1fr)_28rem]")
+    children = form.element_children
+    expect(children.first.name).to eq("aside")
+    expect(children.last["class"]).to include("max-w-[28rem]")
+    expect(children.first.text).to include("Solte a foto ou o XML, ou clique para escolher. Um arquivo só: foto ou XML.")
   end
 
   it "GET empty insert as submitter is file-first" do
@@ -3393,7 +3399,9 @@ RSpec.describe "Supporting documents", type: :request do
       expect(doc.at_css("##{field}")["disabled"]).to be_present
     end
     expect(doc.text).to include("proc-nfe.xml")
-    expect(doc.css("button").any? { |button| button.text.strip == "Limpar" }).to eq(true)
+    limpar = doc.css("button").find { |button| button.text.strip == "Limpar" }
+    expect(limpar).not_to be_nil
+    expect(limpar.ancestors.any? { |node| node["id"] == "identify-preview" }).to eq(true)
   end
 
   it "POST identify photo fields fills book unlocked" do
@@ -3599,6 +3607,10 @@ RSpec.describe "Supporting documents", type: :request do
     expect(proof.text).to include("Foto ·")
     expect(proof.text).to include("nota-padaria-central.jpg")
     expect(proof.text).to include("O arquivo não pode ser alterado. Exclua o documento e inclua novamente.")
+    split = page.at_css("[data-edit=split]")
+    expect(split["class"]).to include("md:grid-cols-[minmax(0,1fr)_28rem]")
+    expect(split.element_children.first["data-edit"]).to eq("proof")
+    expect(page.at_css("[data-edit=book]")["class"]).to include("max-w-[28rem]")
   end
 
   it "GET edit xml-only has Arquivo XML and no xml picker" do

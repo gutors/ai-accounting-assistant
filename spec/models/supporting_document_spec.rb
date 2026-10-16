@@ -1786,6 +1786,22 @@ RSpec.describe SupportingDocument, type: :model do
     expect(doc.errors[:base]).to include("Envie a foto ou o XML")
   end
 
+  it "insert neither photo nor xml is xor" do
+    doc = insert_doc(kind: "", photo: nil, xml: nil)
+
+    expect(doc).not_to be_persisted
+    expect(SupportingDocument.count).to eq(0)
+    expect(doc.errors[:base]).to include("Envie a foto ou o XML")
+  end
+
+  it "insert infers nota_fiscal from photo fields on image-PDF" do
+    stub_photo_fields("foto.pdf")
+    doc = insert_doc(kind: "", photo: photo_with_ext("pdf"), xml: nil, amount: nil, date: nil, payee: nil)
+
+    expect(doc.kind).to eq("nota_fiscal")
+    expect(doc.fields_origin).to eq("photo")
+  end
+
   it "apply xml on photo-only is XML_LOCKED" do
     doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg, xml: nil)
     expect(doc.xml).not_to be_attached

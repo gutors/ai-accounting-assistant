@@ -74,7 +74,7 @@ Criteria 1–24 map to C1–C24. Unresolved 1 stays: origin copy `Consulta NFC-e
 
 ### S1 - Empty insert · 3 files · 143 KB · ~36k
 
-**C1** - Given a signed-in coordinator of the focused organization with no SupportingDocument, when `GET /supporting_documents` runs, then the status is `200`, the first `section` heading is `Incluir documento`, that section has no `label[for=photo]` and no `label[for=xml]`, it has one `input[type=file]` whose `accept` includes `image/*` and `.xml`, the book contains `Inclua o documento. Valor, data e favorecido saem do arquivo.`, `#amount`, `#date`, `#payee`, `#kind`, and `#arquivo` are not visible, and Sem mês contains `Nenhum documento`
+**C1** - Given a signed-in coordinator of the focused organization with no SupportingDocument, when `GET /supporting_documents` runs, then the status is `200`, the first `section` heading is `Incluir documento`, that section has no `label[for=photo]` and no `label[for=xml]`, it has one `input[type=file]` whose `accept` includes `image/*` and `.xml`, the book contains `Inclua o documento. Valor, data e favorecido saem do arquivo.`, `#amount`, `#date`, `#payee`, `#kind`, and `#arquivo` are not visible, Sem mês contains `Nenhum documento`, the insert form class includes `md:grid-cols-[minmax(0,1fr)_28rem]`, the first child of that form is the proof `aside` and the book is `max-w-[28rem]`, and the drop copy includes `Solte a foto ou o XML, ou clique para escolher. Um arquivo só: foto ou XML.`
 Proof: `bin/rspec spec/requests/supporting_documents_spec.rb -e "GET empty insert is file-first proof square"`
 
 **C2** - When that GET runs as a submitter with no document of their own, then the same empty insert arrangement as C1 is present (proof square, wait copy, no Foto/XML chips)
@@ -114,6 +114,7 @@ Proof: `bin/rspec spec/models/supporting_document_spec.rb -e "insert infers nota
 Proof: `bin/rspec spec/models/supporting_document_spec.rb -e "insert infers nota_fiscal from identified XML"`
 Proof: `bin/rspec spec/models/supporting_document_spec.rb -e "insert infers nota_fiscal from public NFC-e"`
 Proof: `bin/rspec spec/models/supporting_document_spec.rb -e "insert infers nota_fiscal from photo fields"`
+Proof: `bin/rspec spec/models/supporting_document_spec.rb -e "insert infers nota_fiscal from photo fields on image-PDF"`
 Proof: `bin/rspec spec/models/supporting_document_spec.rb -e "insert infers recibo when photo extraction misses"`
 
 **C12** - When `POST /supporting_documents` is that authorized XML of C3 and no `kind`, no photo, then one SupportingDocument persists `kind` `nota_fiscal`, `fields_origin` `uploaded_xml`, that XML blob, no photo blob, `amount_cents` `15500`, and the response is `302` to `/supporting_documents`
@@ -133,13 +134,14 @@ Proof: `bin/rspec spec/models/supporting_document_spec.rb -e "insert both photo 
 
 **C16** - When `POST /supporting_documents` has neither photo nor XML, then no SupportingDocument is persisted, the status is `422`, and `[data-notice="error"]` is `Envie a foto ou o XML`
 Proof: `bin/rspec spec/requests/supporting_documents_spec.rb -e "POST create neither file 422 xor"`
+Proof: `bin/rspec spec/models/supporting_document_spec.rb -e "insert neither photo nor xml is xor"`
 
 **C17** - When a submitter POSTs identify then create as in C12 with XML they uploaded, then that document's `account_id` is the submitter, `GET /supporting_documents` is `200` and includes `Padaria Central`, and it does not include another organization's documents
 Proof: `bin/rspec spec/requests/supporting_documents_spec.rb -e "submitter identify then create XML is own account"`
 
 ### S5 - Edit: no second file · 3 files · 143 KB · ~36k
 
-**C18** - Given a persisted nota fiscal with a photo and no XML, when `GET /supporting_documents/:id/edit` runs as that coordinator, then the status is `200`, there is no `label[for=xml]` and no `input#xml`, Arquivo is visible disabled value `Foto`, Tipo is disabled `Nota fiscal`, the proof contains `Foto ·` and that filename, and the lock sentence is `O arquivo não pode ser alterado. Exclua o documento e inclua novamente.`
+**C18** - Given a persisted nota fiscal with a photo and no XML, when `GET /supporting_documents/:id/edit` runs as that coordinator, then the status is `200`, there is no `label[for=xml]` and no `input#xml`, Arquivo is visible disabled value `Foto`, Tipo is disabled `Nota fiscal`, the proof contains `Foto ·` and that filename, the lock sentence is `O arquivo não pode ser alterado. Exclua o documento e inclua novamente.`, `[data-edit=split]` class includes `md:grid-cols-[minmax(0,1fr)_28rem]`, proof is first, and `[data-edit=book]` class includes `max-w-[28rem]`
 Proof: `bin/rspec spec/requests/supporting_documents_spec.rb -e "GET edit photo-only has Arquivo Foto and no xml picker"`
 
 **C19** - Given a persisted nota fiscal with XML and no photo, when that GET edit runs, then Arquivo is `XML`, there is no `input#xml`, and the proof shows that XML filename
@@ -186,7 +188,7 @@ Proof: `bin/rspec spec/requests/supporting_documents_spec.rb -e "submitter GET e
 | Set (size) | Member -> proof | Unproven |
 | --- | --- | --- |
 | kind inference (6) | xml C11 · photo chave C11 · identified XML C11 · public NFC-e C11 · photo fields C11 · all miss recibo C11 | - |
-| create xor file (4) | xml-only C12 · photo-only C13/C14 · both C15 · neither C16 | - |
+| create xor file (4) | xml-only C12 · photo-only C13/C14 · both C15 · neither C16 HTTP+model | - |
 | identify outcomes (5) | xml C3 · photo fields C4 · miss recibo C5 · identified from photo C6 · unreadable XML C7 | - |
 | GET edit Arquivo (3) | photo-only Foto C18 · xml-only XML C19 · legacy both XML C21 | - |
 | origin stamps on edit (4 named by C22) | `uploaded_xml` C22 · `identified` C22 · `photo` C22 · `typed` C22 | `nfc_e_public` — Unresolved 1, render `Consulta NFC-e` until answered |
