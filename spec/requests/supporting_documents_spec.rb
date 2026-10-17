@@ -3423,6 +3423,9 @@ RSpec.describe "Supporting documents", type: :request do
       expect(origin_copy(doc, field)).to eq("Lido da foto")
       expect(doc.at_css("##{field}")["disabled"]).to be_nil
     end
+    thumb = doc.at_css("#identify-preview img")
+    expect(thumb).to be_present
+    expect(thumb["alt"]).to eq("danfe.jpg")
   end
 
   it "POST identify photo miss is recibo typed empty" do

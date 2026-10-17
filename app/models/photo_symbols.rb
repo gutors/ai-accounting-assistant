@@ -121,10 +121,7 @@ module PhotoSymbols
     end
 
     def forty_four(value)
-      digits = value.to_s.gsub(/\D/, "")
-      return digits if digits.length == 44
-
-      value.to_s[/\d{44}/]
+      NfeAccessKey.digits(value.to_s)
     end
   end
 end

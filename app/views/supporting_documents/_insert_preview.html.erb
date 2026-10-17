@@ -1,13 +1,17 @@
 <% identification = @identification %>
 <% loaded = identification.present? && identification.errors.empty? && identification.intake_filename.present? %>
+<% photo_name = loaded && identification.intake_arquivo == "Foto" ? identification.intake_filename : nil %>
 <div id="identify-preview">
   <button type="button" id="drop" class="flex min-h-64 w-full cursor-pointer flex-col items-start justify-center gap-3 rounded border border-dashed border-rule bg-paper p-4 text-left<%= " hidden" if loaded %>" <%= "hidden" if loaded %> data-document-identify-target="drop" data-action="click->document-identify#pick">
     <p>Incluir documento</p>
     <p class="text-meta text-ink-soft">Solte a foto ou o XML, ou clique para escolher. Um arquivo só: foto ou XML.</p>
   </button>
-  <div id="preview" class="grid min-h-64 grid-rows-[auto_auto_1fr_auto_auto] gap-2 border border-rule bg-paper p-4<%= " hidden" unless loaded %>" <%= "hidden" unless loaded %> data-document-identify-target="preview">
+  <div id="preview" class="grid gap-2 border border-rule bg-paper p-4<%= " hidden" unless loaded %>" <%= "hidden" unless loaded %> data-document-identify-target="preview">
+    <div class="flex max-h-[28rem] w-full items-center justify-center overflow-auto bg-paper<%= " hidden" unless photo_name %>" <%= "hidden" unless photo_name %> data-document-identify-target="thumbWrap">
+      <img alt="<%= photo_name %>" class="max-h-[28rem] max-w-full object-contain" data-document-identify-target="thumb">
+    </div>
+    <p class="text-meta text-ink-soft" data-document-identify-target="proofFile"><%= loaded ? "#{identification.intake_arquivo} · #{identification.intake_filename}" : "" %></p>
     <% if loaded %>
-      <p class="text-meta text-ink-soft"><%= identification.intake_arquivo %> · <%= identification.intake_filename %></p>
       <p class="font-semibold"><%= identification.payee.presence || (identification.recibo? ? "Recibo" : "") %></p>
       <p class="text-meta text-ink-soft"><%= identification.recibo? ? "Foto · sem leitura nesta versão" : identification.intake_arquivo %></p>
       <% if identification.amount_cents.to_i.positive? %>
@@ -16,9 +20,9 @@
       <% if identification.chave.present? %>
         <p class="font-mono text-meta break-words"><%= format_chave(identification.chave) %></p>
       <% end %>
-      <p>
-        <button type="button" class="font-medium text-caixa underline underline-offset-2" data-action="document-identify#clear">Limpar</button>
-      </p>
     <% end %>
+    <p>
+      <button type="button" class="font-medium text-caixa underline underline-offset-2" data-action="document-identify#clear">Limpar</button>
+    </p>
   </div>
 </div>

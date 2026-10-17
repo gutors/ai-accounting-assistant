@@ -27,6 +27,46 @@ RSpec.describe PhotoFields, type: :model do
     expect(result.payee).to eq("Padaria Central")
   end
 
+  it "Real NFC-e cupom PNG returns 15500 2026-05-11 PADARIA CENTRAL LTDA" do
+    png = ocr_fixture("nfce_cupom.png")
+
+    result = PhotoFields::Real.new.read(bytes: png, filename: "nfce_cupom.png")
+
+    expect(result).to be_a(PhotoFields::Fields)
+    expect(result.amount_cents).to eq(15500)
+    expect(result.document_on).to eq(Date.new(2026, 5, 11))
+    expect(result.payee).to eq("PADARIA CENTRAL LTDA")
+  end
+
+  it "Real sideways NFC-e cupom PNG returns 15500 2026-05-11 PADARIA CENTRAL LTDA" do
+    png = ocr_fixture("nfce_cupom_rotated.png")
+
+    result = PhotoFields::Real.new.read(bytes: png, filename: "nfce_cupom_rotated.png")
+
+    expect(result).to be_a(PhotoFields::Fields)
+    expect(result.amount_cents).to eq(15500)
+    expect(result.document_on).to eq(Date.new(2026, 5, 11))
+    expect(result.payee).to eq("PADARIA CENTRAL LTDA")
+  end
+
+  it "Real NFC-e header crop recovers CARREFOUR COMERCIO E INDUSTRIA L" do
+    png = ocr_fixture("nfce_cupom_carrefour_rotated.png")
+    mangled = <<~TEXT
+      J: 95.594. 915/0007- 77 is CONERCIO INDUSTRIA L
+      RUA DAS FLORES, 10
+      Documento Auxiliar da Nota Fiscal de Consumidor Eletronica
+      Valor a Pagar R$ 155,00
+      11/05/2026
+    TEXT
+
+    result = PhotoFields::Real.new.read(bytes: png, filename: "nfce_carrefour.jpg", text: mangled)
+
+    expect(result).to be_a(PhotoFields::Fields)
+    expect(result.amount_cents).to eq(15500)
+    expect(result.document_on).to eq(Date.new(2026, 5, 11))
+    expect(result.payee).to eq("CARREFOUR COMERCIO E INDUSTRIA L")
+  end
+
   it "Real amount_cents 15500 is Integer" do
     png = ocr_fixture("danfe_fields.png")
 

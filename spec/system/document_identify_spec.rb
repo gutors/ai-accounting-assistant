@@ -40,6 +40,18 @@ RSpec.describe "Document identify chrome", type: :system do
     expect(SupportingDocument.count).to eq(0)
   end
 
+  it "identify photo shows the image in the proof square" do
+    account, _organization = plant_coordinator
+    sign_in_through_google(account)
+    visit "/supporting_documents"
+    photo = Rails.root.join("spec/fixtures/files/ocr/amount_only.jpg")
+
+    attach_file "file", photo, make_visible: true
+
+    expect(page).to have_css("#identify-preview img[src^='blob:']")
+    expect(page).to have_css("#identify-preview", text: "amount_only.jpg")
+  end
+
   it "identify in flight shows Identificando o arquivo" do
     account, _organization = plant_coordinator
     sign_in_through_google(account)
