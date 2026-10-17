@@ -9,6 +9,7 @@
   <div id="preview" class="grid gap-2 border border-rule bg-paper p-4<%= " hidden" unless loaded %>" <%= "hidden" unless loaded %> data-document-identify-target="preview">
     <div class="flex max-h-[28rem] w-full items-center justify-center overflow-auto bg-paper<%= " hidden" unless photo_name %>" <%= "hidden" unless photo_name %> data-document-identify-target="thumbWrap">
       <img alt="<%= photo_name %>" class="max-h-[28rem] max-w-full object-contain" data-document-identify-target="thumb">
+      <embed type="application/pdf" class="hidden h-[28rem] w-full" hidden data-document-identify-target="pdfThumb">
     </div>
     <p class="text-meta text-ink-soft" data-document-identify-target="proofFile"><%= loaded ? "#{identification.intake_arquivo} · #{identification.intake_filename}" : "" %></p>
     <% if loaded %>

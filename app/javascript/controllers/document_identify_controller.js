@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = [ "wait", "fields", "drop", "preview", "input", "submit", "thumb", "thumbWrap", "proofFile" ]
+  static targets = [ "wait", "fields", "drop", "preview", "input", "submit", "thumb", "thumbWrap", "proofFile", "pdfThumb" ]
 
   pick() {
     this.inputTarget.click()
@@ -95,6 +95,7 @@ export default class extends Controller {
     const preview = this.element.querySelector("[data-document-identify-target='preview']")
     const proofFile = this.element.querySelector("[data-document-identify-target='proofFile']")
     const thumb = this.element.querySelector("[data-document-identify-target='thumb']")
+    const pdfThumb = this.element.querySelector("[data-document-identify-target='pdfThumb']")
     const thumbWrap = this.element.querySelector("[data-document-identify-target='thumbWrap']")
 
     if (drop) {
@@ -109,13 +110,32 @@ export default class extends Controller {
       const kind = file.name.toLowerCase().endsWith(".xml") ? "XML" : "Foto"
       proofFile.textContent = `${kind} · ${file.name}`
     }
-    if (!this.imageFile(file) || !thumb) return
+    const showImage = this.imageFile(file) && thumb
+    const showPdf = this.pdfFile(file) && pdfThumb
+    if (!showImage && !showPdf) return
 
     if (!this.thumbUrl) this.thumbUrl = URL.createObjectURL(file)
-    thumb.src = this.thumbUrl
-    thumb.alt = file.name
-    thumb.hidden = false
-    thumb.classList.remove("hidden")
+    if (showImage) {
+      thumb.src = this.thumbUrl
+      thumb.alt = file.name
+      thumb.hidden = false
+      thumb.classList.remove("hidden")
+      if (pdfThumb) {
+        pdfThumb.removeAttribute("src")
+        pdfThumb.hidden = true
+        pdfThumb.classList.add("hidden")
+      }
+    }
+    if (showPdf) {
+      pdfThumb.setAttribute("src", this.thumbUrl)
+      pdfThumb.hidden = false
+      pdfThumb.classList.remove("hidden")
+      if (thumb) {
+        thumb.removeAttribute("src")
+        thumb.hidden = true
+        thumb.classList.add("hidden")
+      }
+    }
     if (thumbWrap) {
       thumbWrap.hidden = false
       thumbWrap.classList.remove("hidden")
@@ -124,6 +144,10 @@ export default class extends Controller {
 
   imageFile(file) {
     return file.type.startsWith("image/") || /\.(jpe?g|png|webp)$/i.test(file.name)
+  }
+
+  pdfFile(file) {
+    return file.type === "application/pdf" || /\.pdf$/i.test(file.name)
   }
 
   revokeThumb() {

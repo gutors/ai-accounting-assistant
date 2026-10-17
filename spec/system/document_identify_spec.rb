@@ -40,6 +40,19 @@ RSpec.describe "Document identify chrome", type: :system do
     expect(SupportingDocument.count).to eq(0)
   end
 
+  it "identify pdf shows the file in the proof square" do
+    account, _organization = plant_coordinator
+    sign_in_through_google(account)
+    visit "/supporting_documents"
+    pdf_path = write_upload("nota.pdf", pngs_to_pdf(ocr_png("blank.png")))
+
+    attach_file "file", pdf_path, make_visible: true
+
+    expect(page).to have_css("#identify-preview embed[src^='blob:']")
+    expect(page).to have_css("#identify-preview", text: "Foto · nota.pdf")
+    expect(page).to have_css("#identify-preview button", text: "Limpar")
+  end
+
   it "identify photo shows the image in the proof square" do
     account, _organization = plant_coordinator
     sign_in_through_google(account)
