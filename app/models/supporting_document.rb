@@ -17,6 +17,7 @@ class SupportingDocument < ApplicationRecord
   PAYEE_LENGTH = "Favorecido pode ter no máximo 200 caracteres"
   HAS_MONTH = "Documento já pertence a um mês"
   XML_UNREADABLE = "O XML da nota fiscal não pôde ser lido"
+  XML_UNSUPPORTED = "Este XML não é NF-e, NFC-e, NFS-e nacional, NFCom ou NF3e"
   LOCKED_FIELDS = "Valor, data e favorecido vêm da nota e não podem ser alterados"
   CHAVE_DIGITS = "Informe a chave de acesso com 44 dígitos"
   SEFAZ_CONFIRM_FAILED = "Não foi possível consultar a SEFAZ"
@@ -203,9 +204,10 @@ class SupportingDocument < ApplicationRecord
 
     parsed_nfe = nil
     if next_kind == "nota_fiscal" && incoming_xml
-      parsed_nfe = AuthorizedNfe.parse(read_bytes(incoming_xml))
+      xml_bytes = read_bytes(incoming_xml)
+      parsed_nfe = AuthorizedNfe.parse(xml_bytes)
       unless parsed_nfe
-        errors.add(:base, XML_UNREADABLE)
+        errors.add(:base, AuthorizedNfe.unsupported?(xml_bytes) ? XML_UNSUPPORTED : XML_UNREADABLE)
         return self
       end
     end

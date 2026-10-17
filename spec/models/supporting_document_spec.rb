@@ -1802,6 +1802,89 @@ RSpec.describe SupportingDocument, type: :model do
     expect(doc.fields_origin).to eq("photo")
   end
 
+  it "insert NFCom XML persists 25680 uploaded_xml blob" do
+    doc = insert_doc(kind: "", photo: nil, xml: nfcom_file, amount: nil, date: nil, payee: nil)
+
+    expect(doc).to be_persisted
+    expect(doc.kind).to eq("nota_fiscal")
+    expect(doc.amount_cents).to eq(25680)
+    expect(doc.document_on).to eq(Date.new(2026, 6, 15))
+    expect(doc.payee).to eq("EMPRESA TELECOM EXEMPLO S.A.")
+    expect(doc.chave).to eq("27260611222333000181620010008920781028142810")
+    expect(doc.fields_origin).to eq("uploaded_xml")
+    expect(doc.xml).to be_attached
+    expect(doc.photo).not_to be_attached
+  end
+
+  it "insert NF3e XML persists 18940 uploaded_xml blob" do
+    doc = insert_doc(kind: "", photo: nil, xml: nf3e_file, amount: nil, date: nil, payee: nil)
+
+    expect(doc.amount_cents).to eq(18940)
+    expect(doc.document_on).to eq(Date.new(2026, 5, 20))
+    expect(doc.payee).to eq("Companhia Energetica Exemplo")
+    expect(doc.chave).to eq("27260611222333000181660010000008920781028142")
+    expect(doc.fields_origin).to eq("uploaded_xml")
+  end
+
+  it "insert national NFSe XML persists 61000 uploaded_xml blob" do
+    doc = insert_doc(kind: "", photo: nil, xml: nfse_file, amount: nil, date: nil, payee: nil)
+
+    expect(doc.amount_cents).to eq(61000)
+    expect(doc.document_on).to eq(Date.new(2026, 5, 6))
+    expect(doc.payee).to eq("Contabilidade Exemplo Ltda")
+    expect(doc.chave).to eq("41260511222333000181000000000000000000000000000001")
+    expect(doc.fields_origin).to eq("uploaded_xml")
+  end
+
+  it "apply payee on NFCom uploaded XML keeps EMPRESA TELECOM" do
+    doc = insert_doc(kind: "", photo: nil, xml: nfcom_file, amount: nil, date: nil, payee: nil)
+    doc.apply(payee: "Mercado Silva")
+
+    expect(doc.errors[:base]).to include(SupportingDocument::LOCKED_FIELDS)
+    expect(doc.reload.payee).to eq("EMPRESA TELECOM EXEMPLO S.A.")
+  end
+
+  it "identify and insert of NFCom NF3e NFSe XML do not call SefazConsulta or PublicNfceConsulta" do
+    [
+      nfcom_file("nfcom-ports.xml"),
+      nf3e_file("nf3e-ports.xml"),
+      nfse_file("nfse-ports.xml")
+    ].each do |upload|
+      allow(SefazConsulta.current).to receive(:lookup)
+      allow(PublicNfceConsulta.current).to receive(:fetch)
+
+      preview = SupportingDocument.identify(organization: organization, file: upload)
+      expect(preview.errors).to be_empty
+      expect(SupportingDocument.count).to eq(0)
+      expect(SefazConsulta.current).not_to have_received(:lookup)
+      expect(PublicNfceConsulta.current).not_to have_received(:fetch)
+
+      doc = insert_doc(kind: "", photo: nil, xml: upload, amount: nil, date: nil, payee: nil)
+      expect(doc).to be_persisted
+      expect(SefazConsulta.current).not_to have_received(:lookup)
+      expect(PublicNfceConsulta.current).not_to have_received(:fetch)
+
+      doc.withdraw
+      RSpec::Mocks.space.reset_all
+    end
+  end
+
+  it "insert CTe XML is XML_UNSUPPORTED persists none" do
+    doc = insert_doc(kind: "", photo: nil, xml: cte_file, amount: nil, date: nil, payee: nil)
+
+    expect(doc).not_to be_persisted
+    expect(doc.errors[:base]).to include(SupportingDocument::XML_UNSUPPORTED)
+    expect(SupportingDocument.count).to eq(0)
+  end
+
+  it "insert municipal NFSe XML is XML_UNSUPPORTED persists none" do
+    doc = insert_doc(kind: "", photo: nil, xml: municipal_nfse_file, amount: nil, date: nil, payee: nil)
+
+    expect(doc).not_to be_persisted
+    expect(doc.errors[:base]).to include(SupportingDocument::XML_UNSUPPORTED)
+    expect(SupportingDocument.count).to eq(0)
+  end
+
   it "apply xml on photo-only is XML_LOCKED" do
     doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg, xml: nil)
     expect(doc.xml).not_to be_attached

@@ -3718,6 +3718,215 @@ RSpec.describe "Supporting documents", type: :request do
     end
   end
 
+  it "POST identify authorized NFCom XML fills book without persisting" do
+    signed_in
+
+    post "/supporting_documents/identify", params: { file: nfcom_file }, headers: turbo_stream_accept
+
+    expect(SupportingDocument.count).to eq(0)
+    expect(response).to have_http_status(:ok)
+    doc = identify_stream_doc(response.body)
+    expect(selected_option_value(doc.at_css("select#kind"))).to eq("nota_fiscal")
+    expect(doc.at_css("select#kind")["disabled"]).to be_present
+    expect(doc.at_css("#amount")["value"]).to eq("256,80")
+    expect(doc.at_css("#date")["value"]).to eq("2026-06-15")
+    expect(doc.at_css("#payee")["value"]).to eq("EMPRESA TELECOM EXEMPLO S.A.")
+    expect(doc.at_css("#chave")["value"]).to include("27260611222333000181620010008920781028142810")
+    %w[amount date payee].each do |field|
+      expect(origin_copy(doc, field)).to eq("XML autorizado")
+      expect(doc.at_css("##{field}")["disabled"]).to be_present
+    end
+  end
+
+  it "POST create NFCom XML without kind persists 25680 uploaded_xml" do
+    _account, organization = signed_in
+
+    post "/supporting_documents", params: { file: nfcom_file }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/supporting_documents")
+    doc = SupportingDocument.find_by!(organization: organization)
+    expect(doc.kind).to eq("nota_fiscal")
+    expect(doc.amount_cents).to eq(25680)
+    expect(doc.document_on).to eq(Date.new(2026, 6, 15))
+    expect(doc.payee).to eq("EMPRESA TELECOM EXEMPLO S.A.")
+    expect(doc.chave).to eq("27260611222333000181620010008920781028142810")
+    expect(doc.fields_origin).to eq("uploaded_xml")
+    expect(doc.xml).to be_attached
+    expect(doc.photo).not_to be_attached
+  end
+
+  it "POST identify authorized NF3e XML fills book without persisting" do
+    signed_in
+
+    post "/supporting_documents/identify", params: { file: nf3e_file }, headers: turbo_stream_accept
+
+    expect(SupportingDocument.count).to eq(0)
+    expect(response).to have_http_status(:ok)
+    doc = identify_stream_doc(response.body)
+    expect(doc.at_css("#amount")["value"]).to eq("189,40")
+    expect(doc.at_css("#date")["value"]).to eq("2026-05-20")
+    expect(doc.at_css("#payee")["value"]).to eq("Companhia Energetica Exemplo")
+    expect(doc.at_css("#chave")["value"]).to include("27260611222333000181660010000008920781028142")
+    expect(origin_copy(doc, "amount")).to eq("XML autorizado")
+  end
+
+  it "POST create NF3e XML without kind persists 18940 uploaded_xml" do
+    _account, organization = signed_in
+
+    post "/supporting_documents", params: { file: nf3e_file }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/supporting_documents")
+    doc = SupportingDocument.find_by!(organization: organization)
+    expect(doc.amount_cents).to eq(18940)
+    expect(doc.document_on).to eq(Date.new(2026, 5, 20))
+    expect(doc.payee).to eq("Companhia Energetica Exemplo")
+    expect(doc.chave).to eq("27260611222333000181660010000008920781028142")
+    expect(doc.fields_origin).to eq("uploaded_xml")
+  end
+
+  it "POST identify authorized national NFSe XML fills book without persisting" do
+    signed_in
+
+    post "/supporting_documents/identify", params: { file: nfse_file }, headers: turbo_stream_accept
+
+    expect(SupportingDocument.count).to eq(0)
+    expect(response).to have_http_status(:ok)
+    doc = identify_stream_doc(response.body)
+    expect(doc.at_css("#amount")["value"]).to eq("610,00")
+    expect(doc.at_css("#date")["value"]).to eq("2026-05-06")
+    expect(doc.at_css("#payee")["value"]).to eq("Contabilidade Exemplo Ltda")
+    expect(doc.at_css("#chave")["value"]).to include("41260511222333000181000000000000000000000000000001")
+    expect(origin_copy(doc, "amount")).to eq("XML autorizado")
+  end
+
+  it "POST create national NFSe XML without kind persists 61000 uploaded_xml" do
+    _account, organization = signed_in
+
+    post "/supporting_documents", params: { file: nfse_file }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/supporting_documents")
+    doc = SupportingDocument.find_by!(organization: organization)
+    expect(doc.amount_cents).to eq(61000)
+    expect(doc.document_on).to eq(Date.new(2026, 5, 6))
+    expect(doc.payee).to eq("Contabilidade Exemplo Ltda")
+    expect(doc.chave).to eq("41260511222333000181000000000000000000000000000001")
+    expect(doc.fields_origin).to eq("uploaded_xml")
+  end
+
+  it "submitter identify then create NFCom is own account and scoped list" do
+    coord, organization = plant_coordinator
+    other_org = create_organization!(name: "Outra")
+    Access.create!(account: coord, organization: other_org, kind: :coordinator)
+    sign_in_as(coord, organization: other_org)
+    post "/supporting_documents", params: { file: authorized_xml, payee: "Outra ONG" }
+    submitter, _ = plant_submitter(organization: organization)
+    sign_in_as(submitter, organization: organization)
+
+    post "/supporting_documents/identify", params: { file: nfcom_file }, headers: turbo_stream_accept
+    expect(response).to have_http_status(:ok)
+    post "/supporting_documents", params: { file: nfcom_file }
+
+    doc = SupportingDocument.find_by!(organization: organization, payee: "EMPRESA TELECOM EXEMPLO S.A.")
+    expect(doc.account_id).to eq(submitter.id)
+    get "/supporting_documents"
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("EMPRESA TELECOM EXEMPLO S.A.")
+    expect(response.body).not_to include("Outra ONG")
+  end
+
+  it "GET edit NFCom uploaded_xml origins XML autorizado locked" do
+    account, organization = signed_in
+    document = SupportingDocument.insert(
+      organization: organization, account: account, kind: "",
+      amount: nil, date: nil, payee: nil, photo: nil, xml: nfcom_file
+    )
+
+    get "/supporting_documents/#{document.id}/edit"
+
+    page = page_doc(response.body)
+    %w[amount date payee].each do |field|
+      expect(page.at_css("##{field}")["disabled"]).to be_present
+      expect(origin_copy(page, field)).to eq("XML autorizado")
+    end
+  end
+
+  it "PATCH payee on NFCom uploaded XML 422 LOCKED_FIELDS" do
+    account, organization = signed_in
+    document = SupportingDocument.insert(
+      organization: organization, account: account, kind: "",
+      amount: nil, date: nil, payee: nil, photo: nil, xml: nfcom_file
+    )
+
+    patch "/supporting_documents/#{document.id}", params: { payee: "Mercado Silva" }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(error_notice_text(response.body)).to eq("Valor, data e favorecido vêm da nota e não podem ser alterados")
+    expect(SupportingDocument.find(document.id).payee).to eq("EMPRESA TELECOM EXEMPLO S.A.")
+  end
+
+  it "POST identify infNFe without vNF 422 unreadable" do
+    signed_in
+    xml = xml_file("sem-vnf.xml", <<~XML)
+      <?xml version="1.0" encoding="UTF-8"?>
+      <nfeProc xmlns="http://www.portalfiscal.inf.br/nfe">
+        <NFe>
+          <infNFe Id="NFe43260511222333000181550010000000011123456781">
+            <ide><dhEmi>2026-05-11T10:00:00-03:00</dhEmi></ide>
+            <emit><xNome>Padaria Central</xNome></emit>
+          </infNFe>
+        </NFe>
+      </nfeProc>
+    XML
+
+    post "/supporting_documents/identify", params: { file: xml }, headers: turbo_stream_accept
+
+    expect(SupportingDocument.count).to eq(0)
+    expect(response).to have_http_status(:unprocessable_content)
+    notice = turbo_stream_for(response.body, "[data-notice=error]")
+    toast = turbo_stream_for(response.body, "toast-host")
+    expect(notice.text).to include("O XML da nota fiscal não pôde ser lido")
+    expect(toast.text).to include("O XML da nota fiscal não pôde ser lido")
+  end
+
+  it "POST identify CTe XML 422 unsupported copy" do
+    signed_in
+
+    post "/supporting_documents/identify", params: { file: cte_file }, headers: turbo_stream_accept
+
+    expect(SupportingDocument.count).to eq(0)
+    expect(response).to have_http_status(:unprocessable_content)
+    notice = turbo_stream_for(response.body, "[data-notice=error]")
+    toast = turbo_stream_for(response.body, "toast-host")
+    expect(notice.text).to include("Este XML não é NF-e, NFC-e, NFS-e nacional, NFCom ou NF3e")
+    expect(toast.text).to include("Este XML não é NF-e, NFC-e, NFS-e nacional, NFCom ou NF3e")
+  end
+
+  it "POST identify municipal NFSe XML 422 unsupported copy" do
+    signed_in
+
+    post "/supporting_documents/identify", params: { file: municipal_nfse_file }, headers: turbo_stream_accept
+
+    expect(SupportingDocument.count).to eq(0)
+    expect(response).to have_http_status(:unprocessable_content)
+    notice = turbo_stream_for(response.body, "[data-notice=error]")
+    toast = turbo_stream_for(response.body, "toast-host")
+    expect(notice.text).to include("Este XML não é NF-e, NFC-e, NFS-e nacional, NFCom ou NF3e")
+    expect(toast.text).to include("Este XML não é NF-e, NFC-e, NFS-e nacional, NFCom ou NF3e")
+  end
+
+  it "POST create CTe XML 422 unsupported copy" do
+    signed_in
+
+    post "/supporting_documents", params: { file: cte_file }
+
+    expect(SupportingDocument.count).to eq(0)
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(error_notice_text(response.body)).to eq("Este XML não é NF-e, NFC-e, NFS-e nacional, NFCom ou NF3e")
+  end
+
   it "GET edit typed origins Digitado" do
     account, organization = signed_in
     document = plant_recibo(organization, account, payee: "Padaria Central", amount: "155,00")
