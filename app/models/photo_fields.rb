@@ -41,6 +41,24 @@ module PhotoFields
 
   class Real
     def read(bytes:, filename: nil, text: nil)
+      pages = PhotoPdf.png_pages(bytes)
+      if pages
+        leftover = nil
+        pages.each do |png|
+          result = read_image(png, text: nil)
+          return result if complete?(result)
+
+          leftover = result if result.is_a?(Fields)
+        end
+        return leftover || Miss.new
+      end
+
+      read_image(bytes, text:)
+    end
+
+    private
+
+    def read_image(bytes, text:)
       text = PhotoOcr.resolve(bytes, text)
       amount_cents = parse_amount(text)
       document_on = parse_date(text)
@@ -50,7 +68,9 @@ module PhotoFields
       Fields.new(amount_cents:, document_on:, payee:)
     end
 
-    private
+    def complete?(result)
+      result.is_a?(Fields) && result.amount_cents.present? && result.document_on.present? && result.payee.present?
+    end
 
     def parse_amount(text)
       match = text.match(/Valor a Pagar\s+R\$?\s*#{AMOUNT}/i) ||

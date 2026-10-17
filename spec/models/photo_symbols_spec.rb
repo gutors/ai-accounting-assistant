@@ -90,6 +90,61 @@ RSpec.describe PhotoSymbols, type: :model do
     expect(result.qr_url).to be_nil
   end
 
+  it "Real CODE-128 PDF returns chave 43260511222333000181550010000000011123456781" do
+    result = PhotoSymbols::Real.new.scan(bytes: pngs_to_pdf(code128_png), filename: "code128.pdf")
+
+    expect(result.chave).to eq(nfe_chave)
+    expect(result.qr_url).to be_nil
+  end
+
+  it "Real printed-digit PDF returns chave 43260511222333000181550010000000011123456781" do
+    result = PhotoSymbols::Real.new.scan(bytes: pngs_to_pdf(ocr_png("printed_chave.png")), filename: "printed.pdf")
+
+    expect(result.chave).to eq(nfe_chave)
+    expect(result.qr_url).to be_nil
+  end
+
+  it "Real blank PDF returns chave nil" do
+    result = PhotoSymbols::Real.new.scan(bytes: pngs_to_pdf(ocr_png("blank.png")), filename: "blank.pdf")
+
+    expect(result.chave).to be_nil
+  end
+
+  it "Real two-page PDF blank then CODE-128 returns first delivering chave" do
+    pdf = pngs_to_pdf(ocr_png("blank.png"), code128_png)
+
+    result = PhotoSymbols::Real.new.scan(bytes: pdf, filename: "later.pdf")
+
+    expect(result.chave).to eq(nfe_chave)
+  end
+
+  it "Real two-page PDF two CODE-128 returns first page chave" do
+    page2 = Barby::Code128B.new(other_chave).to_png(xdim: 2, height: 80, margin: 16)
+    pdf = pngs_to_pdf(code128_png, page2)
+
+    result = PhotoSymbols::Real.new.scan(bytes: pdf, filename: "first.pdf")
+
+    expect(result.chave).to eq(nfe_chave)
+  end
+
+  it "Real scan misses when pdftoppm binary is missing" do
+    PhotoPdf.binary = "/nonexistent/pdftoppm-missing-for-spec"
+    pdf = pngs_to_pdf(code128_png)
+
+    result = PhotoSymbols::Real.new.scan(bytes: pdf, filename: "code128.pdf")
+
+    expect(result.chave).to be_nil
+  end
+
+  it "Real scan misses when pdftoppm subprocess errors" do
+    PhotoPdf.binary = "/bin/false"
+    pdf = pngs_to_pdf(code128_png)
+
+    result = PhotoSymbols::Real.new.scan(bytes: pdf, filename: "code128.pdf")
+
+    expect(result.chave).to be_nil
+  end
+
   it "Real printed-digit PNG without 44 digits returns chave nil" do
     png = ocr_fixture("blank.png")
 

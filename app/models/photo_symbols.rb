@@ -40,6 +40,21 @@ module PhotoSymbols
 
   class Real
     def scan(bytes:, filename: nil, text: nil)
+      pages = PhotoPdf.png_pages(bytes)
+      if pages
+        pages.each do |png|
+          result = scan_image(png, text: nil)
+          return result if result.chave.present? || result.qr_url.present?
+        end
+        return Symbols.new(chave: nil, qr_url: nil)
+      end
+
+      scan_image(bytes, text:)
+    end
+
+    private
+
+    def scan_image(bytes, text:)
       qr_url = nil
       qr_chave = nil
       code_chave = nil
@@ -66,8 +81,6 @@ module PhotoSymbols
     rescue ChunkyPNG::Exception, ArgumentError
       Symbols.new(chave: nil, qr_url: nil)
     end
-
-    private
 
     def load_image(bytes)
       return if bytes.blank?

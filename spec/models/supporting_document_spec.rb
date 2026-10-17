@@ -1885,6 +1885,20 @@ RSpec.describe SupportingDocument, type: :model do
     expect(SupportingDocument.count).to eq(0)
   end
 
+  it "identify Real two-page PDF CODE-128 is nota_fiscal chave without persisting" do
+    PhotoSymbols.current = PhotoSymbols::Real.new
+    pdf = pdf_upload("nota.pdf", pngs_to_pdf(ocr_png("blank.png"), code128_png))
+
+    preview = SupportingDocument.identify(organization: organization, file: pdf)
+
+    expect(SupportingDocument.count).to eq(0)
+    expect(preview.errors).to be_empty
+    expect(preview.kind).to eq("nota_fiscal")
+    expect(preview.chave).to eq(nfe_chave)
+  ensure
+    PhotoSymbols.reset!
+  end
+
   it "apply xml on photo-only is XML_LOCKED" do
     doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg, xml: nil)
     expect(doc.xml).not_to be_attached

@@ -5,6 +5,52 @@ RSpec.describe PhotoFields, type: :model do
     Rails.root.join("spec/fixtures/files/ocr", name).binread
   end
 
+  it "Real PDF returns 15500 2026-05-11 Padaria Central Integer" do
+    result = PhotoFields::Real.new.read(bytes: pngs_to_pdf(ocr_png("danfe_fields.png")), filename: "danfe.pdf")
+
+    expect(result).to be_a(PhotoFields::Fields)
+    expect(result.amount_cents).to eq(15500)
+    expect(result.amount_cents).to be_a(Integer)
+    expect(result.amount_cents).not_to be_a(Float)
+    expect(result.document_on).to eq(Date.new(2026, 5, 11))
+    expect(result.payee).to eq("Padaria Central")
+  end
+
+  it "Real blank PDF returns Miss" do
+    result = PhotoFields::Real.new.read(bytes: pngs_to_pdf(ocr_png("blank.png")), filename: "blank.pdf")
+
+    expect(result).to be_a(PhotoFields::Miss)
+  end
+
+  it "Real two-page PDF blank then fields returns Padaria Central" do
+    pdf = pngs_to_pdf(ocr_png("blank.png"), ocr_png("danfe_fields.png"))
+
+    result = PhotoFields::Real.new.read(bytes: pdf, filename: "later.pdf")
+
+    expect(result).to be_a(PhotoFields::Fields)
+    expect(result.amount_cents).to eq(15500)
+    expect(result.document_on).to eq(Date.new(2026, 5, 11))
+    expect(result.payee).to eq("Padaria Central")
+  end
+
+  it "Real read misses when pdftoppm binary is missing" do
+    PhotoPdf.binary = "/nonexistent/pdftoppm-missing-for-spec"
+    pdf = pngs_to_pdf(ocr_png("danfe_fields.png"))
+
+    result = PhotoFields::Real.new.read(bytes: pdf, filename: "danfe.pdf")
+
+    expect(result).to be_a(PhotoFields::Miss)
+  end
+
+  it "Real read misses when pdftoppm subprocess errors" do
+    PhotoPdf.binary = "/bin/false"
+    pdf = pngs_to_pdf(ocr_png("danfe_fields.png"))
+
+    result = PhotoFields::Real.new.read(bytes: pdf, filename: "danfe.pdf")
+
+    expect(result).to be_a(PhotoFields::Miss)
+  end
+
   it "Real PNG returns 15500 2026-05-11 Padaria Central" do
     png = ocr_fixture("danfe_fields.png")
 
