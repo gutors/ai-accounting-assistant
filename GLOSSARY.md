@@ -119,15 +119,15 @@ Free-text note. On a supporting document it is optional and does not change amou
 _Avoid_: correction, comment (unqualified)
 
 **Nota fiscal**:
-A Brazilian electronic tax invoice (NF-e / NFC-e). The fiscal document is the authorized XML; a DANFE is only a human-readable print of that XML. In monthly close the supporting document may be a photo of the DANFE, the authorized XML, or both.
+A Brazilian electronic tax invoice: NF-e, NFC-e, NFCom (modelo 62), NF3e (modelo 66), or national NFS-e. The fiscal document is the authorized XML; a DANFE is only a human-readable print of that XML. In monthly close the supporting document may store that authorized XML (uploaded), a photo of the print, or both. Photo identification in this version is NF-e / NFC-e only.
 _Avoid_: NF, invoice (unqualified), DANFE (as if it were the fiscal document)
 
 **Chave de acesso**:
-The 44-digit identifier of an authorized nota fiscal, printed on the DANFE. It can be used to consult the note on the state SEFAZ site. On a supporting document it may be captured from the photo or typed, so consulta can start even when the image is poor. On a photo it is often unreadable (bad photo or poor print).
+The identifier of an authorized nota fiscal. On an uploaded XML it is the digits from that document's `Id` (44 for NF-e / NFC-e / NFCom / NF3e, 50 for national NFS-e). Typed chave and photo decode remain 44 digits for identified SEFAZ consulta. It is printed on the DANFE. On a supporting document it may also be captured from the photo or typed, so that consulta can start even when the image is poor. On a photo it is often unreadable (bad photo or poor print).
 _Avoid_: barcode, QR (those may encode the chave; an NFC-e QR is also a consult URL)
 
 **SEFAZ consulta**:
-Looking up an already-authorized nota fiscal on the state SEFAZ site (for example sefaz.rs.gov.br). Identified consult (SEFAZ certificate) can return the authorized XML or the matching fields. The consumer consult opened from an NFC-e QR Code needs no certificate and is not the XML. Not issuance or authorization of a note.
+Looking up an already-authorized NF-e or NFC-e on the state SEFAZ site (for example sefaz.rs.gov.br). Identified consult (SEFAZ certificate) can return the authorized XML or the matching fields. The consumer consult opened from an NFC-e QR Code needs no certificate and is not the XML. Not issuance or authorization of a note.
 _Avoid_: SEFAZ integration (unqualified), emissão, autorização
 
 **SEFAZ certificate**:
