@@ -3472,6 +3472,21 @@ RSpec.describe "Supporting documents", type: :request do
     expect(account).to eq(account)
   end
 
+  it "POST identify photo chave when identified errors keeps chave and sefaz miss copy" do
+    _account, organization = signed_in
+    install_a1(organization)
+    stub_photo_symbols("danfe.jpg", chave: nfe_chave)
+    SefazConsulta.current.set(nfe_chave, SefazConsulta::Error.new)
+
+    post "/supporting_documents/identify", params: { file: photo_jpg("danfe.jpg") }, headers: turbo_stream_accept
+
+    expect(response).to have_http_status(:ok)
+    doc = identify_stream_doc(response.body)
+    expect(doc.at_css("#chave")["value"]).to eq(nfe_chave)
+    expect(doc.at_css("#amount")["value"]).to eq("")
+    expect(doc.text).to include("A consulta SEFAZ não preencheu valor, data e favorecido. Informe-os.")
+  end
+
   it "POST identify unreadable XML 422 keeps file input" do
     signed_in
 

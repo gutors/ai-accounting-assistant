@@ -12,6 +12,9 @@
 <div id="identify-book" class="grid max-w-[28rem] gap-4">
   <p class="max-w-[36ch] text-ink-soft<%= " hidden" if loaded %>" <%= "hidden" if loaded %> data-document-identify-target="wait">Inclua o documento. Valor, data e favorecido saem do arquivo.</p>
   <div id="fields" class="grid gap-4<%= " hidden" unless loaded %>" <%= "hidden" unless loaded %> data-document-identify-target="fields">
+    <% if identified && identification.chave.present? && identification.amount_cents.to_i <= 0 %>
+      <p class="max-w-[36ch] text-ink-soft">A consulta SEFAZ não preencheu valor, data e favorecido. Informe-os.</p>
+    <% end %>
     <div>
       <label for="arquivo" class="mb-1 block font-medium">Arquivo</label>
       <%= text_field_tag :arquivo, identified ? identification.intake_arquivo : params[:arquivo], id: "arquivo", disabled: true, autocomplete: "off", class: "w-full rounded border border-rule bg-sheet px-3 py-2" %>

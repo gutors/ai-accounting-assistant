@@ -55,6 +55,14 @@ RSpec.describe "Application config" do
     expect(packages).to include("tesseract-ocr", "tesseract-ocr-por")
   end
 
+  it "production runtime image installs zbar-tools" do
+    dockerfile = Rails.root.join("Dockerfile").read
+    base, = dockerfile.split("FROM base AS build", 2)
+    packages = base.split(/\s+/)
+
+    expect(packages).to include("zbar-tools")
+  end
+
   it "CI test job installs tesseract-ocr and tesseract-ocr-por before rspec" do
     ci = Rails.root.join(".github/workflows/ci.yml").read
     test_job = ci[/  test:.*?(?=\n  lint:|\z)/m]
@@ -62,5 +70,13 @@ RSpec.describe "Application config" do
 
     expect(packages.index("tesseract-ocr")).to be < packages.index("bin/rspec")
     expect(packages.index("tesseract-ocr-por")).to be < packages.index("bin/rspec")
+  end
+
+  it "CI test job installs zbar-tools before rspec" do
+    ci = Rails.root.join(".github/workflows/ci.yml").read
+    test_job = ci[/  test:.*?(?=\n  lint:|\z)/m]
+    packages = test_job.split(/\s+/)
+
+    expect(packages.index("zbar-tools")).to be < packages.index("bin/rspec")
   end
 end

@@ -90,6 +90,7 @@ RSpec.configure do |config|
     PhotoSymbols.reset!
     PhotoFields.reset!
     PhotoOcr.reset!
+    PhotoZbar.reset!
     PublicNfceConsulta.reset!
     OmniAuth.config.test_mode = true
     OmniAuth.config.mock_auth[:google_oauth2] = nil

@@ -54,7 +54,10 @@ module SefazConsulta
     def self.parse_response(body)
       xml = Nokogiri::XML(body) { |config| config.strict }
       cstat = xml.at_xpath("//*[local-name()='cStat']")&.text
+      motivo = xml.at_xpath("//*[local-name()='xMotivo']")&.text
+      Rails.logger.info("sefaz_consulta cStat=#{cstat.inspect} xMotivo=#{motivo.inspect}")
       return NotFound.new if cstat == "137"
+      return WindowExpired.new if cstat == "632"
       return Error.new unless cstat == "138"
 
       decoded = unzip_doc(xml)
@@ -107,32 +110,31 @@ module SefazConsulta
       http.open_timeout = 15
       http.read_timeout = 30
       request = Net::HTTP::Post.new(uri.request_uri)
-      request["Content-Type"] = "text/xml; charset=utf-8"
+      request["Content-Type"] = "application/soap+xml; charset=utf-8"
+      request["SOAPAction"] = "http://www.portalfiscal.inf.br/nfe/wsdl/NFeDistribuicaoDFe/nfeDistDFeInteresse"
       request.body = dist_dfe_envelope(pkcs12:, chave:)
       http.request(request).body
     end
 
     def dist_dfe_envelope(pkcs12:, chave:)
-      cnpj = pkcs12.certificate.subject.to_s.scan(/\d{14}/).first
-      <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <soap12:Envelope xmlns:soap12="http://www.w3.org/2003/05/soap-envelope" xmlns:nfe="http://www.portalfiscal.inf.br/nfe/wsdl/NFeDistribuicaoDFe">
-          <soap12:Body>
-            <nfe:nfeDistDFeInteresse>
-              <nfe:nfeDadosMsg>
-                <distDFeInt xmlns="http://www.portalfiscal.inf.br/nfe" versao="1.01">
-                  <tpAmb>1</tpAmb>
-                  <cUFAutor>91</cUFAutor>
-                  <CNPJ>#{cnpj}</CNPJ>
-                  <consChNFe>
-                    <chNFe>#{chave}</chNFe>
-                  </consChNFe>
-                </distDFeInt>
-              </nfe:nfeDadosMsg>
-            </nfe:nfeDistDFeInteresse>
-          </soap12:Body>
-        </soap12:Envelope>
-      XML
+      cnpj = cnpj_from(pkcs12)
+      dist = +"<distDFeInt xmlns=\"http://www.portalfiscal.inf.br/nfe\" versao=\"1.01\">"
+      dist << "<tpAmb>1</tpAmb><CNPJ>#{cnpj}</CNPJ>"
+      dist << "<consChNFe><chNFe>#{chave}</chNFe></consChNFe></distDFeInt>"
+      +"<soap:Envelope xmlns:soap=\"http://www.w3.org/2003/05/soap-envelope\"><soap:Body>" \
+        "<nfeDistDFeInteresse xmlns=\"http://www.portalfiscal.inf.br/nfe/wsdl/NFeDistribuicaoDFe\">" \
+        "<nfeDadosMsg xmlns=\"http://www.portalfiscal.inf.br/nfe/wsdl/NFeDistribuicaoDFe\">#{dist}</nfeDadosMsg>" \
+        "</nfeDistDFeInteresse></soap:Body></soap:Envelope>"
+    end
+
+    def cnpj_from(pkcs12)
+      cert = pkcs12.certificate
+      cn = cert.subject.to_a.assoc("CN")&.at(1).to_s
+      cn[/:(\d{14})\s*\z/, 1] ||
+        cert.subject.to_a.reverse.filter_map { |_, value, _|
+          digits = value.to_s.gsub(/\D/, "")
+          digits if digits.length == 14
+        }.first
     end
   end
 end
