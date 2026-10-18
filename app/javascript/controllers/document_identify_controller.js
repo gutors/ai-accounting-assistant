@@ -33,8 +33,8 @@ export default class extends Controller {
       credentials: "same-origin"
     }).then(async (response) => {
       const body = await response.text()
-      if (window.Turbo) window.Turbo.renderStreamMessage(body)
-      this.paintProofAfterStream(file)
+      if (this.pendingFile !== file) return
+      this.renderIdentifyStream(body, file)
       if (!response.ok) {
         this.resetWaitPrompt()
       }
@@ -82,10 +82,24 @@ export default class extends Controller {
     this.submitTarget.disabled = !(amount && amount.value && date && date.value && payee && payee.value)
   }
 
-  paintProofAfterStream(file) {
-    this.paintProof(file)
-    requestAnimationFrame(() => this.paintProof(file))
-    document.addEventListener("turbo:after-stream-render", () => this.paintProof(file), { once: true })
+  renderIdentifyStream(body, file) {
+    if (!window.Turbo) {
+      this.paintProof(file)
+      return
+    }
+
+    const onBeforeStream = (event) => {
+      const original = event.detail.render
+      event.detail.render = async (streamElement) => {
+        await original(streamElement)
+        if (this.pendingFile !== file) return
+        this.paintProof(file)
+      }
+    }
+
+    document.addEventListener("turbo:before-stream-render", onBeforeStream)
+    window.Turbo.renderStreamMessage(body)
+    document.removeEventListener("turbo:before-stream-render", onBeforeStream)
   }
 
   paintProof(file) {

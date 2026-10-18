@@ -14,7 +14,7 @@ module PhotoZbar
     end
 
     def scan(bytes)
-      ext = extension(bytes)
+      ext = PhotoImage.extension(bytes)
       return [] if ext.nil? || bytes.blank?
 
       Tempfile.create([ "photo-zbar", ext ]) do |file|
@@ -22,7 +22,7 @@ module PhotoZbar
         file.write(bytes)
         file.flush
         out, _err, status = Open3.capture3(binary, "-q", file.path)
-        return [] unless status.success? || status.exitstatus == 1
+        return [] unless status.success? || status.exitstatus == 4
 
         parse(out)
       end
@@ -39,14 +39,6 @@ module PhotoZbar
 
         [ kind, payload ]
       }
-    end
-
-    def extension(bytes)
-      if bytes.byteslice(0, 8) == "\x89PNG\r\n\x1A\n".b
-        ".png"
-      elsif bytes.byteslice(0, 2) == "\xFF\xD8".b
-        ".jpg"
-      end
     end
   end
 end

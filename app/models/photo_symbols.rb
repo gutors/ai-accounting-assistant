@@ -1,5 +1,4 @@
 require "chunky_png"
-require "pure_jpeg"
 require "qrio"
 require "tempfile"
 
@@ -69,7 +68,7 @@ module PhotoSymbols
       end
       return Symbols.new(chave: qr_chave || code_chave, qr_url:) if qr_chave || code_chave || qr_url
 
-      image = load_image(bytes)
+      image = PhotoImage.load(bytes)
       payload = qr_payload(image) if image
       if payload
         qr_url = payload if payload.start_with?("http")
@@ -80,36 +79,6 @@ module PhotoSymbols
       Symbols.new(chave: qr_chave || code_chave || printed_chave, qr_url:)
     rescue ChunkyPNG::Exception, ArgumentError
       Symbols.new(chave: nil, qr_url: nil)
-    end
-
-    def load_image(bytes)
-      return if bytes.blank?
-
-      if png?(bytes)
-        ChunkyPNG::Image.from_blob(bytes)
-      elsif jpeg?(bytes)
-        jpeg = PureJPEG.read(bytes)
-        return unless jpeg
-
-        image = ChunkyPNG::Image.new(jpeg.width, jpeg.height)
-        jpeg.height.times do |y|
-          jpeg.width.times do |x|
-            pixel = jpeg[x, y]
-            image[x, y] = ChunkyPNG::Color.rgb(pixel.r, pixel.g, pixel.b)
-          end
-        end
-        image
-      end
-    rescue PureJPEG::DecodeError
-      nil
-    end
-
-    def png?(bytes)
-      bytes.byteslice(0, 8) == "\x89PNG\r\n\x1A\n".b
-    end
-
-    def jpeg?(bytes)
-      bytes.byteslice(0, 2) == "\xFF\xD8".b
     end
 
     def qr_payload(image)

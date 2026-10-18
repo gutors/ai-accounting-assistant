@@ -1,7 +1,5 @@
 require "open3"
 require "tempfile"
-require "chunky_png"
-require "pure_jpeg"
 
 module PhotoOcr
   MARKERS = /EMITENTE|DESTINAT|VALOR|PAGAR|DOCUMENTO|CONSUMIDOR|NOTA|CHAVE|R\$|\d{2}\/\d{2}\/\d{2,4}|\d{20,}/i
@@ -25,7 +23,7 @@ module PhotoOcr
     end
 
     def text(bytes)
-      ext = extension(bytes)
+      ext = PhotoImage.extension(bytes)
       return "" if ext.nil? || bytes.blank?
 
       Tempfile.create([ "photo-ocr", ext ]) do |file|
@@ -45,12 +43,12 @@ module PhotoOcr
     end
 
     def header(bytes)
-      image = load_image(bytes)
+      image = PhotoImage.load(bytes)
       return "" unless image
 
       portraits = image.width > image.height ? [ image.rotate_right, image.rotate_left ] : [ image ]
       portraits.filter_map { |portrait| ocr_top(portrait) }.max_by { |text| header_score(text) }.to_s
-    rescue Errno::ENOENT, Errno::EACCES, ChunkyPNG::Exception, PureJPEG::DecodeError
+    rescue Errno::ENOENT, Errno::EACCES, ChunkyPNG::Exception
       ""
     end
 
@@ -78,34 +76,6 @@ module PhotoOcr
         file.write(crop.to_blob)
         file.flush
         run(file.path, "6")
-      end
-    end
-
-    def load_image(bytes)
-      return if bytes.blank?
-
-      if extension(bytes) == ".png"
-        ChunkyPNG::Image.from_blob(bytes)
-      elsif extension(bytes) == ".jpg"
-        jpeg = PureJPEG.read(bytes)
-        return unless jpeg
-
-        image = ChunkyPNG::Image.new(jpeg.width, jpeg.height)
-        jpeg.height.times do |y|
-          jpeg.width.times do |x|
-            pixel = jpeg[x, y]
-            image[x, y] = ChunkyPNG::Color.rgb(pixel.r, pixel.g, pixel.b)
-          end
-        end
-        image
-      end
-    end
-
-    def extension(bytes)
-      if bytes.byteslice(0, 8) == "\x89PNG\r\n\x1A\n".b
-        ".png"
-      elsif bytes.byteslice(0, 2) == "\xFF\xD8".b
-        ".jpg"
       end
     end
   end
