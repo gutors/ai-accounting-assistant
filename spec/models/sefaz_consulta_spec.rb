@@ -32,7 +32,25 @@ RSpec.describe SefazConsulta, type: :model do
     expect(SefazConsulta::Real.parse_response(ret_dist("137"))).to be_a(SefazConsulta::NotFound)
   end
 
+  it "parse_response 632 is WindowExpired" do
+    expect(SefazConsulta::Real.parse_response(ret_dist("632"))).to be_a(SefazConsulta::WindowExpired)
+  end
+
   it "parse_response other cStat is Error" do
     expect(SefazConsulta::Real.parse_response(ret_dist("656"))).to be_a(SefazConsulta::Error)
+  end
+
+  it "Real consChNFe envelope carries 14-digit CNPJ without cUFAutor 91 prefix" do
+    der = sefaz_pkcs12_der(titular: "11222333000181", not_after: Date.new(2027, 9, 18), passphrase: "passphrase-secreta")
+    pkcs12 = OpenSSL::PKCS12.new(der, "passphrase-secreta")
+    chave = "43260511222333000181550010000000011123456781"
+
+    xml = SefazConsulta::Real.new.send(:dist_dfe_envelope, pkcs12:, chave:)
+
+    expect(xml).to include("<CNPJ>11222333000181</CNPJ>")
+    expect(xml).to include("<chNFe>#{chave}</chNFe>")
+    expect(xml).to include("nfeDistDFeInteresse")
+    expect(xml).not_to include("nfe:nfeDistDFeInteresse")
+    expect(xml).not_to include("<cUFAutor>91</cUFAutor>")
   end
 end

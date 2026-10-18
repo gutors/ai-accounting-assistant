@@ -72,6 +72,7 @@ RSpec.configure do |config|
   config.include StatementHelpers
   config.include DocumentHelpers
   config.include PhotoExtractHelpers
+  config.include ImagePdfHelpers
   config.include Pkcs12Helpers
   config.include MatchHelpers
   config.include CloseHelpers
@@ -90,6 +91,8 @@ RSpec.configure do |config|
     PhotoSymbols.reset!
     PhotoFields.reset!
     PhotoOcr.reset!
+    PhotoZbar.reset!
+    PhotoPdf.reset!
     PublicNfceConsulta.reset!
     OmniAuth.config.test_mode = true
     OmniAuth.config.mock_auth[:google_oauth2] = nil

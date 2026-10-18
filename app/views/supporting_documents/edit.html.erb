@@ -24,6 +24,8 @@
       <div class="grid max-h-[28rem] aspect-[3/4] place-items-center overflow-hidden border border-rule bg-paper">
         <% if document.photo.attached? && document.photo.content_type.to_s.start_with?("image/") %>
           <%= image_tag url_for(document.photo), alt: document.photo.filename.to_s, class: "max-h-[28rem] w-full object-contain" %>
+        <% elsif document.photo.attached? && document.photo.content_type.to_s == "application/pdf" %>
+          <embed src="<%= url_for(document.photo) %>" type="application/pdf" class="h-full min-h-[20rem] w-full">
         <% elsif document.photo.attached? %>
           <p class="p-4 text-meta text-ink-soft"><%= document.photo.filename %></p>
         <% else %>

@@ -115,6 +115,8 @@ Obrigatórias para o login local: `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET`.
 
 A foto da nota usa o binário `tesseract` no `PATH`, com os idiomas `por` e `eng`. Sem ele, a leitura volta vazia e a chave continua digitada.
 
+A foto PDF usa o binário `pdftoppm` (Poppler) no `PATH`. Sem ele, a leitura do PDF volta vazia e os campos continuam digitados.
+
 > [!WARNING]
 > Não coloque certificado A1, senhas, tokens de Drive, o `.env` ou dados financeiros reais no repositório.
 

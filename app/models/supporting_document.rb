@@ -550,10 +550,16 @@ class SupportingDocument < ApplicationRecord
 
   def consult_identified(chave_digits)
     pkcs12 = organization.sefaz_pkcs12
-    return unless pkcs12
+    unless pkcs12
+      Rails.logger.info("sefaz_consulta skip org=#{organization.id} wrap=#{WrapKey.present?} titular=#{organization.sefaz_titular_cnpj.present?} expired=#{organization.sefaz_certificate_expired?}")
+      return
+    end
 
-    SefazConsulta.current.lookup(pkcs12:, chave: chave_digits)
-  rescue Timeout::Error, OpenSSL::PKCS12::PKCS12Error, WrapKey::Missing
+    result = SefazConsulta.current.lookup(pkcs12:, chave: chave_digits)
+    Rails.logger.info("sefaz_consulta result=#{result.class}")
+    result
+  rescue Timeout::Error, OpenSSL::PKCS12::PKCS12Error, WrapKey::Missing => e
+    Rails.logger.info("sefaz_consulta error=#{e.class}")
     SefazConsulta::Error.new
   end
 

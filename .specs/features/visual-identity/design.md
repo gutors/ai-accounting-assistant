@@ -429,7 +429,7 @@ Incluir documento                               (h2)
   empty: proof square is the only file control (click or drop). One file: foto or XML.
          book: Inclua o documento. Valor, data e favorecido saem do arquivo.
   after identify, two columns from 768px (proof stacks first below 768px):
-  left proof: preview + Limpar inside the square
+  left proof: preview of the photo including an image PDF + Limpar inside the square
   right 28rem: Arquivo [Foto|XML locked]  Tipo [locked]
                Valor / Data / Favorecido with origin under each
                Chave de acesso (opcional)  ← hidden when Tipo is Recibo
@@ -460,6 +460,7 @@ Justificativas                                  (h2)
   Both files or neither is `422` `Envie a foto ou o XML`.
 - `GET /supporting_documents/:id/edit` has no XML file control. Arquivo is Foto or XML, locked.
   The file cannot be replaced; copy: `O arquivo não pode ser alterado. Exclua o documento e inclua novamente.`
+  The proof previews an attached PDF the same way it previews a JPEG (embed of the photo blob, not filename-only).
 - HTML `422` fallback on `POST /supporting_documents` echoes Arquivo, Tipo, Valor, Data, Favorecido, Chave,
   and Observação; the square's file input stays in the form.
 - Document rows `li[data-row="document"][data-document-id]`: date | payee (filenames, chave,

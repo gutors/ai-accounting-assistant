@@ -1,5 +1,4 @@
 require "chunky_png"
-require "pure_jpeg"
 require "qrio"
 require "tempfile"
 
@@ -40,53 +39,46 @@ module PhotoSymbols
 
   class Real
     def scan(bytes:, filename: nil, text: nil)
-      image = load_image(bytes)
-      return Symbols.new(chave: nil, qr_url: nil) unless image
-
-      qr_url = nil
-      qr_chave = nil
-      payload = qr_payload(image)
-      if payload
-        qr_url = payload if payload.start_with?("http")
-        qr_chave = forty_four(payload)
-        qr_chave ||= forty_four(URI.parse(payload).query) if qr_url
+      pages = PhotoPdf.png_pages(bytes)
+      if pages
+        pages.each do |png|
+          result = scan_image(png, text: nil)
+          return result if result.chave.present? || result.qr_url.present?
+        end
+        return Symbols.new(chave: nil, qr_url: nil)
       end
 
-      code_chave = forty_four(code128_payload(image)) unless qr_chave
-      printed_chave = forty_four(PhotoOcr.resolve(bytes, text)) unless qr_chave || code_chave
-      Symbols.new(chave: qr_chave || code_chave || printed_chave, qr_url:)
-    rescue ChunkyPNG::Exception, PureJPEG::DecodeError, ArgumentError, URI::InvalidURIError
-      Symbols.new(chave: nil, qr_url: nil)
+      scan_image(bytes, text:)
     end
 
     private
 
-    def load_image(bytes)
-      return if bytes.blank?
+    def scan_image(bytes, text:)
+      qr_url = nil
+      qr_chave = nil
+      code_chave = nil
 
-      if png?(bytes)
-        ChunkyPNG::Image.from_blob(bytes)
-      elsif jpeg?(bytes)
-        jpeg = PureJPEG.read(bytes)
-        return unless jpeg
-
-        image = ChunkyPNG::Image.new(jpeg.width, jpeg.height)
-        jpeg.height.times do |y|
-          jpeg.width.times do |x|
-            pixel = jpeg[x, y]
-            image[x, y] = ChunkyPNG::Color.rgb(pixel.r, pixel.g, pixel.b)
-          end
+      PhotoZbar.scan(bytes).each do |kind, payload|
+        if kind.match?(/qr/i)
+          qr_url = payload if payload.start_with?("http")
+          qr_chave ||= chave_from_qr(payload)
+        elsif kind.match?(/code-?128/i)
+          code_chave ||= forty_four(payload)
         end
-        image
       end
-    end
+      return Symbols.new(chave: qr_chave || code_chave, qr_url:) if qr_chave || code_chave || qr_url
 
-    def png?(bytes)
-      bytes.byteslice(0, 8) == "\x89PNG\r\n\x1A\n".b
-    end
-
-    def jpeg?(bytes)
-      bytes.byteslice(0, 2) == "\xFF\xD8".b
+      image = PhotoImage.load(bytes)
+      payload = qr_payload(image) if image
+      if payload
+        qr_url = payload if payload.start_with?("http")
+        qr_chave = chave_from_qr(payload)
+      end
+      code_chave = forty_four(code128_payload(image)) if image && qr_chave.nil?
+      printed_chave = forty_four(PhotoOcr.resolve(bytes, text)) unless qr_chave || code_chave
+      Symbols.new(chave: qr_chave || code_chave || printed_chave, qr_url:)
+    rescue ChunkyPNG::Exception, ArgumentError
+      Symbols.new(chave: nil, qr_url: nil)
     end
 
     def qr_payload(image)
@@ -103,7 +95,16 @@ module PhotoSymbols
     end
 
     def code128_payload(image)
-      y = image.height / 2
+      ys = [ image.height / 2 ]
+      1.upto(9) { |i| ys << (image.height * i / 10) }
+      ys.uniq.each do |y|
+        payload = decode_code128_row(image, y)
+        return payload if payload
+      end
+      nil
+    end
+
+    def decode_code128_row(image, y)
       row = image.width.times.map { |x| ChunkyPNG::Color.r(image[x, y]) < 128 ? 1 : 0 }
       runs = []
       row.each do |bit|
@@ -120,11 +121,14 @@ module PhotoSymbols
       Code128.decode(bits)
     end
 
-    def forty_four(value)
-      digits = value.to_s.gsub(/\D/, "")
-      return digits if digits.length == 44
+    def chave_from_qr(payload)
+      forty_four(payload) || forty_four(URI.parse(payload).query)
+    rescue URI::InvalidURIError, ArgumentError
+      forty_four(payload)
+    end
 
-      value.to_s[/\d{44}/]
+    def forty_four(value)
+      NfeAccessKey.digits(value.to_s)
     end
   end
 end

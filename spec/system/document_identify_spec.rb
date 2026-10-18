@@ -1,5 +1,6 @@
 require "rails_helper"
 require "capybara/cuprite"
+require "timeout"
 
 RSpec.describe "Document identify chrome", type: :system do
   before do
@@ -38,6 +39,65 @@ RSpec.describe "Document identify chrome", type: :system do
     expect(page).to have_css("[data-document-identify-target=wait]", visible: true, text: "Inclua o documento. Valor, data e favorecido saem do arquivo.")
     expect(page).not_to have_css("#amount", visible: true)
     expect(SupportingDocument.count).to eq(0)
+  end
+
+  it "Limpar during identify keeps the empty square" do
+    account, _organization = plant_coordinator
+    sign_in_through_google(account)
+    visit "/supporting_documents"
+    page.execute_script(<<~JS)
+      const orig = window.fetch.bind(window)
+      window.fetch = (url, opts) => {
+        if (String(url).includes("/supporting_documents/identify")) {
+          return new Promise((resolve) => {
+            window.setTimeout(() => orig(url, opts).then((response) => {
+              window.__identifyDone = true
+              resolve(response)
+            }), 800)
+          })
+        }
+        return orig(url, opts)
+      }
+    JS
+    xml_path = write_upload("proc-nfe.xml", authorized_nfe_xml)
+
+    attach_file "file", xml_path, make_visible: true
+    expect(page).to have_content("Identificando o arquivo…")
+
+    click_button "Limpar"
+    expect(page).to have_css("[data-document-identify-target=wait]", visible: true, text: "Inclua o documento. Valor, data e favorecido saem do arquivo.")
+    expect(page).to have_no_css("#amount", visible: true)
+
+    Timeout.timeout(5) { loop { break if page.evaluate_script("window.__identifyDone === true"); sleep 0.05 } }
+
+    expect(page).to have_css("[data-document-identify-target=wait]", visible: true, text: "Inclua o documento. Valor, data e favorecido saem do arquivo.")
+    expect(page).to have_no_css("#amount", visible: true)
+    expect(SupportingDocument.count).to eq(0)
+  end
+
+  it "identify pdf shows the file in the proof square" do
+    account, _organization = plant_coordinator
+    sign_in_through_google(account)
+    visit "/supporting_documents"
+    pdf_path = write_upload("nota.pdf", pngs_to_pdf(ocr_png("blank.png")))
+
+    attach_file "file", pdf_path, make_visible: true
+
+    expect(page).to have_css("#identify-preview embed[src^='blob:']")
+    expect(page).to have_css("#identify-preview", text: "Foto · nota.pdf")
+    expect(page).to have_css("#identify-preview button", text: "Limpar")
+  end
+
+  it "identify photo shows the image in the proof square" do
+    account, _organization = plant_coordinator
+    sign_in_through_google(account)
+    visit "/supporting_documents"
+    photo = Rails.root.join("spec/fixtures/files/ocr/amount_only.jpg")
+
+    attach_file "file", photo, make_visible: true
+
+    expect(page).to have_css("#identify-preview img[src^='blob:']")
+    expect(page).to have_css("#identify-preview", text: "amount_only.jpg")
   end
 
   it "identify in flight shows Identificando o arquivo" do

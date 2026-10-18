@@ -3423,6 +3423,31 @@ RSpec.describe "Supporting documents", type: :request do
       expect(origin_copy(doc, field)).to eq("Lido da foto")
       expect(doc.at_css("##{field}")["disabled"]).to be_nil
     end
+    thumb = doc.at_css("#identify-preview img")
+    expect(thumb).to be_present
+    expect(thumb["alt"]).to eq("danfe.jpg")
+  end
+
+  it "POST identify pdf miss is recibo typed empty" do
+    signed_in
+
+    post "/supporting_documents/identify", params: { file: photo_with_ext("pdf") }, headers: turbo_stream_accept
+
+    expect(SupportingDocument.count).to eq(0)
+    expect(response).to have_http_status(:ok)
+    doc = identify_stream_doc(response.body)
+    expect(doc.at_css("#arquivo")["value"]).to eq("Foto")
+    expect(selected_option_value(doc.at_css("select#kind"))).to eq("recibo")
+    expect(doc.at_css("select#kind")["disabled"]).to be_present
+    expect(html_visible?(doc.at_css("#chave"))).to eq(false)
+    expect(doc.at_css("#amount")["value"].to_s).to eq("")
+    expect(doc.at_css("#date")["value"].to_s).to eq("")
+    expect(doc.at_css("#payee")["value"].to_s).to eq("")
+    %w[amount date payee].each do |field|
+      expect(origin_copy(doc, field)).to eq("Digitado")
+      expect(doc.at_css("##{field}")["disabled"]).to be_nil
+    end
+    expect(doc.at_css('input[type="submit"][value="Incluir documento"]')["disabled"]).to be_present
   end
 
   it "POST identify photo miss is recibo typed empty" do
@@ -3467,6 +3492,21 @@ RSpec.describe "Supporting documents", type: :request do
       expect(doc.at_css("##{field}")["disabled"]).to be_present
     end
     expect(account).to eq(account)
+  end
+
+  it "POST identify photo chave when identified errors keeps chave and sefaz miss copy" do
+    _account, organization = signed_in
+    install_a1(organization)
+    stub_photo_symbols("danfe.jpg", chave: nfe_chave)
+    SefazConsulta.current.set(nfe_chave, SefazConsulta::Error.new)
+
+    post "/supporting_documents/identify", params: { file: photo_jpg("danfe.jpg") }, headers: turbo_stream_accept
+
+    expect(response).to have_http_status(:ok)
+    doc = identify_stream_doc(response.body)
+    expect(doc.at_css("#chave")["value"]).to eq(nfe_chave)
+    expect(doc.at_css("#amount")["value"]).to eq("")
+    expect(doc.text).to include("A consulta SEFAZ não preencheu valor, data e favorecido. Informe-os.")
   end
 
   it "POST identify unreadable XML 422 keeps file input" do
@@ -3582,6 +3622,50 @@ RSpec.describe "Supporting documents", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Padaria Central")
     expect(response.body).not_to include("Outra ONG")
+  end
+
+  it "GET edit pdf photo embeds the blob in the proof square" do
+    account, organization = signed_in
+    document = SupportingDocument.insert(
+      organization: organization, account: account, kind: "recibo",
+      amount: "155,00", date: "2026-05-11", payee: "Padaria Central",
+      photo: pdf_upload("nota.pdf", pngs_to_pdf(ocr_png("blank.png")))
+    )
+
+    get "/supporting_documents/#{document.id}/edit"
+
+    expect(response).to have_http_status(:ok)
+    page = page_doc(response.body)
+    proof = page.at_css("[data-edit=proof]")
+    embed = proof.at_css("embed[type='application/pdf']")
+    expect(embed).to be_present
+    expect(embed["src"]).to include("rails/active_storage")
+    expect(proof.text).to include("Foto · nota.pdf")
+    expect(proof.text).to include("O arquivo não pode ser alterado. Exclua o documento e inclua novamente.")
+    expect(proof.at_css("p")&.text).not_to eq("nota.pdf")
+  end
+
+  it "POST create recibo pdf with raster chave persists typed recibo" do
+    signed_in
+
+    post "/supporting_documents", params: {
+      kind: "recibo",
+      file: pdf_upload("nota.pdf", pngs_to_pdf(code128_png)),
+      amount: "155,00",
+      date: "2026-05-11",
+      payee: "Padaria Central"
+    }
+
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.count).to eq(1)
+    document = SupportingDocument.last
+    expect(document.kind).to eq("recibo")
+    expect(document.chave).to be_nil
+    expect(document.xml).not_to be_attached
+    expect(document.photo).to be_attached
+    expect(document.photo.filename.to_s).to eq("nota.pdf")
+    expect(document.photo.content_type).to eq("application/pdf")
+    expect(document.amount_cents).to eq(15500)
   end
 
   it "GET edit photo-only has Arquivo Foto and no xml picker" do
