@@ -31,6 +31,8 @@ RSpec.describe "Month overview", type: :request do
     expect(cluster_html.index("Casar pagamentos")).to be < cluster_html.index("Fechar para envio")
     fechar = doc.at_css('input[type="submit"][value="Fechar para envio"]')
     expect(fechar["class"]).to include("ds-btn-primary")
+    expect(fechar.ancestors("form").first["id"]).to eq("close-month")
+    expect(fechar.ancestors("form").first["data-wait-copy"]).to eq("Escrevendo a pasta do mês…")
     expect(doc.at_css('[data-stamp="closed"]')).to be_nil
   end
 
@@ -57,7 +59,9 @@ RSpec.describe "Month overview", type: :request do
     expect(restore["class"]).to include("ds-btn-secondary")
     expect(reopen["class"]).to include("ds-btn-secondary")
     expect(restore.ancestors("form").first["data-turbo-confirm"]).to eq("Restaurar a pasta do mês no arquivo do pacote?")
+    expect(restore.ancestors("form").first["data-wait-copy"]).to eq("Restaurando a pasta do mês…")
     expect(reopen.ancestors("form").first["data-turbo-confirm"]).to eq("Reabrir o mês?")
+    expect(reopen.ancestors("form").first["data-wait-copy"]).to eq("Reabrindo o mês…")
     expect(response.body).not_to include("Casar pagamentos")
     expect(response.body).not_to include("Fechar para envio")
   end

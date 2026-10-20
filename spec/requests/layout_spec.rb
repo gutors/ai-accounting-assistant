@@ -98,6 +98,30 @@ RSpec.describe "Layout header", type: :request do
     expect(header.css("button").map { |button| button.text.strip }).to include("Sair")
   end
 
+  it "wait overlay sits after main and stays hidden" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    get "/"
+
+    expect(response).to have_http_status(:ok)
+    doc = page_doc(response.body)
+    expect(doc.at_css("body")["data-controller"]).to eq("wait")
+    header = doc.at_css("header")
+    expect(header["class"]).to include("relative")
+    expect(header.at_css(".wait-rule")).not_to be_nil
+    wait = doc.at_css("#wait")
+    expect(wait["hidden"]).not_to be_nil
+    expect(wait["aria-hidden"]).to eq("true")
+    expect(wait["role"]).to eq("status")
+    expect(wait["aria-busy"]).to eq("false")
+    expect(wait["data-wait-target"]).to eq("panel")
+    expect(wait.at_css(".wait-veil")).not_to be_nil
+    copy = wait.at_css("[data-wait-target='copy']")
+    expect(copy.text.strip).to eq("Aguarde")
+    expect(doc.at_css("main").next_element).to eq(wait)
+  end
+
   it "GET / with empty flash has no toast" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)

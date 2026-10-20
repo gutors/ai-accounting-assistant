@@ -19,7 +19,7 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="min-h-full bg-paper text-ink antialiased">
+  <body class="min-h-full bg-paper text-ink antialiased" data-controller="wait">
     <%= render "layouts/header" %>
     <div id="toast-host">
       <% if flash[:toast].present? %>
@@ -29,5 +29,11 @@
     <main class="mx-auto mt-10 max-w-6xl px-5 pb-16 md:px-8">
       <%= yield %>
     </main>
+    <div id="wait" class="wait" data-wait-target="panel" hidden inert aria-hidden="true" role="status" aria-live="polite" aria-busy="false">
+      <div class="wait-veil" aria-hidden="true"></div>
+      <div class="wait-copy">
+        <p class="mx-auto max-w-6xl px-5 md:px-8" data-wait-target="copy">Aguarde</p>
+      </div>
+    </div>
   </body>
 </html>

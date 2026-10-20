@@ -1,4 +1,4 @@
-<header class="border-b border-rule bg-paper">
+<header class="relative border-b border-rule bg-paper">
   <div class="mx-auto flex min-h-14 max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-5 py-3 md:px-8">
     <p class="flex items-center gap-2 font-medium">
       <svg class="size-5 shrink-0" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
@@ -25,4 +25,5 @@
       <%= button_to "Sair", "/session", method: :delete, class: "text-caixa underline underline-offset-2" %>
     <% end %>
   </div>
+  <span class="wait-rule" aria-hidden="true"></span>
 </header>
