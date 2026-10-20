@@ -63,6 +63,8 @@ RSpec.describe "Document identify chrome", type: :system do
 
     attach_file "file", xml_path, make_visible: true
     expect(page).to have_content("Identificando o arquivo…")
+    expect(page).to have_no_css("body.is-waiting")
+    expect(page).to have_no_css("#wait:not([hidden])")
 
     click_button "Limpar"
     expect(page).to have_css("[data-document-identify-target=wait]", visible: true, text: "Inclua o documento. Valor, data e favorecido saem do arquivo.")
@@ -120,5 +122,7 @@ RSpec.describe "Document identify chrome", type: :system do
     attach_file "file", xml_path, make_visible: true
 
     expect(page).to have_content("Identificando o arquivo…")
+    expect(page).to have_no_css("body.is-waiting")
+    expect(page).to have_no_css("#wait:not([hidden])")
   end
 end

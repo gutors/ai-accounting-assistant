@@ -149,6 +149,8 @@ RSpec.describe "Document lote", type: :system do
     attach_file "file", write_upload("danfe-mercado.jpg", "jpeg-bytes"), make_visible: true
 
     expect(page).to have_content("Identificando o arquivo…")
+    expect(page).to have_no_css("body.is-waiting")
+    expect(page).to have_no_css("#wait:not([hidden])")
   end
 
   it "31st file is not added to the lote" do

@@ -142,7 +142,6 @@ export default class extends Controller {
   identify(item) {
     const data = this.formData()
     data.append("file", item.file, item.file.name)
-    document.dispatchEvent(new CustomEvent("wait:start", { detail: { copy: "Identificando o arquivo…" } }))
     fetch("/supporting_documents/identify", {
       method: "POST",
       body: data,
@@ -158,8 +157,6 @@ export default class extends Controller {
         this.applyIdentify(item, body)
       }
       this.render()
-    }).finally(() => {
-      document.dispatchEvent(new CustomEvent("wait:end"))
     })
   }
 
