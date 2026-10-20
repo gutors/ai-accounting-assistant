@@ -150,14 +150,19 @@ RSpec.describe "Document lote", type: :system do
     expect(find_field("payee").value).to eq("")
     %w[amount date payee].each { |field| expect(page).to have_css("[data-origin=#{field}]", text: "Digitado") }
     expect(page).to have_button("Incluir prontos (0)")
+    expect(page).to have_field("Observação (opcional)")
     one = find("[data-lote-one]")
     expect(one[:class]).to include("ds-btn-secondary")
     expect(page.evaluate_script("getComputedStyle(document.querySelector('[data-lote-one]')).paddingTop")).to eq("8px")
     expect(page.evaluate_script("getComputedStyle(document.querySelector('[data-lote-one]')).paddingLeft")).to eq("16px")
     expect(page.evaluate_script("getComputedStyle(document.querySelector('[data-lote-one]')).backgroundColor")).to eq("rgba(0, 0, 0, 0)")
+    expect(page.evaluate_script("getComputedStyle(document.querySelector('[data-lote-one]')).borderTopColor")).to include("27, 50, 41")
     retirar = find("[data-lote-remove]")
     expect(retirar[:class]).to include("ds-btn-secondary")
     expect(page.evaluate_script("getComputedStyle(document.querySelector('[data-lote-remove]')).color")).to include("180, 55, 42")
+    expect(page.evaluate_script("getComputedStyle(document.querySelector('[data-lote-remove]')).borderTopColor")).to include("180, 55, 42")
+    expect(page.evaluate_script("getComputedStyle(document.querySelector('[data-lote-remove]')).paddingTop")).to eq("8px")
+    expect(page.evaluate_script("getComputedStyle(document.querySelector('[data-lote-remove]')).paddingLeft")).to eq("16px")
   end
 
   it "Incluir este persists Padaria and keeps Farmácia in lote" do
@@ -285,6 +290,7 @@ RSpec.describe "Document lote", type: :system do
     open_lote
     attach_file "file", padaria_farmacia, make_visible: true
     wait_pronto("Padaria Central")
+    expect(page).to have_field("Observação (opcional)")
     expect(page).to have_css("[data-document-lote-target=editor] > div:nth-child(1) [data-document-lote-target=proof] #arquivo")
     expect(page).to have_css("[data-document-lote-target=editor] > [data-document-lote-target=toolbar]")
     expect(page).to have_css("[data-document-lote-target=editor] > [data-document-lote-target=sheet]")
