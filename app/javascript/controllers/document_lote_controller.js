@@ -83,12 +83,11 @@ export default class extends Controller {
     const sent = new Set(ready.map((item) => item.id))
     this.beginSend(sent)
     this.submit("/supporting_documents/batch", data).then((response) => {
-      this.endSend()
       if (!response.ok) return
       this.items = this.items.filter((item) => !sent.has(item.id))
       this.selected = this.items[0] ? this.items[0].id : null
       this.render()
-    })
+    }).finally(() => this.endSend())
   }
 
   beginSend(ids) {

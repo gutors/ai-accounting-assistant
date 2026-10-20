@@ -63,6 +63,16 @@ RSpec.describe "Document lote", type: :system do
     JS
   end
 
+  def fail_fetch(path)
+    page.execute_script(<<~JS)
+      const orig = window.fetch.bind(window)
+      window.fetch = (url, opts) => {
+        if (String(url).includes(#{path.to_json})) return Promise.reject(new TypeError("Failed to fetch"))
+        return orig(url, opts)
+      }
+    JS
+  end
+
   # A batch response re-renders the lote sheet and toolbar. Poll in JS (no node
   # handles) until that re-render has landed, so DOM-count matchers do not race it.
   def wait_for_lote_settled(rows:, ready_count:)
@@ -396,6 +406,18 @@ RSpec.describe "Document lote", type: :system do
     expect(page).to have_content("empty.jpg")
     expect(page).to have_button("Incluir prontos (1)")
     expect(SupportingDocument.count).to eq(2)
+  end
+
+  it "Incluir prontos is enabled again when the batch fails at the network level" do
+    open_lote
+    attach_file "file", padaria_farmacia, make_visible: true
+    wait_pronto("Farmácia São José")
+    fail_fetch("/supporting_documents/batch")
+    click_button "Incluir prontos (2)"
+
+    expect(page).to have_css("[data-lote-id]", count: 2)
+    expect(page).to have_button("Incluir prontos (2)", disabled: false)
+    expect(SupportingDocument.count).to eq(0)
   end
 
   def record_lote_kinds
