@@ -26,6 +26,7 @@ export default class extends Controller {
     const csrf = document.querySelector('meta[name="csrf-token"]')
     if (csrf) data.append("authenticity_token", csrf.content)
 
+    document.dispatchEvent(new CustomEvent("wait:start", { detail: { copy: "Identificando o arquivo…" } }))
     fetch("/supporting_documents/identify", {
       method: "POST",
       body: data,
@@ -40,6 +41,8 @@ export default class extends Controller {
       }
     }).catch(() => {
       this.resetWaitPrompt()
+    }).finally(() => {
+      document.dispatchEvent(new CustomEvent("wait:end"))
     })
   }
 

@@ -1900,7 +1900,7 @@ RSpec.describe SupportingDocument, type: :model do
   end
 
   def lote_chave(index)
-    "4326051122233300018155001000000001112345#{index.to_s.rjust(2, "0")}"
+    "4326051122233300018155001000000001112345#{(6780 + index).to_s.rjust(4, "0")}"
   end
 
   it "insert_batch two XMLs persists both or none" do
@@ -2012,6 +2012,49 @@ RSpec.describe SupportingDocument, type: :model do
 
     expect(SupportingDocument.count).to eq(0)
     expect(failure).to include("Faltam valor, data ou favorecido.")
+  end
+
+  def insert_batch_danfe
+    SupportingDocument.insert_batch(
+      organization: organization,
+      account: account,
+      documents: [ {
+        file: photo_jpg("danfe.jpg"),
+        kind: "nota_fiscal",
+        chave: nfe_chave,
+        amount: "155,00",
+        date: "2026-05-11",
+        payee: "Padaria Central"
+      } ]
+    )
+  end
+
+  it "insert_batch JPEG with chave skips photo extract" do
+    expect(PhotoSymbols.current).not_to receive(:scan)
+    expect(PhotoOcr).not_to receive(:text)
+    expect(PublicNfceConsulta.current).not_to receive(:fetch)
+    expect(PhotoFields.current).not_to receive(:read)
+
+    documents, failure = insert_batch_danfe
+
+    expect(failure).to be_nil
+    expect(documents.size).to eq(1)
+    expect(SupportingDocument.count).to eq(1)
+    expect(documents.first.chave).to eq(nfe_chave)
+    expect(documents.first.amount_cents).to eq(15500)
+  end
+
+  it "insert_batch JPEG with chave consulta attaches XML" do
+    install_a1
+    stub_xml_consulta
+
+    documents, failure = insert_batch_danfe
+
+    expect(failure).to be_nil
+    doc = documents.first
+    expect(doc.xml).to be_attached
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.payee).to eq("Padaria Central")
   end
 
   it "insert_batch both photo and XML persists none" do

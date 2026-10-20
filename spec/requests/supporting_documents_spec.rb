@@ -4012,7 +4012,7 @@ RSpec.describe "Supporting documents", type: :request do
   end
 
   def lote_chave(index)
-    "4326051122233300018155001000000001112345#{index.to_s.rjust(2, "0")}"
+    "4326051122233300018155001000000001112345#{(6780 + index).to_s.rjust(4, "0")}"
   end
 
   def batch_xml_item(name, payee:, index:, vnf: "155.00", date: "2026-05-11", amount: "155,00")
@@ -4063,6 +4063,17 @@ RSpec.describe "Supporting documents", type: :request do
     expect(file["multiple"]).to be_nil
     expect(section.text).to include("Inclua o documento. Valor, data e favorecido saem do arquivo.")
     expect(section.text).not_to include("Incluir prontos")
+  end
+
+  it "POST batch XML with chave persists" do
+    signed_in
+
+    post "/supporting_documents/batch", params: {
+      documents: [ batch_xml_item("proc-nfe-padaria.xml", payee: "Padaria Central", index: 0).merge(kind: "nota_fiscal", chave: lote_chave(0)) ]
+    }
+
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.last.chave).to eq(lote_chave(0))
   end
 
   it "POST batch two authorized XMLs persists both" do
@@ -4146,6 +4157,67 @@ RSpec.describe "Supporting documents", type: :request do
     doc = SupportingDocument.find_by!(organization: organization)
     expect(doc.account).to eq(account)
     expect(doc.xml).to be_attached
+  end
+
+  def batch_danfe_item
+    {
+      file: photo_jpg("danfe.jpg"),
+      kind: "nota_fiscal",
+      chave: nfe_chave,
+      amount: "155,00",
+      date: "2026-05-11",
+      payee: "Padaria Central"
+    }
+  end
+
+  it "POST batch JPEG with chave persists without photo extract" do
+    signed_in
+    expect(PhotoSymbols.current).not_to receive(:scan)
+    expect(PhotoOcr).not_to receive(:text)
+    expect(PublicNfceConsulta.current).not_to receive(:fetch)
+    expect(PhotoFields.current).not_to receive(:read)
+
+    post "/supporting_documents/batch", params: { documents: [ batch_danfe_item ] }
+
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.count).to eq(1)
+    doc = SupportingDocument.last
+    expect(doc.chave).to eq(nfe_chave)
+    expect(doc.amount_cents).to eq(15500)
+  end
+
+  it "POST batch JPEG with chave consulta attaches XML" do
+    _account, organization = signed_in
+    install_a1(organization)
+    stub_xml_consulta
+
+    post "/supporting_documents/batch", params: { documents: [ batch_danfe_item ] }
+
+    expect(response).to have_http_status(:found)
+    doc = SupportingDocument.last
+    expect(doc.xml).to be_attached
+    expect(doc.amount_cents).to eq(15500)
+    expect(doc.payee).to eq("Padaria Central")
+  end
+
+  it "POST batch recibo without chave persists chave nil" do
+    signed_in
+
+    post "/supporting_documents/batch", params: {
+      documents: [ {
+        file: photo_jpg("empty.jpg"),
+        kind: "recibo",
+        amount: "10,00",
+        date: "2026-05-10",
+        payee: "Mercado Bom Preço"
+      } ]
+    }
+
+    expect(response).to have_http_status(:found)
+    doc = SupportingDocument.last
+    expect(doc.kind).to eq("recibo")
+    expect(doc.chave).to be_nil
+    expect(doc.payee).to eq("Mercado Bom Preço")
   end
 
   it "POST batch photo and XML on one item 422 xor" do

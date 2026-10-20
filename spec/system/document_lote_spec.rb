@@ -24,7 +24,7 @@ RSpec.describe "Document lote", type: :system do
   end
 
   def lote_chave(index)
-    "4326051122233300018155001000000001112345#{index.to_s.rjust(2, "0")}"
+    "4326051122233300018155001000000001112345#{(6780 + index).to_s.rjust(4, "0")}"
   end
 
   def xml_path(name, **attrs)
@@ -377,34 +377,29 @@ RSpec.describe "Document lote", type: :system do
     expect(SupportingDocument.count).to eq(1)
   end
 
-  it "typing another row during a batch keeps Incluir prontos disabled" do
+  it "batch in flight holds the page and keeps Incluir prontos disabled" do
     open_lote
-    attach_file "file", padaria_farmacia + [ write_upload("empty.jpg", "jpeg-bytes") ], make_visible: true
+    attach_file "file", padaria_farmacia, make_visible: true
     wait_pronto("Farmácia São José")
     slow_fetch("/supporting_documents/batch", 2000)
     click_button "Incluir prontos (2)"
-    find("[data-lote-id]", text: "empty.jpg").click
-    find_field("amount").set("10,00")
 
+    expect(page).to have_css("body.is-waiting.is-waiting-copy")
+    expect(page).to have_content("Incluindo documentos…")
+    expect(page).to have_css("#wait:not([hidden])")
     expect(page).to have_css("[data-lote-ready][disabled]")
   end
 
-  it "row completed while a batch is in flight stays in lote" do
+  it "Digitar row stays in lote after prontos batch completes" do
     open_lote
     attach_file "file", padaria_farmacia + [ write_upload("empty.jpg", "jpeg-bytes") ], make_visible: true
     wait_pronto("Farmácia São José")
-    slow_fetch("/supporting_documents/batch", 2000)
     click_button "Incluir prontos (2)"
-    find("[data-lote-id]", text: "empty.jpg").click
-    find_field("amount").set("10,00")
-    find_field("date").set("2026-05-10")
-    find_field("payee").set("Mercado Bom Preço")
-    expect(page).to have_css("[data-lote-status]", text: "Pronto", count: 3)
 
-    wait_for_lote_settled(rows: 1, ready_count: 1)
+    wait_for_lote_settled(rows: 1, ready_count: 0)
     expect(page).to have_css("[data-lote-id]", count: 1)
     expect(page).to have_content("empty.jpg")
-    expect(page).to have_button("Incluir prontos (1)")
+    expect(page).to have_button("Incluir prontos (0)", disabled: false)
     expect(SupportingDocument.count).to eq(2)
   end
 
@@ -462,6 +457,141 @@ RSpec.describe "Document lote", type: :system do
 
     expect(page).to have_no_css("[data-lote-id]")
     expect(page.evaluate_script("window.__loteKinds")).to eq([ [ "nota_fiscal", "nota_fiscal", "recibo" ] ])
+  end
+
+  def record_lote_chaves
+    page.execute_script(<<~JS)
+      window.__loteChaves = []
+      const orig = window.fetch.bind(window)
+      window.fetch = (url, opts) => {
+        if (String(url).startsWith("/supporting_documents") && opts && opts.method === "POST") {
+          window.__loteChaves.push({
+            chave: opts.body.getAll("chave"),
+            documents: opts.body.getAll("documents[][chave]")
+          })
+        }
+        return orig(url, opts)
+      }
+    JS
+  end
+
+  it "Incluir prontos posts documents chave from identified XML" do
+    open_lote
+    attach_file "file", padaria_farmacia, make_visible: true
+    wait_pronto("Farmácia São José")
+    record_lote_chaves
+    click_button "Incluir prontos (2)"
+
+    expect(page).to have_css("#sem-mes", text: "Padaria Central")
+    posted = page.evaluate_script("window.__loteChaves")
+    expect(posted.first["chave"]).to eq([])
+    expect(posted.first["documents"]).to include(lote_chave(0))
+  end
+
+  it "Incluir este posts chave from identified XML" do
+    open_lote
+    attach_file "file", padaria_farmacia, make_visible: true
+    wait_pronto("Farmácia São José")
+    find("[data-lote-id]", text: "proc-nfe-padaria.xml").click
+    record_lote_chaves
+    click_button "Incluir este"
+
+    expect(page).to have_css("#sem-mes", text: "Padaria Central")
+    posted = page.evaluate_script("window.__loteChaves")
+    expect(posted.first["documents"]).to eq([])
+    expect(posted.first["chave"]).to eq([ lote_chave(0) ])
+  end
+
+  it "Incluir prontos recibo FormData has no chave" do
+    open_lote
+    attach_file "file", write_upload("empty.jpg", "jpeg-bytes"), make_visible: true
+    expect(page).to have_css("[data-lote-status]", text: "Digitar")
+    find("[data-lote-id]", text: "empty.jpg").click
+    find_field("amount").set("10,00")
+    find_field("date").set("2026-05-10")
+    find_field("payee").set("Mercado Bom Preço")
+    expect(page).to have_css("[data-lote-status]", text: "Pronto")
+    record_lote_chaves
+    click_button "Incluir prontos (1)"
+
+    expect(page).to have_no_css("[data-lote-id]")
+    posted = page.evaluate_script("window.__loteChaves")
+    expect(posted.first["chave"]).to eq([])
+    expect(posted.first["documents"].all?(&:blank?)).to be(true)
+    expect(SupportingDocument.find_by!(payee: "Mercado Bom Preço").chave).to be_nil
+  end
+
+  it "select Padaria chave sits under Tipo" do
+    open_lote
+    attach_file "file", padaria_farmacia, make_visible: true
+    wait_pronto("Padaria Central")
+    find("[data-lote-id]", text: "proc-nfe-padaria.xml").click
+
+    expect(page.find("label[for=chave]").text).to eq("Chave de acesso (opcional)")
+    chave = find_field("chave", disabled: true)
+    expect(chave.value).to eq(lote_chave(0))
+    expect(chave[:class]).to include("font-mono")
+    next_id = page.evaluate_script(<<~JS)
+      (function() {
+        var kind = document.querySelector("select#kind")
+        var named = Array.prototype.slice.call(document.querySelectorAll("input[name], select[name], textarea[name]"))
+        var after = named.filter(function(el) { return kind.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING })
+        return after[0] ? after[0].id : null
+      })()
+    JS
+    expect(next_id).to eq("chave")
+  end
+
+  it "select Digitar Recibo hides chave" do
+    open_lote
+    attach_file "file", write_upload("empty.jpg", "jpeg-bytes"), make_visible: true
+    expect(page).to have_content("Digitar")
+    find("[data-lote-id]", text: "empty.jpg").click
+
+    expect(page).to have_select("kind", selected: "Recibo", disabled: true)
+    expect(page).not_to have_css("#chave", visible: true)
+    expect(page.find("#chave", visible: :hidden).disabled?).to be(true)
+  end
+
+  it "selected jpg proof is blob img" do
+    open_lote
+    attach_file "file", write_upload("empty.jpg", "jpeg-bytes"), make_visible: true
+    find("[data-lote-id]", text: "empty.jpg").click
+
+    img = find("[data-document-lote-target=proof] img", visible: true)
+    expect(img[:alt]).to eq("empty.jpg")
+    expect(img[:src]).to start_with("blob:")
+  end
+
+  it "selected XML proof img is not visible" do
+    open_lote
+    attach_file "file", padaria_farmacia, make_visible: true
+    wait_pronto("Padaria Central")
+    find("[data-lote-id]", text: "proc-nfe-padaria.xml").click
+
+    expect(page).not_to have_css("[data-document-lote-target=proof] img", visible: true)
+  end
+
+  it "selected pdf proof is blob embed" do
+    open_lote
+    attach_file "file", write_upload("danfe.pdf", "%PDF-1.1"), make_visible: true
+    find("[data-lote-id]", text: "danfe.pdf").click
+
+    embed = find("[data-document-lote-target=proof] embed[type='application/pdf']", visible: true)
+    expect(embed[:src]).to start_with("blob:")
+  end
+
+  it "Retirar jpg leaves XML proof without img" do
+    open_lote
+    attach_file "file", padaria_farmacia + [ write_upload("empty.jpg", "jpeg-bytes") ], make_visible: true
+    wait_pronto("Padaria Central")
+    find("[data-lote-id]", text: "empty.jpg").click
+    expect(page).to have_css("[data-document-lote-target=proof] img", visible: true)
+    click_button "Retirar"
+
+    expect(page).to have_no_content("empty.jpg")
+    expect(page).to have_css("[data-lote-id]", text: "proc-nfe-padaria.xml")
+    expect(page).not_to have_css("[data-document-lote-target=proof] img", visible: true)
   end
 
   it "a zero Valor keeps a Digitar row out of Pronto" do

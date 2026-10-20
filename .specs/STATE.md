@@ -2,10 +2,10 @@
 
 ## Handoff
 
-**Feature**: coordinator-batch-document-insert
-**Where**: built and verified on `coordinator-batch-document-insert` (`fd66901..HEAD`). Checks in `.checks/coordinator-batch-document-insert.md`. Report `.checks/coordinator-batch-document-insert.verified.md`. Profile `ui`. Verifier round 1 FAIL (C8 borders, Observação); round 2 PASS.
+**Feature**: lote-insert-proof-and-chave
+**Where**: built and verified on `lote-insert-proof-and-chave` (`b263d9a..HEAD`). Checks in `.checks/lote-insert-proof-and-chave.md`. Report `.checks/lote-insert-proof-and-chave.verified.md`. Profile `ui`. Verifier round 1 FAIL (C4 FormData key); round 2 PASS.
 **In progress**: none
 **Next step**: PR to `main` when asked. No GitHub issue yet (task named none).
 **Blockers**: none.
-**Branch**: coordinator-batch-document-insert
+**Branch**: lote-insert-proof-and-chave
 **Issues**: none

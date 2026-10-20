@@ -7,7 +7,8 @@ const XML_UNREADABLE = "O XML da nota fiscal não pôde ser lido"
 export default class extends Controller {
   static targets = [
     "input", "drop", "editor", "proof", "proofMeta", "proofWho", "proofHint",
-    "arquivo", "kind", "amount", "date", "payee", "observation",
+    "arquivo", "kind", "chave", "chaveWrap", "amount", "date", "payee", "observation",
+    "thumb", "pdfThumb",
     "amountOrigin", "dateOrigin", "payeeOrigin", "toolbar", "sheet", "pair"
   ]
 
@@ -79,12 +80,16 @@ export default class extends Controller {
       data.append("documents[][date]", item.date)
       data.append("documents[][payee]", item.payee)
       if (item.observation) data.append("documents[][observation]", item.observation)
+      if (item.chave) data.append("documents[][chave]", item.chave)
     })
     const sent = new Set(ready.map((item) => item.id))
     this.beginSend(sent)
     this.submit("/supporting_documents/batch", data).then((response) => {
       if (!response.ok) return
-      this.items = this.items.filter((item) => !sent.has(item.id))
+      this.items = this.items.filter((item) => {
+        if (sent.has(item.id)) this.revokePreview(item)
+        return !sent.has(item.id)
+      })
       this.selected = this.items[0] ? this.items[0].id : null
       this.render()
     }).finally(() => this.endSend())
@@ -106,6 +111,7 @@ export default class extends Controller {
     const item = this.selectedItem()
     if (!item) return
     this.items = this.items.filter((row) => row.id !== item.id)
+    this.revokePreview(item)
     this.selected = this.items[0] ? this.items[0].id : null
     this.render()
   }
@@ -136,6 +142,7 @@ export default class extends Controller {
   identify(item) {
     const data = this.formData()
     data.append("file", item.file, item.file.name)
+    document.dispatchEvent(new CustomEvent("wait:start", { detail: { copy: "Identificando o arquivo…" } }))
     fetch("/supporting_documents/identify", {
       method: "POST",
       body: data,
@@ -151,6 +158,8 @@ export default class extends Controller {
         this.applyIdentify(item, body)
       }
       this.render()
+    }).finally(() => {
+      document.dispatchEvent(new CustomEvent("wait:end"))
     })
   }
 
@@ -183,15 +192,18 @@ export default class extends Controller {
     data.append("date", item.date)
     data.append("payee", item.payee)
     if (item.observation) data.append("observation", item.observation)
+    if (item.chave) data.append("chave", item.chave)
     return this.submit("/supporting_documents", data).then((response) => {
       if (!response.ok) return
       this.items = this.items.filter((row) => row.id !== item.id)
+      this.revokePreview(item)
       this.selected = this.items[0] ? this.items[0].id : null
       this.render()
     })
   }
 
   submit(url, data) {
+    document.dispatchEvent(new CustomEvent("wait:start", { detail: { copy: "Incluindo documentos…" } }))
     return fetch(url, {
       method: "POST",
       body: data,
@@ -201,6 +213,8 @@ export default class extends Controller {
       const body = await response.text()
       if (window.Turbo) window.Turbo.renderStreamMessage(body)
       return response
+    }).finally(() => {
+      document.dispatchEvent(new CustomEvent("wait:end"))
     })
   }
 
@@ -266,6 +280,9 @@ export default class extends Controller {
     if (!item) return
     this.arquivoTarget.value = item.arquivo
     this.kindTarget.value = item.kind || (item.arquivo === "XML" ? "nota_fiscal" : "recibo")
+    this.chaveTarget.value = item.chave || ""
+    this.chaveTarget.disabled = true
+    this.chaveWrapTarget.hidden = this.kindTarget.value !== "nota_fiscal"
     this.amountTarget.value = item.amount
     this.dateTarget.value = item.date
     this.payeeTarget.value = item.payee
@@ -284,6 +301,56 @@ export default class extends Controller {
     this.proofMetaTarget.textContent = `${item.arquivo} · ${item.filename}`
     this.proofWhoTarget.textContent = item.kindLabel || (item.kind === "recibo" ? "Recibo" : "")
     this.proofHintTarget.textContent = item.arquivo === "Foto" ? "Foto · sem leitura nesta versão" : item.arquivo
+    this.paintProof(item)
+  }
+
+  paintProof(item) {
+    const file = item.file
+    const showImage = this.imageFile(file)
+    const showPdf = this.pdfFile(file)
+    if ((showImage || showPdf) && !item.previewUrl) item.previewUrl = URL.createObjectURL(file)
+    if (showImage) {
+      this.thumbTarget.src = item.previewUrl
+      this.thumbTarget.alt = file.name
+      this.thumbTarget.hidden = false
+      this.thumbTarget.classList.remove("hidden")
+      this.pdfThumbTarget.removeAttribute("src")
+      this.pdfThumbTarget.hidden = true
+      this.pdfThumbTarget.classList.add("hidden")
+      return
+    }
+    if (showPdf) {
+      this.pdfThumbTarget.setAttribute("src", item.previewUrl)
+      this.pdfThumbTarget.hidden = false
+      this.pdfThumbTarget.classList.remove("hidden")
+      this.thumbTarget.removeAttribute("src")
+      this.thumbTarget.alt = ""
+      this.thumbTarget.hidden = true
+      this.thumbTarget.classList.add("hidden")
+      return
+    }
+    this.thumbTarget.removeAttribute("src")
+    this.thumbTarget.alt = ""
+    this.thumbTarget.hidden = true
+    this.thumbTarget.classList.add("hidden")
+    this.pdfThumbTarget.removeAttribute("src")
+    this.pdfThumbTarget.hidden = true
+    this.pdfThumbTarget.classList.add("hidden")
+  }
+
+  imageFile(file) {
+    return (file.type && file.type.startsWith("image/")) || /\.(jpe?g|png|webp)$/i.test(file.name)
+  }
+
+  pdfFile(file) {
+    return file.type === "application/pdf" || /\.pdf$/i.test(file.name)
+  }
+
+  revokePreview(item) {
+    if (item.previewUrl) {
+      URL.revokeObjectURL(item.previewUrl)
+      item.previewUrl = null
+    }
   }
 
   selectedItem() {
