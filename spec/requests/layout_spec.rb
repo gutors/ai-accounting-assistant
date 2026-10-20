@@ -187,9 +187,8 @@ RSpec.describe "Layout header", type: :request do
       expect(toast["data-toast-timeout-ms"]).to eq("5000")
       expect(toast.text).to include("O convite foi gravado, mas o e-mail não saiu.")
       expect(toast.at_css("button").text.strip).to eq("Fechar")
-      expect(toast["class"]).to include("text-margem")
-      expect(toast["class"]).to include("border-l-[3px]")
-      expect(toast["class"]).to include("border-margem")
+      expect(toast["class"]).to include("bg-margem")
+      expect(toast["class"]).to include("text-white")
       host = doc.at_css("#toast-host")
       expect(host).not_to be_nil
       expect(doc.at_css("header").next_element).to eq(host)

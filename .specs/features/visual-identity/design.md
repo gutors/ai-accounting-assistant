@@ -141,10 +141,10 @@ every existing error message (`@import_error`, `@month_error`, `@document_error`
 ### Toast
 
 Layout banner immediately after `header` and before `main`. One `[data-toast]` at a time.
-Success: fill `caixa`, white text, `role="status"`. Error: `margem` rule like Notice
-(`border-l-[3px] border-margem`, `text-margem`), `role="alert"`, not `[data-notice]`.
-Timeout `5000` ms. Dismiss control text `Fechar`. Stimulus removes the node. No CSS
-`transition` or `@keyframes`. `prefers-reduced-motion` does not change the timeout.
+Success: fill `caixa`, white text, `role="status"`. Error: fill `margem`, white text,
+`role="alert"`, not `[data-notice]`. Timeout `5000` ms. Dismiss control text `Fechar`.
+Stimulus removes the node. No CSS `transition` or `@keyframes`. `prefers-reduced-motion`
+does not change the timeout.
 
 ### Empty state
 

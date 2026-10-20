@@ -3,6 +3,7 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   connect() {
     const timeoutMs = Number(this.element.dataset.toastTimeoutMs)
+    if (!timeoutMs) return
     this.timeoutId = window.setTimeout(() => this.dismiss(), timeoutMs)
   }
 

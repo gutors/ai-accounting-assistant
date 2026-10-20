@@ -236,6 +236,11 @@ RSpec.describe "Document lote", type: :system do
     find("[data-lote-id]", text: "empty.jpg").click
     click_button "Incluir este"
 
+    toast = find("[data-toast][data-toast-kind=error]", text: "Informe valor, data e favorecido")
+    expect(toast[:class]).to include("bg-margem")
+    expect(toast[:class]).to include("text-white")
+    expect(toast[:class]).to include("py-3")
+    expect(page).to have_content("empty.jpg")
     expect(SupportingDocument.count).to eq(0)
   end
 
@@ -390,6 +395,36 @@ RSpec.describe "Document lote", type: :system do
     expect(page).to have_content("Incluindo documentos…")
     expect(page).to have_css("#wait:not([hidden])")
     expect(page).to have_css("[data-lote-ready][disabled]")
+  end
+
+  it "Incluir este in flight does not hold the page and leaves the other row editable" do
+    open_lote
+    attach_file "file", padaria_farmacia + [ write_upload("empty.jpg", "jpeg-bytes") ], make_visible: true
+    wait_pronto("Farmácia São José")
+    find("[data-lote-id]", text: "proc-nfe-padaria.xml").click
+    page.execute_script(<<~JS)
+      const orig = window.fetch.bind(window)
+      window.fetch = (url, opts) => {
+        if (String(url) === "/supporting_documents" && opts && opts.method === "POST") {
+          return new Promise((resolve) => {
+            window.setTimeout(() => orig(url, opts).then(resolve), 2000)
+          })
+        }
+        return orig(url, opts)
+      }
+    JS
+    click_button "Incluir este"
+
+    expect(page).to have_no_css("body.is-waiting")
+    expect(page).to have_no_css("#wait:not([hidden])")
+    expect(page).to have_css("[data-toast][data-toast-kind=progress]", text: "Incluindo documento…")
+    expect(find("[data-toast]")[:class]).to include("bg-caixa")
+    find("[data-lote-id]", text: "empty.jpg").click
+    find_field("amount").set("10,00")
+    find_field("date").set("2026-05-10")
+    find_field("payee").set("Mercado Bom Preço")
+    expect(find("[data-lote-id]", text: "empty.jpg")).to have_css("[data-lote-status]", text: "Pronto")
+    expect(page).to have_field("amount", with: "10,00")
   end
 
   it "Digitar row stays in lote after prontos batch completes" do

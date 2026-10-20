@@ -3,6 +3,8 @@ import { Controller } from "@hotwired/stimulus"
 const MAX = 30
 const MAX_NOTICE = "No máximo 30 arquivos neste lote"
 const XML_UNREADABLE = "O XML da nota fiscal não pôde ser lido"
+const MISSING_FIELDS = "Informe valor, data e favorecido"
+const INCLUDING = "Incluindo documento…"
 
 export default class extends Controller {
   static targets = [
@@ -63,14 +65,26 @@ export default class extends Controller {
 
   includeOne() {
     const item = this.selectedItem()
-    if (!item || item.status !== "pronto" || this.busy) return
-    this.beginSend([ item.id ])
-    this.postOne(item).finally(() => this.endSend())
+    if (!item || this.busy || this.sending.has(item.id)) return
+    if (item.status === "digitar") {
+      this.toast(MISSING_FIELDS)
+      return
+    }
+    if (item.status !== "pronto") return
+    this.sending.add(item.id)
+    this.renderToolbar()
+    this.toast(INCLUDING, "progress")
+    this.postOne(item).finally(() => {
+      this.sending.delete(item.id)
+      this.renderToolbar()
+      const pending = document.querySelector('[data-toast-kind="progress"]')
+      if (pending) pending.remove()
+    })
   }
 
   includeReady() {
     if (this.busy) return
-    const ready = this.items.filter((item) => item.status === "pronto")
+    const ready = this.items.filter((item) => item.status === "pronto" && !this.sending.has(item.id))
     if (!ready.length) return
     const data = this.formData()
     ready.forEach((item) => {
@@ -82,28 +96,29 @@ export default class extends Controller {
       if (item.observation) data.append("documents[][observation]", item.observation)
       if (item.chave) data.append("documents[][chave]", item.chave)
     })
-    const sent = new Set(ready.map((item) => item.id))
+    const sent = ready.map((item) => item.id)
     this.beginSend(sent)
-    this.submit("/supporting_documents/batch", data).then((response) => {
+    this.submit("/supporting_documents/batch", data, true).then((response) => {
       if (!response.ok) return
+      const sentIds = new Set(sent)
       this.items = this.items.filter((item) => {
-        if (sent.has(item.id)) this.revokePreview(item)
-        return !sent.has(item.id)
+        if (sentIds.has(item.id)) this.revokePreview(item)
+        return !sentIds.has(item.id)
       })
       this.selected = this.items[0] ? this.items[0].id : null
       this.render()
-    }).finally(() => this.endSend())
+    }).finally(() => this.endSend(sent))
   }
 
   beginSend(ids) {
     this.busy = true
-    this.sending = new Set(ids)
+    ids.forEach((id) => this.sending.add(id))
     this.renderToolbar()
   }
 
-  endSend() {
+  endSend(ids) {
+    ids.forEach((id) => this.sending.delete(id))
     this.busy = false
-    this.sending = new Set()
     this.renderToolbar()
   }
 
@@ -190,7 +205,7 @@ export default class extends Controller {
     data.append("payee", item.payee)
     if (item.observation) data.append("observation", item.observation)
     if (item.chave) data.append("chave", item.chave)
-    return this.submit("/supporting_documents", data).then((response) => {
+    return this.submit("/supporting_documents", data, false).then((response) => {
       if (!response.ok) return
       this.items = this.items.filter((row) => row.id !== item.id)
       this.revokePreview(item)
@@ -199,8 +214,8 @@ export default class extends Controller {
     })
   }
 
-  submit(url, data) {
-    document.dispatchEvent(new CustomEvent("wait:start", { detail: { copy: "Incluindo documentos…" } }))
+  submit(url, data, hold) {
+    if (hold) document.dispatchEvent(new CustomEvent("wait:start", { detail: { copy: "Incluindo documentos…" } }))
     return fetch(url, {
       method: "POST",
       body: data,
@@ -211,7 +226,7 @@ export default class extends Controller {
       if (window.Turbo) window.Turbo.renderStreamMessage(body)
       return response
     }).finally(() => {
-      document.dispatchEvent(new CustomEvent("wait:end"))
+      if (hold) document.dispatchEvent(new CustomEvent("wait:end"))
     })
   }
 
@@ -383,6 +398,20 @@ export default class extends Controller {
     if (!node) return
     node.hidden = false
     node.textContent = message
+  }
+
+  toast(message, kind = "error") {
+    const host = document.getElementById("toast-host")
+    if (!host) return
+    const error = kind === "error"
+    const persist = kind === "progress"
+    const fill = error ? "bg-margem" : "bg-caixa"
+    host.innerHTML = `
+      <div data-controller="toast" data-toast data-toast-kind="${this.escape(kind)}" data-toast-timeout-ms="${persist ? "0" : "5000"}" role="${error ? "alert" : "status"}" class="mx-auto mt-6 flex max-w-6xl items-start justify-between gap-4 ${fill} px-5 py-3 text-white md:px-8">
+        <p>${this.escape(message)}</p>
+        <button type="button" data-action="toast#dismiss">Fechar</button>
+      </div>
+    `
   }
 
   noticeText(body) {
