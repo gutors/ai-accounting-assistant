@@ -74,6 +74,7 @@ export default class extends Controller {
     const data = this.formData()
     ready.forEach((item) => {
       data.append("documents[][file]", item.file, item.file.name)
+      data.append("documents[][kind]", item.kind)
       data.append("documents[][amount]", item.amount)
       data.append("documents[][date]", item.date)
       data.append("documents[][payee]", item.payee)
@@ -178,6 +179,7 @@ export default class extends Controller {
   postOne(item) {
     const data = this.formData()
     data.append("file", item.file, item.file.name)
+    data.append("kind", item.kind)
     data.append("amount", item.amount)
     data.append("date", item.date)
     data.append("payee", item.payee)
@@ -290,7 +292,7 @@ export default class extends Controller {
   }
 
   ready(item) {
-    return !!(item.amount && item.date && item.payee)
+    return /[1-9]/.test(item.amount || "") && !!(item.date && item.payee)
   }
 
   statusCopy(item) {

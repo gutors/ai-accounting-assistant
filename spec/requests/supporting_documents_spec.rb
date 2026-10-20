@@ -224,18 +224,15 @@ RSpec.describe "Supporting documents", type: :request do
     buttons.first
   end
 
-  def echoed_insert_fields(body)
-    form = insert_form(body)
-    {
-      kind: selected_option_value(form.at_css("select#kind")),
-      amount: form.at_css("#amount")["value"].to_s,
-      date: form.at_css("#date")["value"].to_s,
-      payee: form.at_css("#payee")["value"].to_s,
-      observation: form.at_css("#observation").text,
-      chave: form.at_css("#chave")["value"].to_s,
-      photo: form.at_css("#file"),
-      xml: form.at_css("#file")
-    }
+  # The coordinator's insert is the JS-driven lote (no submit button, no chave field).
+  # A refused POST re-renders it empty; the typed values are not echoed back.
+  def expect_lote_insert_form(body)
+    section = page_doc(body).at_css('section[data-controller="document-lote"]')
+    expect(section).not_to be_nil
+    form = section.at_css('form[action="/supporting_documents"][method="post"]')
+    expect(form).not_to be_nil
+    expect(form.at_css('input[type="file"]#file')).not_to be_nil
+    expect(form.at_css("button[type=submit], input[type=submit]")).to be_nil
   end
 
   def session_blob_stash(organization)
@@ -246,18 +243,6 @@ RSpec.describe "Supporting documents", type: :request do
       ),
       session: session.to_hash.values
     }
-  end
-
-  def expect_echoed_document_texts(fields)
-    expect(fields[:amount]).to eq("155,00")
-    expect(fields[:date]).to eq("2026-05-11")
-    expect(fields[:payee]).to eq("Padaria Central")
-    expect(fields[:observation].strip).to eq("pago em dinheiro")
-  end
-
-  def expect_empty_file_input(node)
-    expect(node["type"]).to eq("file")
-    expect(node["value"].to_s).to eq("")
   end
 
   def expect_no_stash(before, organization, passphrase: nil, der: nil)
@@ -362,7 +347,7 @@ RSpec.describe "Supporting documents", type: :request do
     expect(toast.text).to include("Recibo não tem XML")
   end
 
-  it "POST nota_fiscal without files echoes insert fields on 422" do
+  it "POST nota_fiscal without files returns 422 with the lote insert form and no blob" do
     _account, organization = signed_in
     before = session_blob_stash(organization)
 
@@ -377,14 +362,11 @@ RSpec.describe "Supporting documents", type: :request do
     toast = toast_node(response.body)
     expect(toast["data-toast-kind"]).to eq("error")
     expect(toast.text).to include("Envie a foto ou o XML")
-    fields = echoed_insert_fields(response.body)
-    expect(fields[:kind]).to eq("nota_fiscal")
-    expect_echoed_document_texts(fields)
-    expect_empty_file_input(fields[:photo])
+    expect_lote_insert_form(response.body)
     expect_no_stash(before, organization)
   end
 
-  it "POST recibo with XML echoes insert fields on 422 and creates no blob" do
+  it "POST recibo with XML returns 422 with the lote insert form and creates no blob" do
     _account, organization = signed_in
     before = session_blob_stash(organization)
 
@@ -398,14 +380,11 @@ RSpec.describe "Supporting documents", type: :request do
     toast = toast_node(response.body)
     expect(toast["data-toast-kind"]).to eq("error")
     expect(toast.text).to include("Recibo não tem XML")
-    fields = echoed_insert_fields(response.body)
-    expect(fields[:kind]).to eq("recibo")
-    expect_echoed_document_texts(fields)
-    expect_empty_file_input(fields[:xml])
+    expect_lote_insert_form(response.body)
     expect_no_stash(before, organization)
   end
 
-  it "POST nota_fiscal chave 123 echoes chave and insert fields on 422" do
+  it "POST nota_fiscal chave 123 returns 422 with the lote insert form" do
     _account, organization = signed_in
     before = session_blob_stash(organization)
 
@@ -419,10 +398,7 @@ RSpec.describe "Supporting documents", type: :request do
     toast = toast_node(response.body)
     expect(toast["data-toast-kind"]).to eq("error")
     expect(toast.text).to include("Informe a chave de acesso com 44 dígitos")
-    fields = echoed_insert_fields(response.body)
-    expect(fields[:kind]).to eq("nota_fiscal")
-    expect(fields[:chave]).to eq("123")
-    expect_echoed_document_texts(fields)
+    expect_lote_insert_form(response.body)
     expect_no_stash(before, organization)
   end
 
@@ -452,6 +428,27 @@ RSpec.describe "Supporting documents", type: :request do
     expect(SupportingDocument.find_by!(organization: organization).chave).to eq("43260511222333000181550010000000011123456781")
   end
 
+  it "POST recibo keeps the posted kind when the photo now carries a chave" do
+    _account, organization = signed_in
+    stub_photo_symbols("lote-recibo.jpg", chave: nfe_chave)
+
+    post "/supporting_documents", params: recibo_params(photo: photo_named("lote-recibo.jpg"))
+
+    document = SupportingDocument.find_by!(organization: organization)
+    expect(document.kind).to eq("recibo")
+    expect(document.chave).to be_nil
+  end
+
+  it "POST nota_fiscal keeps the posted kind when the photo delivers nothing" do
+    _account, organization = signed_in
+
+    post "/supporting_documents", params: nota_params(photo: photo_named("lote-nota.jpg"))
+
+    document = SupportingDocument.find_by!(organization: organization)
+    expect(document.kind).to eq("nota_fiscal")
+    expect(document.amount_cents).to eq(15500)
+  end
+
   # Ledger arrangement (visual-identity C44, C45, C47, C48)
 
   def editar_link(document_row)
@@ -470,7 +467,9 @@ RSpec.describe "Supporting documents", type: :request do
     first_section = page.css("section").first
     insert_form = first_section.css("form").find { |node| node["action"] == "/supporting_documents" && node["method"] == "post" }
     expect(insert_form).not_to be_nil
-    expect(insert_form.at_css('input[type="submit"][value="Incluir documento"]')).not_to be_nil
+    expect(first_section["data-controller"]).to eq("document-lote")
+    expect(insert_form.at_css('button[data-document-lote-target="drop"]')).not_to be_nil
+    expect(insert_form.at_css('input[type="submit"]')).to be_nil
 
     document_row = row(response.body, "document", document_id: document.id)
     expect(document_row).not_to be_nil
@@ -2571,7 +2570,6 @@ RSpec.describe "Supporting documents", type: :request do
     expect(response.body).to include('id="amount"')
     expect(response.body).to include('id="date"')
     expect(response.body).to include('id="payee"')
-    expect(response.body).to include('id="chave"')
     expect(response.body).to include('id="file"')
   end
 

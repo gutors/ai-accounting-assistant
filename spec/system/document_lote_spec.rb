@@ -63,6 +63,24 @@ RSpec.describe "Document lote", type: :system do
     JS
   end
 
+  # A batch response re-renders the lote sheet and toolbar. Poll in JS (no node
+  # handles) until that re-render has landed, so DOM-count matchers do not race it.
+  def wait_for_lote_settled(rows:, ready_count:)
+    script = <<~JS
+      (() => {
+        const ready = document.querySelector("[data-lote-ready]")
+        return document.querySelectorAll("[data-lote-id]").length === #{rows} &&
+          !!ready && !ready.disabled && ready.textContent.includes("(#{ready_count})")
+      })()
+    JS
+    deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + Capybara.default_max_wait_time
+    until page.evaluate_script(script)
+      raise "lote did not settle to #{rows} row(s)" if Process.clock_gettime(Process::CLOCK_MONOTONIC) > deadline
+
+      sleep 0.05
+    end
+  end
+
   it "coordinator identify two XMLs fills lote without persisting" do
     open_lote
     attach_file "file", padaria_farmacia, make_visible: true
@@ -373,9 +391,70 @@ RSpec.describe "Document lote", type: :system do
     find_field("payee").set("Mercado Bom Preço")
     expect(page).to have_css("[data-lote-status]", text: "Pronto", count: 3)
 
+    wait_for_lote_settled(rows: 1, ready_count: 1)
     expect(page).to have_css("[data-lote-id]", count: 1)
     expect(page).to have_content("empty.jpg")
     expect(page).to have_button("Incluir prontos (1)")
     expect(SupportingDocument.count).to eq(2)
+  end
+
+  def record_lote_kinds
+    page.execute_script(<<~JS)
+      window.__loteKinds = []
+      const orig = window.fetch.bind(window)
+      window.fetch = (url, opts) => {
+        if (String(url).startsWith("/supporting_documents") && opts && opts.method === "POST") {
+          window.__loteKinds.push(opts.body.getAll("kind").concat(opts.body.getAll("documents[][kind]")))
+        }
+        return orig(url, opts)
+      }
+    JS
+  end
+
+  it "Incluir este sends the photo row kind it showed" do
+    open_lote
+    attach_file "file", write_upload("empty.jpg", "jpeg-bytes"), make_visible: true
+    expect(page).to have_css("[data-lote-status]", text: "Digitar")
+    find("[data-lote-id]", text: "empty.jpg").click
+    record_lote_kinds
+    find_field("amount").set("10,00")
+    find_field("date").set("2026-05-10")
+    find_field("payee").set("Mercado Bom Preço")
+    click_button "Incluir este"
+
+    expect(page).to have_no_css("[data-lote-id]")
+    expect(page.evaluate_script("window.__loteKinds")).to eq([ [ "recibo" ] ])
+    expect(SupportingDocument.find_by!(payee: "Mercado Bom Preço").kind).to eq("recibo")
+  end
+
+  it "Incluir prontos sends the kind of every row it includes" do
+    open_lote
+    attach_file "file", padaria_farmacia + [ write_upload("empty.jpg", "jpeg-bytes") ], make_visible: true
+    wait_pronto("Farmácia São José")
+    find("[data-lote-id]", text: "empty.jpg").click
+    find_field("amount").set("10,00")
+    find_field("date").set("2026-05-10")
+    find_field("payee").set("Mercado Bom Preço")
+    record_lote_kinds
+    click_button "Incluir prontos (3)"
+
+    expect(page).to have_no_css("[data-lote-id]")
+    expect(page.evaluate_script("window.__loteKinds")).to eq([ [ "nota_fiscal", "nota_fiscal", "recibo" ] ])
+  end
+
+  it "a zero Valor keeps a Digitar row out of Pronto" do
+    open_lote
+    attach_file "file", write_upload("empty.jpg", "jpeg-bytes"), make_visible: true
+    expect(page).to have_css("[data-lote-status]", text: "Digitar")
+    find("[data-lote-id]", text: "empty.jpg").click
+    find_field("amount").set("10,00")
+    find_field("date").set("2026-05-10")
+    find_field("payee").set("Mercado Bom Preço")
+    expect(page).to have_css("[data-lote-status]", text: "Pronto")
+
+    find_field("amount").set("0,00")
+
+    expect(page).to have_css("[data-lote-status]", text: "Digitar")
+    expect(page).to have_button("Incluir prontos (0)")
   end
 end
