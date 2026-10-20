@@ -17,6 +17,7 @@ class SupportingDocument < ApplicationRecord
   PAYEE_LENGTH = "Favorecido pode ter no máximo 200 caracteres"
   HAS_MONTH = "Documento já pertence a um mês"
   XML_UNREADABLE = "O XML da nota fiscal não pôde ser lido"
+  BATCH_MISSING = "Faltam valor, data ou favorecido."
   XML_UNSUPPORTED = "Este XML não é NF-e, NFC-e, NFS-e nacional, NFCom ou NF3e"
   LOCKED_FIELDS = "Valor, data e favorecido vêm da nota e não podem ser alterados"
   CHAVE_DIGITS = "Informe a chave de acesso com 44 dígitos"
@@ -37,7 +38,7 @@ class SupportingDocument < ApplicationRecord
 
   enum :kind, { nota_fiscal: "nota_fiscal", recibo: "recibo" }, validate: true
 
-  attr_accessor :preview_only, :intake_filename, :intake_arquivo
+  attr_accessor :preview_only, :defer_persist, :intake_filename, :intake_arquivo
 
   scope :listed, -> { with_attached_photo.with_attached_xml.order(document_on: :desc, id: :desc) }
   scope :unmatched, -> { where(match_id: nil) }
@@ -63,6 +64,47 @@ class SupportingDocument < ApplicationRecord
     new(organization: organization, account: account).tap do |doc|
       doc.submit(kind: kind, amount: amount, date: date, payee: payee, observation: observation, photo: photo, xml: xml, chave: chave)
     end
+  end
+
+  # Lookups (SEFAZ, OCR, public NFC-e) run per row before any transaction opens.
+  # Rows only write once every row has passed, inside one transaction.
+  def self.insert_batch(organization:, account:, documents:)
+    pending = []
+    Array(documents).each do |raw|
+      item = raw.respond_to?(:to_unsafe_h) ? raw.to_unsafe_h : raw.to_h
+      item = item.symbolize_keys
+      file = item[:file]
+      filename = file.respond_to?(:original_filename) ? file.original_filename.to_s : "arquivo"
+      if item[:amount].to_s.strip.empty? || item[:date].to_s.strip.empty? || item[:payee].to_s.strip.empty?
+        return [ [], "#{filename} #{BATCH_MISSING}" ]
+      end
+
+      photo, xml = slot_uploads(file, item[:photo], item[:xml])
+      doc = new(organization: organization, account: account)
+      doc.defer_persist = true
+      doc.submit(
+        kind: item[:kind],
+        amount: item[:amount],
+        date: item[:date],
+        payee: item[:payee],
+        observation: item[:observation],
+        photo: photo,
+        xml: xml,
+        chave: item[:chave]
+      )
+      return [ [], doc.errors[:base].first ] unless doc.errors.empty?
+
+      pending << doc
+    end
+
+    inserted = []
+    transaction do
+      pending.each do |doc|
+        doc.commit_deferred!
+        inserted << doc
+      end
+    end
+    [ inserted, nil ]
   end
 
   def apply(**attrs)
@@ -509,6 +551,10 @@ class SupportingDocument < ApplicationRecord
     end
   end
 
+  def commit_deferred!
+    write_intake(**@pending_write)
+  end
+
   private
 
   def persist_document(kind:, amount_cents:, document_on:, payee:, observation:, photo:, xml:, chave:, fields_origin:, identified_xml: nil, sefaz_confirm_pending: false)
@@ -517,6 +563,15 @@ class SupportingDocument < ApplicationRecord
     )
     return if preview_only
 
+    pending_write = { photo: photo, xml: xml, identified_xml: identified_xml }
+    if defer_persist
+      @pending_write = pending_write
+    else
+      write_intake(**pending_write)
+    end
+  end
+
+  def write_intake(photo:, xml:, identified_xml:)
     transaction do
       save!
       self.photo.attach(photo) if photo

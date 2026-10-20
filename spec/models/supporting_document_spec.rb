@@ -1899,6 +1899,138 @@ RSpec.describe SupportingDocument, type: :model do
     PhotoSymbols.reset!
   end
 
+  def lote_chave(index)
+    "4326051122233300018155001000000001112345#{index.to_s.rjust(2, "0")}"
+  end
+
+  it "insert_batch two XMLs persists both or none" do
+    documents, failure = SupportingDocument.insert_batch(
+      organization: organization,
+      account: account,
+      documents: [
+        {
+          file: authorized_xml("proc-nfe-padaria.xml", emit: "Padaria Central", chave: lote_chave(0)),
+          amount: "155,00",
+          date: "2026-05-11",
+          payee: "Padaria Central"
+        },
+        {
+          file: authorized_xml("proc-nfe-farmacia.xml", vnf: "89.40", emit: "Farmácia São José", dhemi: "2026-05-03T10:00:00-03:00", chave: lote_chave(1)),
+          amount: "89,40",
+          date: "2026-05-03",
+          payee: "Farmácia São José"
+        }
+      ]
+    )
+
+    expect(failure).to be_nil
+    expect(documents.size).to eq(2)
+    expect(SupportingDocument.count).to eq(2)
+  end
+
+  it "insert_batch runs SEFAZ lookups outside the write transaction" do
+    install_a1
+    stub_xml_consulta
+    baseline = ActiveRecord::Base.connection.open_transactions
+    seen = []
+    allow(SefazConsulta.current).to receive(:lookup).and_wrap_original do |original, **kwargs|
+      seen << ActiveRecord::Base.connection.open_transactions
+      original.call(**kwargs)
+    end
+
+    documents, failure = SupportingDocument.insert_batch(
+      organization: organization,
+      account: account,
+      documents: [ {
+        photo: photo_jpg,
+        kind: "nota_fiscal",
+        chave: nfe_chave,
+        amount: "155,00",
+        date: "2026-05-11",
+        payee: "Padaria Central"
+      } ]
+    )
+
+    expect(failure).to be_nil
+    expect(documents.size).to eq(1)
+    expect(seen).not_to be_empty
+    expect(seen).to all(eq(baseline))
+  end
+
+  it "insert_batch missing amount persists none" do
+    _documents, failure = SupportingDocument.insert_batch(
+      organization: organization,
+      account: account,
+      documents: [
+        {
+          file: authorized_xml("proc-nfe-padaria.xml", chave: lote_chave(0)),
+          amount: "155,00",
+          date: "2026-05-11",
+          payee: "Padaria Central"
+        },
+        {
+          file: authorized_xml("proc-nfe-farmacia.xml", chave: lote_chave(1)),
+          amount: "",
+          date: "2026-05-03",
+          payee: "Farmácia São José"
+        }
+      ]
+    )
+
+    expect(SupportingDocument.count).to eq(0)
+    expect(failure).to include("proc-nfe-farmacia.xml")
+    expect(failure).to include("Faltam valor, data ou favorecido.")
+  end
+
+  it "insert_batch missing date persists none" do
+    _documents, failure = SupportingDocument.insert_batch(
+      organization: organization,
+      account: account,
+      documents: [ {
+        file: authorized_xml("proc-nfe-padaria.xml", chave: lote_chave(0)),
+        amount: "155,00",
+        date: "",
+        payee: "Padaria Central"
+      } ]
+    )
+
+    expect(SupportingDocument.count).to eq(0)
+    expect(failure).to include("Faltam valor, data ou favorecido.")
+  end
+
+  it "insert_batch missing payee persists none" do
+    _documents, failure = SupportingDocument.insert_batch(
+      organization: organization,
+      account: account,
+      documents: [ {
+        file: authorized_xml("proc-nfe-padaria.xml", chave: lote_chave(0)),
+        amount: "155,00",
+        date: "2026-05-11",
+        payee: ""
+      } ]
+    )
+
+    expect(SupportingDocument.count).to eq(0)
+    expect(failure).to include("Faltam valor, data ou favorecido.")
+  end
+
+  it "insert_batch both photo and XML persists none" do
+    _documents, failure = SupportingDocument.insert_batch(
+      organization: organization,
+      account: account,
+      documents: [ {
+        photo: photo_jpg,
+        xml: authorized_xml,
+        amount: "155,00",
+        date: "2026-05-11",
+        payee: "Padaria Central"
+      } ]
+    )
+
+    expect(SupportingDocument.count).to eq(0)
+    expect(failure).to eq("Envie a foto ou o XML")
+  end
+
   it "apply xml on photo-only is XML_LOCKED" do
     doc = insert_doc(kind: "nota_fiscal", photo: photo_jpg, xml: nil)
     expect(doc.xml).not_to be_attached

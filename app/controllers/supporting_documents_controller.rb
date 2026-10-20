@@ -1,5 +1,6 @@
 class SupportingDocumentsController < ApplicationController
   before_action :require_focused_organization
+  before_action :require_coordinator_organization, only: :batch
 
   def index
     load_documents
@@ -41,9 +42,24 @@ class SupportingDocumentsController < ApplicationController
     )
 
     if document.errors.empty?
-      redirect_success("/supporting_documents")
+      finish_insert
     else
       refuse_insert(document.errors[:base].first)
+    end
+  end
+
+  def batch
+    inserted, failure = SupportingDocument.insert_batch(
+      organization: focused_organization,
+      account: current_account,
+      documents: batch_documents
+    )
+    if failure
+      refuse_insert(failure)
+    elsif inserted.empty?
+      refuse_insert(SupportingDocument::NF_FILES)
+    else
+      finish_insert
     end
   end
 
@@ -122,6 +138,36 @@ class SupportingDocumentsController < ApplicationController
     else
       load_documents
       render :index, status: :unprocessable_content
+    end
+  end
+
+  def batch_documents
+    raw = params[:documents]
+    return [] if raw.blank?
+
+    raw.is_a?(Array) ? raw : raw.to_unsafe_h.values
+  end
+
+  def finish_insert
+    if turbo_stream_refusal? && coordinator_on_focus?
+      load_documents
+      toast_now(kind: "success", message: "Pronto.")
+      render turbo_stream: [
+        turbo_stream.replace("sem-mes", partial: "supporting_documents/sem_mes"),
+        turbo_stream.action_all(
+          :replace,
+          "[data-notice=error]",
+          partial: "shared/notice",
+          locals: { message: "" }
+        ),
+        turbo_stream.update(
+          "toast-host",
+          partial: "shared/toast",
+          locals: { toast: "Pronto.", toast_kind: "success" }
+        )
+      ]
+    else
+      redirect_success("/supporting_documents")
     end
   end
 

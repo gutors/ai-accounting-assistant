@@ -25,7 +25,7 @@ RSpec.describe "Document identify chrome", type: :system do
   end
 
   it "Limpar after identify XML returns empty square" do
-    account, _organization = plant_coordinator
+    account, _organization = plant_submitter
     sign_in_through_google(account)
     visit "/supporting_documents"
     xml_path = write_upload("proc-nfe.xml", authorized_nfe_xml)
@@ -42,7 +42,7 @@ RSpec.describe "Document identify chrome", type: :system do
   end
 
   it "Limpar during identify keeps the empty square" do
-    account, _organization = plant_coordinator
+    account, _organization = plant_submitter
     sign_in_through_google(account)
     visit "/supporting_documents"
     page.execute_script(<<~JS)
@@ -76,7 +76,7 @@ RSpec.describe "Document identify chrome", type: :system do
   end
 
   it "identify pdf shows the file in the proof square" do
-    account, _organization = plant_coordinator
+    account, _organization = plant_submitter
     sign_in_through_google(account)
     visit "/supporting_documents"
     pdf_path = write_upload("nota.pdf", pngs_to_pdf(ocr_png("blank.png")))
@@ -89,7 +89,7 @@ RSpec.describe "Document identify chrome", type: :system do
   end
 
   it "identify photo shows the image in the proof square" do
-    account, _organization = plant_coordinator
+    account, _organization = plant_submitter
     sign_in_through_google(account)
     visit "/supporting_documents"
     photo = Rails.root.join("spec/fixtures/files/ocr/amount_only.jpg")
@@ -101,7 +101,7 @@ RSpec.describe "Document identify chrome", type: :system do
   end
 
   it "identify in flight shows Identificando o arquivo" do
-    account, _organization = plant_coordinator
+    account, _organization = plant_submitter
     sign_in_through_google(account)
     visit "/supporting_documents"
     page.execute_script(<<~JS)

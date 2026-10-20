@@ -2,10 +2,10 @@
 
 ## Handoff
 
-**Feature**: insert-infer-kind-from-file
-**Where**: built and verified on `insert-infer-kind-from-file` (`13010f1..HEAD`). Checks in `.checks/insert-infer-kind-from-file.md`. Report `.checks/insert-infer-kind-from-file.verified.md`. Profile `standard`. Verifier round 1 FAIL (qr_url arm); round 2 PASS.
+**Feature**: coordinator-batch-document-insert
+**Where**: built and verified on `coordinator-batch-document-insert` (`fd66901..HEAD`). Checks in `.checks/coordinator-batch-document-insert.md`. Report `.checks/coordinator-batch-document-insert.verified.md`. Profile `ui`. Verifier round 1 FAIL (C8 borders, Observação); round 2 PASS.
 **In progress**: none
 **Next step**: PR to `main` when asked. No GitHub issue yet (task named none).
 **Blockers**: none.
-**Branch**: insert-infer-kind-from-file
+**Branch**: coordinator-batch-document-insert
 **Issues**: none

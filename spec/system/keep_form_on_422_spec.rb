@@ -24,7 +24,7 @@ RSpec.describe "Keep form on 422", type: :system do
   end
 
   it "insert Recibo XML 422 keeps the chosen xml file" do
-    account, _organization = plant_coordinator
+    account, _organization = plant_submitter
     sign_in_through_google(account)
     visit "/supporting_documents"
     xml_path = write_upload("nota.xml", "<nfe/>")
@@ -35,17 +35,19 @@ RSpec.describe "Keep form on 422", type: :system do
   end
 
   it "insert 422 after Pronto still shows the error toast" do
-    account, _organization = plant_coordinator
+    account, _organization = plant_submitter
     sign_in_through_google(account)
     visit "/supporting_documents"
     photo_path = write_upload("recibo.jpg", "jpeg-bytes")
 
     attach_file "file", photo_path, make_visible: true
     expect(page).to have_field("arquivo", with: "Foto", disabled: true)
-    fill_in "amount", with: "155,00"
-    fill_in "date", with: "2026-05-11"
-    fill_in "payee", with: "Padaria Central"
-    click_button "Incluir documento"
+    within("form[action='/supporting_documents']") do
+      fill_in "amount", with: "155,00"
+      fill_in "date", with: "2026-05-11"
+      fill_in "payee", with: "Padaria Central"
+      click_button "Incluir documento"
+    end
     expect(page).to have_css("[data-toast-kind=success]", text: "Pronto.")
 
     page.execute_script("document.querySelector('form[action=\"/supporting_documents\"]').requestSubmit()")
@@ -55,7 +57,7 @@ RSpec.describe "Keep form on 422", type: :system do
   end
 
   it "Limpar clears insert photo without submit" do
-    account, _organization = plant_coordinator
+    account, _organization = plant_submitter
     sign_in_through_google(account)
     visit "/supporting_documents"
     photo_path = write_upload("recibo.jpg", "jpeg-bytes")

@@ -1,0 +1,54 @@
+<section data-controller="document-lote">
+  <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Incluir documentos</h2>
+  <%= form_with url: "/supporting_documents", method: :post, multipart: true, class: "contents" do %>
+  <%= file_field_tag :file, id: "file", multiple: true, accept: "image/*,.pdf,application/pdf,.xml,application/xml,text/xml", class: "sr-only", tabindex: -1, data: { document_lote_target: "input", action: "change->document-lote#add" } %>
+  <button type="button" class="mt-4 flex min-h-32 w-full cursor-pointer flex-col items-start justify-center gap-3 rounded border border-dashed border-rule bg-paper p-4 text-left" data-document-lote-target="drop" data-action="click->document-lote#pick">
+    <p>Incluir documentos</p>
+    <p class="text-meta text-ink-soft">Solte as fotos ou o XML, ou clique para escolher.</p>
+  </button>
+  <div hidden data-document-lote-target="editor">
+    <div class="mt-4 grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_28rem] md:gap-6">
+      <aside class="rounded border border-rule bg-sheet p-3" data-document-lote-target="proof">
+        <div class="grid gap-2 border border-rule bg-paper p-3">
+          <p class="text-meta text-ink-soft" data-document-lote-target="proofMeta"></p>
+          <p class="font-semibold" data-document-lote-target="proofWho"></p>
+          <p class="text-meta text-ink-soft" data-document-lote-target="proofHint"></p>
+        </div>
+        <div class="mt-3">
+          <label for="arquivo" class="mb-1 block font-medium">Arquivo</label>
+          <%= text_field_tag :arquivo, nil, id: "arquivo", disabled: true, autocomplete: "off", class: "w-full rounded border border-rule bg-sheet px-3 py-2", data: { document_lote_target: "arquivo" } %>
+        </div>
+      </aside>
+      <div class="grid max-w-[28rem] gap-2" data-document-lote-target="book">
+        <div>
+          <label for="kind" class="mb-0.5 block font-medium">Tipo</label>
+          <%= select_tag :kind, options_for_select([ [ "Nota fiscal", "nota_fiscal" ], [ "Recibo", "recibo" ] ]), id: "kind", disabled: true, class: "w-full rounded border border-rule bg-sheet px-3 py-2", data: { document_lote_target: "kind" } %>
+        </div>
+        <div class="grid grid-cols-1 gap-2 md:grid-cols-2" data-document-lote-target="pair">
+          <div>
+            <label for="amount" class="mb-0.5 block font-medium">Valor</label>
+            <%= text_field_tag :amount, nil, id: "amount", class: "w-full rounded border border-rule bg-sheet px-3 py-2 tabular-nums", autocomplete: "off", inputmode: "numeric", data: { controller: "money-mask", document_lote_target: "amount", action: "input->money-mask#typed input->document-lote#typed" } %>
+            <p class="mt-1 text-meta text-ink-soft" data-origin="amount" data-document-lote-target="amountOrigin"></p>
+          </div>
+          <div>
+            <label for="date" class="mb-0.5 block font-medium">Data</label>
+            <%= date_field_tag :date, nil, id: "date", class: "w-full rounded border border-rule bg-sheet px-3 py-2 tabular-nums", autocomplete: "off", data: { document_lote_target: "date", action: "input->document-lote#typed" } %>
+            <p class="mt-1 text-meta text-ink-soft" data-origin="date" data-document-lote-target="dateOrigin"></p>
+          </div>
+        </div>
+        <div>
+          <label for="payee" class="mb-0.5 block font-medium">Favorecido</label>
+          <%= text_field_tag :payee, nil, id: "payee", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off", data: { document_lote_target: "payee", action: "input->document-lote#typed" } %>
+          <p class="mt-1 text-meta text-ink-soft" data-origin="payee" data-document-lote-target="payeeOrigin"></p>
+        </div>
+        <div>
+          <label for="observation" class="mb-0.5 block font-medium">Observação (opcional)</label>
+          <%= text_area_tag :observation, nil, id: "observation", class: "w-full rounded border border-rule bg-sheet px-3 py-2", rows: 2, data: { document_lote_target: "observation", action: "input->document-lote#typed" } %>
+        </div>
+      </div>
+    </div>
+    <div class="mt-4 mb-4 flex flex-wrap items-center gap-4" data-document-lote-target="toolbar" data-action="click->document-lote#toolbarAction"></div>
+    <div data-document-lote-target="sheet" data-action="click->document-lote#selectRow"></div>
+  </div>
+  <% end %>
+</section>
