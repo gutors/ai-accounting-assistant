@@ -377,34 +377,29 @@ RSpec.describe "Document lote", type: :system do
     expect(SupportingDocument.count).to eq(1)
   end
 
-  it "typing another row during a batch keeps Incluir prontos disabled" do
+  it "batch in flight holds the page and keeps Incluir prontos disabled" do
     open_lote
-    attach_file "file", padaria_farmacia + [ write_upload("empty.jpg", "jpeg-bytes") ], make_visible: true
+    attach_file "file", padaria_farmacia, make_visible: true
     wait_pronto("Farmácia São José")
     slow_fetch("/supporting_documents/batch", 2000)
     click_button "Incluir prontos (2)"
-    find("[data-lote-id]", text: "empty.jpg").click
-    find_field("amount").set("10,00")
 
+    expect(page).to have_css("body.is-waiting.is-waiting-copy")
+    expect(page).to have_content("Incluindo documentos…")
+    expect(page).to have_css("#wait:not([hidden])")
     expect(page).to have_css("[data-lote-ready][disabled]")
   end
 
-  it "row completed while a batch is in flight stays in lote" do
+  it "Digitar row stays in lote after prontos batch completes" do
     open_lote
     attach_file "file", padaria_farmacia + [ write_upload("empty.jpg", "jpeg-bytes") ], make_visible: true
     wait_pronto("Farmácia São José")
-    slow_fetch("/supporting_documents/batch", 2000)
     click_button "Incluir prontos (2)"
-    find("[data-lote-id]", text: "empty.jpg").click
-    find_field("amount").set("10,00")
-    find_field("date").set("2026-05-10")
-    find_field("payee").set("Mercado Bom Preço")
-    expect(page).to have_css("[data-lote-status]", text: "Pronto", count: 3)
 
-    wait_for_lote_settled(rows: 1, ready_count: 1)
+    wait_for_lote_settled(rows: 1, ready_count: 0)
     expect(page).to have_css("[data-lote-id]", count: 1)
     expect(page).to have_content("empty.jpg")
-    expect(page).to have_button("Incluir prontos (1)")
+    expect(page).to have_button("Incluir prontos (0)", disabled: false)
     expect(SupportingDocument.count).to eq(2)
   end
 
