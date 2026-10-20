@@ -87,15 +87,7 @@ export default class extends Controller {
     const ready = this.items.filter((item) => item.status === "pronto" && !this.sending.has(item.id))
     if (!ready.length) return
     const data = this.formData()
-    ready.forEach((item) => {
-      data.append("documents[][file]", item.file, item.file.name)
-      data.append("documents[][kind]", item.kind)
-      data.append("documents[][amount]", item.amount)
-      data.append("documents[][date]", item.date)
-      data.append("documents[][payee]", item.payee)
-      if (item.observation) data.append("documents[][observation]", item.observation)
-      if (item.chave) data.append("documents[][chave]", item.chave)
-    })
+    ready.forEach((item) => this.appendDocument(data, item))
     const sent = ready.map((item) => item.id)
     this.beginSend(sent)
     this.submit("/supporting_documents/batch", data, true).then((response) => {
@@ -198,14 +190,8 @@ export default class extends Controller {
 
   postOne(item) {
     const data = this.formData()
-    data.append("file", item.file, item.file.name)
-    data.append("kind", item.kind)
-    data.append("amount", item.amount)
-    data.append("date", item.date)
-    data.append("payee", item.payee)
-    if (item.observation) data.append("observation", item.observation)
-    if (item.chave) data.append("chave", item.chave)
-    return this.submit("/supporting_documents", data, false).then((response) => {
+    this.appendDocument(data, item)
+    return this.submit("/supporting_documents/batch", data, false).then((response) => {
       if (!response.ok) return
       this.items = this.items.filter((row) => row.id !== item.id)
       this.revokePreview(item)
@@ -391,6 +377,16 @@ export default class extends Controller {
     const csrf = document.querySelector('meta[name="csrf-token"]')
     if (csrf) data.append("authenticity_token", csrf.content)
     return data
+  }
+
+  appendDocument(data, item) {
+    data.append("documents[][file]", item.file, item.file.name)
+    data.append("documents[][kind]", item.kind)
+    data.append("documents[][amount]", item.amount)
+    data.append("documents[][date]", item.date)
+    data.append("documents[][payee]", item.payee)
+    if (item.observation) data.append("documents[][observation]", item.observation)
+    if (item.chave) data.append("documents[][chave]", item.chave)
   }
 
   notice(message) {

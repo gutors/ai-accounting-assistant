@@ -373,7 +373,7 @@ RSpec.describe "Document lote", type: :system do
       window.__lotePosts = 0
       const orig = window.fetch.bind(window)
       window.fetch = (url, opts) => {
-        if (String(url) === "/supporting_documents" && opts && opts.method === "POST") window.__lotePosts += 1
+        if (String(url) === "/supporting_documents/batch" && opts && opts.method === "POST") window.__lotePosts += 1
         return orig(url, opts)
       }
     JS
@@ -405,7 +405,7 @@ RSpec.describe "Document lote", type: :system do
     page.execute_script(<<~JS)
       const orig = window.fetch.bind(window)
       window.fetch = (url, opts) => {
-        if (String(url) === "/supporting_documents" && opts && opts.method === "POST") {
+        if (String(url) === "/supporting_documents/batch" && opts && opts.method === "POST") {
           return new Promise((resolve) => {
             window.setTimeout(() => orig(url, opts).then(resolve), 2000)
           })
@@ -535,8 +535,8 @@ RSpec.describe "Document lote", type: :system do
 
     expect(page).to have_css("#sem-mes", text: "Padaria Central")
     posted = page.evaluate_script("window.__loteChaves")
-    expect(posted.first["documents"]).to eq([])
-    expect(posted.first["chave"]).to eq([ lote_chave(0) ])
+    expect(posted.first["chave"]).to eq([])
+    expect(posted.first["documents"]).to eq([ lote_chave(0) ])
   end
 
   it "Incluir prontos recibo FormData has no chave" do
