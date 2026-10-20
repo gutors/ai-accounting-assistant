@@ -508,19 +508,6 @@ body.is-waiting-copy .wait-veil {
 
 body.is-waiting .wait-rule {
   display: block;
-  animation: wait-write 2.8s cubic-bezier(0.16, 1, 0.3, 1) infinite;
-}
-
-@keyframes wait-write {
-  0% { transform: scaleX(0); opacity: 1; }
-  62% { transform: scaleX(1); opacity: 1; }
-  100% { transform: scaleX(1); opacity: 0.35; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  body.is-waiting .wait-rule {
-    animation: none;
-    transform: scaleX(0.42);
-    opacity: 1;
-  }
+  transform: scaleX(0.42);
+  opacity: 1;
 }
