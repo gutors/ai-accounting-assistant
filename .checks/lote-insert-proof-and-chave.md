@@ -28,6 +28,7 @@ Touches `SupportingDocument.insert_batch` (skip photo extract, still parse XML, 
 | One-way door | Literal shape | Alternative rejected |
 | --- | --- | --- |
 | Photo extract is not a second identify inside `insert_batch` | `insert_batch` does not call `PhotoSymbols.current.scan`, `PhotoOcr.text`, `PublicNfceConsulta.current.fetch`, or `PhotoFields.current.read`. XML `AuthorizedNfe.parse` still runs. Identified consulta still runs when posted/derived chave is 44 digits, there is no parsed XML, and fields are not locked. `SupportingDocument.identify` and `POST /supporting_documents` `submit` keep today’s photo pipeline (photo chave still beats a typed chave on create) | Skip extract on every `submit` whenever `kind` is posted — `POST /supporting_documents` of a NF photo with `kind` and no `chave` must still read the photo. Stash bytes/XML from identify — lote-is-not-persisted already rejected a draft lifecycle |
+| `insert_batch` skip is a `submit` keyword | `submit(..., skip_photo_extract: true)` from `insert_batch` only. Create, identify, and apply omit it | A second persist writer beside `submit` — xor, `CHAVE_DIGITS`, and identified consulta would fork |
 
 - Nothing else in this change is hard to reverse
 

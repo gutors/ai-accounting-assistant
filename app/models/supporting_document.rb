@@ -90,7 +90,8 @@ class SupportingDocument < ApplicationRecord
         observation: item[:observation],
         photo: photo,
         xml: xml,
-        chave: item[:chave]
+        chave: item[:chave],
+        skip_photo_extract: true
       )
       return [ [], doc.errors[:base].first ] unless doc.errors.empty?
 
@@ -158,6 +159,7 @@ class SupportingDocument < ApplicationRecord
     end
 
     attrs = attrs.symbolize_keys
+    skip_photo_extract = attrs.delete(:skip_photo_extract)
 
     incoming_photo = uploaded?(attrs[:photo]) ? attrs[:photo] : nil
     incoming_xml = uploaded?(attrs[:xml]) ? attrs[:xml] : nil
@@ -228,7 +230,7 @@ class SupportingDocument < ApplicationRecord
       end
       ocr_text
     }
-    if infer_from_photo
+    if infer_from_photo && !skip_photo_extract
       extract_source = { bytes: read_bytes(incoming_photo), filename: filename_of(incoming_photo) }
       photo_symbols = PhotoSymbols.current.scan(
         bytes: extract_source[:bytes],
@@ -260,7 +262,7 @@ class SupportingDocument < ApplicationRecord
     public_fields = nil
     photo_fields = nil
     confirm_pending = sefaz_confirm_pending
-    if !photo_scanned && parsed_nfe.nil? && next_kind == "nota_fiscal"
+    if !skip_photo_extract && !photo_scanned && parsed_nfe.nil? && next_kind == "nota_fiscal"
       extract_source = photo_source_for_extract(incoming_photo, next_kind)
     end
     if extract_source && !photo_scanned
@@ -316,7 +318,7 @@ class SupportingDocument < ApplicationRecord
       end
 
       identified_delivered = parsed_nfe.present? || identified_resumo.present?
-      if !identified_delivered && photo_symbols.qr_url.present?
+      if !skip_photo_extract && !identified_delivered && photo_symbols.qr_url.present?
         case PublicNfceConsulta.current.fetch(photo_symbols.qr_url)
         in PublicNfceConsulta::Fields => fields if complete_triple?(fields.amount_cents, fields.document_on, fields.payee)
           public_fields = fields
@@ -326,7 +328,7 @@ class SupportingDocument < ApplicationRecord
           nil
         end
       end
-      if !identified_delivered && public_fields.nil? && extract_source
+      if !skip_photo_extract && !identified_delivered && public_fields.nil? && extract_source
         case PhotoFields.current.read(
           bytes: extract_source[:bytes],
           filename: extract_source[:filename],
