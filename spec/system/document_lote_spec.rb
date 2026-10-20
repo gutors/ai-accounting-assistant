@@ -470,7 +470,10 @@ RSpec.describe "Document lote", type: :system do
       const orig = window.fetch.bind(window)
       window.fetch = (url, opts) => {
         if (String(url).startsWith("/supporting_documents") && opts && opts.method === "POST") {
-          window.__loteChaves.push(opts.body.getAll("chave").concat(opts.body.getAll("documents[][chave]")))
+          window.__loteChaves.push({
+            chave: opts.body.getAll("chave"),
+            documents: opts.body.getAll("documents[][chave]")
+          })
         }
         return orig(url, opts)
       }
@@ -486,7 +489,8 @@ RSpec.describe "Document lote", type: :system do
 
     expect(page).to have_css("#sem-mes", text: "Padaria Central")
     posted = page.evaluate_script("window.__loteChaves")
-    expect(posted.flatten).to include(lote_chave(0))
+    expect(posted.first["chave"]).to eq([])
+    expect(posted.first["documents"]).to include(lote_chave(0))
   end
 
   it "Incluir este posts chave from identified XML" do
@@ -499,7 +503,8 @@ RSpec.describe "Document lote", type: :system do
 
     expect(page).to have_css("#sem-mes", text: "Padaria Central")
     posted = page.evaluate_script("window.__loteChaves")
-    expect(posted).to eq([ [ lote_chave(0) ] ])
+    expect(posted.first["documents"]).to eq([])
+    expect(posted.first["chave"]).to eq([ lote_chave(0) ])
   end
 
   it "Incluir prontos recibo FormData has no chave" do
@@ -516,7 +521,8 @@ RSpec.describe "Document lote", type: :system do
 
     expect(page).to have_no_css("[data-lote-id]")
     posted = page.evaluate_script("window.__loteChaves")
-    expect(posted.flatten.all?(&:blank?)).to be(true)
+    expect(posted.first["chave"]).to eq([])
+    expect(posted.first["documents"].all?(&:blank?)).to be(true)
     expect(SupportingDocument.find_by!(payee: "Mercado Bom Preço").chave).to be_nil
   end
 
