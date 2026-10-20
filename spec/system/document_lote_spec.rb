@@ -49,6 +49,20 @@ RSpec.describe "Document lote", type: :system do
     expect(page).to have_content(text)
   end
 
+  def slow_fetch(path, ms)
+    page.execute_script(<<~JS)
+      const orig = window.fetch.bind(window)
+      window.fetch = (url, opts) => {
+        if (String(url).includes(#{path.to_json})) {
+          return new Promise((resolve) => {
+            window.setTimeout(() => orig(url, opts).then(resolve), #{ms})
+          })
+        }
+        return orig(url, opts)
+      }
+    JS
+  end
+
   it "coordinator identify two XMLs fills lote without persisting" do
     open_lote
     attach_file "file", padaria_farmacia, make_visible: true
@@ -301,5 +315,67 @@ RSpec.describe "Document lote", type: :system do
     sem_top = page.evaluate_script("document.querySelector('#sem-mes').getBoundingClientRect().top")
     sheet_top = page.evaluate_script("document.querySelector('[data-document-lote-target=sheet]').getBoundingClientRect().top")
     expect(sheet_top).to be < sem_top
+  end
+
+  it "Observação typed on an XML row is saved with Incluir este" do
+    open_lote
+    attach_file "file", padaria_farmacia, make_visible: true
+    wait_pronto("Padaria Central")
+    find("[data-lote-id]", text: "proc-nfe-padaria.xml").click
+    fill_in "Observação (opcional)", with: "pago em dinheiro"
+    click_button "Incluir este"
+
+    expect(page).to have_css("#sem-mes", text: "Padaria Central")
+    expect(SupportingDocument.last.observation).to eq("pago em dinheiro")
+  end
+
+  it "Incluir este double click posts the document once" do
+    open_lote
+    attach_file "file", padaria_farmacia, make_visible: true
+    wait_pronto("Padaria Central")
+    find("[data-lote-id]", text: "proc-nfe-padaria.xml").click
+    page.execute_script(<<~JS)
+      window.__lotePosts = 0
+      const orig = window.fetch.bind(window)
+      window.fetch = (url, opts) => {
+        if (String(url) === "/supporting_documents" && opts && opts.method === "POST") window.__lotePosts += 1
+        return orig(url, opts)
+      }
+    JS
+    page.execute_script("document.querySelector('[data-lote-one]').click(); document.querySelector('[data-lote-one]').click()")
+
+    expect(page).to have_no_css("[data-lote-id]", text: "proc-nfe-padaria.xml")
+    expect(page.evaluate_script("window.__lotePosts")).to eq(1)
+    expect(SupportingDocument.count).to eq(1)
+  end
+
+  it "typing another row during a batch keeps Incluir prontos disabled" do
+    open_lote
+    attach_file "file", padaria_farmacia + [ write_upload("empty.jpg", "jpeg-bytes") ], make_visible: true
+    wait_pronto("Farmácia São José")
+    slow_fetch("/supporting_documents/batch", 2000)
+    click_button "Incluir prontos (2)"
+    find("[data-lote-id]", text: "empty.jpg").click
+    find_field("amount").set("10,00")
+
+    expect(page).to have_css("[data-lote-ready][disabled]")
+  end
+
+  it "row completed while a batch is in flight stays in lote" do
+    open_lote
+    attach_file "file", padaria_farmacia + [ write_upload("empty.jpg", "jpeg-bytes") ], make_visible: true
+    wait_pronto("Farmácia São José")
+    slow_fetch("/supporting_documents/batch", 2000)
+    click_button "Incluir prontos (2)"
+    find("[data-lote-id]", text: "empty.jpg").click
+    find_field("amount").set("10,00")
+    find_field("date").set("2026-05-10")
+    find_field("payee").set("Mercado Bom Preço")
+    expect(page).to have_css("[data-lote-status]", text: "Pronto", count: 3)
+
+    expect(page).to have_css("[data-lote-id]", count: 1)
+    expect(page).to have_content("empty.jpg")
+    expect(page).to have_button("Incluir prontos (1)")
+    expect(SupportingDocument.count).to eq(2)
   end
 end

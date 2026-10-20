@@ -28,6 +28,8 @@ export default class extends Controller {
   connect() {
     this.items = []
     this.selected = null
+    this.busy = false
+    this.sending = new Set()
   }
 
   pick() {
@@ -46,23 +48,27 @@ export default class extends Controller {
 
   typed() {
     const item = this.selectedItem()
-    if (!item || item.locked || item.status === "error" || item.status === "identifying") return
-    item.amount = this.amountTarget.value
-    item.date = this.dateTarget.value
-    item.payee = this.payeeTarget.value
+    if (!item || this.sending.has(item.id) || item.status === "error" || item.status === "identifying") return
     item.observation = this.observationTarget.value
-    item.status = this.ready(item) ? "pronto" : "digitar"
+    if (!item.locked) {
+      item.amount = this.amountTarget.value
+      item.date = this.dateTarget.value
+      item.payee = this.payeeTarget.value
+      item.status = this.ready(item) ? "pronto" : "digitar"
+    }
     this.renderSheet()
     this.renderToolbar()
   }
 
   includeOne() {
     const item = this.selectedItem()
-    if (!item || item.status !== "pronto") return
-    this.postOne(item)
+    if (!item || item.status !== "pronto" || this.busy) return
+    this.beginSend([ item.id ])
+    this.postOne(item).finally(() => this.endSend())
   }
 
   includeReady() {
+    if (this.busy) return
     const ready = this.items.filter((item) => item.status === "pronto")
     if (!ready.length) return
     const data = this.formData()
@@ -73,16 +79,27 @@ export default class extends Controller {
       data.append("documents[][payee]", item.payee)
       if (item.observation) data.append("documents[][observation]", item.observation)
     })
-    const button = this.toolbarTarget.querySelector("[data-lote-ready]")
-    if (button) button.disabled = true
+    const sent = new Set(ready.map((item) => item.id))
+    this.beginSend(sent)
     this.submit("/supporting_documents/batch", data).then((response) => {
-      if (button) button.disabled = false
+      this.endSend()
       if (!response.ok) return
-      const keep = this.items.filter((item) => item.status !== "pronto")
-      this.items = keep
-      this.selected = keep[0] ? keep[0].id : null
+      this.items = this.items.filter((item) => !sent.has(item.id))
+      this.selected = this.items[0] ? this.items[0].id : null
       this.render()
     })
+  }
+
+  beginSend(ids) {
+    this.busy = true
+    this.sending = new Set(ids)
+    this.renderToolbar()
+  }
+
+  endSend() {
+    this.busy = false
+    this.sending = new Set()
+    this.renderToolbar()
   }
 
   removeSelected() {
@@ -165,7 +182,7 @@ export default class extends Controller {
     data.append("date", item.date)
     data.append("payee", item.payee)
     if (item.observation) data.append("observation", item.observation)
-    this.submit("/supporting_documents", data).then((response) => {
+    return this.submit("/supporting_documents", data).then((response) => {
       if (!response.ok) return
       this.items = this.items.filter((row) => row.id !== item.id)
       this.selected = this.items[0] ? this.items[0].id : null
@@ -198,9 +215,10 @@ export default class extends Controller {
 
   renderToolbar() {
     const ready = this.items.filter((item) => item.status === "pronto").length
+    const off = this.busy ? " disabled" : ""
     this.toolbarTarget.innerHTML = `
-      <button type="button" class="ds-btn-primary" data-lote-ready>Incluir prontos (${ready})</button>
-      <button type="button" class="ds-btn-secondary" data-lote-one>Incluir este</button>
+      <button type="button" class="ds-btn-primary" data-lote-ready${off}>Incluir prontos (${ready})</button>
+      <button type="button" class="ds-btn-secondary" data-lote-one${off}>Incluir este</button>
       <button type="button" class="ds-btn-secondary ds-btn-danger" data-lote-remove>Retirar</button>
     `
   }

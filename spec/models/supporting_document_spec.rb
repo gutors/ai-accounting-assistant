@@ -1928,6 +1928,35 @@ RSpec.describe SupportingDocument, type: :model do
     expect(SupportingDocument.count).to eq(2)
   end
 
+  it "insert_batch runs SEFAZ lookups outside the write transaction" do
+    install_a1
+    stub_xml_consulta
+    baseline = ActiveRecord::Base.connection.open_transactions
+    seen = []
+    allow(SefazConsulta.current).to receive(:lookup).and_wrap_original do |original, **kwargs|
+      seen << ActiveRecord::Base.connection.open_transactions
+      original.call(**kwargs)
+    end
+
+    documents, failure = SupportingDocument.insert_batch(
+      organization: organization,
+      account: account,
+      documents: [ {
+        photo: photo_jpg,
+        kind: "nota_fiscal",
+        chave: nfe_chave,
+        amount: "155,00",
+        date: "2026-05-11",
+        payee: "Padaria Central"
+      } ]
+    )
+
+    expect(failure).to be_nil
+    expect(documents.size).to eq(1)
+    expect(seen).not_to be_empty
+    expect(seen).to all(eq(baseline))
+  end
+
   it "insert_batch missing amount persists none" do
     _documents, failure = SupportingDocument.insert_batch(
       organization: organization,
