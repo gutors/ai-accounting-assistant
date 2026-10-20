@@ -17,7 +17,7 @@ RSpec.describe "Document kind chrome", type: :system do
   end
 
   it "insert empty square hides Tipo until identify" do
-    account, _organization = plant_coordinator
+    account, _organization = plant_submitter
     sign_in_through_google(account)
     visit "/supporting_documents"
 

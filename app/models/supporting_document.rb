@@ -17,6 +17,9 @@ class SupportingDocument < ApplicationRecord
   PAYEE_LENGTH = "Favorecido pode ter no máximo 200 caracteres"
   HAS_MONTH = "Documento já pertence a um mês"
   XML_UNREADABLE = "O XML da nota fiscal não pôde ser lido"
+  BATCH_MISSING = "Faltam valor, data ou favorecido."
+  LOTE_MAX = 30
+  LOTE_MAX_NOTICE = "No máximo 30 arquivos neste lote"
   XML_UNSUPPORTED = "Este XML não é NF-e, NFC-e, NFS-e nacional, NFCom ou NF3e"
   LOCKED_FIELDS = "Valor, data e favorecido vêm da nota e não podem ser alterados"
   CHAVE_DIGITS = "Informe a chave de acesso com 44 dígitos"
@@ -63,6 +66,45 @@ class SupportingDocument < ApplicationRecord
     new(organization: organization, account: account).tap do |doc|
       doc.submit(kind: kind, amount: amount, date: date, payee: payee, observation: observation, photo: photo, xml: xml, chave: chave)
     end
+  end
+
+  def self.insert_batch(organization:, account:, documents:)
+    failure = nil
+    inserted = []
+    transaction do
+      Array(documents).each do |raw|
+        item = raw.respond_to?(:to_unsafe_h) ? raw.to_unsafe_h : raw.to_h
+        item = item.symbolize_keys
+        file = item[:file]
+        filename = file.respond_to?(:original_filename) ? file.original_filename.to_s : "arquivo"
+        if item[:amount].to_s.strip.empty? || item[:date].to_s.strip.empty? || item[:payee].to_s.strip.empty?
+          failure = "#{filename} #{BATCH_MISSING}"
+          inserted = []
+          raise ActiveRecord::Rollback
+        end
+
+        photo, xml = slot_uploads(file, item[:photo], item[:xml])
+        doc = insert(
+          organization: organization,
+          account: account,
+          kind: item[:kind],
+          amount: item[:amount],
+          date: item[:date],
+          payee: item[:payee],
+          observation: item[:observation],
+          photo: photo,
+          xml: xml,
+          chave: item[:chave]
+        )
+        unless doc.errors.empty?
+          failure = doc.errors[:base].first
+          inserted = []
+          raise ActiveRecord::Rollback
+        end
+        inserted << doc
+      end
+    end
+    [ inserted, failure ]
   end
 
   def apply(**attrs)

@@ -92,6 +92,58 @@
     font-weight: 400;
   }
 
+  .ds-btn-secondary.ds-btn-danger {
+    color: var(--color-margem);
+    border-color: var(--color-margem);
+  }
+
+  .lote-sheet {
+    margin-top: 0;
+  }
+
+  .lote-head,
+  .lote-row {
+    display: grid;
+    align-items: baseline;
+    grid-template-columns: 9.5rem minmax(0, 1fr) 8rem 8rem 7rem;
+  }
+
+  .lote-head {
+    color: var(--color-ink-soft);
+    font-weight: 500;
+    font-size: 0.8125rem;
+    line-height: 1.125rem;
+    border-bottom: 1px solid var(--color-ink);
+  }
+
+  .lote-head > *,
+  .lote-row > * {
+    padding: 6px 10px;
+    border-right: 1px solid var(--color-rule);
+    min-width: 0;
+  }
+
+  .lote-head > *:last-child,
+  .lote-row > *:last-child {
+    border-right: 0;
+  }
+
+  .lote-row {
+    border-bottom: 1px solid var(--color-rule);
+    cursor: pointer;
+  }
+
+  .lote-row.is-selected {
+    background: var(--color-sheet);
+    outline: 2px solid var(--color-caixa);
+    outline-offset: -2px;
+  }
+
+  .lote-row.is-error > *:first-child {
+    border-left: 3px solid var(--color-margem);
+    padding-left: 12px;
+  }
+
   .stamp-closed {
     display: inline-block;
     margin-top: 12px;

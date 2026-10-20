@@ -8,6 +8,13 @@ RSpec.describe "Supporting documents", type: :request do
     [ account, organization ]
   end
 
+  def signed_submitter
+    _coord, organization = plant_coordinator
+    account, _ = plant_submitter(organization: organization)
+    sign_in_as(account, organization: organization)
+    [ account, organization ]
+  end
+
   def recibo_params(photo: photo_jpg, **extra)
     { kind: "recibo", amount: "155,00", date: "2026-05-11", payee: "Padaria Central", photo: photo }.merge(extra)
   end
@@ -139,7 +146,7 @@ RSpec.describe "Supporting documents", type: :request do
   end
 
   it "GET insert date defaults to Date.current" do
-    signed_in
+    signed_submitter
 
     travel_to Date.new(2026, 10, 5) do
       get "/supporting_documents"
@@ -165,7 +172,7 @@ RSpec.describe "Supporting documents", type: :request do
   end
 
   it "GET optional chave and observation labels on insert and Editar" do
-    account, organization = signed_in
+    account, organization = signed_submitter
     document = SupportingDocument.insert(
       organization: organization,
       account: account,
@@ -191,7 +198,7 @@ RSpec.describe "Supporting documents", type: :request do
   end
 
   it "GET insert kind nota_fiscal shows chave and xml" do
-    signed_in
+    signed_submitter
 
     get "/supporting_documents"
 
@@ -263,7 +270,7 @@ RSpec.describe "Supporting documents", type: :request do
   end
 
   it "GET insert has Limpar next to photo and xml" do
-    signed_in
+    signed_submitter
 
     get "/supporting_documents"
 
@@ -2587,13 +2594,6 @@ RSpec.describe "Supporting documents", type: :request do
     expect(response).to have_http_status(:found)
   end
 
-  def signed_submitter
-    _coord, organization = plant_coordinator
-    account, _ = plant_submitter(organization: organization)
-    sign_in_as(account, organization: organization)
-    [ account, organization ]
-  end
-
   it "POST recibo amount 1,00 persists 100 cents" do
     _account, organization = signed_in
 
@@ -2783,7 +2783,7 @@ RSpec.describe "Supporting documents", type: :request do
   end
 
   it "GET insert photo is empty with Limpar" do
-    signed_in
+    signed_submitter
 
     get "/supporting_documents"
 
@@ -2805,8 +2805,10 @@ RSpec.describe "Supporting documents", type: :request do
       photo: photo_jpg("nota.jpg")
     )
 
+    sign_in_as(plant_submitter(organization: organization).first, organization: organization)
     get "/supporting_documents"
     expect(insert_form(response.body).at_css("#kind")["disabled"]).to be_present
+    sign_in_as(account, organization: organization)
 
     get "/supporting_documents/#{recibo.id}/edit"
     page = page_doc(response.body)
@@ -2865,7 +2867,7 @@ RSpec.describe "Supporting documents", type: :request do
   end
 
   it "GET insert kind has empty selection and both options" do
-    signed_in
+    signed_submitter
 
     get "/supporting_documents"
 
@@ -2876,7 +2878,7 @@ RSpec.describe "Supporting documents", type: :request do
   end
 
   it "GET insert empty kind hides chave and xml" do
-    signed_in
+    signed_submitter
 
     get "/supporting_documents"
 
@@ -3331,7 +3333,7 @@ RSpec.describe "Supporting documents", type: :request do
   end
 
   it "GET empty insert is file-first proof square" do
-    signed_in
+    signed_submitter
 
     get "/supporting_documents"
 
@@ -4009,6 +4011,161 @@ RSpec.describe "Supporting documents", type: :request do
     expect(SupportingDocument.count).to eq(0)
     expect(response).to have_http_status(:unprocessable_content)
     expect(error_notice_text(response.body)).to eq("Este XML não é NF-e, NFC-e, NFS-e nacional, NFCom ou NF3e")
+  end
+
+  def lote_chave(index)
+    "4326051122233300018155001000000001112345#{index.to_s.rjust(2, "0")}"
+  end
+
+  def batch_xml_item(name, payee:, index:, vnf: "155.00", date: "2026-05-11", amount: "155,00")
+    {
+      file: authorized_xml(name, vnf: vnf, emit: payee, dhemi: "#{date}T10:00:00-03:00", chave: lote_chave(index)),
+      amount: amount,
+      date: date,
+      payee: payee
+    }
+  end
+
+  def twelve_ready_payees
+    [
+      "Padaria Central", "Mercado Bom Preço", "Farmácia São José", "Atacado Verde",
+      "Gráfica Norte", "Hortifruti da Praça", "Transportes Litoral", "Copiadora Central",
+      "Café do Ponto", "Oficina do Bairro", "Livraria Escolar", "Papelaria Lume"
+    ]
+  end
+
+  it "GET coordinator empty insert is lote drop" do
+    signed_in
+
+    get "/supporting_documents"
+
+    expect(response).to have_http_status(:ok)
+    section = insert_section(response.body)
+    expect(section.at_css("h2").text.strip).to eq("Incluir documentos")
+    files = section.css('input[type="file"]')
+    expect(files.size).to eq(1)
+    expect(files.first["multiple"]).to be_present
+    expect(files.first["accept"]).to include("image/*")
+    expect(files.first["accept"]).to include(".xml")
+    expect(section.text).not_to include("Situação")
+    expect(section.text).not_to include("Incluir prontos")
+    sem_mes = page_doc(response.body).css("section")[1]
+    expect(sem_mes.at_css("h2").text.strip).to eq("Sem mês")
+    expect(sem_mes.text).to include("Nenhum documento")
+  end
+
+  it "GET submitter empty insert stays one-file square" do
+    signed_submitter
+
+    get "/supporting_documents"
+
+    section = insert_section(response.body)
+    expect(section.at_css("h2").text.strip).to eq("Incluir documento")
+    file = section.at_css('input[type="file"]')
+    expect(file["multiple"]).to be_nil
+    expect(section.text).to include("Inclua o documento. Valor, data e favorecido saem do arquivo.")
+    expect(section.text).not_to include("Incluir prontos")
+  end
+
+  it "POST batch two authorized XMLs persists both" do
+    signed_in
+
+    post "/supporting_documents/batch", params: {
+      documents: [
+        batch_xml_item("proc-nfe-padaria.xml", payee: "Padaria Central", index: 0, vnf: "155.00", amount: "155,00"),
+        batch_xml_item("proc-nfe-farmacia.xml", payee: "Farmácia São José", index: 1, vnf: "89.40", date: "2026-05-03", amount: "89,40")
+      ]
+    }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/supporting_documents")
+    expect(SupportingDocument.count).to eq(2)
+    get "/supporting_documents"
+    list = response.body[response.body.index("Sem mês")..]
+    expect(list).to include("Padaria Central", "Farmácia São José", "R$ 155,00", "R$ 89,40")
+  end
+
+  it "POST batch twelve ready omits Digitar and Erro files" do
+    signed_in
+    documents = twelve_ready_payees.each_with_index.map do |payee, index|
+      batch_xml_item("proc-#{index}.xml", payee: payee, index: index)
+    end
+
+    post "/supporting_documents/batch", params: { documents: documents }
+
+    expect(SupportingDocument.count).to eq(12)
+    get "/supporting_documents"
+    list = response.body[response.body.index("Sem mês")..]
+    twelve_ready_payees.each { |payee| expect(list).to include(payee) }
+    expect(list).not_to include("empty.jpg")
+  end
+
+  it "POST batch missing amount 422 names filename" do
+    signed_in
+
+    post "/supporting_documents/batch", params: {
+      documents: [
+        batch_xml_item("proc-nfe-padaria.xml", payee: "Padaria Central", index: 0),
+        batch_xml_item("proc-nfe-farmacia.xml", payee: "Farmácia São José", index: 1).merge(amount: "")
+      ]
+    }
+
+    expect(SupportingDocument.count).to eq(0)
+    expect(response).to have_http_status(:unprocessable_content)
+    notice = error_notice_text(response.body)
+    expect(notice).to include("proc-nfe-farmacia.xml")
+    expect(notice).to include("Faltam valor, data ou favorecido.")
+  end
+
+  it "submitter POST batch persists none and 404" do
+    signed_submitter
+
+    post "/supporting_documents/batch", params: {
+      documents: [ batch_xml_item("proc-nfe-padaria.xml", payee: "Padaria Central", index: 0) ]
+    }
+
+    expect(SupportingDocument.count).to eq(0)
+    expect(response).to have_http_status(:not_found)
+  end
+
+  it "unauthenticated POST batch 302 to login" do
+    post "/supporting_documents/batch", params: {
+      documents: [ batch_xml_item("proc-nfe-padaria.xml", payee: "Padaria Central", index: 0) ]
+    }
+
+    expect(SupportingDocument.count).to eq(0)
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/login")
+  end
+
+  it "submitter POST XML one-file persists 302" do
+    account, organization = signed_submitter
+
+    post "/supporting_documents", params: { file: authorized_xml("proc-nfe.xml") }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/supporting_documents")
+    doc = SupportingDocument.find_by!(organization: organization)
+    expect(doc.account).to eq(account)
+    expect(doc.xml).to be_attached
+  end
+
+  it "POST batch photo and XML on one item 422 xor" do
+    signed_in
+
+    post "/supporting_documents/batch", params: {
+      documents: [ {
+        photo: photo_jpg,
+        xml: authorized_xml,
+        amount: "155,00",
+        date: "2026-05-11",
+        payee: "Padaria Central"
+      } ]
+    }
+
+    expect(SupportingDocument.count).to eq(0)
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(error_notice_text(response.body)).to eq("Envie a foto ou o XML")
   end
 
   it "GET edit typed origins Digitado" do

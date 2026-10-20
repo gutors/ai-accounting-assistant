@@ -1,0 +1,52 @@
+<div id="sem-mes">
+  <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Sem mês</h2>
+  <% if @documents.empty? %>
+    <p>Nenhum documento</p>
+  <% else %>
+    <div class="ledger-sheet">
+      <div class="ledger-row ledger-head ledger-doc" aria-hidden="true">
+        <span>Data</span>
+        <span>Favorecido</span>
+        <span>Tipo</span>
+        <span class="ledger-amount">Valor</span>
+        <span>Ações</span>
+      </div>
+      <ul>
+      <% @documents.each do |document| %>
+        <li data-row="document" data-document-id="<%= document.id %>" class="ledger-row ledger-doc">
+          <time datetime="<%= document.document_on.iso8601 %>" class="tabular-nums"><%= l(document.document_on) %></time>
+          <div data-cell="payee" class="min-w-0">
+            <p class="font-medium"><%= document.payee %></p>
+            <% if document.chave.present? %>
+              <p data-chave class="font-mono text-meta break-words"><%= format_chave(document.chave) %></p>
+            <% end %>
+            <% if document.photo.attached? || document.xml.attached? %>
+              <p class="text-meta text-ink-soft break-all"><%= [ document.photo.attached? ? document.photo.filename : nil, document.xml.attached? ? document.xml.filename : nil ].compact.join(", ") %></p>
+            <% end %>
+            <% if document.observation.present? %>
+              <p class="text-meta text-ink-soft"><%= document.observation %></p>
+            <% end %>
+            <% if coordinator_on_focus? && document.month %>
+              <p class="text-meta text-ink-soft">
+                <% if document.match_id? %>
+                  Casado em <%= document.month.year_month %>
+                <% else %>
+                  Sem casamento em <%= document.month.year_month %>
+                <% end %>
+              </p>
+            <% end %>
+          </div>
+          <p data-cell="kind"><%= document.recibo? ? "Recibo" : "Nota fiscal" %></p>
+          <p data-cell="amount" class="font-medium tabular-nums"><%= format_reais(document.amount_cents) %></p>
+          <div data-cell="actions">
+            <%= link_to "Editar", "/supporting_documents/#{document.id}/edit", class: "font-medium text-caixa" %>
+            <% if document.month_id.nil? && (coordinator_on_focus? || document.account_id == current_account.id) %>
+              <%= button_to "Excluir", "/supporting_documents/#{document.id}", method: :delete, form: { data: { turbo_confirm: "Excluir este documento?" } }, class: "text-margem underline underline-offset-2" %>
+            <% end %>
+          </div>
+        </li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+</div>
