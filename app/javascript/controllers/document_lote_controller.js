@@ -8,8 +8,8 @@ const INCLUDING = "Incluindo documento…"
 
 export default class extends Controller {
   static targets = [
-    "input", "drop", "editor", "proof", "proofMeta", "proofWho", "proofHint",
-    "arquivo", "kind", "chave", "chaveWrap", "amount", "date", "payee", "observation",
+    "input", "drop", "editor", "proof", "heading", "caption", "clear", "identifying",
+    "kind", "chave", "chaveWrap", "amount", "date", "payee", "observation",
     "thumb", "pdfThumb",
     "amountOrigin", "dateOrigin", "payeeOrigin", "toolbar", "sheet", "pair"
   ]
@@ -123,6 +123,13 @@ export default class extends Controller {
     this.render()
   }
 
+  clearAll() {
+    this.items.forEach((item) => this.revokePreview(item))
+    this.items = []
+    this.selected = null
+    this.render()
+  }
+
   enqueue(file) {
     const item = {
       id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -220,15 +227,26 @@ export default class extends Controller {
     const empty = this.items.length === 0
     this.dropTarget.hidden = !empty
     this.editorTarget.hidden = empty
+    this.headingTarget.textContent = this.items.length === 1 ? "Incluir documento" : "Incluir documentos"
     if (empty) return
     this.paintBook()
     this.renderToolbar()
     this.renderSheet()
   }
 
+  loteSheet() {
+    return this.items.length >= 2
+  }
+
   renderToolbar() {
-    const ready = this.items.filter((item) => item.status === "pronto").length
     const off = this.busy ? " disabled" : ""
+    if (!this.loteSheet()) {
+      this.toolbarTarget.innerHTML = `
+        <button type="button" class="ds-btn-primary" data-lote-one${off}>Incluir documento</button>
+      `
+      return
+    }
+    const ready = this.items.filter((item) => item.status === "pronto").length
     this.toolbarTarget.innerHTML = `
       <button type="button" class="ds-btn-primary" data-lote-ready${off}>Incluir prontos (${ready})</button>
       <button type="button" class="ds-btn-secondary" data-lote-one${off}>Incluir este</button>
@@ -237,6 +255,10 @@ export default class extends Controller {
   }
 
   renderSheet() {
+    if (!this.loteSheet()) {
+      this.sheetTarget.innerHTML = ""
+      return
+    }
     const rows = this.items.map((item) => {
       const selected = item.id === this.selected
       const status = this.statusCopy(item)
@@ -276,11 +298,11 @@ export default class extends Controller {
   paintBook() {
     const item = this.selectedItem()
     if (!item) return
-    this.arquivoTarget.value = item.arquivo
-    this.kindTarget.value = item.kind || (item.arquivo === "XML" ? "nota_fiscal" : "recibo")
+    const kindCode = item.kind || (item.arquivo === "XML" ? "nota_fiscal" : "recibo")
+    this.kindTarget.value = item.kindLabel || (kindCode === "recibo" ? "Recibo" : "Nota fiscal")
     this.chaveTarget.value = item.chave || ""
     this.chaveTarget.disabled = true
-    this.chaveWrapTarget.hidden = this.kindTarget.value !== "nota_fiscal"
+    this.chaveWrapTarget.hidden = kindCode !== "nota_fiscal"
     this.amountTarget.value = item.amount
     this.dateTarget.value = item.date
     this.payeeTarget.value = item.payee
@@ -296,9 +318,10 @@ export default class extends Controller {
     this.amountOriginTarget.classList.toggle("text-caixa", lock)
     this.dateOriginTarget.classList.toggle("text-caixa", lock)
     this.payeeOriginTarget.classList.toggle("text-caixa", lock)
-    this.proofMetaTarget.textContent = `${item.arquivo} · ${item.filename}`
-    this.proofWhoTarget.textContent = item.kindLabel || (item.kind === "recibo" ? "Recibo" : "")
-    this.proofHintTarget.textContent = item.arquivo === "Foto" ? "Foto · sem leitura nesta versão" : item.arquivo
+    const stamp = (item.arquivo || "Foto").toUpperCase()
+    this.captionTarget.innerHTML = `<strong class="font-semibold uppercase">${this.escape(stamp)}</strong> - ${this.escape(item.filename)}`
+    this.clearTarget.hidden = this.loteSheet()
+    this.identifyingTarget.hidden = item.status !== "identifying"
     this.paintProof(item)
   }
 
