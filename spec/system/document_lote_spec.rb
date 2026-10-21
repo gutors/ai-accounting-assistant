@@ -78,6 +78,25 @@ RSpec.describe "Document lote", type: :system do
     expect(page).to have_no_button("Incluir este")
     expect(page).to have_no_button("Retirar")
     expect(find("[data-document-lote-target=proof]")).to have_button("Limpar")
+    caption_row = page.evaluate_script(<<~JS)
+      (function() {
+        var caption = document.querySelector("[data-document-lote-target=caption]")
+        var limpar = document.querySelector("[data-document-lote-target=clear]")
+        return !!(caption && limpar && caption.parentElement === limpar.parentElement)
+      })()
+    JS
+    expect(caption_row).to eq(true)
+    split = page.evaluate_script(<<~JS)
+      (function() {
+        var split = document.querySelector("[data-document-lote-target=editor] > div")
+        var book = document.querySelector("[data-document-lote-target=book]")
+        var s = getComputedStyle(split)
+        return { cols: s.gridTemplateColumns.split(" ").length, bookMax: getComputedStyle(book).maxWidth }
+      })()
+    JS
+    expect(split["cols"]).to eq(2)
+    expect(find("[data-document-lote-target=editor] > div:first-child")[:class]).to include("md:grid-cols-[minmax(0,1fr)_28rem]")
+    expect(find("[data-document-lote-target=book]")[:class]).to include("max-w-[28rem]")
     primary = find("[data-lote-one]")
     expect(primary.text).to eq("Incluir documento")
     expect(primary[:class]).to include("ds-btn-primary")
@@ -154,6 +173,33 @@ RSpec.describe "Document lote", type: :system do
     expect(find("[data-lote-one]")[:class]).to include("ds-btn-secondary")
     expect(find("[data-lote-remove]")[:class]).to include("ds-btn-secondary")
     expect(find("[data-document-lote-target=proof]")).to have_no_button("Limpar")
+    order = page.evaluate_script(<<~JS)
+      (function() {
+        var editor = document.querySelector("[data-document-lote-target=editor]")
+        var children = Array.prototype.slice.call(editor.children)
+        return {
+          first: children[0] && children[0].querySelector("[data-document-lote-target=proof]") ? "split" : children[0] && children[0].getAttribute("data-document-lote-target"),
+          second: children[1] && children[1].getAttribute("data-document-lote-target"),
+          third: children[2] && children[2].getAttribute("data-document-lote-target"),
+          sheetAboveSem: document.querySelector("[data-document-lote-target=sheet]").getBoundingClientRect().top <
+            document.querySelector("#sem-mes").getBoundingClientRect().top
+        }
+      })()
+    JS
+    expect(order["first"]).to eq("split")
+    expect(order["second"]).to eq("toolbar")
+    expect(order["third"]).to eq("sheet")
+    expect(order["sheetAboveSem"]).to eq(true)
+    split = page.evaluate_script(<<~JS)
+      (function() {
+        var split = document.querySelector("[data-document-lote-target=editor] > div")
+        var book = document.querySelector("[data-document-lote-target=book]")
+        return { cols: getComputedStyle(split).gridTemplateColumns.split(" ").length }
+      })()
+    JS
+    expect(split["cols"]).to eq(2)
+    expect(find("[data-document-lote-target=editor] > div:first-child")[:class]).to include("md:grid-cols-[minmax(0,1fr)_28rem]")
+    expect(find("[data-document-lote-target=book]")[:class]).to include("max-w-[28rem]")
   end
 
   it "Retirar down to one restores simple include" do
@@ -288,46 +334,8 @@ RSpec.describe "Document lote", type: :system do
     expect(page).not_to have_css("#chave", visible: true)
   end
 
-  it "31st file is not added to the lote" do
-    open_lote
-    paths = (1..31).map { |n| write_upload("f#{n}.jpg", "jpeg-#{n}") }
-    attach_file "file", paths, make_visible: true
-
-    expect(page).to have_css("[data-notice=error]", text: "No máximo 30 arquivos neste lote")
-    expect(page).to have_css("[data-lote-id]", count: 30)
-  end
-
-  it "select Padaria fills compact book from XML" do
-    open_lote
-    attach_file "file", padaria_farmacia, make_visible: true
-    wait_pronto("Padaria Central")
-    find("[data-lote-id]", text: "proc-nfe-padaria.xml").click
-
-    expect(page).to have_css('[aria-selected="true"]', text: "proc-nfe-padaria.xml")
-    expect(page).to have_css("[data-document-lote-target=proof]", text: "proc-nfe-padaria.xml")
-    expect(page).not_to have_css("#arquivo")
-    expect(find_field("kind", readonly: true).value).to eq("Nota fiscal")
-    expect(find_field("amount", disabled: true).value).to eq("155,00")
-    expect(find_field("date", disabled: true).value).to eq("2026-05-11")
-    expect(find_field("payee", disabled: true).value).to eq("Padaria Central")
-    %w[amount date payee].each { |field| expect(page).to have_css("[data-origin=#{field}]", text: "XML autorizado") }
-    cols = page.evaluate_script("getComputedStyle(document.querySelector('[data-document-lote-target=pair]')).gridTemplateColumns")
-    expect(cols.split.length).to eq(2)
-  end
 
 
-  it "Retirar drops Padaria without confirm" do
-    open_lote
-    attach_file "file", padaria_farmacia, make_visible: true
-    wait_pronto("Padaria Central")
-    find("[data-lote-id]", text: "proc-nfe-padaria.xml").click
-    expect(page).not_to have_css("[data-turbo-confirm]")
-    click_button "Retirar"
-
-    expect(page).not_to have_content("proc-nfe-padaria.xml")
-    expect(page).to have_content("proc-nfe-farmacia.xml")
-    expect(SupportingDocument.count).to eq(0)
-  end
 
   it "Incluir prontos two XMLs empties lote into Sem mes" do
     open_lote

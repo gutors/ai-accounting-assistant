@@ -372,4 +372,42 @@ RSpec.describe "Document lote include", type: :system do
     expect(find("[data-lote-id]", text: "empty.jpg")).to have_css("[data-lote-status]", text: "Digitar")
     expect(page).to have_button("Incluir prontos (0)")
   end
+  it "31st file is not added to the lote" do
+    open_lote
+    paths = (1..31).map { |n| write_upload("f#{n}.jpg", "jpeg-#{n}") }
+    attach_file "file", paths, make_visible: true
+
+    expect(page).to have_css("[data-notice=error]", text: "No máximo 30 arquivos neste lote")
+    expect(page).to have_css("[data-lote-id]", count: 30)
+  end
+  it "select Padaria fills compact book from XML" do
+    open_lote
+    attach_file "file", padaria_farmacia, make_visible: true
+    wait_pronto("Padaria Central")
+    find("[data-lote-id]", text: "proc-nfe-padaria.xml").click
+
+    expect(page).to have_css('[aria-selected="true"]', text: "proc-nfe-padaria.xml")
+    expect(page).to have_css("[data-document-lote-target=proof]", text: "proc-nfe-padaria.xml")
+    expect(page).not_to have_css("#arquivo")
+    expect(find_field("kind", readonly: true).value).to eq("Nota fiscal")
+    expect(find_field("amount", disabled: true).value).to eq("155,00")
+    expect(find_field("date", disabled: true).value).to eq("2026-05-11")
+    expect(find_field("payee", disabled: true).value).to eq("Padaria Central")
+    %w[amount date payee].each { |field| expect(page).to have_css("[data-origin=#{field}]", text: "XML autorizado") }
+    cols = page.evaluate_script("getComputedStyle(document.querySelector('[data-document-lote-target=pair]')).gridTemplateColumns")
+    expect(cols.split.length).to eq(2)
+  end
+
+  it "Retirar drops Padaria without confirm" do
+    open_lote
+    attach_file "file", padaria_farmacia, make_visible: true
+    wait_pronto("Padaria Central")
+    find("[data-lote-id]", text: "proc-nfe-padaria.xml").click
+    expect(page).not_to have_css("[data-turbo-confirm]")
+    click_button "Retirar"
+
+    expect(page).not_to have_content("proc-nfe-padaria.xml")
+    expect(page).to have_content("proc-nfe-farmacia.xml")
+    expect(SupportingDocument.count).to eq(0)
+  end
 end
