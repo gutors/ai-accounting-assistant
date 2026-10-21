@@ -403,9 +403,9 @@ export default class extends Controller {
     const persist = kind === "progress"
     const fill = error ? "bg-margem" : "bg-caixa"
     host.innerHTML = `
-      <div data-controller="toast" data-toast data-toast-kind="${this.escape(kind)}" data-toast-timeout-ms="${persist ? "0" : "5000"}" role="${error ? "alert" : "status"}" class="mx-auto mt-6 flex max-w-6xl items-start justify-between gap-4 ${fill} px-5 py-3 text-white md:px-8">
+      <div data-controller="toast" data-toast data-toast-kind="${this.escape(kind)}" data-toast-timeout-ms="${persist ? "0" : "5000"}" role="${error ? "alert" : "status"}" class="flex items-start justify-between gap-4 ${fill} px-5 py-3 text-white md:px-8">
         <p>${this.escape(message)}</p>
-        <button type="button" data-action="toast#dismiss">Fechar</button>
+        <button type="button" class="shrink-0 underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" data-action="toast#dismiss">Fechar</button>
       </div>
     `
   }
