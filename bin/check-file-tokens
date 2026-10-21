@@ -1,0 +1,124 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Pre-commit gate: staged blobs over 5,000 tokens (bytes/4) fail the commit.
+# Checks the index, not the working tree, so unstaged edits are ignored.
+# Skips lockfiles, generated schema, vendored/minified assets, and binaries.
+
+require "open3"
+
+MAX_TOKENS = 5_000
+BYTES_PER_TOKEN = 4
+
+LOCKFILE_NAMES = %w[
+  Gemfile.lock
+  package-lock.json
+  yarn.lock
+  pnpm-lock.yaml
+  bun.lock
+  bun.lockb
+  Cargo.lock
+  composer.lock
+  poetry.lock
+  Pipfile.lock
+  go.sum
+  uv.lock
+  flake.lock
+].freeze
+
+CODEGEN_BASENAMES = %w[schema.rb structure.sql].freeze
+
+BINARY_EXTENSIONS = %w[
+  png jpg jpeg gif webp ico pdf
+  woff woff2 ttf otf eot
+  zip gz tgz bz2 xz 7z
+  mp4 mov webm mp3 wav
+  bin wasm pfx p12
+].freeze
+
+def ignore?(path)
+  base = File.basename(path)
+  return true if LOCKFILE_NAMES.include?(base)
+  return true if CODEGEN_BASENAMES.include?(base)
+  return true if base.end_with?(".min.js", ".min.css")
+
+  ext = File.extname(base).delete_prefix(".").downcase
+  return true if BINARY_EXTENSIONS.include?(ext)
+
+  parts = path.split("/")
+  return true if parts.include?("vendor") || parts.include?("node_modules")
+  return true if path.start_with?("app/assets/builds/")
+  return true if path.match?(%r{\A\.cursor/skills/.+/scripts/})
+
+  false
+end
+
+def git(*args)
+  stdout, stderr, status = Open3.capture3("git", *args)
+  abort("check-file-tokens: git #{args.join(' ')} failed: #{stderr}") unless status.success?
+  stdout
+end
+
+def staged_paths
+  git("diff", "--cached", "--name-only", "-z", "--diff-filter=ACMR")
+    .split("\0")
+    .reject(&:empty?)
+end
+
+def staged_bytes(path)
+  git("cat-file", "-s", ":#{path}").to_i
+end
+
+def tokens_for(bytes)
+  bytes / BYTES_PER_TOKEN
+end
+
+def split_instructions(violations)
+  lines = [
+    "BLOCKED: staged file exceeds #{MAX_TOKENS} tokens (token count = floor(bytes/#{BYTES_PER_TOKEN})).",
+    "",
+    "Over-limit files:"
+  ]
+  violations.each do |path, bytes, tokens|
+    over = tokens - MAX_TOKENS
+    lines << "  #{path}"
+    lines << "    #{bytes} bytes = #{tokens} tokens (limit #{MAX_TOKENS}; over by #{over})"
+  end
+  lines.concat(
+    [
+      "",
+      "How to split, then restage (do this — do not raise the limit or skip the hook):",
+      "  1. Pick one responsibility that can live alone: one class/module, one HTTP action,",
+      "     one ERB partial, one Stimulus controller, or one Markdown section.",
+      "  2. Move that slice into a new sibling file named for the extracted concern.",
+      "     Ruby: FooBar in foo_bar.rb next to the original.",
+      "     RSpec: examples for one action into spec/requests/<resource>_<action>_spec.rb",
+      "     (keep shared helpers in spec/support/).",
+      "     ERB: extract app/views/<resource>/_<name>.html.erb and render it.",
+      "     Markdown (.tasks/.checks/.specs): one sibling .md per slice or appendix.",
+      "  3. Leave a thin surface in the original file (require/include/render/link).",
+      "  4. Repeat until every remaining file is <= #{MAX_TOKENS} tokens (<= #{MAX_TOKENS * BYTES_PER_TOKEN} bytes).",
+      "  5. git add the old path and every new path.",
+      "",
+      "Lockfiles, db/schema.rb, minified/vendored assets, and binaries are skipped.",
+      "Do not use git commit --no-verify, and do not shrink the file by deleting tests or comments."
+    ]
+  )
+  lines.join("\n")
+end
+
+paths = staged_paths.reject { |path| ignore?(path) }
+violations = paths.filter_map do |path|
+  bytes = staged_bytes(path)
+  tokens = tokens_for(bytes)
+  next if tokens <= MAX_TOKENS
+
+  [ path, bytes, tokens ]
+end
+
+if violations.empty?
+  exit 0
+end
+
+warn split_instructions(violations)
+exit 1

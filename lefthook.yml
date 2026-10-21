@@ -5,6 +5,9 @@ lefthook: bin/lefthook
 pre-commit:
   parallel: true
   commands:
+    file_tokens:
+      # Index blob size only (staged files). Lockfiles/codegen/binaries skipped in-script.
+      run: bin/check-file-tokens
     rubocop:
       glob: "*.rb"
       env:
