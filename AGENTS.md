@@ -59,7 +59,7 @@ If a folder is missing, create it as part of the planned feature — do not scaf
 
 ## Commands
 
-When `Gemfile` exists, use `bin/rails`, `bin/rspec`, and other `bin/` wrappers. Prefer existing scripts over inventing new ones. `npm test` is the same `bin/rspec` entry (harness-score looks for a `package.json` test script; this is not a Node app). After clone or a new worktree, run `bin/lefthook install` so pre-commit runs RuboCop and erb_lint on staged files. A check’s proof names a **specific example** (selector), never a whole suite; if no command exists yet, ask.
+When `Gemfile` exists, use `bin/rails`, `bin/rspec`, and other `bin/` wrappers. Prefer existing scripts over inventing new ones. `npm test` is the same `bin/rspec` entry (harness-score looks for a `package.json` test script; this is not a Node app). After clone or a new worktree, run `bin/lefthook install` so pre-commit runs RuboCop, erb_lint, and `bin/check-file-tokens` (staged files over 5,000 tokens = bytes/4 fail; lockfiles, `db/schema.rb`, binaries skipped). A check’s proof names a **specific example** (selector), never a whole suite; if no command exists yet, ask.
 
 ## Pull requests
 

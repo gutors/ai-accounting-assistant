@@ -439,6 +439,15 @@
   }
 }
 
+#toast-host:has([data-toast]) {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 40;
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
 .wait {
   display: none;
   position: fixed;

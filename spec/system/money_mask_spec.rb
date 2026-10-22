@@ -40,7 +40,9 @@ RSpec.describe "Money mask", type: :system do
     photo_path = write_upload("recibo.jpg", "jpeg-bytes")
 
     attach_file "file", photo_path, make_visible: true
-    expect(page).to have_css("[data-lote-status]", text: "Digitar")
+    expect(page).to have_css("h2", text: "Incluir documento")
+    expect(page).not_to have_css(".lote-head", text: "Situação")
+    expect(page).to have_field("kind", with: "Recibo", readonly: true)
     expect(page).to have_field("amount", visible: true)
 
     field = find("#amount")

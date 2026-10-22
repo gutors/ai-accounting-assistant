@@ -29,6 +29,23 @@ RSpec.describe "Toast", type: :system do
     expect(page).to have_css("[data-toast]")
   end
 
+  it "stays in the viewport after the page is scrolled" do
+    invite_and_see_toast
+    page.execute_script(<<~JS)
+      document.body.style.minHeight = "4000px";
+      window.scrollTo(0, 1800);
+    JS
+    expect(page.evaluate_script("window.scrollY")).to be >= 1800
+    expect(page.evaluate_script(<<~JS)).to eq(true)
+      (function () {
+        var el = document.querySelector("[data-toast]");
+        if (!el) return false;
+        var r = el.getBoundingClientRect();
+        return r.top >= 0 && r.top < 48 && r.bottom <= window.innerHeight && r.height > 0;
+      })();
+    JS
+  end
+
   it "Fechar removes the toast before timeout" do
     invite_and_see_toast
     click_button "Fechar"

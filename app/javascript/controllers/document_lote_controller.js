@@ -3,11 +3,13 @@ import { Controller } from "@hotwired/stimulus"
 const MAX = 30
 const MAX_NOTICE = "No máximo 30 arquivos neste lote"
 const XML_UNREADABLE = "O XML da nota fiscal não pôde ser lido"
+const MISSING_FIELDS = "Informe valor, data e favorecido"
+const INCLUDING = "Incluindo documento…"
 
 export default class extends Controller {
   static targets = [
-    "input", "drop", "editor", "proof", "proofMeta", "proofWho", "proofHint",
-    "arquivo", "kind", "chave", "chaveWrap", "amount", "date", "payee", "observation",
+    "input", "drop", "editor", "proof", "heading", "caption", "clear", "identifying",
+    "kind", "chave", "chaveWrap", "amount", "date", "payee", "observation",
     "thumb", "pdfThumb",
     "amountOrigin", "dateOrigin", "payeeOrigin", "toolbar", "sheet", "pair"
   ]
@@ -63,47 +65,52 @@ export default class extends Controller {
 
   includeOne() {
     const item = this.selectedItem()
-    if (!item || item.status !== "pronto" || this.busy) return
-    this.beginSend([ item.id ])
-    this.postOne(item).finally(() => this.endSend())
+    if (!item || this.busy || this.sending.has(item.id)) return
+    if (item.status === "digitar") {
+      this.toast(MISSING_FIELDS)
+      return
+    }
+    if (item.status !== "pronto") return
+    this.sending.add(item.id)
+    this.renderToolbar()
+    this.toast(INCLUDING, "progress")
+    this.postOne(item).finally(() => {
+      this.sending.delete(item.id)
+      this.renderToolbar()
+      const pending = document.querySelector('[data-toast-kind="progress"]')
+      if (pending) pending.remove()
+    })
   }
 
   includeReady() {
     if (this.busy) return
-    const ready = this.items.filter((item) => item.status === "pronto")
+    const ready = this.items.filter((item) => item.status === "pronto" && !this.sending.has(item.id))
     if (!ready.length) return
     const data = this.formData()
-    ready.forEach((item) => {
-      data.append("documents[][file]", item.file, item.file.name)
-      data.append("documents[][kind]", item.kind)
-      data.append("documents[][amount]", item.amount)
-      data.append("documents[][date]", item.date)
-      data.append("documents[][payee]", item.payee)
-      if (item.observation) data.append("documents[][observation]", item.observation)
-      if (item.chave) data.append("documents[][chave]", item.chave)
-    })
-    const sent = new Set(ready.map((item) => item.id))
+    ready.forEach((item) => this.appendDocument(data, item))
+    const sent = ready.map((item) => item.id)
     this.beginSend(sent)
-    this.submit("/supporting_documents/batch", data).then((response) => {
+    this.submit("/supporting_documents/batch", data, true).then((response) => {
       if (!response.ok) return
+      const sentIds = new Set(sent)
       this.items = this.items.filter((item) => {
-        if (sent.has(item.id)) this.revokePreview(item)
-        return !sent.has(item.id)
+        if (sentIds.has(item.id)) this.revokePreview(item)
+        return !sentIds.has(item.id)
       })
-      this.selected = this.items[0] ? this.items[0].id : null
+      this.retainSelectionAfterRemovals(sentIds)
       this.render()
-    }).finally(() => this.endSend())
+    }).finally(() => this.endSend(sent))
   }
 
   beginSend(ids) {
     this.busy = true
-    this.sending = new Set(ids)
+    ids.forEach((id) => this.sending.add(id))
     this.renderToolbar()
   }
 
-  endSend() {
+  endSend(ids) {
+    ids.forEach((id) => this.sending.delete(id))
     this.busy = false
-    this.sending = new Set()
     this.renderToolbar()
   }
 
@@ -113,6 +120,13 @@ export default class extends Controller {
     this.items = this.items.filter((row) => row.id !== item.id)
     this.revokePreview(item)
     this.selected = this.items[0] ? this.items[0].id : null
+    this.render()
+  }
+
+  clearAll() {
+    this.items.forEach((item) => this.revokePreview(item))
+    this.items = []
+    this.selected = null
     this.render()
   }
 
@@ -142,7 +156,6 @@ export default class extends Controller {
   identify(item) {
     const data = this.formData()
     data.append("file", item.file, item.file.name)
-    document.dispatchEvent(new CustomEvent("wait:start", { detail: { copy: "Identificando o arquivo…" } }))
     fetch("/supporting_documents/identify", {
       method: "POST",
       body: data,
@@ -158,8 +171,6 @@ export default class extends Controller {
         this.applyIdentify(item, body)
       }
       this.render()
-    }).finally(() => {
-      document.dispatchEvent(new CustomEvent("wait:end"))
     })
   }
 
@@ -186,24 +197,18 @@ export default class extends Controller {
 
   postOne(item) {
     const data = this.formData()
-    data.append("file", item.file, item.file.name)
-    data.append("kind", item.kind)
-    data.append("amount", item.amount)
-    data.append("date", item.date)
-    data.append("payee", item.payee)
-    if (item.observation) data.append("observation", item.observation)
-    if (item.chave) data.append("chave", item.chave)
-    return this.submit("/supporting_documents", data).then((response) => {
+    this.appendDocument(data, item)
+    return this.submit("/supporting_documents/batch", data, false).then((response) => {
       if (!response.ok) return
       this.items = this.items.filter((row) => row.id !== item.id)
       this.revokePreview(item)
-      this.selected = this.items[0] ? this.items[0].id : null
+      this.retainSelectionAfterRemovals(new Set([ item.id ]))
       this.render()
     })
   }
 
-  submit(url, data) {
-    document.dispatchEvent(new CustomEvent("wait:start", { detail: { copy: "Incluindo documentos…" } }))
+  submit(url, data, hold) {
+    if (hold) document.dispatchEvent(new CustomEvent("wait:start", { detail: { copy: "Incluindo documentos…" } }))
     return fetch(url, {
       method: "POST",
       body: data,
@@ -214,7 +219,7 @@ export default class extends Controller {
       if (window.Turbo) window.Turbo.renderStreamMessage(body)
       return response
     }).finally(() => {
-      document.dispatchEvent(new CustomEvent("wait:end"))
+      if (hold) document.dispatchEvent(new CustomEvent("wait:end"))
     })
   }
 
@@ -222,15 +227,26 @@ export default class extends Controller {
     const empty = this.items.length === 0
     this.dropTarget.hidden = !empty
     this.editorTarget.hidden = empty
+    this.headingTarget.textContent = this.items.length === 1 ? "Incluir documento" : "Incluir documentos"
     if (empty) return
     this.paintBook()
     this.renderToolbar()
     this.renderSheet()
   }
 
+  loteSheet() {
+    return this.items.length >= 2
+  }
+
   renderToolbar() {
-    const ready = this.items.filter((item) => item.status === "pronto").length
     const off = this.busy ? " disabled" : ""
+    if (!this.loteSheet()) {
+      this.toolbarTarget.innerHTML = `
+        <button type="button" class="ds-btn-primary" data-lote-one${off}>Incluir documento</button>
+      `
+      return
+    }
+    const ready = this.items.filter((item) => item.status === "pronto").length
     this.toolbarTarget.innerHTML = `
       <button type="button" class="ds-btn-primary" data-lote-ready${off}>Incluir prontos (${ready})</button>
       <button type="button" class="ds-btn-secondary" data-lote-one${off}>Incluir este</button>
@@ -239,6 +255,10 @@ export default class extends Controller {
   }
 
   renderSheet() {
+    if (!this.loteSheet()) {
+      this.sheetTarget.innerHTML = ""
+      return
+    }
     const rows = this.items.map((item) => {
       const selected = item.id === this.selected
       const status = this.statusCopy(item)
@@ -278,11 +298,11 @@ export default class extends Controller {
   paintBook() {
     const item = this.selectedItem()
     if (!item) return
-    this.arquivoTarget.value = item.arquivo
-    this.kindTarget.value = item.kind || (item.arquivo === "XML" ? "nota_fiscal" : "recibo")
+    const kindCode = item.kind || (item.arquivo === "XML" ? "nota_fiscal" : "recibo")
+    this.kindTarget.value = item.kindLabel || (kindCode === "recibo" ? "Recibo" : "Nota fiscal")
     this.chaveTarget.value = item.chave || ""
     this.chaveTarget.disabled = true
-    this.chaveWrapTarget.hidden = this.kindTarget.value !== "nota_fiscal"
+    this.chaveWrapTarget.hidden = kindCode !== "nota_fiscal"
     this.amountTarget.value = item.amount
     this.dateTarget.value = item.date
     this.payeeTarget.value = item.payee
@@ -298,9 +318,10 @@ export default class extends Controller {
     this.amountOriginTarget.classList.toggle("text-caixa", lock)
     this.dateOriginTarget.classList.toggle("text-caixa", lock)
     this.payeeOriginTarget.classList.toggle("text-caixa", lock)
-    this.proofMetaTarget.textContent = `${item.arquivo} · ${item.filename}`
-    this.proofWhoTarget.textContent = item.kindLabel || (item.kind === "recibo" ? "Recibo" : "")
-    this.proofHintTarget.textContent = item.arquivo === "Foto" ? "Foto · sem leitura nesta versão" : item.arquivo
+    const stamp = (item.arquivo || "Foto").toUpperCase()
+    this.captionTarget.innerHTML = `<strong class="font-semibold uppercase">${this.escape(stamp)}</strong> - ${this.escape(item.filename)}`
+    this.clearTarget.hidden = this.loteSheet()
+    this.identifyingTarget.hidden = item.status !== "identifying"
     this.paintProof(item)
   }
 
@@ -357,6 +378,17 @@ export default class extends Controller {
     return this.items.find((item) => item.id === this.selected)
   }
 
+  retainSelectionAfterRemovals(removedIds) {
+    const removed = removedIds instanceof Set ? removedIds : new Set(removedIds)
+    if (this.selected && removed.has(this.selected)) {
+      this.selected = this.items[0] ? this.items[0].id : null
+      return
+    }
+    if (this.selected && !this.items.some((row) => row.id === this.selected)) {
+      this.selected = this.items[0] ? this.items[0].id : null
+    }
+  }
+
   ready(item) {
     return /[1-9]/.test(item.amount || "") && !!(item.date && item.payee)
   }
@@ -381,11 +413,35 @@ export default class extends Controller {
     return data
   }
 
+  appendDocument(data, item) {
+    data.append("documents[][file]", item.file, item.file.name)
+    data.append("documents[][kind]", item.kind)
+    data.append("documents[][amount]", item.amount)
+    data.append("documents[][date]", item.date)
+    data.append("documents[][payee]", item.payee)
+    if (item.observation) data.append("documents[][observation]", item.observation)
+    if (item.chave) data.append("documents[][chave]", item.chave)
+  }
+
   notice(message) {
     const node = document.querySelector("[data-notice=error]")
     if (!node) return
     node.hidden = false
     node.textContent = message
+  }
+
+  toast(message, kind = "error") {
+    const host = document.getElementById("toast-host")
+    if (!host) return
+    const error = kind === "error"
+    const persist = kind === "progress"
+    const fill = error ? "bg-margem" : "bg-caixa"
+    host.innerHTML = `
+      <div data-controller="toast" data-toast data-toast-kind="${this.escape(kind)}" data-toast-timeout-ms="${persist ? "0" : "5000"}" role="${error ? "alert" : "status"}" class="flex items-start justify-between gap-4 ${fill} px-5 py-3 text-white md:px-8">
+        <p>${this.escape(message)}</p>
+        <button type="button" class="shrink-0 underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" data-action="toast#dismiss">Fechar</button>
+      </div>
+    `
   }
 
   noticeText(body) {
