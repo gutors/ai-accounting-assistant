@@ -97,7 +97,7 @@ export default class extends Controller {
         if (sentIds.has(item.id)) this.revokePreview(item)
         return !sentIds.has(item.id)
       })
-      this.selected = this.items[0] ? this.items[0].id : null
+      this.retainSelectionAfterRemovals(sentIds)
       this.render()
     }).finally(() => this.endSend(sent))
   }
@@ -202,7 +202,7 @@ export default class extends Controller {
       if (!response.ok) return
       this.items = this.items.filter((row) => row.id !== item.id)
       this.revokePreview(item)
-      this.selected = this.items[0] ? this.items[0].id : null
+      this.retainSelectionAfterRemovals(new Set([ item.id ]))
       this.render()
     })
   }
@@ -376,6 +376,17 @@ export default class extends Controller {
 
   selectedItem() {
     return this.items.find((item) => item.id === this.selected)
+  }
+
+  retainSelectionAfterRemovals(removedIds) {
+    const removed = removedIds instanceof Set ? removedIds : new Set(removedIds)
+    if (this.selected && removed.has(this.selected)) {
+      this.selected = this.items[0] ? this.items[0].id : null
+      return
+    }
+    if (this.selected && !this.items.some((row) => row.id === this.selected)) {
+      this.selected = this.items[0] ? this.items[0].id : null
+    }
   }
 
   ready(item) {
