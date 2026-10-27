@@ -125,7 +125,7 @@ A foto PDF usa o binário `pdftoppm` (Poppler) no `PATH`. Sem ele, a leitura do 
 > [!NOTE]
 > `bin/rails db:seed` em development persiste a organização `ONG Exemplo` e a conta coordenadora `gutors@gmail.com`.
 
-As decisões de produto estão no [mapa do fechamento mensal](https://github.com/gutors/ai-accounting-assistant/issues/1). Uma feature nova parte de uma tarefa (`tlc-plan`) e do checklist (`tlc-implement`). O mapa não é a especificação a implementar.
+As decisões de produto estão no [mapa do fechamento mensal](https://github.com/gutors/ai-accounting-assistant/issues/1). Uma feature nova parte de **tlc-spec-lean** (`plan.md` e `checks.md` em `.specs/features/<name>/`). O mapa não é a especificação a implementar.
 
 ## Plataforma (v1)
 

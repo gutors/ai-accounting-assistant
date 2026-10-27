@@ -12,7 +12,7 @@ If the invocation includes a slug, use it. Otherwise ask.
 
 A second process needs its own dirty tree: another agent, another branch in parallel, research that must not touch the current branch. Do **not** create one to switch branches in a single sequential task — `git switch` is enough.
 
-Verifier fault injection (`tlc-implement` `references/verify.md`) uses a throwaway worktree under `/tmp` and is **not** this command.
+Verifier mutations run in the real tree via tlc-spec-lean `mutate.py` and are **not** this command.
 
 ## Capacity (this machine)
 

@@ -4,19 +4,18 @@ Web app for a financial **Coordinator** to close a month for one or more **Organ
 
 ## How to work
 
-1. A new feature uses **tlc-plan**, then **tlc-implement**. Open that skill. GitHub issue #1 is the product map; it is not a build source.
-2. tlc-plan writes `.tasks/<name>.md`. A human confirms that task before implementation. tlc-implement extracts `.checks/<feature>.md` from it and builds from that checklist.
-3. When tlc-plan finishes, ask whether to open a GitHub issue for the planned feature when none exists yet. Create it only after the user agrees. When `Unresolved` still holds questions this session will not settle, suggest a second issue for those, created only after the feature issue and only if the user agrees.
-4. A builder reports and stops. The orchestrator — never the builder — dispatches a fresh Verifier (`.cursor/agents/tlc-verifier.md`) over `<feature base>..HEAD` with every check. Author is not verifier.
-5. Project memory: `.specs/STATE.md` is the **handoff** snapshot only. Decisions that constrain later features live in `docs/adr/` (start from ADR-0001). Do not start a second log in STATE.md. Features that already have `.specs/features/<name>/` stay there as history. New tasks and checklists go to `.tasks/` and `.checks/`.
-6. Do not paste tlc-plan or tlc-implement `references/` into this file.
+1. A new feature uses **tlc-spec-lean**. Open that skill. GitHub issue #1 is the product map; it is not a build source.
+2. Plan writes `.specs/features/<name>/plan.md`. Present it and stop. After the user approves, write the `**Approved**:` line in their words, then extract `checks.md` and build. Under ~3 files with no one-way door, skip `plan.md` and put `## Intent` in `checks.md`.
+3. After the plan is approved, ask whether to open a GitHub issue when none exists yet. Create it only after the user agrees. Leftover questions this session will not settle: suggest a second issue, only after the feature issue and only if the user agrees.
+4. After the last commit, run `check_proofs.py`. The builder who holds the feature then dispatches a fresh Verifier (`.cursor/agents/tlc-verifier.md`) and, when a criterion cites a capture, the screens sub-agent (`.cursor/agents/tlc-screens.md`), in the same turn. Author is not verifier. A builder that is only a batch still reports and stops.
+5. Decisions that constrain later features live in `docs/adr/` (start from ADR-0001). Do not start a second log in `.specs/STATE.md`. Confirmed lessons load via `lessons.py` (`confirmed` only). `.tasks/` and `.checks/` are history of the tlc-plan era, not a build source. Shipped folders under `.specs/features/` stay as history; new work uses that tree in the 2.1.0 shape.
+6. Do not paste tlc-spec-lean `references/` into this file.
 
-## tlc-implement
+## tlc-spec-lean
 
-profile: standard
-handoff: on
+mutations: 3
 
-Raise to `ui` when the task names a binding screen or design source. Say so in one line; do not silently exceed this floor.
+When a criterion cites a capture, the screens path runs — do not skip pictures. Binding captures still bind. Raise `mutations` only by asking, never in silence. `checks.md` `Build:` is `bin/rubocop`; `bin/erb_lint --lint-all`.
 
 ## Stack
 
@@ -42,24 +41,23 @@ Parallel local agents: one git worktree per agent; distinct `PORT` and `DATABASE
 | `config/` | Rails config (create on first feature) |
 | `db/` | Migrations and schema (create on first feature) |
 | `spec/` | RSpec (create on first feature) |
-| `.specs/` | Handoff (`STATE.md`) and already-shipped feature folders (not a build source) |
-| `.tasks/` | tlc-plan tasks for new features |
-| `.checks/` | tlc-implement checklists and verification reports |
+| `.specs/` | Live tlc-spec-lean work (`.specs/features/<name>/`), lessons; `STATE.md` points at `docs/adr/` |
+| `.tasks/`, `.checks/` | tlc-plan / tlc-implement history — not a build source |
 | `.cursor/rules/` | Stack conventions (glob-scoped) |
 | `.cursor/commands/` | Human-triggered slash commands (`/open-pr`, `/worktree`) |
-| `.cursor/agents/` | Project subagents (`tlc-verifier`) |
+| `.cursor/agents/` | Project subagents (`tlc-verifier`, `tlc-screens`) |
 
 If a folder is missing, create it as part of the planned feature — do not scaffold empty trees “just in case.”
 
 ## Language
 
 - **UI, user-facing copy, product docs:** Portuguese (Brazil).
-- **Code, comments, commit messages, and technical artifacts** (`.specs`, `.tasks`, `.checks`): English.
+- **Code, comments, commit messages, and technical artifacts** (`.specs`, including `plan.md` / `checks.md`): English.
 - Domain words: `GLOSSARY.md`.
 
 ## Commands
 
-When `Gemfile` exists, use `bin/rails`, `bin/rspec`, and other `bin/` wrappers. Prefer existing scripts over inventing new ones. `npm test` is the same `bin/rspec` entry (harness-score looks for a `package.json` test script; this is not a Node app). After clone or a new worktree, run `bin/lefthook install` so pre-commit runs RuboCop, erb_lint, and `bin/check-file-tokens` (staged files over 5,000 tokens = bytes/4 fail; lockfiles, `db/schema.rb`, binaries skipped). A check’s proof names a **specific example** (selector), never a whole suite; if no command exists yet, ask.
+When `Gemfile` exists, use `bin/rails`, `bin/rspec`, and other `bin/` wrappers. Prefer existing scripts over inventing new ones. `npm test` is the same `bin/rspec` entry (harness-score looks for a `package.json` test script; this is not a Node app). After clone or a new worktree, run `bin/lefthook install` so pre-commit runs RuboCop, erb_lint, and `bin/check-file-tokens` (staged files over 5,000 tokens = bytes/4 fail; lockfiles, `db/schema.rb`, binaries skipped). A check’s proof names a **specific example** (selector), never a whole suite; `check_proofs.py` runs those `bin/rspec` commands by exit code. If no command exists yet, ask.
 
 ## Pull requests
 
@@ -78,9 +76,9 @@ When `Gemfile` exists, use `bin/rails`, `bin/rspec`, and other `bin/` wrappers. 
 - Put close-for-send or A1/SEFAZ mTLS in short-lived functions (Lambda, Vercel Hobby timeouts) as the home of that work.
 - Treat the container filesystem as durable storage for photos, XML, or statements.
 - Implement Open Finance consent, a BCB receptor, NF-e issuance, accountant login, or organization CNPJ as a setup field.
-- Start product code before a human has confirmed the `.tasks/<name>.md` task and tlc-implement has extracted `.checks/<feature>.md`.
-- Load tlc-spec-lean. New work is tlc-plan then tlc-implement.
-- Dispatch the Verifier from a builder, or treat a self-check as verification.
+- Start product code before `plan.md` is Approved (or before `validate_checks.py` on a no-plan `checks.md`).
+- Load tlc-plan or tlc-implement. New work is tlc-spec-lean.
+- Treat a self-check as verification.
 
 ## Agent skills
 
