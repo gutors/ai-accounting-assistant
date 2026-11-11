@@ -2,9 +2,7 @@
 
 <img src="public/icon.svg" alt="" width="48" height="48">
 
-<a href="https://paladini.github.io/harness-score/">
-  <img alt="Harness Score" src="https://raw.githubusercontent.com/gutors/ai-accounting-assistant/badges/harness-badge.svg" height="20" width="112">
-</a>
+<a href="https://paladini.github.io/harness-score/"><img alt="Harness Score" src="https://raw.githubusercontent.com/gutors/ai-accounting-assistant/badges/harness-badge.svg" height="20"></a>
 
 Sistema para fechar o mês de uma ou mais **organizações** (ONG ou similar): importar extratos, guardar documentos de suporte, casar cada pagamento com documento ou exceção, apontar documentos faltantes, gerar a planilha-resumo e montar o **pacote mensal** para o contador.
 
