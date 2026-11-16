@@ -114,13 +114,14 @@ module PhotoFields
     def cleaned_line(text)
       return if text.blank?
 
-      text.lines.map { |line|
+      text.lines.filter_map { |line|
         tokens = line.gsub(/[^A-Za-z0-9À-ÿ ]/, " ").split
         joined = tokens.drop_while { |token| token.length <= 2 || token.match?(/\A\d+\z/) }.join(" ")
         next if joined.blank?
 
-        ActiveSupport::Inflector.transliterate(joined).strip
-      }.find { |line| line.match?(/[A-Za-z]{3,}/) }
+        transliterated = ActiveSupport::Inflector.transliterate(joined).strip
+        transliterated if transliterated.match?(/[A-Za-z]{3,}/)
+      }.first
     end
 
     def company_line?(line)

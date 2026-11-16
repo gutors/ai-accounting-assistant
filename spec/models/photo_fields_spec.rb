@@ -131,6 +131,26 @@ RSpec.describe PhotoFields, type: :model do
     expect(result).to be_a(PhotoFields::Miss)
   end
 
+  it "Real PNG skips short EMITENTE tokens and returns PADARIA CENTRAL LTDA" do
+    png = ocr_fixture("danfe_fields.png")
+    text = <<~TEXT
+      EMITENTE
+      12
+      AB
+      PADARIA CENTRAL LTDA
+      DESTINATARIO
+      Valor a Pagar R$ 155,00
+      11/05/2026
+    TEXT
+
+    result = PhotoFields::Real.new.read(bytes: png, filename: "short_emitente.png", text: text)
+
+    expect(result).to be_a(PhotoFields::Fields)
+    expect(result.amount_cents).to eq(15500)
+    expect(result.document_on).to eq(Date.new(2026, 5, 11))
+    expect(result.payee).to eq("PADARIA CENTRAL LTDA")
+  end
+
   it "Real PNG with only amount is not a complete triple" do
     png = ocr_fixture("amount_only.png")
 
