@@ -44,6 +44,15 @@ RSpec.describe Match, type: :model do
     expect(doc_b.reload.match_id).to eq(match.id)
   end
 
+  it "supporting documents load by id" do
+    payment = plant_payment(statement, 22000)
+    doc_a = plant_recibo(organization, account, payee: "Padaria A", amount: "100,00")
+    doc_b = plant_recibo(organization, account, payee: "Padaria B", amount: "120,00")
+    match = confirm(payments: [ payment ], documents: [ doc_b, doc_a ])
+
+    expect(match.supporting_documents.map(&:id)).to eq([ doc_a.id, doc_b.id ])
+  end
+
   it "confirm lesser with observation persists the Match" do
     payment = plant_payment(statement, 22000)
     document = plant_recibo(organization, account, payee: "Padaria Central", amount: "200,00")
