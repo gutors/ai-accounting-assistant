@@ -25,11 +25,11 @@ Proof: `bin/rspec spec/system/document_lote_progress_spec.rb -e "four files show
 **C5** - One file shows no rule and no sentence, and its proof square keeps `Identificando o arquivo…` (AC 4)
 Proof: `bin/rspec spec/system/document_lote_progress_spec.rb -e "one file keeps the proof square sentence and no rule"`
 
-**C6** - With ten files and the second wave in flight, the lote sheet matches `.specs/features/lote-identify-progress/captures/lote-b-faixa-fila.png`: the four wave rows say `Identificando` in Situação, the two queued rows say `Na fila`, and no row carries a second sentence under its file name (AC 5)
+**C6** - With ten files and the second wave in flight, the lote sheet matches `.specs/features/lote-identify-progress/captures/lote-b-faixa-fila.png` in the rows it draws: the first three rows say `Pronto` with their date, payee, kind and amount, and no row carries a second sentence under its file name (AC 5)
 Proof: browser - ten files, second wave gated in flight, save `captures/lote-b-faixa-fila.running.png` at 716×798
 
-**C7** - The Situação words hold for every row of that five-file lote: four `Identificando`, one `Na fila`, and once the first wave returns the first four rows say `Pronto` while the fifth still says `Na fila`; a row in `Erro` shows its error sentence and no reading sentence (AC 5)
-Proof: `bin/rspec spec/system/document_lote_identify_batch_spec.rb -e "five XMLs split Identificando from Na fila"`
+**C7** - Every row of a five-file lote carries its Situação word: four `Identificando` while the first wave is in flight and one `Na fila`; once that wave returns the first four say `Pronto` and the fifth still says `Na fila`; a row in `Erro` shows its error sentence and no reading sentence (AC 5)
+Proof: `bin/rspec spec/system/document_lote_progress_spec.rb -e "five XMLs split Identificando from Na fila"`
 
 **C8** - An unreadable XML `nota.xml` as the first of four fills one tick `margem` — the error state of `.specs/features/lote-identify-progress/captures/ruler-states.png` — leaves three `caixa` ticks, and its row shows `Erro` with `O XML da nota fiscal não pôde ser lido` (AC 6)
 Proof: `bin/rspec spec/system/document_lote_progress_spec.rb -e "unreadable XML fills one margem tick"`
@@ -54,7 +54,7 @@ Proof: `bin/rspec spec/system/document_lote_progress_spec.rb -e "each Situacao m
 **C14** - Selecting a row that is still `Na fila` shows the book with `amount`, `date` and `payee` empty and no `Identificando o arquivo…` in the proof square (AC 12)
 Proof: `bin/rspec spec/system/document_lote_progress_spec.rb -e "selecting a queued row leaves the book empty"`
 
-**C15** - `Incluir prontos (4)` while the second wave of a five-file lote is in flight leaves one tick in the wave's `caixa`/hollow shape for the file that remains, with the four included rows gone from the rule (AC 13)
+**C15** - `Incluir prontos (4)` while the second wave of a ten-file lote is in flight leaves six ticks, keeps the four in-flight rows hollow, and names `Identificando os documentos 1 a 4 de 6` (AC 13)
 Proof: `bin/rspec spec/system/document_lote_progress_spec.rb -e "Incluir prontos while a wave is in flight repaints the rule"`
 
 ## Coverage
@@ -84,8 +84,8 @@ Proof: `bin/rspec spec/system/document_lote_progress_spec.rb -e "Incluir prontos
 
 ## Handoff
 
-- **Settled mid-build:** none
+- **Settled mid-build:** "Critério 4 manda: com um arquivo só, volta a tela de inclusão simples, sem régua" - a lote that drops to one file shows no rule and no sentence; AC 13 is proven with a ten-file lote that keeps six. "Registrar como diferenças do capture (ADR-0011), sem construir" - the two proof-square facts the capture draws stay as they are (AD-0011).
 - **Dispatched:** none yet
-- **Boundary:** open
+- **Boundary:** C1-C15 closed at `e17b34a`
 - **Abandoned:** none
-- **Walked:** not yet
+- **Walked:** Coordinator `/supporting_documents` with ten authorized XMLs `d1.xml`…`d10.xml` attached through the picker, waves gated so the second wave sat in flight; the section showed the ten-tick rule with ticks 5–8 hollow and `Identificando os documentos 5 a 8 de 10`, rows 1–4 `Pronto`, rows 5–8 `Identificando`, rows 9–10 `Na fila`, and `Incluir prontos (4)`. Saved as `captures/lote-b-faixa-fila.running.png` at 716×798, the section's own size at a 780px window. The 390px / 30-file state and the singular `Identificando o documento 5 de 5` are proven by C12 and C3.
