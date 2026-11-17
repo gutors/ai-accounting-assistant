@@ -77,7 +77,7 @@ Proof: `bin/rspec spec/system/document_lote_identify_batch_spec.rb -e "Incluir p
 ## Handoff
 
 - **Settled mid-build:** none
-- **Dispatched:** none
-- **Boundary:** none
+- **Dispatched:** Verifier at `07984a9` returned
+- **Boundary:** C1-C8 closed at `07984a9`
 - **Abandoned:** none
 - **Walked:** Coordinator `/login` Ambiente local `gutors@gmail.com` then `/supporting_documents`. Playwright attached five authorized XMLs `a.xml`…`e.xml` from `tmp/walk-waves/` (IDE tab cannot set `<input type=file>`). Two `POST /supporting_documents/identify_batch` returned 200; the lote showed `Situação`, `Incluir prontos (5)`, and Pronto on Padaria Central / Farmácia São José / Mercado Bom Preço / Atacado Verde / Café do Ponto. Sem mês still held the earlier documents — identify did not persist. XML identify finished too fast to photograph the fifth row still on `Identificando o arquivo…`; that wait is C3–C4.
