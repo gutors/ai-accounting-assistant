@@ -44,6 +44,13 @@ RSpec.configure do |config|
   # triggering implicit auto-inclusion in groups with matching metadata.
   config.shared_context_metadata_behavior = :apply_to_host_groups
 
+  # A proof names one example by name (`bin/rspec <file> -e "<name>"`). When a rename leaves the
+  # selector matching nothing, RSpec otherwise prints "0 examples, 0 failures" and exits 0, so the
+  # proof reports success while asserting nothing. Fail the run instead; the exit code is the only
+  # signal, because the summary text still reads "0 examples, 0 failures".
+  # The matching CLI flag does not exist: it is configuration only.
+  config.fail_if_no_examples = true
+
 # The settings below are suggested to provide a good initial experience
 # with RSpec, but feel free to customize to your heart's content.
 =begin
