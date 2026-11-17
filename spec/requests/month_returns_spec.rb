@@ -12,7 +12,7 @@ RSpec.describe "Return unmatched-in-package document", type: :request do
     [ account, organization, month.reload, document.reload ]
   end
 
-  it "POST return Padaria while open clears month_id and omits Devolver" do
+  it "POST return names the returned document" do
     _account, _organization, month, document = signed_unmatched_padaria
 
     post "/months/2026-05/supporting_documents/#{document.id}/return"
@@ -20,7 +20,10 @@ RSpec.describe "Return unmatched-in-package document", type: :request do
     expect(document.reload.month_id).to be_nil
     expect(response).to have_http_status(:found)
     expect(response).to redirect_to("/months/2026-05")
-    get "/months/2026-05"
+
+    follow_redirect!
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_message(response.body)).to eq("Documento de Padaria Central devolvido para Sem mês.")
     expect(pool_html(response.body)).to include("Padaria Central")
     expect(pool_html(response.body)).not_to include("Devolver")
   end

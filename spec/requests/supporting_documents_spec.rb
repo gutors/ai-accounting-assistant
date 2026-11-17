@@ -116,7 +116,7 @@ RSpec.describe "Supporting documents", type: :request do
     expect(response.body).not_to include("Only Org B")
   end
 
-  it "POST recibo jpg persists Padaria Central Recibo and redirects" do
+  it "POST recibo names the payee amount and kind in the toast" do
     _account, organization = signed_in
 
     post "/supporting_documents", params: recibo_params(photo: photo_jpg("recibo.jpg"))
@@ -127,7 +127,7 @@ RSpec.describe "Supporting documents", type: :request do
 
     get "/supporting_documents"
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
-    expect(toast_node(response.body).text).to include("Pronto.")
+    expect(toast_message(response.body)).to eq("Recibo de Padaria Central, R$ 155,00, incluído.")
     list = response.body[response.body.index("Sem mês")..]
     document_row = rows(list, "document").first
     expect(document_row.at_css('time[datetime="2026-05-11"]').text).to eq("11/05/2026")
@@ -305,7 +305,19 @@ RSpec.describe "Supporting documents", type: :request do
     expect(page.at_css("#arquivo")["value"]).to eq("Foto")
   end
 
-  it "POST recibo photo without XML persists chave nil and Pronto toast" do
+  it "POST nota fiscal names the payee amount and kind in the toast" do
+    _account, organization = signed_in
+
+    post "/supporting_documents", params: nota_params(photo: photo_jpg)
+
+    expect(response).to have_http_status(:found)
+    expect(SupportingDocument.where(organization: organization).count).to eq(1)
+
+    get "/supporting_documents"
+    expect(toast_message(response.body)).to eq("Nota fiscal de Padaria Central, R$ 155,00, incluída.")
+  end
+
+  it "POST recibo photo without XML persists chave nil and names the document" do
     _account, organization = signed_in
 
     post "/supporting_documents", params: recibo_params(photo: photo_jpg("recibo.jpg"))
@@ -318,7 +330,7 @@ RSpec.describe "Supporting documents", type: :request do
 
     get "/supporting_documents"
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
-    expect(toast_node(response.body).text).to include("Pronto.")
+    expect(toast_message(response.body)).to eq("Recibo de Padaria Central, R$ 155,00, incluído.")
   end
 
   it "POST nota_fiscal chave 123 returns 422 and error toast" do
@@ -645,7 +657,7 @@ RSpec.describe "Supporting documents", type: :request do
     expect(SupportingDocument.where(organization: organization).count).to eq(2)
   end
 
-  it "PATCH payee to Mercado Silva redirects" do
+  it "PATCH names the updated document" do
     signed_in
     post "/supporting_documents", params: recibo_params
     id = SupportingDocument.last.id
@@ -655,6 +667,8 @@ RSpec.describe "Supporting documents", type: :request do
     expect(response).to have_http_status(:found)
     expect(response).to redirect_to("/supporting_documents")
     get "/supporting_documents"
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_message(response.body)).to eq("Documento de Mercado Silva atualizado.")
     expect(response.body).to include("Mercado Silva")
     expect(response.body).not_to include("Padaria Central")
   end
@@ -1092,7 +1106,9 @@ RSpec.describe "Supporting documents", type: :request do
     expect(SupportingDocument.find_by(id: document.id)).to be_nil
     expect(ActiveStorage::Blob.find_by(id: blob_id)).to be_nil
     get "/supporting_documents"
-    expect(response.body).not_to include("Padaria Central")
+    # The deleted-document toast names Padaria Central, so the absence is the list's.
+    listed_payees = page_doc(response.body).css('li[data-row="document"] [data-cell="payee"]').map { |node| node.text }
+    expect(listed_payees).to be_empty
   end
 
   it "submitter DELETE own month document returns 422" do
@@ -1137,6 +1153,9 @@ RSpec.describe "Supporting documents", type: :request do
 
     expect(response).to have_http_status(:found)
     expect(response).to redirect_to("/supporting_documents")
+    get "/supporting_documents"
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_message(response.body)).to eq("Documento de Padaria Central excluído.")
     expect(SupportingDocument.find_by(id: id)).to be_nil
   end
 
@@ -1617,7 +1636,7 @@ RSpec.describe "Supporting documents", type: :request do
     expect(SupportingDocument.find(id).amount_cents).to eq(15500)
   end
 
-  it "confirm identified SEFAZ persists 10000 and redirects" do
+  it "confirm identified SEFAZ persists 10000 and names the document" do
     _account, organization = signed_in
     install_a1(organization)
     stub_xml_consulta(vnf: "100.00")
@@ -1630,6 +1649,8 @@ RSpec.describe "Supporting documents", type: :request do
     expect(response).to have_http_status(:found)
     expect(response).to redirect_to("/supporting_documents")
     get "/supporting_documents"
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_message(response.body)).to eq("Nota fiscal de Padaria Central confirmada na SEFAZ.")
     expect(response.body).to include("R$ 100,00")
     expect(response.body).not_to include("R$ 155,00")
     expect(SupportingDocument.find(id).amount_cents).to eq(10000)

@@ -148,6 +148,22 @@ Success: fill `caixa`, white text, `role="status"`. Error: fill `margem`, white 
 Stimulus removes the node. No CSS `transition` or `@keyframes`. `prefers-reduced-motion`
 does not change the timeout.
 
+**The success sentence names what changed.** The message is built by `app/models/action_toast.rb`,
+one function per action, and never by the caller:
+
+- One sentence, and it names the object with the value the person just chose:
+  `Conta bancária desativada: Conta Principal.`, `Convite enviado para guest@example.com.`,
+  `Casamento confirmado: R$ 220,00 com Padaria Central.`
+- A second sentence only when the consequence is not on the screen:
+  `Maio de 2026 fechado. Pacote gravado na pasta do mês.`
+- A name that does not fit is cut at 40 characters and ends in `…`.
+- Money through `format_reais`, month through `month_title`, CNPJ through
+  `sefaz_titular_display`, date through `l` — never a hand-formatted number.
+- No `Pronto.`, no greeting, no `sucesso`, no `operação realizada`, no exclamation mark, and never
+  the `margem` rule: a success did not go wrong.
+- A typed value is punctuation-delimited data, not the subject of the verb, so a kind the
+  coordinator invents never forces a gender agreement: `Exceção marcada: Doação, R$ 45,00.`
+
 ### Empty state
 
 A single sentence in body weight (`Nenhum documento`, `Nenhuma conta bancária ativa`, …), the

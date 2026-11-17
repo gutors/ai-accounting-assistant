@@ -8,6 +8,40 @@ RSpec.describe "Matches", type: :request do
     [ account, organization, month, statement ]
   end
 
+  it "POST 1:1 names the amount and the payee" do
+    account, organization, _month, statement = signed_month
+    payment = plant_payment(statement, 22000)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    post "/months/2026-05/matches", params: {
+      payment_ids: [ payment.id ], supporting_document_ids: [ document.id ]
+    }
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/months/2026-05")
+
+    follow_redirect!
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_message(response.body)).to eq("Casamento confirmado: R$ 220,00 com Padaria Central.")
+  end
+
+  it "POST N:1 names the payment count and the payee" do
+    account, organization, _month, statement = signed_month
+    ten = plant_payment(statement, 10000)
+    twelve = plant_payment(statement, 12000)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    post "/months/2026-05/matches", params: {
+      payment_ids: [ ten.id, twelve.id ], supporting_document_ids: [ document.id ]
+    }
+
+    expect(response).to have_http_status(:found)
+
+    follow_redirect!
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_message(response.body)).to eq("Casamento confirmado: 2 pagamentos com Padaria Central.")
+  end
+
   it "POST 1 payment 2 documents persists Casado and redirects" do
     account, organization, _month, statement = signed_month
     payment = plant_payment(statement, 22000)
@@ -241,7 +275,7 @@ RSpec.describe "Matches", type: :request do
     expect(Match.count).to eq(0)
   end
 
-  it "DELETE match returns payments to Documento faltante and documents to pool" do
+  it "DELETE names the dissolved match payee" do
     account, organization, _month, statement = signed_month
     payment = plant_payment(statement, 22000)
     document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
@@ -256,7 +290,9 @@ RSpec.describe "Matches", type: :request do
     expect(response).to redirect_to("/months/2026-05")
     expect(Match.count).to eq(0)
 
-    get "/months/2026-05"
+    follow_redirect!
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_message(response.body)).to eq("Casamento desfeito: Padaria Central.")
     expect(response.body).to include("Documento faltante")
     expect(pool_html(response.body)).to include("Padaria Central")
 

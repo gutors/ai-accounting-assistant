@@ -312,3 +312,20 @@ Proof: `bin/rspec spec/requests/layout_spec.rb -e "GET / with no toast has no da
 One batch. S1 31k + S2 29k + S3 34k + S4 40k = 134k, under the 150k default, and the whole module
 plus all its callers must land together anyway because `redirect_success` changes signature in the
 same commit as its first caller. No boundary inside this feature.
+
+- **Where the boundary fell** — no boundary; one batch. Closed at `8d057f2` (S1 and S2: module,
+  helper signature, Início/Pessoas/Configuração) and the S3/S4 commit that follows it.
+- **What the user settled mid-build** — one copy decision, now `Landing` row 3 and criteria 33–35:
+  a marked-exception sentence keeps the kind as a label (`Exceção marcada: Tarifa bancária,
+  R$ 45,00.`) because an extra exception kind is free text with no gender. The user picked
+  "neutral" over agreeing the participle per kind.
+- **What was abandoned** — `ActionToast` as a module (`extend self`) and as `class << self` with
+  `include ApplicationView::Helpers::TranslationHelper`: both fail on a model. The class stays a
+  class and re-implements `month_title` locally, because `ApplicationHelper#month_title` calls the
+  view `l`. Also abandoned: asserting `Pronto`/HTML absence through one helper that renders a payee
+  containing `<b>` — the module returns plain text and escaping is the view's job, so the example
+  now asserts that contract instead.
+- **Assertions scoped rather than weakened** — three existing helpers asserted an absence across the
+  whole body and now assert it on the screen region, because the new toast legitimately names the
+  row that just went away: `expect_certificate_absent_copy` (removed CNPJ), the extras list (deleted
+  kind), the documents list (deleted payee).

@@ -8,9 +8,9 @@ RSpec.describe "Document exceptions", type: :request do
     [ account, organization, month, statement ]
   end
 
-  it "POST bank_fee persists Tarifa bancaria and redirects" do
+  it "POST bank_fee names the marked kind and amount" do
     _account, _organization, _month, statement = signed_month
-    payment = plant_payment(statement, 22000)
+    payment = plant_payment(statement, 4500)
 
     post "/months/2026-05/payments/#{payment.id}/document_exception", params: { kind: "bank_fee" }
 
@@ -18,32 +18,38 @@ RSpec.describe "Document exceptions", type: :request do
     expect(response).to redirect_to("/months/2026-05")
     expect(payment.reload.document_exception_kind).to eq("bank_fee")
 
-    get "/months/2026-05"
+    follow_redirect!
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_message(response.body)).to eq("Exceção marcada: Tarifa bancária, R$ 45,00.")
     expect(response.body).to include("Tarifa bancária")
     expect(response.body).not_to include("Documento faltante")
   end
 
-  it "POST accountant_fee persists Honorario do contador" do
+  it "POST accountant_fee names the marked kind and amount" do
     _account, _organization, _month, statement = signed_month
-    payment = plant_payment(statement, 22000)
+    payment = plant_payment(statement, 4500)
 
     post "/months/2026-05/payments/#{payment.id}/document_exception", params: { kind: "accountant_fee" }
 
-    get "/months/2026-05"
+    follow_redirect!
+    expect(toast_message(response.body)).to eq("Exceção marcada: Honorário do contador, R$ 45,00.")
     expect(response.body).to include("Honorário do contador")
     expect(response.body).not_to include("Documento faltante")
   end
 
-  it "DELETE bank_fee returns Documento faltante" do
+  it "DELETE bank_fee names the removed exception and amount" do
     _account, _organization, _month, statement = signed_month
-    payment = plant_payment(statement, 22000)
+    payment = plant_payment(statement, 4500)
     post "/months/2026-05/payments/#{payment.id}/document_exception", params: { kind: "bank_fee" }
 
     delete "/months/2026-05/payments/#{payment.id}/document_exception"
 
     expect(response).to have_http_status(:found)
     expect(payment.reload.document_exception_kind).to be_nil
-    get "/months/2026-05"
+
+    follow_redirect!
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_message(response.body)).to eq("Exceção removida de R$ 45,00.")
     expect(response.body).to include("Documento faltante")
     expect(response.body).not_to include("Tarifa bancária")
   end
@@ -188,10 +194,10 @@ RSpec.describe "Document exceptions", type: :request do
     expect(payment.reload.document_exception_kind).to be_nil
   end
 
-  it "POST extra_exception_kind_id Doacao persists and redirects" do
+  it "POST extra kind names the marked kind and amount" do
     _account, organization, _month, statement = signed_month
     kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
-    payment = plant_payment(statement, 22000)
+    payment = plant_payment(statement, 4500)
 
     post "/months/2026-05/payments/#{payment.id}/document_exception", params: { extra_exception_kind_id: kind.id }
 
@@ -200,7 +206,9 @@ RSpec.describe "Document exceptions", type: :request do
     expect(payment.reload.extra_exception_kind_id).to eq(kind.id)
     expect(payment.document_exception_kind).to be_nil
 
-    get "/months/2026-05"
+    follow_redirect!
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_message(response.body)).to eq("Exceção marcada: Doação, R$ 45,00.")
     expect(response.body).to include("Doação")
     expect(response.body).not_to include("Documento faltante")
   end

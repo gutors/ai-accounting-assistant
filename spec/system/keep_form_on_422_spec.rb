@@ -34,7 +34,7 @@ RSpec.describe "Keep form on 422", type: :system do
     expect(find("#file", visible: :all).value).to include("nota.xml")
   end
 
-  it "insert 422 after Pronto still shows the error toast" do
+  it "insert 422 after a success toast still shows the error toast" do
     account, _organization = plant_submitter
     sign_in_through_google(account)
     visit "/supporting_documents"
@@ -48,7 +48,7 @@ RSpec.describe "Keep form on 422", type: :system do
       fill_in "payee", with: "Padaria Central"
       click_button "Incluir documento"
     end
-    expect(page).to have_css("[data-toast-kind=success]", text: "Pronto.")
+    expect(page).to have_css("[data-toast-kind=success]", text: "Recibo de Padaria Central, R$ 155,00, incluído.")
 
     page.execute_script("document.querySelector('form[action=\"/supporting_documents\"]').requestSubmit()")
     expect(page).to have_css("[data-notice=error]", text: "Envie a foto ou o XML")
