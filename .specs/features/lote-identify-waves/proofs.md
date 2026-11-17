@@ -1,6 +1,6 @@
 # lote-identify-waves proofs
 
-**HEAD**: 07984a9
+**HEAD**: ec5a65b
 **Tree**: clean
 **Result**: 10 pass, 0 fail; mutations 3 killed, 0 not
 
