@@ -89,6 +89,18 @@ RSpec.describe "Supporting document identify_batch", type: :request do
     expect(response.parsed_body).to eq({ "error" => "Envie os arquivos" })
   end
 
+  it "POST identify_batch 30 files is 200 with 30 items" do
+    signed_in
+
+    post "/supporting_documents/identify_batch", params: {
+      files: Array.new(30) { |index| photo_jpg("n#{index}.jpg") }
+    }
+
+    expect(SupportingDocument.count).to eq(0)
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body.fetch("items").size).to eq(30)
+  end
+
   it "POST identify_batch 31 files is 422 No maximo 30" do
     signed_in
 

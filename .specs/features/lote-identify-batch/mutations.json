@@ -1,0 +1,23 @@
+[
+  {
+    "file": "app/controllers/supporting_documents_controller.rb",
+    "old": "if files.size > SupportingDocument::IDENTIFY_BATCH_LIMIT",
+    "new": "if files.size >= SupportingDocument::IDENTIFY_BATCH_LIMIT",
+    "proof": "bin/rspec spec/requests/supporting_documents_identify_batch_spec.rb -e \"POST identify_batch 30 files is 200 with 30 items\"",
+    "label": "overflow bound > 30 -> >= 30"
+  },
+  {
+    "file": "app/models/supporting_document/batch_identify.rb",
+    "old": "items[index] = identify_preview(organization, file)",
+    "new": "items[list.size - 1 - index] = identify_preview(organization, file)",
+    "proof": "bin/rspec spec/requests/supporting_documents_identify_batch_spec.rb -e \"POST identify_batch keeps files order b.jpg then a.jpg\"",
+    "label": "items order files[] -> reversed"
+  },
+  {
+    "file": "app/models/supporting_document/batch_identify.rb",
+    "old": "size = [ list.size, identify_threads ].min",
+    "new": "size = 1",
+    "proof": "bin/rspec spec/models/supporting_document_identify_batch_spec.rb -e \"identify_batch two JPEGs overlap when IDENTIFY_THREADS is 2\"",
+    "label": "pool size threads -> 1"
+  }
+]

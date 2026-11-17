@@ -4,7 +4,7 @@ Mutations: 3
 Build: `bin/rubocop`; `bin/erb_lint --lint-all`
 Plan: `.specs/features/lote-identify-batch/plan.md`
 
-21 checks in 3 slices · 1 one-way door · 0 open
+22 checks in 3 slices · 1 one-way door · 0 open
 
 Proofs use `bin/rspec` and `-e` as `.cursor/rules/rails.mdc` names. CI runs `bin/rspec`.
 
@@ -26,6 +26,9 @@ Proof: `bin/rspec spec/requests/supporting_documents_identify_batch_spec.rb -e "
 
 **C5** - `POST /supporting_documents/identify_batch` with 31 files responds `422` with `{ "error": "No máximo 30 arquivos neste lote" }` and persists nothing (AC 5, door 1)
 Proof: `bin/rspec spec/requests/supporting_documents_identify_batch_spec.rb -e "POST identify_batch 31 files is 422 No maximo 30"`
+
+**C22** - `POST /supporting_documents/identify_batch` with 30 JPEG files responds `200` with `items` length `30` and persists nothing (Landing 1..30, AC 5 bound)
+Proof: `bin/rspec spec/requests/supporting_documents_identify_batch_spec.rb -e "POST identify_batch 30 files is 200 with 30 items"`
 
 **C6** - Unauthenticated `POST /supporting_documents/identify_batch` responds `302` to `/login` and persists nothing (AC 6)
 Proof: `bin/rspec spec/requests/supporting_documents_identify_batch_spec.rb -e "unauthenticated POST identify_batch responds 302 to /login"`
@@ -88,6 +91,7 @@ Proof: `bin/rspec spec/system/document_lote_spec.rb -e "Incluir prontos two XMLs
 | `POST /supporting_documents/identify_batch` statuses (4) | `200` C1 · `422` C4, C5 · `302` C6, C21 · `404` C7 | - |
 | 302 callers (2) | unauthenticated C6 · no focus C21 | - |
 | 422 copy (2) | `Envie os arquivos` C4 · `No máximo 30 arquivos neste lote` C5 | - |
+| identify_batch size bound (2) | 30 files `200` C22 · 31 files `422` C5 | - |
 | origin stamps (4) | `XML autorizado` C1 · `Digitado` C2 · `Lido da foto` C18 · `Consulta NFC-e` C19 | - |
 | arquivo (2) | `XML` C1 · `Foto` C2 | - |
 | kind (2) | `nota_fiscal` C1 · `recibo` C2 | - |
@@ -116,7 +120,7 @@ Proof: `bin/rspec spec/system/document_lote_spec.rb -e "Incluir prontos two XMLs
 ## Handoff
 
 - **Settled mid-build:** none
-- **Dispatched:** none
-- **Boundary:** C1-C21 closed pending HEAD after commit
+- **Dispatched:** Verifier at `6ddfe6f` returned FAIL (C5 bound)
+- **Boundary:** C1-C22 closed at `6ddfe6f` pending C22 commit
 - **Abandoned:** none
 - **Walked:** Coordinator `/login` Ambiente local `gutors@gmail.com` then `/supporting_documents` on the running app. IDE tab cannot set `<input type=file>`; picker attach is C12–C17. Running Puma `POST /supporting_documents/identify_batch` of `walk-padaria.xml` then `walk-farmacia.xml` returned `200` items Padaria `155,00` / Farmácia `89,40`, `XML autorizado`, no persist. In-flight `#wait` hidden is C13. Incluir prontos still `POST /supporting_documents/batch` is C17.
