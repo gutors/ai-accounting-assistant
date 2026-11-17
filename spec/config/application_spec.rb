@@ -102,7 +102,7 @@ RSpec.describe "Application config" do
     expect(readme).to include("`tesseract`")
     expect(readme).to include("`pdftoppm`")
     expect(readme).to include("Poppler")
-    expect(readme).to match(/pdftoppm.*empty.*typed/m)
+    expect(readme).to match(/pdftoppm.*vazia.*digitados/m)
   end
 
   it "CI test job installs zbar-tools before rspec" do
