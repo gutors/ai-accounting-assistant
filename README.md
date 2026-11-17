@@ -1,46 +1,48 @@
-# Fechamento mensal para coordenadores de ONG
+# Monthly close for NGO coordinators
+
+**Language:** English · [Português](README.pt-BR.md)
 
 <img src="public/icon.svg" alt="" width="48" height="48">
 
 <a href="https://paladini.github.io/harness-score/"><img alt="Harness Score" src="https://raw.githubusercontent.com/gutors/ai-accounting-assistant/badges/harness-badge.svg" height="20"></a>
 
-Sistema para fechar o mês de uma ou mais **organizações** (ONG ou similar): importar extratos, guardar documentos de suporte, casar cada pagamento com documento ou exceção, apontar documentos faltantes, gerar a planilha-resumo e montar o **pacote mensal** para o contador.
+A system to close the month for one or more **organizations** (NGO or similar): import statements, keep supporting documents, match each payment to a document or an exception, flag missing documents, generate the summary spreadsheet, and assemble the **monthly package** for the accountant.
 
-O coordenador entrega o pacote. O sistema não substitui o contador.
+The coordinator delivers the package. The system does not replace the accountant.
 
 > [!IMPORTANT]
-> O produto prepara o pacote e grava uma cópia no **arquivo do pacote** (Drive). **Fechar para envio** não é entregar ao contador.
+> The product prepares the package and writes a copy to the **package archive** (Drive). **Close-for-send** is not delivery to the accountant.
 
-## Quem usa
+## Who uses it
 
-| Papel | Faz | Não faz |
+| Role | Does | Does not |
 | --- | --- | --- |
-| **Coordenador** | Fecha o mês, valida casamentos, marca exceções | — |
-| **Submitter** | Insere documentos de suporte | Ver extrato ou pagamentos do banco |
-| **Contador** | Recebe o pacote | Usar o sistema |
+| **Coordinator** | Closes the month, validates matches, marks exceptions | — |
+| **Submitter** | Inserts supporting documents | See the statement or bank payments |
+| **Accountant** | Receives the package | Use the system |
 
-O ritual e o formato da planilha-resumo são os mesmos em todas as organizações. Contas bancárias, contador, destino do pacote, arquivo do pacote e extras (tipos de exceção, certificado SEFAZ, submitters) variam por organização.
+The ritual and the summary spreadsheet format are the same across organizations. Bank accounts, accountant, package destination, package archive, and extras (exception kinds, SEFAZ certificate, submitters) vary by organization.
 
-Quem cadastra uma organização nova é uma conta Google allowlistada (`ADMINISTRATOR_EMAIL`). Essa pessoa abre **Administração**, confirma o nome e o e-mail do coordenador, e o sistema manda o correio de boas-vindas. Ela não fecha o mês no lugar do coordenador.
+Who registers a new organization is a Google account on the allowlist (`ADMINISTRATOR_EMAIL`). That person opens **Administração**, confirms the coordinator’s name and email, and the system sends the welcome mail. They do not close the month in the coordinator’s place.
 
 ## Ritual
 
-1. O coordenador importa o extrato de cada **conta bancária** (PDF + CSV/XLSX nesta versão).
-2. Coordenador e submitters inserem **documentos de suporte** (foto e/ou XML autorizado). A foto de uma nota pode ser lida no servidor para achar a chave de acesso.
-3. O sistema sugere casamentos; o coordenador confirma — ou marca uma **exceção documental**.
-4. Pagamento sem casamento nem exceção é **documento faltante** e impede fechar para envio.
-5. **Fechar para envio** congela o mês no produto e grava o pacote na **pasta do mês** `{YYYY-MM}` no arquivo Drive da organização.
-6. O coordenador entrega o mesmo pacote ao contador.
+1. The coordinator imports the statement of each **bank account** (PDF + CSV/XLSX in this version).
+2. Coordinator and submitters insert **supporting documents** (photo and/or authorized XML). A photo of a nota may be read on the server to find the chave de acesso.
+3. The system suggests matches; the coordinator confirms — or marks a **document exception**.
+4. A payment with neither match nor exception is a **missing document** and blocks close-for-send.
+5. **Close-for-send** freezes the month in the product and writes the package to the **month folder** `{YYYY-MM}` in the organization’s Drive archive.
+6. The coordinator delivers the same package to the accountant.
 
-Vocabulário canônico: [`GLOSSARY.md`](GLOSSARY.md).
+Canonical vocabulary: [`GLOSSARY.md`](GLOSSARY.md).
 
-## Rodar localmente
+## Run locally
 
-Ruby `3.4.10` (`.ruby-version`) e PostgreSQL aceitando conexões. O banco de development é `ai_accounting_assistant_development`.
+Ruby `3.4.10` (`.ruby-version`) and PostgreSQL accepting connections. The development database is `ai_accounting_assistant_development`.
 
-### Primeira vez
+### First time
 
-Na pasta do repositório:
+In the repository folder:
 
 ```sh
 bundle install
@@ -48,9 +50,9 @@ bin/lefthook install
 bin/rails db:setup
 ```
 
-`db:setup` cria o banco, carrega o schema e roda o seed. Se o banco já existir, use `bin/rails db:migrate`. O seed em development é idempotente: não grava uma segunda `ONG Exemplo` quando a conta de exemplo já está lá.
+`db:setup` creates the database, loads the schema, and runs the seed. If the database already exists, use `bin/rails db:migrate`. The development seed is idempotent: it does not write a second `ONG Exemplo` when the sample account is already there.
 
-Crie um `.env` na raiz (o Git ignora esse arquivo) e preencha o cliente OAuth e o correio. Sem aspas e sem espaço em volta do `=`:
+Create a `.env` at the repo root (Git ignores this file) and fill in the OAuth client and mail. No quotes and no spaces around `=`:
 
 ```sh
 GOOGLE_CLIENT_ID=
@@ -64,95 +66,96 @@ SMTP_USER_NAME=
 SMTP_PASSWORD=
 ```
 
-No cliente OAuth do Google, tipo **Web application**, a redirect URI autorizada é `http://localhost:3000/auth/google_oauth2/callback`. O esquema, o host e a porta têm de ser os mesmos da barra do navegador.
+In the Google OAuth client, type **Web application**, the authorized redirect URI is `http://localhost:3000/auth/google_oauth2/callback`. Scheme, host, and port must match the browser bar.
 
-### Cada vez
+### Each time
 
 ```sh
 bin/dev
 ```
 
-Abra `http://localhost:3000`. Pare com `Ctrl-C` nesse terminal.
+Open `http://localhost:3000`. Stop with `Ctrl-C` in that terminal.
 
-`bin/dev` sobe o Puma e o Tailwind, e o Foreman carrega o `.env`. `bin/rails server` sozinho não carrega o `.env` nem observa o CSS.
+`bin/dev` starts Puma and Tailwind, and Foreman loads `.env`. `bin/rails server` alone does not load `.env` and does not watch CSS.
 
-Se a porta 3000 estiver ocupada:
+If port 3000 is taken:
 
 ```sh
 PORT=3001 bin/dev
 ```
 
-A URL e a redirect URI passam a usar a porta `3001`.
+The URL and the redirect URI then use port `3001`.
 
-### Entrar
+### Sign in
 
-Entre com Google usando `gutors@gmail.com` para cair na `ONG Exemplo` como coordenador. Em development, `/login` também lista **Ambiente local**: um botão por conta já persistida (`POST /dev/session`) para o agente (ou você) entrar sem o Google. Essa porta não existe em production. Outro nome ou outro e-mail:
+Sign in with Google as `gutors@gmail.com` to land on `ONG Exemplo` as coordinator. In development, `/login` also lists **Ambiente local**: one button per already-persisted account (`POST /dev/session`) so the agent (or you) can sign in without Google. That door does not exist in production. Another name or another email:
 
 ```sh
 ORGANIZATION_NAME="ONG Norte" COORDINATOR_EMAIL="coord@exemplo.org" bin/rails coordinator:bootstrap
 ```
 
-A conta Google do login tem de ser a mesma do coordenador, com o e-mail verificado. Enquanto o app OAuth estiver em modo de teste, essa conta precisa estar na lista de test users.
+The Google account used to sign in must be the coordinator’s, with a verified email. While the OAuth app is in testing mode, that account must be on the test-users list.
 
-### Variáveis
+### Variables
 
-Obrigatórias para o login local: `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET`.
+Required for local login: `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
 
-| Variável | Quando |
+| Variable | When |
 | --- | --- |
-| `ADMINISTRATOR_EMAIL` | E-mail Google que abre `/administration` |
-| `MAIL_FROM` | Remetente do correio de boas-vindas |
-| `MAILER_HOST` | Host dos links nesse correio |
-| `SMTP_ADDRESS` | Servidor SMTP; sem ele o envio não é configurado |
-| `SMTP_PORT` | Porta SMTP; `587` quando vazia |
-| `SMTP_USER_NAME` | Usuário SMTP |
-| `SMTP_PASSWORD` | Senha SMTP |
-| `GOOGLE_DRIVE_REFRESH_TOKEN` | Conta escritora do Drive no fechar para envio. Não é o login do operador |
-| `SEFAZ_WRAP_KEY` | Embrulha o certificado A1. Sem ela, instalar o certificado e a consulta identificada ficam de fora; o resto do fechamento segue |
-| `ORGANIZATION_NAME`, `COORDINATOR_EMAIL` | Só no `coordinator:bootstrap` |
+| `ADMINISTRATOR_EMAIL` | Google email that opens `/administration` |
+| `MAIL_FROM` | Sender of the welcome mail |
+| `MAILER_HOST` | Host of the links in that mail |
+| `SMTP_ADDRESS` | SMTP server; without it, sending is not configured |
+| `SMTP_PORT` | SMTP port; `587` when empty |
+| `SMTP_USER_NAME` | SMTP user |
+| `SMTP_PASSWORD` | SMTP password |
+| `GOOGLE_DRIVE_REFRESH_TOKEN` | Drive writer account at close-for-send. Not the operator login |
+| `SEFAZ_WRAP_KEY` | Wraps the A1 certificate. Without it, installing the certificate and identified consulta are left out; the rest of the close still runs |
+| `ORGANIZATION_NAME`, `COORDINATOR_EMAIL` | Only for `coordinator:bootstrap` |
 
-A foto da nota usa o binário `tesseract` no `PATH`, com os idiomas `por` e `eng`. Sem ele, a leitura volta vazia e a chave continua digitada.
+A nota photo uses the `tesseract` binary on `PATH`, with languages `por` and `eng`. Without it, the read comes back empty and the chave stays typed.
 
-A foto PDF usa o binário `pdftoppm` (Poppler) no `PATH`. Sem ele, a leitura do PDF volta vazia e os campos continuam digitados.
+A PDF photo uses the `pdftoppm` binary (Poppler) on `PATH`. Without it, the PDF read comes back empty and the fields stay typed.
 
 > [!WARNING]
-> Não coloque certificado A1, senhas, tokens de Drive, o `.env` ou dados financeiros reais no repositório.
+> Do not put an A1 certificate, passwords, Drive tokens, the `.env`, or real financial data in the repository.
 
-## Estado
+## State
 
 > [!NOTE]
-> `bin/rails db:seed` em development persiste a organização `ONG Exemplo` e a conta coordenadora `gutors@gmail.com`.
+> `bin/rails db:seed` in development persists the organization `ONG Exemplo` and the coordinator account `gutors@gmail.com`.
 
-As decisões de produto estão no [mapa do fechamento mensal](https://github.com/gutors/ai-accounting-assistant/issues/1). Uma feature nova parte de **tlc-spec-lean** (`plan.md` e `checks.md` em `.specs/features/<name>/`). O mapa não é a especificação a implementar.
+Product decisions live in the [monthly close map](https://github.com/gutors/ai-accounting-assistant/issues/1). A new feature starts from **tlc-spec-lean** (`plan.md` and `checks.md` under `.specs/features/<name>/`). The map is not the specification to implement.
 
-## Plataforma (v1)
+## Platform (v1)
 
-Travada. Detalhe e alternativas rejeitadas: [ADR-0001](docs/adr/0001-rails-8-hotwire.md).
+Locked. Detail and rejected alternatives: [ADR-0001](docs/adr/0001-rails-8-hotwire.md).
 
-| Peça | Escolha |
+| Piece | Choice |
 | --- | --- |
-| App | Rails 8, um processo (Puma), HTML no servidor com Hotwire (Turbo + Stimulus) |
+| App | Rails 8, one process (Puma), server-rendered HTML with Hotwire (Turbo + Stimulus) |
 | UI | Tailwind, locale `pt-BR` |
-| Dados | PostgreSQL, Active Record; dinheiro em cents inteiros (`bigint`) |
-| Auth | Google OIDC (`openid email`); sessão da app. A conta que escreve no Drive não é o login do operador |
-| Arquivos de trabalho | Object store opaco (disco do container é efêmero) |
-| Arquivo do pacote | Drive, só no fechar para envio / restaurar a pasta do mês |
-| Deploy | Container que dorme quando ocioso; timeout de minutos (cabe o fechar para envio). Marca de host não está travada |
-| Testes | RSpec (`bin/rspec`) |
+| Data | PostgreSQL, Active Record; money in integer cents (`bigint`) |
+| Auth | Google OIDC (`openid email`); app session. The account that writes to Drive is not the operator login |
+| Working files | Opaque object store (container disk is ephemeral) |
+| Package archive | Drive, only at close-for-send / restore the month folder |
+| Deploy | Container that sleeps when idle; timeout in minutes (enough for close-for-send). Host brand is not locked |
+| Tests | RSpec (`bin/rspec`) |
 
-## Fora desta versão
+## Out of this version
 
-- Consentimento Open Finance (o caminho JSON fica desenhado; só upload nesta versão)
-- Contador como operador; emissão de NF-e; CNPJ da organização como campo de setup
-- O sistema virar receptor no Open Finance (BCB)
+- Open Finance consent (the JSON path is sketched; upload only in this version)
+- Accountant as an operator; NF-e issuance; organization CNPJ as a setup field
+- The system becoming an Open Finance receptor (BCB)
 
-## Documentação
+## Documentation
 
-| Doc | Para quê |
+| Doc | What for |
 | --- | --- |
-| [`GLOSSARY.md`](GLOSSARY.md) | Glossário do domínio |
-| [Issue #1](https://github.com/gutors/ai-accounting-assistant/issues/1) | Mapa de produto |
-| [`docs/adr/`](docs/adr/) | Decisões de plataforma |
-| [`AGENTS.md`](AGENTS.md) | Como agentes trabalham neste repo |
+| [`GLOSSARY.md`](GLOSSARY.md) | Domain glossary |
+| [Issue #1](https://github.com/gutors/ai-accounting-assistant/issues/1) | Product map |
+| [`docs/adr/`](docs/adr/) | Platform decisions |
+| [`AGENTS.md`](AGENTS.md) | How agents work in this repo |
+| [`README.pt-BR.md`](README.pt-BR.md) | This README in Portuguese |
 
-O código neste repositório é só para visualização. Todos os direitos reservados — ver [`LICENSE`](LICENSE).
+The code in this repository is for viewing only. All rights reserved — see [`LICENSE`](LICENSE).

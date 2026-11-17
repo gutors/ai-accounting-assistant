@@ -52,6 +52,7 @@ If a folder is missing, create it as part of the planned feature — do not scaf
 ## Language
 
 - **UI, user-facing copy, product docs:** Portuguese (Brazil).
+- **GitHub landing README:** English (`README.md`). Portuguese is [`README.pt-BR.md`](README.pt-BR.md); each file links the other at the top. The product UI stays pt-BR.
 - **Code, comments, commit messages, and technical artifacts** (`.specs`, including `plan.md` / `checks.md`): English.
 - Domain words: `GLOSSARY.md`.
 

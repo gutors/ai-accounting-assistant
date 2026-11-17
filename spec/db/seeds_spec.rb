@@ -24,12 +24,12 @@ RSpec.describe "db/seeds.rb" do
   end
 
   it "README local note states development db:seed persists ONG Exemplo and gutors@gmail.com" do
-    note = Rails.root.join("README.md").read[/## Estado.*?^## /m]
+    note = Rails.root.join("README.md").read[/## State.*?^## /m]
 
     expect(note).to include("bin/rails db:seed")
     expect(note).to include("development")
     expect(note).to include("ONG Exemplo")
     expect(note).to include("gutors@gmail.com")
-    expect(note).to include("coordenador")
+    expect(note).to include("coordinator")
   end
 end
