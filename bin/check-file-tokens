@@ -48,7 +48,7 @@ def ignore?(path)
   parts = path.split("/")
   return true if parts.include?("vendor") || parts.include?("node_modules")
   return true if path.start_with?("app/assets/builds/")
-  return true if path.match?(%r{\A\.cursor/skills/.+/scripts/})
+  return true if path.start_with?(".cursor/skills/", ".cursor/agents/", ".codex/")
 
   false
 end

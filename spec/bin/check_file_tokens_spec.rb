@@ -70,6 +70,15 @@ RSpec.describe "bin/check-file-tokens" do
     end
   end
 
+  it "ignores vendored Cursor skill packs even when they exceed 5000 tokens" do
+    repo_with(".cursor/skills/impeccable/reference/new-work.md" => over_limit_source) do |dir|
+      _stdout, stderr, status = run_hook(dir)
+
+      expect(status.exitstatus).to eq(0)
+      expect(stderr).to eq("")
+    end
+  end
+
   it "ignores staged lockfiles and db/schema.rb even when they exceed 5000 tokens" do
     files = {
       "Gemfile.lock" => over_limit_source,
