@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe "Base document exceptions", type: :request do
-  it "PATCH bank_fee inactive 302s Inativo and toasts Pronto" do
+  it "PATCH bank_fee inactive names the deactivated exception" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
 
@@ -16,7 +16,7 @@ RSpec.describe "Base document exceptions", type: :request do
 
     get "/setup"
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
-    expect(toast_node(response.body).text).to include("Pronto.")
+    expect(toast_message(response.body)).to eq("Exceção Tarifa bancária desativada.")
     row = base_exception_row(response.body, "Tarifa bancária")
     expect(row.text).to include("Inativo")
     expect(row.text).to include("Ativar")
@@ -49,7 +49,7 @@ RSpec.describe "Base document exceptions", type: :request do
     expect(row.text).not_to include("Excluir")
   end
 
-  it "PATCH bank_fee active after inactive restores Ativo Desativar" do
+  it "PATCH bank_fee active names the reactivated exception" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
     organization.update!(bank_fee_exception_active: false)
@@ -59,6 +59,7 @@ RSpec.describe "Base document exceptions", type: :request do
     expect(organization.reload.bank_fee_exception_active).to eq(true)
 
     get "/setup"
+    expect(toast_message(response.body)).to eq("Exceção Tarifa bancária reativada.")
     row = base_exception_row(response.body, "Tarifa bancária")
     expect(row.text).to include("Ativo")
     expect(row.text).to include("Desativar")

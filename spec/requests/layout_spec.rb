@@ -122,7 +122,7 @@ RSpec.describe "Layout header", type: :request do
     expect(doc.at_css("main").next_element).to eq(wait)
   end
 
-  it "GET / with empty flash has no toast" do
+  it "GET / with no toast has no data-toast" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
     session[:invite_mail_failed] = true
@@ -156,7 +156,7 @@ RSpec.describe "Layout header", type: :request do
     expect(toast["data-toast-kind"]).to eq("success")
     expect(toast["role"]).to eq("status")
     expect(toast["data-toast-timeout-ms"]).to eq("5000")
-    expect(toast.text).to include("Pronto.")
+    expect(toast.text).to include("Fechamento de maio de 2026 aberto.")
     expect(toast.at_css("button").text.strip).to eq("Fechar")
     expect(toast["class"]).to include("bg-caixa")
     expect(toast["class"]).to include("text-white")
@@ -198,5 +198,12 @@ RSpec.describe "Layout header", type: :request do
       CoordinatorInviteDeliveryFail.raise_now = false
       ActionMailer::Base.unregister_interceptor(CoordinatorInviteDeliveryFail)
     end
+  end
+
+  it "redirect_success requires its message" do
+    parameters = ApplicationController.instance_method(:redirect_success).parameters
+
+    expect(parameters).to eq([ [ :req, :path ], [ :req, :message ] ])
+    expect(ApplicationController.new.method(:redirect_success).arity).to eq(2)
   end
 end

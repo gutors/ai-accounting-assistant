@@ -27,7 +27,7 @@ class BankStatementsController < ApplicationController
     )
 
     if statement.errors.empty?
-      redirect_to "/months/#{month.year_month}", status: :found
+      redirect_success("/months/#{month.year_month}", ActionToast.statement_imported(statement))
     else
       @month = month
       @import_error = statement.errors[:base].first

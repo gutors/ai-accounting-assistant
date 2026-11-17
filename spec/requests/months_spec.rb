@@ -23,7 +23,7 @@ RSpec.describe "Months", type: :request do
     expect(response).to redirect_to("/login")
   end
 
-  it "POST /months 2026-05 persists Month and redirects" do
+  it "POST /months names the opened month in the toast" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
 
@@ -34,7 +34,7 @@ RSpec.describe "Months", type: :request do
     expect(organization.months.where(year_month: "2026-05").count).to eq(1)
     follow_redirect!
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
-    expect(toast_node(response.body).text).to include("Pronto.")
+    expect(toast_message(response.body)).to eq("Fechamento de maio de 2026 aberto.")
   end
 
   it "POST /months 2026-09 persists Month and redirects" do
@@ -50,7 +50,7 @@ RSpec.describe "Months", type: :request do
     expect(response).to redirect_to("/months/2026-09")
     follow_redirect!
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
-    expect(toast_node(response.body).text).to include("Pronto.")
+    expect(toast_message(response.body)).to eq("Fechamento de setembro de 2026 aberto.")
   end
 
   it "POST /months 2026-05 a second time does not duplicate" do
@@ -65,7 +65,7 @@ RSpec.describe "Months", type: :request do
     expect(response).to redirect_to("/months/2026-05")
     follow_redirect!
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
-    expect(toast_node(response.body).text).to include("Pronto.")
+    expect(toast_message(response.body)).to eq("Fechamento de maio de 2026 aberto.")
   end
 
   it "POST /months 2024-01 outside the picker window persists" do

@@ -138,15 +138,14 @@ request spec that already covers the route.
     `Casamento desfeito: Padaria Central.`
 33. When `POST /months/2026-05/payments/:id/document_exception` marks `bank_fee` on a payment of
     `R$ 45,00`, then the following `GET` has `[data-toast-kind="success"]` text exactly
-    `Tarifa bancária marcada em R$ 45,00.`
+    `Exceção marcada: Tarifa bancária, R$ 45,00.`
 34. When that action marks `accountant_fee`, then the toast text is exactly
-    `Honorário do contador marcado em R$ 45,00.`
+    `Exceção marcada: Honorário do contador, R$ 45,00.`
 35. When that action marks the extra kind `Doação`, then the toast text is exactly
-    `Doação marcada em R$ 45,00.`
+    `Exceção marcada: Doação, R$ 45,00.`
 36. When `DELETE /months/2026-05/payments/:id/document_exception` unmarks the `bank_fee` on a
     payment of `R$ 45,00`, then the following `GET` has `[data-toast-kind="success"]` text exactly
-    `Exceção removida de R$ 45,00.`
-37. When `POST /months/2026-05/supporting_documents/:id/return` returns the document of
+    `Exceção removida de R$ 45,00.`37. When `POST /months/2026-05/supporting_documents/:id/return` returns the document of
     `Padaria Central` to having no month, then the following `GET` has
     `[data-toast-kind="success"]` text exactly
     `Documento de Padaria Central devolvido para Sem mês.`
@@ -246,6 +245,7 @@ request spec that already covers the route.
 |---|---|---|
 | Action-result copy lives in one module | `app/models/action_toast.rb`, `ActionToast.<action>(record)` returning a `String`; controllers choose the function, never build the sentence | A message literal at each of the 34 call sites — the wording then has no single review point and drifts, which is how `Pronto.` survived fourteen callers. A second set of model constants per action — those would sit on `BankAccount`, `Month`, `Match`… and duplicate the formatting rules 34 times |
 | `redirect_success` requires its message | `def redirect_success(path, message)`; `message` is a positional required argument, so a new caller cannot compile without choosing copy | An optional `message: "Pronto."` default — that keeps the exact affordance being removed |
+| A marked-exception sentence keeps the kind as a label, not as a subject | `Exceção marcada: Tarifa bancária, R$ 45,00.` — the kind is punctuation-delimited data, so an extra kind the coordinator invents (`Estorno`, `Frete`) never produces a gender disagreement | `Tarifa bancária marcada` / `Honorário do contador marcado` — the participle has to agree, and an extra exception kind is free text with no gender to look up; a gender table would be wrong for the first kind whose name does not match its pattern |
 
 Nothing else in this change is hard to reverse: the sentence for any single action is one line in
 one function, and the truncation bound is a constant.

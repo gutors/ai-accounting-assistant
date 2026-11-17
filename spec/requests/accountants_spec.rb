@@ -18,7 +18,7 @@ RSpec.describe "Accountants", type: :request do
     expect(organization.reload.accountant_tax_id).to eq("11222333000181")
   end
 
-  it "PATCH /accountant from cadastro persists Ana and toasts Pronto" do
+  it "PATCH /accountant names the saved accountant in the toast" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
 
@@ -30,10 +30,10 @@ RSpec.describe "Accountants", type: :request do
 
     get "/setup"
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
-    expect(toast_node(response.body).text).to include("Pronto.")
+    expect(toast_message(response.body)).to eq("Contador salvo: Ana.")
   end
 
-  it "PATCH /accountant from Editar 302s to leitura and toasts Pronto" do
+  it "PATCH /accountant from Editar 302s to leitura and names the accountant" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
     persist_standing_accountant(organization)
@@ -53,7 +53,7 @@ RSpec.describe "Accountants", type: :request do
     get "/setup"
     expect_accountant_leitura_cnpj_row(response.body)
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
-    expect(toast_node(response.body).text).to include("Pronto.")
+    expect(toast_message(response.body)).to eq("Contador salvo: Ana Contábil.")
   end
 
   it "PATCH /accountant 422 after standing name stays writable" do
@@ -107,7 +107,7 @@ RSpec.describe "Accountants", type: :request do
     get "/setup"
     expect(response.body).to include("Ana Contábil")
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
-    expect(toast_node(response.body).text).to include("Pronto.")
+    expect(toast_message(response.body)).to eq("Contador salvo: Ana Contábil.")
   end
 
   it "PATCH /accountant persists CNPJ digits and razao social" do

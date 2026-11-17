@@ -19,7 +19,7 @@ RSpec.describe "Submitter invites", type: :request do
     expect(response.body).to include("guest@example.com")
   end
 
-  it "POST /submitter_invites delivers the submitter invite" do
+  it "POST /submitter_invites names the invited email in the toast" do
     account, organization = plant_coordinator(organization_name: "ONG Norte")
     sign_in_as(account, organization: organization)
     ActionMailer::Base.deliveries.clear
@@ -36,7 +36,22 @@ RSpec.describe "Submitter invites", type: :request do
     )
     follow_redirect!
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
-    expect(toast_node(response.body).text).to include("Pronto.")
+    expect(toast_message(response.body)).to eq("Convite enviado para docs@exemplo.org.")
+  end
+
+  it "resend names the resent email in the toast" do
+    account, organization = plant_coordinator(organization_name: "ONG Norte")
+    sign_in_as(account, organization: organization)
+    invite = Invite.create!(organization: organization, email: "docs@exemplo.org", kind: :submitter)
+    ActionMailer::Base.deliveries.clear
+
+    with_env("MAIL_FROM" => "venda@example.com") do
+      post "/submitter_invites/#{invite.id}/mail"
+    end
+
+    follow_redirect!
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_message(response.body)).to eq("Convite reenviado para docs@exemplo.org.")
   end
 
   it "POST /submitter_invites pending row shows Submitter and enviado" do
@@ -88,7 +103,7 @@ RSpec.describe "Submitter invites", type: :request do
     expect(response).to redirect_to("/login")
   end
 
-  it "DELETE /submitter_invites/:id redirects" do
+  it "DELETE names the cancelled email in the toast" do
     account, organization = plant_coordinator
     invite = Invite.create!(organization: organization, email: "guest@example.com", kind: :submitter)
     sign_in_as(account, organization: organization)
@@ -98,6 +113,8 @@ RSpec.describe "Submitter invites", type: :request do
     expect(Invite.find_by(id: invite.id)).to be_nil
     expect(response).to have_http_status(:found)
     expect(response).to redirect_to("/")
+    follow_redirect!
+    expect(toast_message(response.body)).to eq("Convite para guest@example.com cancelado.")
   end
 
   it "submitter POST invites persist no Invite and respond 404" do

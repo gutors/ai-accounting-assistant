@@ -39,6 +39,7 @@ rather than duplicating the two formatters.
 | --- | --- | --- |
 | Action-result copy lives in one module | `app/models/action_toast.rb`; `ActionToast.<action>(record)` → `String`; a controller picks the function and never builds a sentence | A literal per call site (34 of them) — no single review point, which is how `Pronto.` survived 14 callers; a constant per model — the same formatting rules duplicated 34 times |
 | `redirect_success` requires its message | `def redirect_success(path, message)` — positional, required | `message: "Pronto."` as a default — keeps the exact affordance being removed (criterion 48) |
+| A marked-exception sentence keeps the kind as a label, not as a subject | `Exceção marcada: Tarifa bancária, R$ 45,00.` — the kind is punctuation-delimited data, so an extra kind the coordinator invents (`Estorno`, `Frete`) never produces a gender disagreement | `Tarifa bancária marcada` / `Honorário do contador marcado` — the participle has to agree, and an extra exception kind is free text with no gender to look up; a gender table is wrong for the first kind that does not match its pattern. Settled by the user this session as "neutral" |
 
 Nothing else here is hard to reverse: one sentence is one line in one function, and the truncation
 bound is a constant.
@@ -189,14 +190,15 @@ Proof: `bin/rspec spec/requests/matches_spec.rb -e "POST N:1 names the payment c
 Proof: `bin/rspec spec/requests/matches_spec.rb -e "DELETE names the dissolved match payee"`
 
 **C33** - `POST …/payments/:id/document_exception` with `kind` `bank_fee` on a `R$ 45,00` payment:
-text `Tarifa bancária marcada em R$ 45,00.`
+text `Exceção marcada: Tarifa bancária, R$ 45,00.`
 Proof: `bin/rspec spec/requests/document_exceptions_spec.rb -e "POST bank_fee names the marked kind and amount"`
 
 **C34** - that route with `kind` `accountant_fee`: text
-`Honorário do contador marcado em R$ 45,00.`
+`Exceção marcada: Honorário do contador, R$ 45,00.`
 Proof: `bin/rspec spec/requests/document_exceptions_spec.rb -e "POST accountant_fee names the marked kind and amount"`
 
-**C35** - that route with the extra kind `Doação`: text `Doação marcada em R$ 45,00.`
+**C35** - that route with the extra kind `Doação`: text
+`Exceção marcada: Doação, R$ 45,00.`
 Proof: `bin/rspec spec/requests/document_exceptions_spec.rb -e "POST extra kind names the marked kind and amount"`
 
 **C36** - `DELETE …/payments/:id/document_exception` unmarking `bank_fee` on `R$ 45,00`: text
@@ -252,9 +254,12 @@ Proof: `bin/rspec spec/models/action_toast_spec.rb -e "renders money through for
 **C47** - No function of the module returns a string containing `Pronto.` or an HTML entity
 Proof: `bin/rspec spec/models/action_toast_spec.rb -e "never returns Pronto or HTML"`
 
-**C48** - `redirect_success` with a blank message does not write a success toast (the request
-is answered without `[data-toast-kind="success"]`)
-Proof: `bin/rspec spec/requests/layout_spec.rb -e "redirect_success refuses a blank message"`
+**C48a** - `ApplicationController#redirect_success` takes exactly two arguments, so a caller cannot
+omit the message and fall back to a generic success sentence
+Proof: `bin/rspec spec/requests/layout_spec.rb -e "redirect_success requires its message"`
+
+**C48b** - A blank message writes no toast: `GET /` with an empty flash has no `[data-toast]`
+Proof: `bin/rspec spec/requests/layout_spec.rb -e "GET / with no toast has no data-toast"`
 
 ## Swept
 

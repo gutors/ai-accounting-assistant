@@ -4,7 +4,7 @@ class MonthsController < ApplicationController
   def create
     month = Month.open(organization: focused_organization, year_month: params[:year_month])
     if month.persisted?
-      redirect_success("/months/#{month.year_month}")
+      redirect_success("/months/#{month.year_month}", ActionToast.month_opened(month))
     else
       load_home
       @month_error = month.errors[:base].first
@@ -48,7 +48,7 @@ class MonthsController < ApplicationController
 
     month.close_for_send(supporting_documents: documents.to_a)
     if month.errors.empty?
-      redirect_to "/months/#{month.year_month}", status: :found
+      redirect_success("/months/#{month.year_month}", ActionToast.month_closed(month))
     else
       @month = month
       @month_error = month.errors[:base].first
@@ -62,7 +62,7 @@ class MonthsController < ApplicationController
 
     month.restore_month_folder
     if month.errors.empty?
-      redirect_to "/months/#{month.year_month}", status: :found
+      redirect_success("/months/#{month.year_month}", ActionToast.month_folder_restored(month))
     else
       @month = month
       @month_error = month.errors[:base].first
@@ -76,7 +76,7 @@ class MonthsController < ApplicationController
 
     month.reopen
     if month.errors.empty?
-      redirect_to "/months/#{month.year_month}", status: :found
+      redirect_success("/months/#{month.year_month}", ActionToast.month_reopened(month))
     else
       @month = month
       @month_error = month.errors[:base].first

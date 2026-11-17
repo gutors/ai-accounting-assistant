@@ -7,6 +7,13 @@ class BaseDocumentExceptionsController < ApplicationController
       return
     end
 
-    redirect_success("/setup")
+    redirect_success("/setup", ActionToast.base_document_exception_changed(params[:kind], base_offer_active?))
+  end
+
+  private
+
+  def base_offer_active?
+    column = Organization::BASE_DOCUMENT_EXCEPTION_COLUMNS[params[:kind].to_s]
+    focused_organization.public_send(column)
   end
 end

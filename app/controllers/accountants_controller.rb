@@ -3,7 +3,7 @@ class AccountantsController < ApplicationController
 
   def update
     if focused_organization.update_accountant(accountant_params)
-      redirect_success("/setup")
+      redirect_success("/setup", ActionToast.accountant_saved(focused_organization))
     else
       load_setup
       @accountant_editing = true

@@ -57,7 +57,7 @@ class SupportingDocumentsController < ApplicationController
     )
 
     if document.errors.empty?
-      finish_insert
+      finish_insert(ActionToast.document_inserted(document))
     else
       refuse_insert(document.errors[:base].first)
     end
@@ -74,7 +74,7 @@ class SupportingDocumentsController < ApplicationController
     elsif inserted.empty?
       refuse_insert(SupportingDocument::NF_FILES)
     else
-      finish_insert
+      finish_insert(ActionToast.documents_inserted(inserted))
     end
   end
 
@@ -96,7 +96,7 @@ class SupportingDocumentsController < ApplicationController
     @document.apply(**attrs)
 
     if @document.errors.empty?
-      redirect_to "/supporting_documents", status: :found
+      redirect_success("/supporting_documents", ActionToast.document_updated(@document.payee))
     else
       render_document_error(@document.errors[:base].first, template: :edit)
     end
@@ -112,7 +112,7 @@ class SupportingDocumentsController < ApplicationController
     end
 
     if document.confirm_identified_sefaz
-      redirect_to "/supporting_documents", status: :found
+      redirect_success("/supporting_documents", ActionToast.document_sefaz_confirmed(document.payee))
     else
       render_document_error(document.errors[:base].first)
     end
@@ -122,8 +122,9 @@ class SupportingDocumentsController < ApplicationController
     document = mutate_document
     return unless document
 
+    payee = document.payee
     if document.withdraw
-      redirect_to "/supporting_documents", status: :found
+      redirect_success("/supporting_documents", ActionToast.document_deleted(payee))
     else
       render_document_error(document.errors[:base].first)
     end
@@ -163,10 +164,10 @@ class SupportingDocumentsController < ApplicationController
     raw.is_a?(Array) ? raw : raw.to_unsafe_h.values
   end
 
-  def finish_insert
+  def finish_insert(message)
     if turbo_stream_refusal? && coordinator_on_focus?
       load_documents
-      toast_now(kind: "success", message: "Pronto.")
+      toast_now(kind: "success", message: message)
       render turbo_stream: [
         turbo_stream.replace("sem-mes", partial: "supporting_documents/sem_mes"),
         turbo_stream.action_all(
@@ -178,11 +179,11 @@ class SupportingDocumentsController < ApplicationController
         turbo_stream.update(
           "toast-host",
           partial: "shared/toast",
-          locals: { toast: "Pronto.", toast_kind: "success" }
+          locals: { toast: message, toast_kind: "success" }
         )
       ]
     else
-      redirect_success("/supporting_documents")
+      redirect_success("/supporting_documents", message)
     end
   end
 

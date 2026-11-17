@@ -9,7 +9,7 @@ RSpec.describe "SEFAZ certificates", type: :request do
     [ account, organization ]
   end
 
-  it "POST /sefaz_certificate persists pfx and redirects" do
+  it "POST /sefaz_certificate names the titular and validity in the toast" do
     _account, organization = signed_in
 
     post "/sefaz_certificate", params: {
@@ -27,7 +27,8 @@ RSpec.describe "SEFAZ certificates", type: :request do
     expect_certificate_listed_cnpj_row(response.body)
     expect(response.body).not_to include("passphrase-secreta")
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
-    expect(toast_node(response.body).text).to include("Pronto.")
+    expect(toast_message(response.body))
+      .to eq("Certificado A1 de 11.222.333/0001-81 instalado, válido até 18/09/2027.")
   end
 
   it "POST /sefaz_certificate accepts p12" do
@@ -263,7 +264,7 @@ RSpec.describe "SEFAZ certificates", type: :request do
     expect_certificate_absent_copy(response.body)
     expect_certificate_install_fold(response.body, open: false)
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
-    expect(toast_node(response.body).text).to include("Pronto.")
+    expect(toast_message(response.body)).to eq("Certificado A1 de 11.222.333/0001-81 removido.")
   end
 
   it "unauthenticated DELETE /sefaz_certificate leaves certificate and responds 302 to /login" do

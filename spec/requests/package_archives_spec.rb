@@ -3,7 +3,7 @@ require "rails_helper"
 RSpec.describe "Package archives", type: :request do
   let(:folders_url) { "https://drive.google.com/drive/folders/15uNXeRBIhVvZJIhL4yTw4IsStMhUaaxl" }
 
-  it "PATCH /package_archive from cadastro persists folders URL and toasts Pronto" do
+  it "PATCH /package_archive toasts the saved package folder" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
 
@@ -18,7 +18,7 @@ RSpec.describe "Package archives", type: :request do
     get "/setup"
     expect_archive_leitura(response.body, url: folders_url)
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
-    expect(toast_node(response.body).text).to include("Pronto.")
+    expect(toast_message(response.body)).to eq("Pasta do pacote salva.")
   end
 
   it "PATCH /package_archive persists folder id from u/0 URL with query" do
@@ -49,7 +49,7 @@ RSpec.describe "Package archives", type: :request do
     expect_archive_cadastro(response.body)
   end
 
-  it "PATCH /package_archive from Editar 302s to leitura and toasts Pronto" do
+  it "PATCH /package_archive from Editar 302s to leitura and names the folder" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
     organization.update_package_archive(folders_url)
@@ -66,7 +66,7 @@ RSpec.describe "Package archives", type: :request do
     get "/setup"
     expect_archive_leitura(response.body, url: new_url)
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
-    expect(toast_node(response.body).text).to include("Pronto.")
+    expect(toast_message(response.body)).to eq("Pasta do pacote salva.")
 
     patch "/package_archive", params: { url: new_url }
     expect(response).to have_http_status(:found)

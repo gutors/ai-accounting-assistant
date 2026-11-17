@@ -15,9 +15,10 @@ class MonthReturnsController < ApplicationController
       return
     end
 
+    payee = document.payee
     document.return_to_no_month
     if document.errors.empty?
-      redirect_to "/months/#{month.year_month}", status: :found
+      redirect_success("/months/#{month.year_month}", ActionToast.document_returned(payee))
     else
       @month = month
       @month_error = document.errors[:base].first
