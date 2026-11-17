@@ -35,6 +35,93 @@ module LoteSystemHelpers
     ]
   end
 
+  def wave_xmls(*names)
+    names.each_with_index.map do |name, index|
+      xml_path(
+        name,
+        vnf: format("%.2f", 10 + index),
+        emit: "Emitente #{index + 1}",
+        dhemi: "2026-05-11T10:00:00-03:00",
+        chave: lote_chave(index)
+      )
+    end
+  end
+
+  def record_identify_waves
+    page.execute_script(<<~JS)
+      window.__identifyPosts = []
+      window.__identifyBatches = []
+      const orig = window.fetch.bind(window)
+      window.fetch = (url, opts) => {
+        const href = String(url)
+        window.__identifyPosts.push(href)
+        if (href.includes("/supporting_documents/identify_batch")) {
+          const n = [...opts.body.entries()].filter(([k]) => k === "files[]").length
+          window.__identifyBatches.push(n)
+        }
+        return orig(url, opts)
+      }
+    JS
+  end
+
+  def gate_identify_waves
+    page.execute_script(<<~JS)
+      window.__identifyPosts = []
+      window.__identifyBatches = []
+      window.__identifyStarted = 0
+      window.__identifyInFlight = 0
+      window.__identifyMaxInFlight = 0
+      window.__identifyRelease = []
+      const orig = window.fetch.bind(window)
+      window.fetch = (url, opts) => {
+        const href = String(url)
+        window.__identifyPosts.push(href)
+        if (href.includes("/supporting_documents/identify_batch")) {
+          const n = [...opts.body.entries()].filter(([k]) => k === "files[]").length
+          window.__identifyBatches.push(n)
+          window.__identifyStarted += 1
+          window.__identifyInFlight += 1
+          window.__identifyMaxInFlight = Math.max(window.__identifyMaxInFlight, window.__identifyInFlight)
+          return new Promise((resolve) => {
+            window.__identifyRelease.push(() => {
+              orig(url, opts).then(resolve).finally(() => {
+                window.__identifyInFlight -= 1
+              })
+            })
+          })
+        }
+        return orig(url, opts)
+      }
+    JS
+  end
+
+  def release_identify_wave
+    page.execute_script(<<~JS)
+      const fn = window.__identifyRelease.shift()
+      if (fn) fn()
+    JS
+  end
+
+  def wait_identify_started(count)
+    deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + Capybara.default_max_wait_time
+    loop do
+      value = page.evaluate_script("window.__identifyStarted || 0")
+      break if value >= count
+      if Process.clock_gettime(Process::CLOCK_MONOTONIC) > deadline
+        raise "identify_batch started #{value}, want #{count}"
+      end
+      sleep 0.05
+    end
+  end
+
+  def identify_batch_sizes
+    page.evaluate_script("window.__identifyBatches || []")
+  end
+
+  def identify_batch_posts
+    page.evaluate_script("window.__identifyPosts || []")
+  end
+
   def wait_pronto(text)
     expect(page).to have_css("[data-lote-status]", text: "Pronto")
     expect(page).to have_content(text)
