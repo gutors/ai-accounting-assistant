@@ -120,7 +120,7 @@ Proof: `bin/rspec spec/system/document_lote_spec.rb -e "Incluir prontos two XMLs
 ## Handoff
 
 - **Settled mid-build:** none
-- **Dispatched:** Verifier at `6ddfe6f` returned FAIL (C5 bound)
-- **Boundary:** C1-C22 closed at `6ddfe6f` pending C22 commit
+- **Dispatched:** Verifier at `6ddfe6f` returned; round closed at `7d411a4`
+- **Boundary:** C1-C22 closed at `7d411a4`
 - **Abandoned:** none
 - **Walked:** Coordinator `/login` Ambiente local `gutors@gmail.com` then `/supporting_documents` on the running app. IDE tab cannot set `<input type=file>`; picker attach is C12–C17. Running Puma `POST /supporting_documents/identify_batch` of `walk-padaria.xml` then `walk-farmacia.xml` returned `200` items Padaria `155,00` / Farmácia `89,40`, `XML autorizado`, no persist. In-flight `#wait` hidden is C13. Incluir prontos still `POST /supporting_documents/batch` is C17.
