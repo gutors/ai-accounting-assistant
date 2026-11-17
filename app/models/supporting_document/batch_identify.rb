@@ -17,8 +17,10 @@ class SupportingDocument
       pool = Concurrent::FixedThreadPool.new(size)
       list.each_with_index do |file, index|
         pool.post do
-          ActiveRecord::Base.connection_pool.with_connection do
-            items[index] = identify_preview(organization, file)
+          Rails.application.executor.wrap do
+            ActiveRecord::Base.connection_pool.with_connection do
+              items[index] = identify_preview(organization, file)
+            end
           end
         rescue => error
           failures << error
@@ -43,7 +45,7 @@ class SupportingDocument
           error: nil,
           arquivo: doc.intake_arquivo,
           kind: doc.kind,
-          amount: book_amount(doc.amount_cents),
+          amount: BrlCents.field_value(doc.amount_cents),
           date: doc.document_on&.strftime("%Y-%m-%d").to_s,
           payee: doc.payee.to_s,
           chave: doc.chave.to_s,
@@ -51,14 +53,6 @@ class SupportingDocument
           locked: doc.fields_locked?
         }
       end
-    end
-
-    def book_amount(cents)
-      return "" if cents.blank? || cents == 0
-
-      whole, frac = cents.abs.divmod(100)
-      grouped = whole.to_s.gsub(/(\d)(?=(\d{3})+(?!\d))/, "\\1.")
-      "#{grouped},#{format("%02d", frac)}"
     end
   end
 end

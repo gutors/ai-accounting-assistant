@@ -77,4 +77,19 @@ RSpec.describe "SupportingDocument identify_batch", type: :model do
       expect(SupportingDocument.identify_threads).to eq(4)
     end
   end
+
+  it "identify_batch wraps each file in the Rails executor" do
+    wraps = 0
+    allow(Rails.application.executor).to receive(:wrap).and_wrap_original do |method, &block|
+      wraps += 1
+      method.call(&block)
+    end
+
+    SupportingDocument.identify_batch(
+      organization: organization,
+      files: [ photo_jpg("left.jpg"), photo_jpg("right.jpg") ]
+    )
+
+    expect(wraps).to eq(2)
+  end
 end
