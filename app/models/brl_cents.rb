@@ -23,6 +23,18 @@ class BrlCents
     (negative ? -cents : cents).abs
   end
 
+  def self.format_reais(cents)
+    whole, frac = cents.abs.divmod(100)
+    grouped = whole.to_s.gsub(/(\d)(?=(\d{3})+(?!\d))/, "\\1.")
+    "R$ #{grouped},#{format("%02d", frac)}"
+  end
+
+  def self.field_value(cents)
+    return "" if cents.blank? || cents == 0
+
+    format_reais(cents).delete_prefix("R$ ").strip
+  end
+
   def self.frac_to_cents(frac)
     digits = frac.to_s.gsub(/\D/, "")
     return 0 if digits.empty?

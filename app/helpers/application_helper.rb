@@ -1,8 +1,6 @@
 module ApplicationHelper
   def format_reais(amount_cents)
-    whole, frac = amount_cents.abs.divmod(100)
-    grouped = whole.to_s.gsub(/(\d)(?=(\d{3})+(?!\d))/, "\\1.")
-    "R$ #{grouped},#{format('%02d', frac)}"
+    BrlCents.format_reais(amount_cents)
   end
 
   # "2026-05" -> "maio de 2026"
@@ -43,8 +41,6 @@ module ApplicationHelper
   end
 
   def amount_field_value(cents)
-    return "" if cents.blank? || cents == 0
-
-    format_reais(cents).delete_prefix("R$ ").strip
+    BrlCents.field_value(cents)
   end
 end

@@ -45,8 +45,9 @@ export default class extends Controller {
     const room = MAX - this.items.length
     const accepted = incoming.slice(0, Math.max(room, 0))
     if (incoming.length > room) this.notice(MAX_NOTICE)
-    accepted.forEach((file) => this.enqueue(file))
+    const queued = accepted.map((file) => this.enqueue(file))
     this.render()
+    if (queued.length) this.identifyBatch(queued)
   }
 
   typed() {
@@ -150,48 +151,58 @@ export default class extends Controller {
     }
     this.items.push(item)
     this.selected = this.selected || item.id
-    this.identify(item)
+    return item
   }
 
-  identify(item) {
+  identifyBatch(items) {
     const data = this.formData()
-    data.append("file", item.file, item.file.name)
-    fetch("/supporting_documents/identify", {
+    items.forEach((item) => data.append("files[]", item.file, item.file.name))
+    fetch("/supporting_documents/identify_batch", {
       method: "POST",
       body: data,
-      headers: { Accept: "text/vnd.turbo-stream.html" },
+      headers: { Accept: "application/json" },
       credentials: "same-origin"
     }).then(async (response) => {
-      const body = await response.text()
+      let payload = {}
+      try {
+        payload = await response.json()
+      } catch (_error) {
+        payload = {}
+      }
       if (!response.ok) {
-        item.status = "error"
-        item.error = this.noticeText(body) || XML_UNREADABLE
-        if (window.Turbo) window.Turbo.renderStreamMessage(body)
+        const error = payload.error || XML_UNREADABLE
+        items.forEach((item) => {
+          item.status = "error"
+          item.error = error
+        })
+        this.notice(error)
+        this.toast(error)
       } else {
-        this.applyIdentify(item, body)
+        (payload.items || []).forEach((row, index) => {
+          if (items[index]) this.applyIdentifyJson(items[index], row)
+        })
       }
       this.render()
     })
   }
 
-  applyIdentify(item, body) {
-    const doc = this.streamDocument(body)
-    const arquivo = doc.querySelector("#arquivo")
-    const kind = doc.querySelector("select#kind")
-    const amount = doc.querySelector("#amount")
-    const date = doc.querySelector("#date")
-    const payee = doc.querySelector("#payee")
-    const chave = doc.querySelector("#chave")
-    const origin = doc.querySelector('[data-origin="amount"]')
-    item.arquivo = arquivo ? arquivo.value : item.arquivo
-    item.kind = kind ? kind.value : ""
+  applyIdentifyJson(item, row) {
+    if (!row.ok) {
+      item.status = "error"
+      item.error = row.error || XML_UNREADABLE
+      this.notice(item.error)
+      this.toast(item.error)
+      return
+    }
+    item.arquivo = row.arquivo || item.arquivo
+    item.kind = row.kind || ""
     item.kindLabel = item.kind === "recibo" ? "Recibo" : "Nota fiscal"
-    item.amount = amount ? amount.value : ""
-    item.date = date ? date.value : ""
-    item.payee = payee ? payee.value : ""
-    item.chave = chave ? chave.value : ""
-    item.origin = origin ? origin.textContent.trim() : "Digitado"
-    item.locked = !!(amount && amount.disabled)
+    item.amount = row.amount || ""
+    item.date = row.date || ""
+    item.payee = row.payee || ""
+    item.chave = row.chave || ""
+    item.origin = row.origin || "Digitado"
+    item.locked = !!row.locked
     item.status = this.ready(item) ? "pronto" : "digitar"
   }
 
@@ -442,20 +453,6 @@ export default class extends Controller {
         <button type="button" class="shrink-0 underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" data-action="toast#dismiss">Fechar</button>
       </div>
     `
-  }
-
-  noticeText(body) {
-    const node = this.streamDocument(body).querySelector("[data-notice=error]")
-    return node ? node.textContent.trim() : ""
-  }
-
-  streamDocument(body) {
-    const wrap = document.createElement("div")
-    wrap.innerHTML = body
-    wrap.querySelectorAll("template").forEach((template) => {
-      wrap.append(template.content.cloneNode(true))
-    })
-    return wrap
   }
 
   escape(value) {
