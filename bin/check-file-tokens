@@ -1,14 +1,18 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-# Pre-commit gate: staged blobs over 5,000 tokens (bytes/4) fail the commit.
-# Checks the index, not the working tree, so unstaged edits are ignored.
-# Skips lockfiles, generated schema, vendored/minified assets, and binaries.
+# Pre-commit gate: staged blobs over the path's token cap (bytes/4) fail the commit.
+# Product files: 5,000. spec/: 20,000 — a request spec's HTTP matrix is larger than
+# one class. Checks the index, not the working tree, so unstaged edits are ignored.
+# Skips lockfiles, generated schema, vendored/minified assets, binaries, and
+# .specs/.tasks/.checks (one document per feature; splitting them breaks the Verifier).
 
 require "open3"
 
 MAX_TOKENS = 5_000
+SPEC_MAX_TOKENS = 20_000
 BYTES_PER_TOKEN = 4
+PLANNING_PREFIXES = %w[.specs/ .tasks/ .checks/].freeze
 
 LOCKFILE_NAMES = %w[
   Gemfile.lock
@@ -49,8 +53,13 @@ def ignore?(path)
   return true if parts.include?("vendor") || parts.include?("node_modules")
   return true if path.start_with?("app/assets/builds/")
   return true if path.start_with?(".cursor/skills/", ".cursor/agents/", ".codex/")
+  return true if PLANNING_PREFIXES.any? { |prefix| path.start_with?(prefix) }
 
   false
+end
+
+def max_tokens_for(path)
+  path.start_with?("spec/") ? SPEC_MAX_TOKENS : MAX_TOKENS
 end
 
 def git(*args)
@@ -75,33 +84,34 @@ end
 
 def split_instructions(violations)
   lines = [
-    "BLOCKED: staged file exceeds #{MAX_TOKENS} tokens (token count = floor(bytes/#{BYTES_PER_TOKEN})).",
+    "BLOCKED: staged file exceeds its token limit (token count = floor(bytes/#{BYTES_PER_TOKEN})).",
+    "Limits: product files #{MAX_TOKENS}; spec/ #{SPEC_MAX_TOKENS}.",
     "",
     "Over-limit files:"
   ]
-  violations.each do |path, bytes, tokens|
-    over = tokens - MAX_TOKENS
+  violations.each do |path, bytes, tokens, limit|
+    over = tokens - limit
     lines << "  #{path}"
-    lines << "    #{bytes} bytes = #{tokens} tokens (limit #{MAX_TOKENS}; over by #{over})"
+    lines << "    #{bytes} bytes = #{tokens} tokens (limit #{limit}; over by #{over})"
   end
   lines.concat(
     [
       "",
       "How to split, then restage (do this — do not raise the limit or skip the hook):",
       "  1. Pick one responsibility that can live alone: one class/module, one HTTP action,",
-      "     one ERB partial, one Stimulus controller, or one Markdown section.",
+      "     one ERB partial, or one Stimulus controller.",
       "  2. Move that slice into a new sibling file named for the extracted concern.",
       "     Ruby: FooBar in foo_bar.rb next to the original.",
       "     RSpec: examples for one action into spec/requests/<resource>_<action>_spec.rb",
       "     (keep shared helpers in spec/support/).",
       "     ERB: extract app/views/<resource>/_<name>.html.erb and render it.",
-      "     Markdown (.tasks/.checks/.specs): one sibling .md per slice or appendix.",
       "  3. Leave a thin surface in the original file (require/include/render/link).",
-      "  4. Repeat until every remaining file is <= #{MAX_TOKENS} tokens (<= #{MAX_TOKENS * BYTES_PER_TOKEN} bytes).",
+      "  4. Repeat until every remaining file is at or under its path limit.",
       "  5. git add the old path and every new path.",
       "",
-      "Lockfiles, db/schema.rb, minified/vendored assets, and binaries are skipped.",
-      "Do not use git commit --no-verify, and do not shrink the file by deleting tests or comments."
+      "Lockfiles, db/schema.rb, minified/vendored assets, binaries, and .specs/.tasks/.checks",
+      "are skipped. Do not use git commit --no-verify, and do not shrink the file by deleting",
+      "tests or comments."
     ]
   )
   lines.join("\n")
@@ -111,9 +121,10 @@ paths = staged_paths.reject { |path| ignore?(path) }
 violations = paths.filter_map do |path|
   bytes = staged_bytes(path)
   tokens = tokens_for(bytes)
-  next if tokens <= MAX_TOKENS
+  limit = max_tokens_for(path)
+  next if tokens <= limit
 
-  [ path, bytes, tokens ]
+  [ path, bytes, tokens, limit ]
 end
 
 if violations.empty?
