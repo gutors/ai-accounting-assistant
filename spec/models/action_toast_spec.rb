@@ -31,6 +31,8 @@ RSpec.describe ActionToast do
       expect(ActionToast.month_closed(month)).to eq("Maio de 2026 fechado. Pacote gravado na pasta do mês.")
       expect(ActionToast.month_reopened(month)).to eq("Maio de 2026 reaberto.")
       expect(ActionToast.month_folder_restored(month)).to eq("Pasta de maio de 2026 restaurada no arquivo do pacote.")
+      expect(ActionToast.month_accounts_confirmed(month)).to eq("Contas de maio de 2026 confirmadas.")
+      expect(ActionToast.month_discarded("2026-05")).to eq("Fechamento de maio de 2026 excluído.")
     end
 
     it "names the saved accountant and the package folder" do
@@ -135,6 +137,14 @@ RSpec.describe ActionToast do
         .to eq("Recibo de Padaria Silva, R$ 120,00, incluído.")
       expect(ActionToast.document_inserted(nota))
         .to eq("Nota fiscal de Padaria Silva, R$ 120,00, incluída.")
+    end
+
+    it "counts a lote and keeps the single sentence for one row" do
+      recibo = instance_double(SupportingDocument, recibo?: true, payee: "Padaria Silva", amount_cents: 12000)
+
+      expect(ActionToast.documents_inserted([ recibo ]))
+        .to eq("Recibo de Padaria Silva, R$ 120,00, incluído.")
+      expect(ActionToast.documents_inserted([ recibo, recibo ])).to eq("Documentos incluídos: 2.")
     end
 
     it "names the updated, deleted and SEFAZ-confirmed document payee" do

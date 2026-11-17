@@ -19,7 +19,7 @@ class MonthsController < ApplicationController
 
     month.confirm_accounts
     if month.errors.empty?
-      redirect_success("/months/#{month.year_month}")
+      redirect_success("/months/#{month.year_month}", ActionToast.month_accounts_confirmed(month))
     else
       @month = month
       @month_error = month.errors[:base].first
@@ -88,9 +88,10 @@ class MonthsController < ApplicationController
     month = find_month
     return unless month
 
+    year_month = month.year_month
     month.discard_never_sent
     if month.errors.empty?
-      redirect_success("/")
+      redirect_success("/", ActionToast.month_discarded(year_month))
     else
       @month_error = month.errors[:base].first
       load_home

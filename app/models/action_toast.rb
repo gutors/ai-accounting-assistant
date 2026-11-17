@@ -35,6 +35,16 @@ class ActionToast
       "Fechamento de #{month_title(month.year_month)} aberto."
     end
 
+    # The button is `Iniciar fechamento`; naming the month keeps the sentence readable on a list.
+    def month_accounts_confirmed(month)
+      "Contas de #{month_title(month.year_month)} confirmadas."
+    end
+
+    # Takes `year_month`, not a Month: the caller has just destroyed the record.
+    def month_discarded(year_month)
+      "Fechamento de #{month_title(year_month)} excluído."
+    end
+
     def month_closed(month)
       "#{month_title(month.year_month).capitalize} fechado. Pacote gravado na pasta do mês."
     end
