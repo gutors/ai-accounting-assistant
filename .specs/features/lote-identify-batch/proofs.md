@@ -1,6 +1,6 @@
 # lote-identify-batch proofs
 
-**HEAD**: eb3da63
+**HEAD**: f6e2492
 **Tree**: clean
 **Result**: 26 pass, 0 fail; mutations 3 killed, 0 not
 
