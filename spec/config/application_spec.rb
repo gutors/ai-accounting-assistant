@@ -89,7 +89,7 @@ RSpec.describe "Application config" do
   end
 
   it "README names pdftoppm for PDF photos next to tesseract" do
-    readme = Rails.root.join("README.md").read
+    readme = Rails.root.join("README.pt-BR.md").read
 
     expect(readme).to include("`tesseract`")
     expect(readme).to include("`pdftoppm`")
