@@ -9,7 +9,7 @@
 <% chave_value = identified ? identification.chave : params[:chave] %>
 <% kind_value = identified ? identification.kind : params[:kind] %>
 <% submit_disabled = identified && identification.recibo? && identification.amount_cents.to_i <= 0 %>
-<div id="identify-book" class="grid max-w-[28rem] gap-4">
+<div id="identify-book" class="grid max-w-[28rem] content-start gap-4">
   <p class="max-w-[36ch] text-ink-soft<%= " hidden" if loaded %>" <%= "hidden" if loaded %> data-document-identify-target="wait">Inclua o documento. Valor, data e favorecido saem do arquivo.</p>
   <div id="fields" class="grid gap-4<%= " hidden" unless loaded %>" <%= "hidden" unless loaded %> data-document-identify-target="fields">
     <% if identified && identification.chave.present? && identification.amount_cents.to_i <= 0 %>

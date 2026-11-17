@@ -10,8 +10,10 @@
     <div class="mt-4 grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_28rem] md:gap-6">
       <aside class="rounded border border-rule bg-sheet p-3" data-document-lote-target="proof">
         <div class="grid gap-2 border border-rule bg-paper p-3">
-          <img hidden alt="" class="hidden max-h-48 w-full object-contain" data-document-lote-target="thumb">
-          <embed hidden type="application/pdf" class="hidden h-48 w-full" data-document-lote-target="pdfThumb">
+          <div class="h-[28rem] overflow-auto">
+            <img hidden alt="" class="hidden h-full w-full object-contain" data-document-lote-target="thumb">
+            <embed hidden type="application/pdf" class="hidden h-full w-full" data-document-lote-target="pdfThumb">
+          </div>
           <div class="flex items-baseline justify-between gap-3">
             <p class="min-w-0 truncate" data-document-lote-target="caption"></p>
             <button type="button" hidden class="shrink-0 font-medium text-caixa underline underline-offset-2" data-document-lote-target="clear" data-action="document-lote#clearAll">Limpar</button>
@@ -19,7 +21,7 @@
           <p hidden class="text-meta" data-document-lote-target="identifying">Identificando o arquivo…</p>
         </div>
       </aside>
-      <div class="grid max-w-[28rem] gap-2" data-document-lote-target="book">
+      <div class="grid max-w-[28rem] content-start gap-2" data-document-lote-target="book">
         <div>
           <label for="kind" class="mb-0.5 block font-medium">Tipo</label>
           <%= text_field_tag :kind, nil, id: "kind", readonly: true, autocomplete: "off", class: "w-full rounded border border-rule bg-sheet px-3 py-2", data: { document_lote_target: "kind" } %>

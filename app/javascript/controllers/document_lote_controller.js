@@ -341,7 +341,7 @@ export default class extends Controller {
       return
     }
     if (showPdf) {
-      this.pdfThumbTarget.setAttribute("src", item.previewUrl)
+      this.pdfThumbTarget.setAttribute("src", `${item.previewUrl}#toolbar=1&view=Fit`)
       this.pdfThumbTarget.hidden = false
       this.pdfThumbTarget.classList.remove("hidden")
       this.thumbTarget.removeAttribute("src")

@@ -141,7 +141,7 @@ export default class extends Controller {
       }
     }
     if (showPdf) {
-      pdfThumb.setAttribute("src", this.thumbUrl)
+      pdfThumb.setAttribute("src", `${this.thumbUrl}#toolbar=1&view=Fit`)
       pdfThumb.hidden = false
       pdfThumb.classList.remove("hidden")
       if (thumb) {
