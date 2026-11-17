@@ -248,7 +248,7 @@ RSpec.describe "SEFAZ certificates", type: :request do
     expect(response.body).not_to include("11.222.333/0001-81")
   end
 
-  it "DELETE /sefaz_certificate clears the slot and redirects" do
+  it "DELETE /sefaz_certificate names the removed titular in the toast" do
     _account, organization = signed_in
     post "/sefaz_certificate", params: {
       certificate: sefaz_pfx,

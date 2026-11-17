@@ -22,7 +22,7 @@ RSpec.describe "Coordinator invites", type: :request do
     expect(response).to redirect_to("/")
   end
 
-  it "POST /coordinator_invites delivers the coordinator invite" do
+  it "POST /coordinator_invites names the invited email in the toast" do
     account, organization = plant_coordinator(organization_name: "ONG Norte")
     sign_in_as(account, organization: organization)
     ActionMailer::Base.deliveries.clear
