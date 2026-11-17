@@ -1,5 +1,22 @@
 # Action result toast
 
+> **Superseded as a build source — historical record.** The toast shipped on 2026-10-01 and was
+> independently verified at `4938e2c` (`.checks/action-result-toast.verified.md`). It is not
+> rebuilt from this file. Criterion 7's `Toast` and the one-shot `flash` channel still hold; the
+> rest has moved. Read this file for the decision, never as a checklist.
+>
+> | Moved | Now | Where |
+> | --- | --- | --- |
+> | 11 success copy for 35 routes, 13–22 for the 10 listed here | `Pronto.` no longer exists. One sentence per action, naming the object and value | `.tasks/meaningful-action-toasts.md`, `app/models/action_toast.rb`, ADR-0009 |
+> | 2, 3 "immediately after `header`" | An empty `#toast-host` sits between `header` and `main`; the toast renders inside it | `app/views/layouts/application.html.erb:24`, `287a4a9` |
+> | `Decided` — "the application layout is the only renderer" | Also rendered by a Turbo Stream into `#toast-host` on `422` | `application_controller.rb:212` `render_refusal_streams`, `.checks/keep-form-on-422.md` |
+> | 22 `Nenhum certificado` | `Não há certificado A1 instalado. Use Instalar certificado.` | `fbf697f`, `spec/support/page_helpers.rb:233` |
+> | `Impact` — `CONTEXT.md` | No such file; the glossary is `GLOSSARY.md` | repo root |
+> | `Unresolved` 1 (`Pronto.`) | Settled against this file: a single sentence was rejected | `.tasks/meaningful-action-toasts.md:258` |
+> | Proofs C1, C11, C13–C18, C20–C22 in `.checks/action-result-toast.md` | Renamed by `8d057f2` / `4233839`; the old selectors select 0 examples and exit `0` | `.checks/action-result-toast.md` |
+>
+> The original handoff line follows, unedited.
+
 > Build this with **tlc-implement**. Profile **`ui`**: layout toast plus screens `home`,
 > `documents`, `setup`; binding design `.specs/features/visual-identity/design.md`.
 > Every criterion below becomes a check with a proof, referenced by its number. Nothing under
@@ -131,7 +148,7 @@ stateDiagram-v2
 
 | Front | What changes |
 |---|---|
-| domain | no new glossary term — `CONTEXT.md` stays as it is |
+| domain | no new glossary term — `GLOSSARY.md` stays as it is |
 | domain | existing term: home invite mail failure — meant a sticky `session[:invite_mail_failed]` boolean rendered as `[data-notice="error"]` under `Meses`. Now a one-request error toast. Callers: `CoordinatorInvitesController`, `SubmitterInvitesController`, `ApplicationController#load_home`, `app/views/organizations/show.html.erb`, `spec/requests/coordinator_invites_spec.rb`, administration-access C42–C47 (historical checks describe the old notice) |
 | stored data | nothing to migrate — flash is request-scoped; no column |
 
@@ -139,8 +156,8 @@ stateDiagram-v2
 
 | Decision | Shape | Alternative rejected |
 |---|---|---|
-| One-shot channel | Rails `flash[:toast]` is the message string; `flash[:toast_kind]` is `success` or `error`. Redirects use `flash`; `422` re-renders use `flash.now`. The application layout is the only renderer. Later #75 children set these keys; they do not invent a second banner | Keep `session[:invite_mail_failed]`: it sticks across Cancel and unrelated GETs, which #76 replaces. A new session boolean per action would repeat that stickiness |
-| Action-result UI | Layout `[data-toast]` after `header`, before `main`; success `caixa` fill; error `margem` rule like `[data-notice="error"]` but not that notice; timeout `5000` ms; dismiss `Fechar`. Stimulus removes the node (browser timer). Design.md Motion lists this timeout as a result of the action that set the toast | Reuse `[data-notice="error"]` under each `h1`: that is the field and `:base` notice #76 keeps, and it has no success colour. A page-local banner under `Meses` is what this slice removes |
+| One-shot channel | Rails `flash[:toast]` is the message string; `flash[:toast_kind]` is `success` or `error`. Redirects use `flash`; `422` re-renders use `flash.now`. The application layout is the only renderer. Later #75 children set these keys; they do not invent a second banner. **Amended after the build (`287a4a9`, `keep-form-on-422`):** the toast renders inside an always-present `#toast-host`, and `ApplicationController#render_refusal_streams` renders the same partial into it from a Turbo Stream on a document/A1 `422`. Same keys, still one message; two renderers | Keep `session[:invite_mail_failed]`: it sticks across Cancel and unrelated GETs, which #76 replaces. A new session boolean per action would repeat that stickiness |
+| Action-result UI | Layout `[data-toast]` after `header`, before `main`, inside an always-present `#toast-host`; success `caixa` fill; error `margem` rule like `[data-notice="error"]` but not that notice; timeout `5000` ms; dismiss `Fechar`. Stimulus removes the node (browser timer). Design.md Motion lists this timeout as a result of the action that set the toast | Reuse `[data-notice="error"]` under each `h1`: that is the field and `:base` notice #76 keeps, and it has no success colour. A page-local banner under `Meses` is what this slice removes |
 
 ## Surface
 
@@ -168,7 +185,7 @@ stateDiagram-v2
 - `app/views/organizations/show.html.erb` — today’s stuck notice under `Meses` when `@invite_mail_failed`
 - `.design/administration-list.md` — today’s home invite mail-failure paragraph that criterion 12 amends
 - `app/javascript/controllers/` — Stimulus is already eager-loaded; `hello_controller.js` is unused. Browser timeout and dismiss are Stimulus events (`rails.mdc`)
-- Open defaults in Unresolved 1–3 — success copy `Pronto.`, dismiss `Fechar`, timeout `5000` ms, until a human overrides them
+- Open defaults in Unresolved 1–3 — success copy `Pronto.`, dismiss `Fechar`, timeout `5000` ms, until a human overrides them. **1 was overridden** by `.tasks/meaningful-action-toasts.md`; 2–3 still stand
 
 This task is the record of decision. If a linked document diverges, ask before building.
 
@@ -176,6 +193,6 @@ This task is the record of decision. If a linked document diverges, ask before b
 
 | # | Kind | Question | Until answered |
 |---|---|---|---|
-| 1 | open | What is the success sentence? #76 lists actions and does not give Portuguese copy. | `Pronto.` on every listed success (11, 13–22) |
+| 1 | open | What is the success sentence? #76 lists actions and does not give Portuguese copy. | `Pronto.` on every listed success (11, 13–22). **Settled against this file** by `.tasks/meaningful-action-toasts.md`: the single sentence was rejected in favour of one per action (`ActionToast`, ADR-0009) |
 | 2 | open | What is the dismiss control’s accessible name? | Button text `Fechar` (2, 3, 4) |
 | 3 | open | Exact timeout for “~5s”? | `5000` ms, including under `prefers-reduced-motion` (5, 6) |

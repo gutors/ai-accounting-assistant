@@ -4,7 +4,7 @@ Profile: `ui`. Raised from the repo floor `standard` because `.tasks/action-resu
 
 Sources:
 
-- `.tasks/action-result-toast.md` - criteria 1–26, the state diagram, the sweep, the two doors, and the boundary. Unresolved 1–3 stay open (`Pronto.`, `Fechar`, `5000` ms)
+- `.tasks/action-result-toast.md` - criteria 1–26, the state diagram, the sweep, the two doors, and the boundary. Unresolved 2–3 stay open (`Fechar`, `5000` ms); Unresolved 1 (`Pronto.`) was overridden by `.tasks/meaningful-action-toasts.md`
 - https://github.com/gutors/ai-accounting-assistant/issues/76 - **binding for this slice**: toast at the top, ~5s, dismissible, listed action results, field validation stays, `422` `:base`/notice also toasts, replace `session[:invite_mail_failed]`, per-invite status is the invites child, extend visual-identity design
 - https://github.com/gutors/ai-accounting-assistant/issues/75 - parent: toast first; later children set the same `flash` keys; toast only for action result
 - `.specs/features/visual-identity/design.md` - **binding for the interface**: layout toast plus screens `home`, `documents`, `setup`. Opened as a file in the repo. The file already has Notice (`[data-notice="error"]` under the title, `margem` rule), tokens `caixa`/`margem`, Motion (`<details>` as the only state change), and `prefers-reduced-motion` (no transitions or keyframes). It has no Toast component yet — C7 adds it. Toast arrangement and copy in C2–C6 are the values the task transcribed; colour tokens come from the opened file, not hex from a mock
@@ -25,7 +25,7 @@ Sources:
 - Login, denied, OIDC, `DELETE /session`
 - Month close-for-send, restore, reopen, matches, document exceptions, bank statements, justifications, accesses `Revogar`, extra-kind and bank-account mutations — later children set the same `flash` keys
 - Inventing field notices on home invite or accountant `422` where the page has none today (C25, C26)
-- Per-action success sentences beyond `Pronto.` unless Unresolved 1 is overridden
+- Per-action success sentences beyond `Pronto.` unless Unresolved 1 is overridden — **superseded**: `.tasks/meaningful-action-toasts.md` overrode it for all 34 routes, so every listed success now names its object
 - Settling Unresolved 1–3
 
 ## Landing
@@ -34,8 +34,8 @@ Touches the application layout, a Stimulus toast controller, invite create/mail/
 
 | One-way door | Literal shape | Alternative rejected |
 | --- | --- | --- |
-| One-shot channel | Rails `flash[:toast]` is the message string; `flash[:toast_kind]` is `success` or `error`. Redirects use `flash`; `422` re-renders use `flash.now`. The application layout is the only renderer. Later #75 children set these keys; they do not invent a second banner | Keep `session[:invite_mail_failed]`: it sticks across Cancel and unrelated GETs, which #76 replaces. A new session boolean per action would repeat that stickiness |
-| Action-result UI | Layout `[data-toast]` immediately after `header` and before `main`; success `caixa` fill; error `margem` rule like `[data-notice="error"]` but not that notice; timeout `5000` ms; dismiss `Fechar`. Stimulus removes the node (browser timer). Design.md Motion lists this timeout as a result of the action that set the toast | Reuse `[data-notice="error"]` under each `h1`: that is the field and `:base` notice #76 keeps, and it has no success colour. A page-local banner under `Meses` is what this slice removes |
+| One-shot channel | Rails `flash[:toast]` is the message string; `flash[:toast_kind]` is `success` or `error`. Redirects use `flash`; `422` re-renders use `flash.now`. The application layout is the only renderer. Later #75 children set these keys; they do not invent a second banner. **Amended after the build:** `render_refusal_streams` (`app/controllers/application_controller.rb:212`) also renders `shared/toast` into `#toast-host` from a Turbo Stream on a document/A1 `422` — see `.checks/keep-form-on-422.md`. Two renderers, one set of keys, still one message | Keep `session[:invite_mail_failed]`: it sticks across Cancel and unrelated GETs, which #76 replaces. A new session boolean per action would repeat that stickiness |
+| Action-result UI | Layout `[data-toast]` immediately after `header` and before `main`; success `caixa` fill; error `margem` rule like `[data-notice="error"]` but not that notice; timeout `5000` ms; dismiss `Fechar`. Stimulus removes the node (browser timer). Design.md Motion lists this timeout as a result of the action that set the toast. **Amended after the build:** the toast sits inside an always-present `#toast-host` between `header` and `main` (`287a4a9`), so the node directly after `header` is the host, not the toast. The host exists so a Turbo Stream `422` has a stable target after a dismiss | Reuse `[data-notice="error"]` under each `h1`: that is the field and `:base` notice #76 keeps, and it has no success colour. A page-local banner under `Meses` is what this slice removes |
 
 - Nothing else in this change is hard to reverse
 
@@ -62,18 +62,29 @@ Cost: request examples for C1–C3, C8–C26; system examples for C4–C6; style
 
 ## Checks
 
-Criteria 1–26 map to C1–C26. Unresolved 1–3 stay `Pronto.`, `Fechar`, and `5000` ms.
+Criteria 1–26 map to C1–C26. Unresolved 2–3 stay `Fechar` and `5000` ms. **Unresolved 1 (`Pronto.`) was settled against this file** — `.tasks/meaningful-action-toasts.md` replaced the single sentence with one per action, so the success string in C11 and C13–C22 is historical and the live proof asserts the object-naming sentence named in each note.
+
+> **Superseded in part — historical checklist.** The build and its verification stand as recorded
+> (`.checks/action-result-toast.verified.md`, PASS at `4938e2c`). Eleven selectors below were
+> renamed by `8d057f2` and `4233839`, so they selected **0 examples and exited `0`**; `.rspec` has
+> no `fail_if_no_examples`, which is why nothing noticed. They are repointed here. Where the
+> criterion's own `Pronto.` copy was replaced by `.tasks/meaningful-action-toasts.md`, the row says
+> so and names the string the live example asserts. Re-verify from the current proof, not from the
+> old verdict.
 
 ### S1 - Toast chrome · 8 files · 33 KB · ~8k
 
 **C1** - Given a signed-in coordinator on the focused organization and no toast in `flash`, when `GET /` runs, then the status is `200`, the body has no `[data-toast]`, and it does not include `O convite foi gravado, mas o e-mail não saiu.`
-Proof: `bin/rspec spec/requests/layout_spec.rb -e "GET / with empty flash has no toast"`
+Proof: `bin/rspec spec/requests/layout_spec.rb -e "GET / with no toast has no data-toast"`
+Note: selector was `GET / with empty flash has no toast` (renamed by `8d057f2`). The example survives a stale `session[:invite_mail_failed] = true` and still asserts `#toast-host` is present with no `[data-toast]` inside it.
 
 **C2** - When a success toast is present, then the layout renders one `[data-toast][data-toast-kind="success"]` immediately after `header` and before `main`, with `role="status"`, the message text, a `button` whose text is `Fechar`, classes that include `bg-caixa` and `text-white`, and `data-toast-timeout-ms="5000"`. It does not use `[data-notice]`.
 Proof: `bin/rspec spec/requests/layout_spec.rb -e "success toast sits after header before main"`
+Note: since `287a4a9` the element directly after `header` is `#toast-host`, not `[data-toast]`; the example asserts `header.next_element == host`, `host.at_css("[data-toast]") == toast`, `host.next_element == main`.
 
 **C3** - When an error toast is present, then the layout renders one `[data-toast][data-toast-kind="error"]` in that same place, with `role="alert"`, the message text, a `button` `Fechar`, classes that include `text-margem` and `border-l-[3px]` and `border-margem`, and `data-toast-timeout-ms="5000"`.
 Proof: `bin/rspec spec/requests/layout_spec.rb -e "error toast sits after header before main"`
+Note: same `#toast-host` nesting as C2.
 
 **C4** - When `Fechar` on a visible toast is activated, then that `[data-toast]` node is gone before `5000` ms elapse.
 Proof: `bin/rspec spec/system/toast_spec.rb -e "Fechar removes the toast before timeout"`
@@ -87,6 +98,7 @@ Proof: `bin/rspec spec/system/toast_spec.rb -e "toast timeout stays 5000 ms unde
 
 **C7** - `.specs/features/visual-identity/design.md` contains a Toast component: position immediately after `header` and before `main`, success colour `caixa`, error colour `margem`, timeout `5000` ms, dismiss `Fechar`; and the Motion bullet no longer claims that `<details>` opening is the only state change — it names the toast timeout as the other user-triggered result (the action that produced the toast).
 Proof: `bin/rspec spec/docs/action_result_toast_spec.rb -e "visual-identity design.md names Toast and Motion timeout"`
+Note: the design says "immediately after `header`" and the layout now inserts `#toast-host` between them (`287a4a9`). The doc example asserts `header` and `main` by substring, so it passes either way — it cannot distinguish the two arrangements.
 
 ### S2 - Invite mail is one-shot, not stuck under Meses · 6 files · 46 KB · ~11k
 
@@ -100,7 +112,8 @@ Proof: `bin/rspec spec/requests/coordinator_invites_spec.rb -e "second GET after
 Proof: `bin/rspec spec/requests/coordinator_invites_spec.rb -e "invite resend keeps the Invite when deliver_now raises"`
 
 **C11** - Given the error toast from C8 would have been the stuck notice, when `DELETE` `Cancelar` deletes that Invite, then the Invite is gone, no message is delivered, and the following `GET /` has `[data-toast-kind="success"]` text `Pronto.` and does not include `O convite foi gravado, mas o e-mail não saiu.`
-Proof: `bin/rspec spec/requests/coordinator_invites_spec.rb -e "Cancelar shows Pronto toast and does not keep the mail failure"`
+Proof: `bin/rspec spec/requests/coordinator_invites_spec.rb -e "Cancelar names the cancelled email and drops the mail failure"`
+Note: selector was `Cancelar shows Pronto toast and does not keep the mail failure` (renamed by `8d057f2`). **The `Pronto.` claim moved**: the example now asserts `toast_message == "Convite para pessoa@exemplo.org cancelado."` — see `.tasks/meaningful-action-toasts.md` criterion 6. Every other facet of the criterion (Invite gone, no delivery, failure sentence absent) still holds.
 
 **C12** - `.design/administration-list.md` section `Screen home invites` no longer says a failed send is a notice under the `Meses` title that `Cancelar` does not clear; it says that failure is the error toast in C8–C10 and that per-invite mail status is #78.
 Proof: `bin/rspec spec/docs/action_result_toast_spec.rb -e "administration-list home invites names the error toast"`
@@ -108,34 +121,44 @@ Proof: `bin/rspec spec/docs/action_result_toast_spec.rb -e "administration-list 
 ### S3 - Listed successes · 16 files · 196 KB · ~49k
 
 **C13** - Given `POST /coordinator_invites` persists the Invite and delivery succeeds, when the following `GET /` runs, then the body has `[data-toast-kind="success"]` text `Pronto.`, has no `[data-notice="error"]` for that send, and includes the pending email with `Reenviar e-mail` then `Cancelar`.
-Proof: `bin/rspec spec/requests/coordinator_invites_spec.rb -e "POST /coordinator_invites delivers the coordinator invite"`
+Proof: `bin/rspec spec/requests/coordinator_invites_spec.rb -e "POST /coordinator_invites names the invited email in the toast"`
+Note: selector was `POST /coordinator_invites delivers the coordinator invite` (renamed by `4233839`). **The `Pronto.` claim moved**: the example asserts `toast_message == "Convite enviado para pessoa@exemplo.org."` (`.tasks/meaningful-action-toasts.md` criterion 2). No error notice and the `Reenviar e-mail` < `Cancelar` order still hold.
 
 **C14** - Given `POST /submitter_invites` persists a submitter Invite and delivery succeeds, when the following `GET /` runs, then the body has `[data-toast-kind="success"]` text `Pronto.`
-Proof: `bin/rspec spec/requests/submitter_invites_spec.rb -e "POST /submitter_invites delivers the submitter invite"`
+Proof: `bin/rspec spec/requests/submitter_invites_spec.rb -e "POST /submitter_invites names the invited email in the toast"`
+Note: selector renamed by `8d057f2`. **The `Pronto.` claim moved**: asserts `"Convite enviado para docs@exemplo.org."` (same task, criterion 3).
 
 **C15** - Given a pending Invite, when `POST .../mail` delivers, then the following `GET /` has `[data-toast-kind="success"]` text `Pronto.`
-Proof: `bin/rspec spec/requests/coordinator_invites_spec.rb -e "resend on another Invite delivers Pronto toast"`
+Proof: `bin/rspec spec/requests/coordinator_invites_spec.rb -e "resend names the resent email in the toast"`
+Note: selector was `resend on another Invite delivers Pronto toast` (renamed by `8d057f2`). **The `Pronto.` claim moved**: asserts `"Convite reenviado para outro@exemplo.org."`.
 
 **C16** - When `POST /months` with `year_month` `2026-05` persists the Month, then the response is `302` to `/months/2026-05` and the following `GET` has `[data-toast-kind="success"]` text `Pronto.`
-Proof: `bin/rspec spec/requests/months_spec.rb -e "POST /months 2026-05 persists Month and redirects"`
+Proof: `bin/rspec spec/requests/months_spec.rb -e "POST /months names the opened month in the toast"`
+Note: selector was `POST /months 2026-05 persists Month and redirects` (renamed by `8d057f2`). **The `Pronto.` claim moved**: asserts `"Fechamento de maio de 2026 aberto."`, and the `302` to `/months/2026-05` still holds.
 
 **C17** - Given the Account has coordinator Access to `ONG Norte` (focused) and `ONG Sul`, when `POST /focus` with `ONG Sul`’s id runs, then the response is `302` to `/`, the following `GET /` has `[data-toast-kind="success"]` text `Pronto.`, and the `ONG Sul` switcher control has `aria-current="true"`.
-Proof: `bin/rspec spec/requests/focus_spec.rb -e "POST /focus to an Access organization redirects"`
+Proof: `bin/rspec spec/requests/focus_spec.rb -e "POST /focus names the organization in the toast"`
+Note: selector was `POST /focus to an Access organization redirects` (renamed by `8d057f2`). **The `Pronto.` claim moved**: asserts `"Agora em ONG Sul."`; `302` to `/` and `aria-current="true"` still hold.
 
 **C18** - When `POST /supporting_documents` inserts a recibo with photo and the other required fields, then the response is `302` to `/supporting_documents` and the following `GET` has `[data-toast-kind="success"]` text `Pronto.`
-Proof: `bin/rspec spec/requests/supporting_documents_spec.rb -e "POST recibo jpg persists Padaria Central Recibo and redirects"`
+Proof: `bin/rspec spec/requests/supporting_documents_spec.rb -e "POST recibo names the payee amount and kind in the toast"`
+Note: selector was `POST recibo jpg persists Padaria Central Recibo and redirects` (renamed by `8d057f2`). **The `Pronto.` claim moved**: asserts `"Recibo de Padaria Central, R$ 155,00, incluído."`; `302` to `/supporting_documents` still holds. The old selector now matches only the submitter example at `spec/requests/supporting_documents_spec.rb:1035`, which asserts no toast.
 
 **C19** - When `PATCH /accountant` persists a valid accountant, then the response is `302` to `/setup` and the following `GET` has `[data-toast-kind="success"]` text `Pronto.`
 Proof: `bin/rspec spec/requests/accountants_spec.rb -e "PATCH /accountant persists presentation name and redirects"`
+Note: selector still resolves, but **the `Pronto.` claim moved**: the example asserts `"Contador salvo: Ana Contábil."` (`.tasks/meaningful-action-toasts.md` criterion 10). This row was live-and-passing while asserting a sentence the product no longer produces.
 
 **C20** - When `PATCH /package_archive` persists a Drive folder URL, then the response is `302` to `/setup` and the following `GET` has `[data-toast-kind="success"]` text `Pronto.`
-Proof: `bin/rspec spec/requests/package_archives_spec.rb -e "PATCH /package_archive persists folders URL and folder id"`
+Proof: `bin/rspec spec/requests/package_archives_spec.rb -e "PATCH /package_archive toasts the saved package folder"`
+Note: selector was `PATCH /package_archive persists folders URL and folder id` (renamed by `6b1363e`). **The `Pronto.` claim moved**: asserts `"Pasta do pacote salva."`; folder id persistence and `302` to `/setup` still hold.
 
 **C21** - When `POST /sefaz_certificate` installs a valid e-CNPJ A1, then the response is `302` to `/setup` and the following `GET` has `[data-toast-kind="success"]` text `Pronto.`
-Proof: `bin/rspec spec/requests/sefaz_certificates_spec.rb -e "POST /sefaz_certificate persists pfx and redirects"`
+Proof: `bin/rspec spec/requests/sefaz_certificates_spec.rb -e "POST /sefaz_certificate names the titular and validity in the toast"`
+Note: selector was `POST /sefaz_certificate persists pfx and redirects` (renamed by `8d057f2`). **The `Pronto.` claim moved**: asserts `"Certificado A1 de 11.222.333/0001-81 instalado, válido até 18/09/2027."`; persistence and `302` to `/setup` still hold.
 
 **C22** - Given a certificate is installed, when `DELETE /sefaz_certificate` runs, then the response is `302` to `/setup` and the following `GET` has `[data-toast-kind="success"]` text `Pronto.` and includes `Nenhum certificado`.
-Proof: `bin/rspec spec/requests/sefaz_certificates_spec.rb -e "DELETE /sefaz_certificate clears the slot and redirects"`
+Proof: `bin/rspec spec/requests/sefaz_certificates_spec.rb -e "DELETE /sefaz_certificate names the removed titular in the toast"`
+Note: selector was `DELETE /sefaz_certificate clears the slot and redirects` (renamed by `4233839`). **Two claims moved, not only the copy.** (a) The toast asserts `"Certificado A1 de 11.222.333/0001-81 removido."`. (b) `Nenhum certificado` was removed from the product by `fbf697f`; the empty state is now `Não há certificado A1 instalado. Use Instalar certificado.`, and `spec/support/page_helpers.rb:233` asserts the old string is **absent**. The `302` to `/setup` and the cleared slot still hold.
 
 ### S4 - Action 422 keeps the notice and adds a toast; field 422 does not · 4 files · 120 KB · ~30k
 
@@ -162,11 +185,11 @@ Design opened: `.specs/features/visual-identity/design.md` (file in the repo). T
 | layout toast, error | one `[data-toast][data-toast-kind="error"]` `role="alert"`; message; `button` `Fechar`; `data-toast-timeout-ms="5000"` C3 | same place as success; classes include `text-margem`, `border-l-[3px]`, `border-margem` C3 | spacing, colour, type weight |
 | home, no action | `h1` `Meses`; empty months `Nenhum mês aberto` stays; no stuck mail sentence C1 | no `[data-notice="error"]` under `Meses` for invite mail C1, C8 | spacing, colour, type weight |
 | home, invite mail fail | `[data-toast-kind="error"]` `O convite foi gravado, mas o e-mail não saiu.` C8, C10 | toast in the layout slot, not `[data-notice="error"]` under `Meses` C8 | spacing, colour, type weight |
-| home, listed success | `[data-toast-kind="success"]` `Pronto.`; pending email with `Reenviar e-mail` then `Cancelar` C13 | toast in the layout slot C2, C13 | spacing, colour, type weight |
+| home, listed success | `[data-toast-kind="success"]` `Convite enviado para {email}.`; pending email with `Reenviar e-mail` then `Cancelar` C13 | toast in the layout slot C2, C13 | spacing, colour, type weight |
 | documents, `:base` 422 | `[data-notice="error"]` `Envie a foto do recibo` and `[data-toast-kind="error"]` that same string C23 | notice stays under the page title; toast is extra in the layout slot C23 | spacing, colour, type weight |
-| documents, insert success | `[data-toast-kind="success"]` `Pronto.` after redirect C18 | toast in the layout slot C18 | spacing, colour, type weight |
+| documents, insert success | `[data-toast-kind="success"]` `Recibo de {payee}, {valor}, incluído.` after redirect C18 | toast in the layout slot C18 | spacing, colour, type weight |
 | setup, certificate `:base` 422 | `[data-notice="error"]` `O certificado deve ser e-CNPJ A1 vigente` and `[data-toast-kind="error"]` that same string C24 | notice stays under the title; toast is extra in the layout slot C24 | spacing, colour, type weight |
-| setup, listed success | `[data-toast-kind="success"]` `Pronto.` C19–C22; after remove, `Nenhum certificado` C22 | toast in the layout slot C19–C22 | spacing, colour, type weight |
+| setup, listed success | `[data-toast-kind="success"]` `Contador salvo: {nome}.`, `Pasta do pacote salva.`, `Certificado A1 de {cnpj} instalado, válido até {data}.`, `Certificado A1 de {cnpj} removido.` C19–C22; after remove, `Não há certificado A1 instalado. Use Instalar certificado.` C22 | toast in the layout slot C19–C22 | spacing, colour, type weight |
 
 ## Swept
 
