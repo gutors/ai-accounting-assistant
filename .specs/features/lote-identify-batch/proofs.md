@@ -1,8 +1,8 @@
 # lote-identify-batch proofs
 
-**HEAD**: 6ddfe6f
-**Tree**: dirty - .cursor/hooks.json, .cursor/skills/impeccable/SKILL.md, .cursor/skills/impeccable/agents/impeccable_asset_producer.toml, .cursor/skills/impeccable/agents/impeccable_documenter.toml, .cursor/skills/impeccable/agents/impeccable_finish_reviewer.toml
-**Result**: 25 pass, 0 fail; mutations 2 killed, 1 not
+**HEAD**: eb3da63
+**Tree**: clean
+**Result**: 26 pass, 0 fail; mutations 3 killed, 0 not
 
 | Check | Proof | Ran | Passed | Result |
 | --- | --- | --- | --- | --- |
@@ -11,6 +11,7 @@
 | C3 | `bin/rspec spec/requests/supporting_documents_identify_batch_spec.rb -e "POST identify_batch mixed XML keeps Pa` | count unknown | - | pass |
 | C4 | `bin/rspec spec/requests/supporting_documents_identify_batch_spec.rb -e "POST identify_batch missing or empty f` | count unknown | - | pass |
 | C5 | `bin/rspec spec/requests/supporting_documents_identify_batch_spec.rb -e "POST identify_batch 31 files is 422 No` | count unknown | - | pass |
+| C22 | `bin/rspec spec/requests/supporting_documents_identify_batch_spec.rb -e "POST identify_batch 30 files is 200 wi` | count unknown | - | pass |
 | C6 | `bin/rspec spec/requests/supporting_documents_identify_batch_spec.rb -e "unauthenticated POST identify_batch re` | count unknown | - | pass |
 | C7 | `bin/rspec spec/requests/supporting_documents_identify_batch_spec.rb -e "submitter POST identify_batch persists` | count unknown | - | pass |
 | C18 | `bin/rspec spec/requests/supporting_documents_identify_batch_spec.rb -e "POST identify_batch photo fields origi` | count unknown | - | pass |
@@ -36,6 +37,6 @@
 
 | Mutation | Location | Killed |
 | --- | --- | --- |
-| overflow bound > 30 -> >= 30 | `app/controllers/supporting_documents_controller.rb:19` | no |
+| overflow bound > 30 -> >= 30 | `app/controllers/supporting_documents_controller.rb:19` | yes |
 | items order files[] -> reversed | `app/models/supporting_document/batch_identify.rb:21` | yes |
 | pool size threads -> 1 | `app/models/supporting_document/batch_identify.rb:14` | yes |
