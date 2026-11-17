@@ -284,8 +284,6 @@ class ApplicationController < ActionController::Base
   end
 
   def redirect_with_toast(path, kind:, message:)
-    return redirect_to(path, status: :found) if message.blank?
-
     flash[:toast] = message
     flash[:toast_kind] = kind
     redirect_to path, status: :found

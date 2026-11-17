@@ -258,7 +258,8 @@ Proof: `bin/rspec spec/models/action_toast_spec.rb -e "never returns Pronto or H
 omit the message and fall back to a generic success sentence
 Proof: `bin/rspec spec/requests/layout_spec.rb -e "redirect_success requires its message"`
 
-**C48b** - A blank message writes no toast: `GET /` with an empty flash has no `[data-toast]`
+**C48b** - A blank message writes no toast: an action that renders `flash.now[:toast]` blank shows
+no `[data-toast]`, because `_toast.html.erb` renders nothing unless `toast.present?`
 Proof: `bin/rspec spec/requests/layout_spec.rb -e "GET / with no toast has no data-toast"`
 
 ## Swept
