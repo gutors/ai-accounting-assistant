@@ -14,89 +14,11 @@ _none_
 
 Seen once or not yet corroborated. Tracked, not trusted.
 
-### L-001 - Assert enumerated picker members by the check-defined names in the claimed order, not by mirroring the model's ordered collection.
-- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `request-specs` · harmful: 0
-- features: organization-close-setup
-- evidence: C28 spec/requests/setup_spec.rb:86-90 (request-specs)
-- last seen: 2026-09-16T22:04:46Z
-
-### L-002 - A catalog-order proof must fail when the collection is sorted by a different key than the check names.
-- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `request-specs` · harmful: 0
-- features: organization-close-setup
-- evidence: verification.md Faults injected Bank.ordered_catalog order(:compe) -> order(:presentation_name) (request-specs)
-- last seen: 2026-09-16T22:04:46Z
-
-### L-003 - Skip-row proofs must fail when the skip list is emptied: assert a persisted statement (or in-month skip rows), not only that skip histories are absent.
-- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `import-specs` · harmful: 0
-- features: bank-statement-upload
-- evidence: verification.md F5 SKIP [] banco_do_brasil_spreadsheet.rb:6 / C21 bank_statement_spec.rb:60-62 (import-specs)
-- last seen: 2026-09-17T00:19:39Z
-
-### L-004 - A skip-row check that does not require persist is satisfied by any reject path that leaves movements empty.
-- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `import-specs` · harmful: 0
-- features: bank-statement-upload
-- evidence: C21 spec/models/bank_statement_spec.rb:60-62 (import-specs)
-- last seen: 2026-09-17T00:19:39Z
-
-### L-005 - When a collection label also appears in the same page's form, assert it inside the collection HTML, not the whole body
-- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `request-specs` · harmful: 0
-- features: supporting-document-insert
-- evidence: verification.md Faults: list kind interpolation; C8 (request-specs)
-- last seen: 2026-09-17T01:55:56Z
-
-### L-006 - A page-include of a string the form always renders does not prove the list showed that string
-- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `request-specs` · harmful: 0
-- features: supporting-document-insert
-- evidence: C8 C15 verification.md (request-specs)
-- last seen: 2026-09-17T01:55:56Z
-
-### L-007 - When each collection row embeds a form whose options repeat the row labels, assert the display node, not a heading-sliced HTML fragment.
-- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `request-specs` · harmful: 0
-- features: supporting-document-insert
-- evidence: verification.md Faults: list kind interpolation; C8 index.html.erb:65 (request-specs)
-- last seen: 2026-09-17T02:00:12Z
-
-### L-008 - A substring in a heading-sliced fragment is not list copy when nested row forms still render that substring.
-- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `request-specs` · harmful: 0
-- features: supporting-document-insert
-- evidence: C8 C15 spec/requests/supporting_documents_spec.rb:92,150 (request-specs)
-- last seen: 2026-09-17T02:00:12Z
-
-### L-009 - A collection slice that still contains an edit form with the same option labels is not a unique assertion surface
-- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `request-specs` · harmful: 0
-- features: supporting-document-insert
-- evidence: verification.md round 2 Faults: PATCH options_for_select; C8 (request-specs)
-- last seen: 2026-09-17T02:00:43Z
-
-### L-010 - When a 422 request spec asserts error copy, match it on the rendered page body so a RecordInvalid debug page that quotes the rejected value cannot satisfy the assertion.
-- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `request-specs` · harmful: 0
-- features: match-and-exception
-- evidence: C30 HTTP / spec/requests/document_exceptions_spec.rb:57-58 (request-specs)
-- last seen: 2026-09-17T03:33:09Z
-
-### L-011 - Every Surface status member needs a check whose HTTP assertion is that status, not a related success path that only asserts persistence or labels.
-- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `coverage` · harmful: 0
-- features: match-and-exception
-- evidence: Coverage PATCH /supporting_documents/:id 302; C22 (coverage)
-- last seen: 2026-09-17T03:33:10Z
-
-### L-012 - When a check names formulas on specific total-value cells, assert SUM or minus on those cells, not a count of matching formula text anywhere in the workbook.
-- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `spreadsheet-specs` · harmful: 0
-- features: close-for-send
-- evidence: C20 spec/requests/close_spec.rb:277-278 spec/models/summary_spreadsheet_spec.rb:127-128 (spreadsheet-specs)
-- last seen: 2026-09-17T15:09:28Z
-
-### L-013 - A workbook-wide formula search does not bind SUM to the two total cells or minus to Resultado mês.
-- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `spreadsheet-specs` · harmful: 0
-- features: close-for-send
-- evidence: C20 verification.md Checks (spreadsheet-specs)
-- last seen: 2026-09-17T15:09:28Z
-
-### L-014 - Every spreadsheet section title and column header named in a Landing door needs a check that asserts that literal string in the workbook, including empty-this-cut columns.
-- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `coverage` · harmful: 0
-- features: close-for-send
-- evidence: verification.md Coverage Spreadsheet door-3 section titles; column headers Detalhe Detalhes (coverage)
-- last seen: 2026-09-17T15:09:28Z
+### L-015 - A size cap of N needs a proof at N that is accepted as well as N+1 that is rejected
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `validation` · harmful: 0
+- features: lote-identify-batch
+- evidence: C5 identify_batch 31-file 422 (validation)
+- last seen: 2026-11-17T03:17:04Z
 
 ## Quarantined (failed when applied - ignore)
 
