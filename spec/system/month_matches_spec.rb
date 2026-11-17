@@ -184,8 +184,7 @@ RSpec.describe "Month matches layout", type: :system do
     find(".match-next__hit").click
     expect(page).to have_current_path("/months/2026-05/matches")
     expect(Match.count).to eq(1)
-    row = find('li[data-row="payment"]', text: "Pix enviado — Padaria Central")
-    expect(row["data-status"]).to eq("matched")
+    row = find('li[data-row="payment"][data-status="matched"]', text: "Pix enviado — Padaria Central")
     expect(row).to have_text("Casado")
     expect(page).to have_no_css('li[data-row="pool-document"]', text: "Padaria Central")
     expect(page).to have_no_css("h2", text: "Próxima sugestão")
