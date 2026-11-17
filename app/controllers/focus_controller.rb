@@ -7,6 +7,6 @@ class FocusController < ApplicationController
     end
 
     session[:organization_id] = organization.id
-    redirect_success(root_path)
+    redirect_success(root_path, ActionToast.focus(organization))
   end
 end

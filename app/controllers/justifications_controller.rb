@@ -10,7 +10,7 @@ class JustificationsController < ApplicationController
       supporting_document_ids: params[:supporting_document_ids]
     )
     if justification.persisted?
-      redirect_to "/supporting_documents", status: :found
+      redirect_success("/supporting_documents", ActionToast.justification_declared(justification))
     else
       @document_error = justification.errors[:base].first
       load_documents
@@ -26,7 +26,7 @@ class JustificationsController < ApplicationController
     end
 
     if justification.replace_amount(params[:amount])
-      redirect_to "/supporting_documents", status: :found
+      redirect_success("/supporting_documents", ActionToast.justification_changed(justification))
     else
       @document_error = justification.errors[:base].first
       load_documents

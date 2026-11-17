@@ -9,7 +9,7 @@ class Match < ApplicationRecord
 
   belongs_to :month
   has_many :payments, dependent: :nullify
-  has_many :supporting_documents, dependent: :nullify
+  has_many :supporting_documents, -> { order(:id) }, dependent: :nullify
 
   def self.confirm(month:, payments:, supporting_documents:, observation: nil)
     new(month: month).tap do |record|

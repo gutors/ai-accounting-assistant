@@ -271,13 +271,13 @@ class ApplicationController < ActionController::Base
     session[:organization_id] = organization&.id
   end
 
-  def redirect_success(path)
-    redirect_with_toast(path, kind: "success", message: "Pronto.")
+  def redirect_success(path, message)
+    redirect_with_toast(path, kind: "success", message: message)
   end
 
-  def redirect_after_invite_mail(invite)
+  def redirect_after_invite_mail(invite, sent_message:)
     if deliver_invite(invite)
-      redirect_success(root_path)
+      redirect_success(root_path, sent_message)
     else
       redirect_with_toast(root_path, kind: "error", message: "O convite foi gravado, mas o e-mail não saiu.")
     end

@@ -121,7 +121,7 @@ RSpec.describe "Accesses", type: :request do
     expect(Access.find(access.id)).to eq(access)
   end
 
-  it "principal DELETE of a peer coordinator Access redirects" do
+  it "principal DELETE names the revoked coordinator email" do
     zoe, organization = plant_coordinator(email: "zoe@exemplo.org", organization_name: "ONG Norte", google_uid: "uid-zoe")
     ana = Account.create!(email: "ana@exemplo.org", google_uid: "uid-ana")
     ana_access = Access.create!(account: ana, organization: organization, kind: :coordinator)
@@ -134,6 +134,9 @@ RSpec.describe "Accesses", type: :request do
     expect(Access.find_by(id: ana_access.id)).to be_nil
     expect(organization.accesses.coordinator.find_by(account: zoe)).to be_present
     expect(organization.reload.principal_coordinator_account).to eq(zoe)
+    follow_redirect!
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_message(response.body)).to eq("Acesso de ana@exemplo.org revogado.")
   end
 
   it "principal DELETE of own coordinator Access returns 404" do

@@ -58,7 +58,7 @@ If a folder is missing, create it as part of the planned feature — do not scaf
 
 ## Commands
 
-When `Gemfile` exists, use `bin/rails`, `bin/rspec`, and other `bin/` wrappers. Prefer existing scripts over inventing new ones. `npm test` is the same `bin/rspec` entry (harness-score looks for a `package.json` test script; this is not a Node app). After clone or a new worktree, run `bin/lefthook install` so pre-commit runs RuboCop, erb_lint, and `bin/check-file-tokens` (staged files over 5,000 tokens = bytes/4 fail; lockfiles, `db/schema.rb`, binaries, and vendored `.cursor/skills`, `.cursor/agents`, `.codex` skipped). A check’s proof names a **specific example** (selector), never a whole suite; `check_proofs.py` runs those `bin/rspec` commands by exit code. If no command exists yet, ask.
+When `Gemfile` exists, use `bin/rails`, `bin/rspec`, and other `bin/` wrappers. Prefer existing scripts over inventing new ones. `npm test` is the same `bin/rspec` entry (harness-score looks for a `package.json` test script; this is not a Node app). After clone or a new worktree, run `bin/lefthook install` so pre-commit runs RuboCop, erb_lint, and `bin/check-file-tokens` (staged product files over 5,000 tokens = bytes/4 fail; `spec/` over 20,000; lockfiles, `db/schema.rb`, binaries, vendored `.cursor/skills`, `.cursor/agents`, `.codex`, and `.specs`/`.tasks`/`.checks` skipped). A check’s proof names a **specific example** (selector), never a whole suite; `check_proofs.py` runs those `bin/rspec` commands by exit code. If no command exists yet, ask.
 
 ## Pull requests
 

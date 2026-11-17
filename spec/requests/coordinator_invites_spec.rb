@@ -22,7 +22,7 @@ RSpec.describe "Coordinator invites", type: :request do
     expect(response).to redirect_to("/")
   end
 
-  it "POST /coordinator_invites delivers the coordinator invite" do
+  it "POST /coordinator_invites names the invited email in the toast" do
     account, organization = plant_coordinator(organization_name: "ONG Norte")
     sign_in_as(account, organization: organization)
     ActionMailer::Base.deliveries.clear
@@ -45,7 +45,7 @@ RSpec.describe "Coordinator invites", type: :request do
     )
     follow_redirect!
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
-    expect(toast_node(response.body).text).to include("Pronto.")
+    expect(toast_message(response.body)).to eq("Convite enviado para pessoa@exemplo.org.")
     expect(page_doc(response.body).css("[data-notice='error']")).to be_empty
     expect(response.body).not_to include("E-mail enviado")
     item = page_doc(response.body).css("li").find { |node| node.text.include?("pessoa@exemplo.org") }
@@ -182,7 +182,7 @@ RSpec.describe "Coordinator invites", type: :request do
     expect(item.text).to include("falhou envio do e-mail")
   end
 
-  it "resend on another Invite delivers Pronto toast" do
+  it "resend names the resent email in the toast" do
     account, organization = plant_coordinator(organization_name: "ONG Norte")
     other = Invite.create!(organization: organization, email: "outro@exemplo.org", kind: :coordinator)
     sign_in_as(account, organization: organization)
@@ -199,7 +199,7 @@ RSpec.describe "Coordinator invites", type: :request do
     expect(ActionMailer::Base.deliveries.last.to).to eq([ "outro@exemplo.org" ])
     follow_redirect!
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
-    expect(toast_node(response.body).text).to include("Pronto.")
+    expect(toast_message(response.body)).to eq("Convite reenviado para outro@exemplo.org.")
     expect(response.body).not_to include("O convite foi gravado, mas o e-mail não saiu.")
     expect(response.body).not_to include("E-mail enviado")
   end
@@ -217,7 +217,7 @@ RSpec.describe "Coordinator invites", type: :request do
     expect(Invite.where(organization: organization, email: [ "pessoa@exemplo.org", "nova@exemplo.org" ]).count).to eq(2)
     follow_redirect!
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
-    expect(toast_node(response.body).text).to include("Pronto.")
+    expect(toast_message(response.body)).to eq("Convite enviado para nova@exemplo.org.")
     notice_with_mail = page_doc(response.body).css("[data-notice='error']").find { |node|
       node.text.include?("O convite foi gravado, mas o e-mail não saiu.")
     }
@@ -265,7 +265,7 @@ RSpec.describe "Coordinator invites", type: :request do
     expect(item.text).not_to include("enviado")
   end
 
-  it "Cancelar shows Pronto toast and does not keep the mail failure" do
+  it "Cancelar names the cancelled email and drops the mail failure" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
     raise_invite_delivery
@@ -278,7 +278,7 @@ RSpec.describe "Coordinator invites", type: :request do
     expect(ActionMailer::Base.deliveries).to be_empty
     follow_redirect!
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
-    expect(toast_node(response.body).text).to include("Pronto.")
+    expect(toast_message(response.body)).to eq("Convite para pessoa@exemplo.org cancelado.")
     expect(response.body).not_to include("O convite foi gravado, mas o e-mail não saiu.")
   end
 
@@ -293,7 +293,8 @@ RSpec.describe "Coordinator invites", type: :request do
     expect(ActionMailer::Base.deliveries).to be_empty
     follow_redirect!
     expect(response.body).not_to include("O convite foi gravado, mas o e-mail não saiu.")
-    expect(response.body).not_to include("pessoa@exemplo.org")
+    expect(pending_invite_item(response.body, "pessoa@exemplo.org")).to be_nil
+    expect(toast_message(response.body)).to eq("Convite para pessoa@exemplo.org cancelado.")
   end
 
   it "resend of another organization Invite returns 404" do

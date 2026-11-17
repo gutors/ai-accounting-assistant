@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe "Extra exception kinds", type: :request do
-  it "POST /extra_exception_kinds persists Doacao with justification and redirects" do
+  it "POST /extra_exception_kinds names the created kind in the toast" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
 
@@ -15,6 +15,8 @@ RSpec.describe "Extra exception kinds", type: :request do
     expect(kind.justification).to eq("Doação pontual sem nota.")
 
     get "/setup"
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_message(response.body)).to eq("Tipo extra criado: Doação.")
     row = extra_kind_row(response.body, "Doação")
     expect(row).to include("Doação")
     expect(row).to include("Doação pontual sem nota.")
@@ -181,7 +183,7 @@ RSpec.describe "Extra exception kinds", type: :request do
     expect(kind.reload.justification).to eq("Doação pontual sem nota.")
   end
 
-  it "PATCH extra exception kind inactive keeps row and shows Desativado" do
+  it "PATCH inactive names the deactivated kind in the toast" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
     kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
@@ -196,9 +198,10 @@ RSpec.describe "Extra exception kinds", type: :request do
     expect(response.body).to include("Doação")
     expect(response.body).to include("Inativo")
     expect(response.body).not_to include("Desativado")
+    expect(toast_message(response.body)).to eq("Tipo extra desativado: Doação.")
   end
 
-  it "PATCH extra exception kind active omits Desativado on that row" do
+  it "PATCH active names the activated kind in the toast" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
     kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
@@ -207,6 +210,7 @@ RSpec.describe "Extra exception kinds", type: :request do
     patch "/extra_exception_kinds/#{kind.id}", params: { active: true }
 
     get "/setup"
+    expect(toast_message(response.body)).to eq("Tipo extra ativado: Doação.")
     row = extra_kind_row(response.body, "Doação")
     expect(row).to include("Doação")
     expect(row).to include("Ativo")
@@ -214,7 +218,7 @@ RSpec.describe "Extra exception kinds", type: :request do
     expect(row).not_to include("Inativo")
   end
 
-  it "DELETE unused Folha removes the row and redirects" do
+  it "DELETE names the deleted kind in the toast" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
     ExtraExceptionKind.create_for(organization: organization, name: "Folha", justification: "Isento de documento de suporte.")
@@ -226,7 +230,9 @@ RSpec.describe "Extra exception kinds", type: :request do
     expect(organization.extra_exception_kinds.find_by(name: "Folha")).to be_nil
 
     get "/setup"
-    expect(response.body).not_to include("Folha")
+    # The deleted-kind toast names Folha, so the absence is the extras list's.
+    expect(extras_section(response.body).text).not_to include("Folha")
+    expect(toast_message(response.body)).to eq("Tipo extra excluído: Folha.")
   end
 
   it "DELETE used Doacao 422 leaves extra kind details closed" do

@@ -22,7 +22,7 @@ class DocumentExceptionsController < ApplicationController
 
     payment.mark_document_exception(params[:kind], extra_exception_kind_id: extra_id)
     if payment.errors.empty?
-      redirect_to after_month_mutate_path(month), status: :found
+      redirect_success(after_month_mutate_path(month), ActionToast.document_exception_marked(payment))
     else
       render_after_month_mutate(month, payment.errors[:base].first)
     end
@@ -37,7 +37,7 @@ class DocumentExceptionsController < ApplicationController
 
     payment.unmark_document_exception
     if payment.errors.empty?
-      redirect_to after_month_mutate_path(month), status: :found
+      redirect_success(after_month_mutate_path(month), ActionToast.document_exception_unmarked(payment))
     else
       render_after_month_mutate(month, payment.errors[:base].first)
     end

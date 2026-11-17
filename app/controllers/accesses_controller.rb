@@ -13,8 +13,9 @@ class AccessesController < ApplicationController
       return
     end
 
+    email = access.account.email
     if access.destroy
-      redirect_to root_path, status: :found
+      redirect_success(root_path, ActionToast.access_revoked(email))
     else
       load_home
       render "organizations/show", status: :unprocessable_content

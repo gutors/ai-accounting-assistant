@@ -14,7 +14,7 @@ RSpec.describe "Restore month folder", type: :request do
     [ account, organization, month.reload, padaria.reload, mercado.reload ]
   end
 
-  it "POST restore closed month rewrites the same folder_id and stays closed" do
+  it "POST restore names the restored month folder" do
     _account, _organization, month, padaria, mercado = signed_closed_with_padaria_and_mercado
     folder_id = month.month_folder_id
     ActiveJob::Base.queue_adapter = :test
@@ -36,6 +36,10 @@ RSpec.describe "Restore month folder", type: :request do
       "notas/recibo-2026-05-11-mercado-silva-#{mercado.id}.jpg",
       "resumo-2026-05.xlsx"
     )
+
+    follow_redirect!
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_message(response.body)).to eq("Pasta de maio de 2026 restaurada no arquivo do pacote.")
   end
 
   it "POST restore while open returns 422 Mes aberto" do

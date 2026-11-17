@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe "Bank accounts", type: :request do
-  it "POST /bank_accounts persists BB Conta Principal and toasts Pronto" do
+  it "POST /bank_accounts names the created account in the toast" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
 
@@ -20,10 +20,10 @@ RSpec.describe "Bank accounts", type: :request do
     expect(row_html.index("Conta Principal")).to be < row_html.index("ag 1234")
     expect(row_html.index("ag 1234")).to be < row_html.index("extrato-conta-principal")
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
-    expect(toast_node(response.body).text).to include("Pronto.")
+    expect(toast_message(response.body)).to eq("Conta bancária criada: Conta Principal.")
   end
 
-  it "PATCH section form 302s to add form and toasts Pronto" do
+  it "PATCH section form names the saved account in the toast" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
     bank_account = BankAccount.create_for(
@@ -41,10 +41,10 @@ RSpec.describe "Bank accounts", type: :request do
     get "/setup"
     expect_bank_account_add_form(response.body)
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
-    expect(toast_node(response.body).text).to include("Pronto.")
+    expect(toast_message(response.body)).to eq("Conta bancária salva: Nova Conta.")
   end
 
-  it "PATCH active false 302s to add form with Inativa and toasts Pronto" do
+  it "PATCH active false names the deactivated account in the toast" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
     bank_account = BankAccount.create_for(organization: organization, name: "Conta Principal", compe: "001")
@@ -62,7 +62,7 @@ RSpec.describe "Bank accounts", type: :request do
     expect(listed.to_html).to include("Inativa")
     expect_bank_account_add_form(response.body)
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
-    expect(toast_node(response.body).text).to include("Pronto.")
+    expect(toast_message(response.body)).to eq("Conta bancária desativada: Conta Principal.")
   end
 
   it "POST blank name opens Adicionar conta details on 422" do
@@ -249,7 +249,7 @@ RSpec.describe "Bank accounts", type: :request do
     expect(response.body).to include("Inativa")
   end
 
-  it "PATCH /bank_accounts/:id to active omits Inativa" do
+  it "PATCH active true names the reactivated account in the toast" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
     bank_account = BankAccount.create_for(organization: organization, name: "Principal", compe: "001")
@@ -260,6 +260,8 @@ RSpec.describe "Bank accounts", type: :request do
     get "/setup"
     expect(response.body).to include("Principal")
     expect(response.body).not_to include("Inativa")
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_message(response.body)).to eq("Conta bancária reativada: Principal.")
   end
 
   it "DELETE /bank_accounts/:id returns 404 and keeps the row" do

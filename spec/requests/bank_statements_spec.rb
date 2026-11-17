@@ -9,7 +9,7 @@ RSpec.describe "Bank statements", type: :request do
     [ account, organization, bank_account ]
   end
 
-  it "POST BB xlsx persists statement Presente and filenames" do
+  it "POST BB xlsx names the account and the movement counts" do
     _account, organization, bank_account = open_with_account
 
     post "/months/2026-05/bank_statements", params: {
@@ -19,6 +19,10 @@ RSpec.describe "Bank statements", type: :request do
     expect(response).to have_http_status(:found)
     expect(response).to redirect_to("/months/2026-05")
     expect(BankStatement.joins(:month).where(months: { organization_id: organization.id }).count).to eq(1)
+
+    follow_redirect!
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_message(response.body)).to eq("Extrato de Conta Principal importado: 18 recebimentos e 13 pagamentos.")
 
     get "/months/2026-05"
     expect(response.body).to include("Presente")
@@ -386,16 +390,30 @@ RSpec.describe "Bank statements", type: :request do
     expect(BankStatement.joins(:month).where(months: { organization_id: organization.id }).count).to eq(0)
   end
 
-  it "POST zero-row spreadsheet persists Presente" do
+  it "POST zero-row import omits both movement clauses" do
     _account, _organization, bank_account = open_with_account
 
     post "/months/2026-05/bank_statements", params: {
       bank_account_id: bank_account.id, pdf: statement_pdf, spreadsheet: zero_row_csv
     }
-    get "/months/2026-05"
 
+    follow_redirect!
+    expect(toast_message(response.body)).to eq("Extrato de Conta Principal importado.")
+
+    get "/months/2026-05"
     expect(bank_account.bank_statements.count).to eq(1)
     expect(response.body).to include("Presente")
+  end
+
+  it "POST one-row import uses the singular in the toast" do
+    _account, _organization, bank_account = open_with_account
+
+    post "/months/2026-05/bank_statements", params: {
+      bank_account_id: bank_account.id, pdf: statement_pdf, spreadsheet: one_inflow_one_payment_csv
+    }
+
+    follow_redirect!
+    expect(toast_message(response.body)).to eq("Extrato de Conta Principal importado: 1 recebimento e 1 pagamento.")
   end
 
   it "month page does not include another organization Payment history" do

@@ -37,7 +37,7 @@ class MatchesController < ApplicationController
       observation: params[:observation]
     )
     if match.errors.empty?
-      redirect_to after_month_mutate_path(month), status: :found
+      redirect_success(after_month_mutate_path(month), ActionToast.match_confirmed(payments: payments.to_a, payee: match_payee(documents)))
     else
       render_after_month_mutate(month, match.errors[:base].first)
     end
@@ -53,11 +53,17 @@ class MatchesController < ApplicationController
       return
     end
 
+    payee = match_payee(match.supporting_documents)
     match.dissolve
     if match.errors.empty?
-      redirect_to after_month_mutate_path(month), status: :found
+      redirect_success(after_month_mutate_path(month), ActionToast.match_dissolved(payee))
     else
       render_after_month_mutate(month, match.errors[:base].first)
     end
+  end
+  private
+
+  def match_payee(documents)
+    Array(documents).map(&:payee).compact_blank.uniq.join(", ")
   end
 end

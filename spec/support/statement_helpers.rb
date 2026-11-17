@@ -76,6 +76,16 @@ module StatementHelpers
     upload_path("replace.csv", content, "text/csv")
   end
 
+  # One credit and one debit, so a toast that names both counts can use the singular twice.
+  def one_inflow_one_payment_csv
+    content = <<~CSV
+      Data,observacao,Data balancete,Agencia Origem,Lote,Numero Documento,Cod. Historico,Historico,Valor R$ ,Inf.,Detalhamento Hist.
+      04/05/2026,,04/05/2026,0000,00000,0,821,Pix - Recebido,"10,00 ",C,entrada
+      20/05/2026,,20/05/2026,0000,00000,0,821,Pix - Enviado,"10,00 ",D,saida
+    CSV
+    upload_path("one-of-each.csv", content, "text/csv")
+  end
+
   def ofx_file
     upload_path("movements.ofx", "OFXHEADER", "application/x-ofx")
   end

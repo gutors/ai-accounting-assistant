@@ -16,6 +16,11 @@ module PageHelpers
     page_doc(body).at_css("[data-toast]")
   end
 
+  # The message the person reads, without the dismiss control's label.
+  def toast_message(body)
+    toast_node(body)&.at_css("p")&.text&.strip
+  end
+
   def turbo_stream_accept
     { "Accept" => "text/vnd.turbo-stream.html, text/html" }
   end
@@ -229,7 +234,8 @@ module PageHelpers
     expect(body).not_to include("Válido até")
     expect(body).not_to include("Expirado em")
     expect(body).not_to include("Remover o certificado SEFAZ?")
-    expect(body).not_to match(/\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}/)
+    # The removed-certificate toast names the titular it removed, so the absence is the screen's.
+    expect(certificate_section(body).to_html).not_to match(/\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}/)
   end
 
   def expect_certificate_install_fold(body, open:)

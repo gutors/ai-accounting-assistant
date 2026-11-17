@@ -118,7 +118,7 @@ RSpec.describe "Close for send", type: :request do
     expect(organization.months.find_by!(year_month: "2026-05").closed?).to eq(false)
   end
 
-  it "POST close ready month persists closed 302 and writes once" do
+  it "POST close names the closed month and the written package" do
     _account, organization, month, _statement = signed_ready
 
     post_close
@@ -128,6 +128,10 @@ RSpec.describe "Close for send", type: :request do
     expect(month.reload.closed?).to eq(true)
     expect(writer.calls.size).to eq(1)
     expect(writer.calls.first[:parent_id]).to eq(CloseHelpers::ARCHIVE_FOLDER_ID)
+
+    follow_redirect!
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_message(response.body)).to eq("Maio de 2026 fechado. Pacote gravado na pasta do mês.")
   end
 
   it "GET closed 2026-05 includes Mes fechado and omits Fechar para envio" do

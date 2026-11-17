@@ -15,7 +15,7 @@ RSpec.describe "Justifications", type: :request do
     SupportingDocument.find_by!(payee: payee)
   end
 
-  it "POST justification of 200,00 with two documents redirects" do
+  it "POST names the declared amount" do
     account, organization = signed_submitter
     doc_a = insert_own(payee: "Padaria Central", amount: "155,00")
     doc_b = insert_own(payee: "Mercado Silva", amount: "45,00")
@@ -31,6 +31,8 @@ RSpec.describe "Justifications", type: :request do
     expect(doc_a.reload.justification).to eq(justification)
     expect(doc_b.reload.justification).to eq(justification)
     get "/supporting_documents"
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_message(response.body)).to eq("Justificativa de R$ 200,00 registrada.")
     expect(response.body).to include("R$ 200,00")
   end
 
@@ -170,7 +172,7 @@ RSpec.describe "Justifications", type: :request do
     expect(response.body).to include("Mercado Silva")
   end
 
-  it "PATCH justification spent amount 180,00 redirects" do
+  it "PATCH names the new amount" do
     _account, _organization = signed_submitter
     document = insert_own(payee: "Padaria Central", amount: "155,00")
     post "/justifications", params: {
@@ -184,6 +186,8 @@ RSpec.describe "Justifications", type: :request do
     expect(response).to redirect_to("/supporting_documents")
     expect(justification.reload.amount_cents).to eq(18000)
     get "/supporting_documents"
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_message(response.body)).to eq("Justificativa alterada para R$ 180,00.")
     expect(response.body).to include("R$ 180,00")
     expect(response.body).not_to include("R$ 200,00")
   end

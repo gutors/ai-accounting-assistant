@@ -8,7 +8,7 @@ class SefazCertificatesController < ApplicationController
 
   def create
     if focused_organization.install_sefaz_certificate(file: params[:certificate], passphrase: params[:passphrase])
-      redirect_success("/setup")
+      redirect_success("/setup", ActionToast.certificate_installed(focused_organization))
     else
       @certificate_error = focused_organization.errors[:base].first
       toast_now(kind: "error", message: @certificate_error)
@@ -22,7 +22,8 @@ class SefazCertificatesController < ApplicationController
   end
 
   def destroy
+    titular = focused_organization.sefaz_titular_display
     focused_organization.remove_sefaz_certificate
-    redirect_success("/setup")
+    redirect_success("/setup", ActionToast.certificate_removed(titular))
   end
 end

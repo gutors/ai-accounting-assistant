@@ -10,7 +10,7 @@ class BankAccountsController < ApplicationController
     )
 
     if bank_account.persisted?
-      redirect_success("/setup")
+      redirect_success("/setup", ActionToast.bank_account_created(bank_account))
     else
       load_setup
       assign_bank_account_form_from_params
@@ -27,8 +27,9 @@ class BankAccountsController < ApplicationController
       return
     end
 
+    was_active = bank_account.active?
     if bank_account.apply_from(bank_account_params)
-      redirect_success("/setup")
+      redirect_success("/setup", bank_account_toast(bank_account, was_active))
     else
       editing_id = bank_account.id
       bank_account.reload
@@ -44,5 +45,12 @@ class BankAccountsController < ApplicationController
 
   def bank_account_params
     params.permit(:name, :compe, :coordinates, :active)
+  end
+
+  # The flag the person flipped is the outcome worth naming; a plain field save is just a save.
+  def bank_account_toast(bank_account, was_active)
+    return ActionToast.bank_account_saved(bank_account) if bank_account.active? == was_active
+
+    bank_account.active? ? ActionToast.bank_account_reactivated(bank_account) : ActionToast.bank_account_deactivated(bank_account)
   end
 end

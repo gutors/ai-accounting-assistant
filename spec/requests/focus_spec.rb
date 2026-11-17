@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe "Focus", type: :request do
-  it "POST /focus to an Access organization redirects" do
+  it "POST /focus names the organization in the toast" do
     account, org_a = plant_coordinator(email: "coord@example.com", organization_name: "ONG Norte")
     org_b = create_organization!(name: "ONG Sul")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
@@ -14,7 +14,7 @@ RSpec.describe "Focus", type: :request do
     expect(response).to redirect_to("/")
     follow_redirect!
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
-    expect(toast_node(response.body).text).to include("Pronto.")
+    expect(toast_message(response.body)).to eq("Agora em ONG Sul.")
     expect(response.body).to include("ONG Sul")
     sul = page_doc(response.body).css('nav[aria-label="Organizações"] button').find { |button| button.text.strip == "ONG Sul" }
     expect(sul["aria-current"]).to eq("true")

@@ -37,8 +37,12 @@ RSpec.describe "bin/check-file-tokens" do
     end
   end
 
-  def over_limit_source
+  def over_product_limit
     "x" * ((5_000 * 4) + 4)
+  end
+
+  def over_spec_limit
+    "x" * ((20_000 * 4) + 4)
   end
 
   def under_limit_source
@@ -46,18 +50,60 @@ RSpec.describe "bin/check-file-tokens" do
   end
 
   it "rejects a staged source file over 5000 tokens" do
-    repo_with("app/models/too_big.rb" => over_limit_source) do |dir|
+    repo_with("app/models/too_big.rb" => over_product_limit) do |dir|
       stdout, stderr, status = run_hook(dir)
 
       expect(status.exitstatus).to eq(1)
       expect(stdout).to eq("")
-      expect(stderr).to include("BLOCKED: staged file exceeds 5000 tokens")
+      expect(stderr).to include("BLOCKED: staged file exceeds its token limit")
       expect(stderr).to include("app/models/too_big.rb")
-      expect(stderr).to include("20004 bytes = 5001 tokens")
+      expect(stderr).to include("20004 bytes = 5001 tokens (limit 5000; over by 1)")
       expect(stderr).to include("How to split, then restage")
       expect(stderr).to include("RSpec: examples for one action into spec/requests/<resource>_<action>_spec.rb")
       expect(stderr).to include("ERB: extract app/views/<resource>/_<name>.html.erb and render it.")
       expect(stderr).to include("Do not use git commit --no-verify")
+    end
+  end
+
+  it "allows a staged spec file over the product 5000 token limit" do
+    repo_with("spec/requests/wide_spec.rb" => over_product_limit) do |dir|
+      _stdout, stderr, status = run_hook(dir)
+
+      expect(status.exitstatus).to eq(0)
+      expect(stderr).to eq("")
+    end
+  end
+
+  it "allows a staged spec file at the 20000 token limit" do
+    repo_with("spec/requests/exact_spec.rb" => "x" * (20_000 * 4)) do |dir|
+      _stdout, stderr, status = run_hook(dir)
+
+      expect(status.exitstatus).to eq(0)
+      expect(stderr).to eq("")
+    end
+  end
+
+  it "rejects a staged spec file over 20000 tokens" do
+    repo_with("spec/requests/too_big_spec.rb" => over_spec_limit) do |dir|
+      _stdout, stderr, status = run_hook(dir)
+
+      expect(status.exitstatus).to eq(1)
+      expect(stderr).to include("spec/requests/too_big_spec.rb")
+      expect(stderr).to include("80004 bytes = 20001 tokens (limit 20000; over by 1)")
+    end
+  end
+
+  it "ignores staged .specs .tasks and .checks even when they exceed 5000 tokens" do
+    files = {
+      ".specs/features/close/checks.md" => over_product_limit,
+      ".tasks/close.md" => over_product_limit,
+      ".checks/close.md" => over_product_limit
+    }
+    repo_with(files) do |dir|
+      _stdout, stderr, status = run_hook(dir)
+
+      expect(status.exitstatus).to eq(0)
+      expect(stderr).to eq("")
     end
   end
 
@@ -71,7 +117,7 @@ RSpec.describe "bin/check-file-tokens" do
   end
 
   it "ignores vendored Cursor skill packs even when they exceed 5000 tokens" do
-    repo_with(".cursor/skills/impeccable/reference/new-work.md" => over_limit_source) do |dir|
+    repo_with(".cursor/skills/impeccable/reference/new-work.md" => over_product_limit) do |dir|
       _stdout, stderr, status = run_hook(dir)
 
       expect(status.exitstatus).to eq(0)
@@ -81,9 +127,9 @@ RSpec.describe "bin/check-file-tokens" do
 
   it "ignores staged lockfiles and db/schema.rb even when they exceed 5000 tokens" do
     files = {
-      "Gemfile.lock" => over_limit_source,
-      "package-lock.json" => over_limit_source,
-      "db/schema.rb" => over_limit_source
+      "Gemfile.lock" => over_product_limit,
+      "package-lock.json" => over_product_limit,
+      "db/schema.rb" => over_product_limit
     }
     repo_with(files) do |dir|
       _stdout, stderr, status = run_hook(dir)
@@ -95,7 +141,7 @@ RSpec.describe "bin/check-file-tokens" do
 
   it "does not inspect an unstaged over-limit file" do
     repo_with("app/models/small.rb" => under_limit_source) do |dir|
-      File.binwrite(File.join(dir, "app/models/unstaged.rb"), over_limit_source)
+      File.binwrite(File.join(dir, "app/models/unstaged.rb"), over_product_limit)
 
       _stdout, stderr, status = run_hook(dir)
 

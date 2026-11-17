@@ -13,7 +13,7 @@ RSpec.describe "Reopen month", type: :request do
     [ account, organization, month.reload, statement ]
   end
 
-  it "POST reopen persists open 302 and does not write" do
+  it "POST reopen names the reopened month" do
     _account, _organization, month, _statement = signed_closed
     calls = writer.calls.size
 
@@ -23,6 +23,10 @@ RSpec.describe "Reopen month", type: :request do
     expect(response).to redirect_to("/months/2026-05")
     expect(month.reload.closed?).to eq(false)
     expect(writer.calls.size).to eq(calls)
+
+    follow_redirect!
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
+    expect(toast_message(response.body)).to eq("Maio de 2026 reaberto.")
   end
 
   it "GET after reopen includes Fechar para envio and omits Mes fechado" do
