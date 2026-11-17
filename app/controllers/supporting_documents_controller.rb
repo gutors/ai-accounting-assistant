@@ -1,6 +1,6 @@
 class SupportingDocumentsController < ApplicationController
   before_action :require_focused_organization
-  before_action :require_coordinator_organization, only: :batch
+  before_action :require_coordinator_organization, only: %i[batch identify_batch]
 
   def index
     load_documents
@@ -8,6 +8,21 @@ class SupportingDocumentsController < ApplicationController
 
   def edit
     @document = mutate_document
+  end
+
+  def identify_batch
+    files = Array(params[:files]).compact_blank
+    if files.empty?
+      render json: { error: SupportingDocument::IDENTIFY_BATCH_EMPTY }, status: :unprocessable_content
+      return
+    end
+    if files.size > SupportingDocument::IDENTIFY_BATCH_LIMIT
+      render json: { error: SupportingDocument::IDENTIFY_BATCH_OVERFLOW }, status: :unprocessable_content
+      return
+    end
+
+    items = SupportingDocument.identify_batch(organization: focused_organization, files: files)
+    render json: { items: items }
   end
 
   def identify

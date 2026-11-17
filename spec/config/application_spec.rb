@@ -5,6 +5,14 @@ RSpec.describe "Application config" do
     expect(ActiveRecord::Base.connection.adapter_name).to eq("PostgreSQL")
   end
 
+  it "database max_connections adds IDENTIFY_THREADS" do
+    line = Rails.root.join("config/database.yml").read.lines.grep(/max_connections:/).first
+
+    expect(line).to include('ENV.fetch("RAILS_MAX_THREADS")')
+    expect(line).to include('ENV.fetch("IDENTIFY_THREADS") { 4 }.to_i.clamp(1, 8)')
+    expect(line).to include("+ 3")
+  end
+
   it "loads Active Storage Disk test service, skips Drive and Kamal" do
     expect(defined?(ActiveStorage::Engine)).not_to be_nil
     expect(Rails.application.config.active_storage.service).to eq(:test)
@@ -94,7 +102,7 @@ RSpec.describe "Application config" do
     expect(readme).to include("`tesseract`")
     expect(readme).to include("`pdftoppm`")
     expect(readme).to include("Poppler")
-    expect(readme).to match(/pdftoppm.*vazia.*digitad/m)
+    expect(readme).to match(/pdftoppm.*empty.*typed/m)
   end
 
   it "CI test job installs zbar-tools before rspec" do
