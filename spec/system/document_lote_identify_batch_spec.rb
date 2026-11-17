@@ -30,7 +30,7 @@ RSpec.describe "Document lote identify_batch", type: :system do
     expect(urls.count { |url| url.include?("/supporting_documents/identify") && !url.include?("identify_batch") }).to eq(0)
   end
 
-  it "lote identify_batch in flight shows Identificando o arquivo on both rows" do
+  it "lote identify_batch in flight shows Identificando on both rows" do
     open_lote
     page.execute_script(<<~JS)
       const orig = window.fetch.bind(window)
@@ -46,7 +46,7 @@ RSpec.describe "Document lote identify_batch", type: :system do
     attach_file "file", padaria_farmacia, make_visible: true
 
     expect(page).to have_css("[data-lote-id]", count: 2)
-    expect(page).to have_css("[data-lote-status]", text: "Identificando o arquivo…", count: 2)
+    expect(page).to have_css("[data-lote-status]", text: "Identificando", exact_text: true, count: 2)
     expect(page).to have_no_css("#wait:not([hidden])")
   end
 
@@ -79,12 +79,13 @@ RSpec.describe "Document lote identify_batch", type: :system do
     attach_file "file", wave_xmls("a.xml", "b.xml", "c.xml", "d.xml", "e.xml"), make_visible: true
 
     expect(page).to have_css("[data-lote-id]", count: 5)
-    expect(page).to have_css("[data-lote-status]", text: "Identificando o arquivo…", count: 5)
+    expect(page).to have_css("[data-lote-status]", text: "Identificando", exact_text: true, count: 4)
+    expect(page).to have_css("[data-lote-status]", text: "Na fila", count: 1)
     expect(page).to have_no_css("#wait:not([hidden])")
     expect(page.evaluate_script("window.__identifyStarted")).to eq(1)
   end
 
-  it "five XMLs first wave paints four Pronto and fifth Identificando" do
+  it "five XMLs first wave paints four Pronto and fifth on the next wave" do
     open_lote
     gate_identify_waves
     attach_file "file", wave_xmls("a.xml", "b.xml", "c.xml", "d.xml", "e.xml"), make_visible: true
@@ -93,7 +94,8 @@ RSpec.describe "Document lote identify_batch", type: :system do
 
     expect(page).to have_css("[data-lote-status]", text: "Pronto", count: 4)
     expect(page).to have_css("[data-lote-id]", text: "e.xml")
-    expect(find("[data-lote-id]", text: "e.xml")).to have_css("[data-lote-status]", text: "Identificando o arquivo…")
+    wait_identify_started(2)
+    expect(find("[data-lote-id]", text: "e.xml")).to have_css("[data-lote-status]", text: "Identificando")
     %w[a.xml b.xml c.xml d.xml].each do |name|
       expect(find("[data-lote-id]", text: name)).to have_css("[data-lote-status]", text: "Pronto")
     end
@@ -124,7 +126,8 @@ RSpec.describe "Document lote identify_batch", type: :system do
     ], make_visible: true
 
     expect(page).to have_css("[data-lote-id]", count: 7)
-    expect(page).to have_css("[data-lote-status]", text: "Identificando o arquivo…", count: 7)
+    expect(page).to have_css("[data-lote-status]", text: "Identificando", exact_text: true, count: 4)
+    expect(page).to have_css("[data-lote-status]", text: "Na fila", count: 3)
     expect(page.evaluate_script("window.__identifyStarted")).to eq(1)
     expect(page.evaluate_script("window.__identifyMaxInFlight")).to eq(1)
   end
@@ -140,8 +143,19 @@ RSpec.describe "Document lote identify_batch", type: :system do
     expect(page).to have_content("Erro")
     expect(page).to have_content("O XML da nota fiscal não pôde ser lido")
     expect(page).to have_css("[data-lote-status]", text: "Pronto", count: 3)
-    expect(page).to have_css("[data-lote-status]", text: "Identificando o arquivo…", count: 1)
     wait_identify_started(2)
+    expect(find("[data-lote-id]", text: "d.xml")).to have_css("[data-lote-status]", text: "Identificando")
+    expect(identify_batch_sizes).to eq([ 4, 1 ])
+  end
+
+  it "identify_batch network reject paints Erro and still sends the leftover file" do
+    open_lote
+    fail_fetch("/supporting_documents/identify_batch")
+    record_identify_waves
+    attach_file "file", wave_xmls("a.xml", "b.xml", "c.xml", "d.xml", "e.xml"), make_visible: true
+
+    expect(page).to have_css("[data-lote-status]", text: "Erro", count: 5)
+    expect(page).to have_content("O XML da nota fiscal não pôde ser lido")
     expect(identify_batch_sizes).to eq([ 4, 1 ])
   end
 

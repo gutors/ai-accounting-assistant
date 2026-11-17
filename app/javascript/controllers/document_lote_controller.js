@@ -9,7 +9,7 @@ const INCLUDING = "Incluindo documento…"
 
 export default class extends Controller {
   static targets = [
-    "input", "drop", "editor", "proof", "heading", "caption", "clear", "identifying",
+    "input", "drop", "editor", "proof", "heading", "rule", "wave", "caption", "clear", "identifying",
     "kind", "chave", "chaveWrap", "amount", "date", "payee", "observation",
     "thumb", "pdfThumb",
     "amountOrigin", "dateOrigin", "payeeOrigin", "toolbar", "sheet", "pair"
@@ -35,6 +35,7 @@ export default class extends Controller {
     this.busy = false
     this.sending = new Set()
     this.identifyingInFlight = false
+    this.wave = []
   }
 
   pick() {
@@ -159,7 +160,9 @@ export default class extends Controller {
   pumpIdentify() {
     if (this.identifyingInFlight) return
     const pending = this.items.filter((item) => item.status === "identifying")
-    if (!pending.length) return
+    this.wave = pending.slice(0, IDENTIFY_WAVE).map((item) => item.id)
+    this.render()
+    if (!this.wave.length) return
     this.identifyBatch(pending.slice(0, IDENTIFY_WAVE))
   }
 
@@ -180,23 +183,30 @@ export default class extends Controller {
         payload = {}
       }
       if (!response.ok) {
-        const error = payload.error || XML_UNREADABLE
-        items.forEach((item) => {
-          item.status = "error"
-          item.error = error
-        })
-        this.notice(error)
-        this.toast(error)
+        this.failIdentify(items, payload.error || XML_UNREADABLE)
       } else {
         (payload.items || []).forEach((row, index) => {
           if (items[index]) this.applyIdentifyJson(items[index], row)
         })
       }
       this.render()
+    }).catch(() => {
+      this.failIdentify(items, XML_UNREADABLE)
+      this.render()
     }).finally(() => {
       this.identifyingInFlight = false
+      this.wave = []
       this.pumpIdentify()
     })
+  }
+
+  failIdentify(items, error) {
+    items.forEach((item) => {
+      item.status = "error"
+      item.error = error
+    })
+    this.notice(error)
+    this.toast(error)
   }
 
   applyIdentifyJson(item, row) {
@@ -252,14 +262,52 @@ export default class extends Controller {
     this.dropTarget.hidden = !empty
     this.editorTarget.hidden = empty
     this.headingTarget.textContent = this.items.length === 1 ? "Incluir documento" : "Incluir documentos"
-    if (empty) return
+    if (empty) {
+      this.ruleTarget.hidden = true
+      this.waveTarget.hidden = true
+      this.element.classList.remove("is-measuring")
+      return
+    }
     this.paintBook()
     this.renderToolbar()
     this.renderSheet()
+    this.renderRule()
   }
 
   loteSheet() {
     return this.items.length >= 2
+  }
+
+  inWave(item) {
+    return this.wave.includes(item.id)
+  }
+
+  waveBounds() {
+    const positions = this.items
+      .map((item, index) => (this.inWave(item) ? index : -1))
+      .filter((index) => index >= 0)
+    if (!positions.length) return null
+    return { start: positions[0] + 1, end: positions[positions.length - 1] + 1, total: this.items.length }
+  }
+
+  renderRule() {
+    const bounds = this.loteSheet() ? this.waveBounds() : null
+    this.element.classList.toggle("is-measuring", !!bounds)
+    this.ruleTarget.hidden = !bounds
+    this.waveTarget.hidden = !bounds
+    if (!bounds) {
+      this.ruleTarget.innerHTML = ""
+      this.waveTarget.textContent = ""
+      return
+    }
+    this.ruleTarget.innerHTML = this.items.map((item) => {
+      if (item.status === "error") return `<span data-read data-error></span>`
+      if (item.status === "identifying") return this.inWave(item) ? "<span data-reading></span>" : "<span></span>"
+      return `<span data-read></span>`
+    }).join("")
+    this.waveTarget.textContent = bounds.start === bounds.end
+      ? `Identificando o documento ${bounds.start} de ${bounds.total}`
+      : `Identificando os documentos ${bounds.start} a ${bounds.end} de ${bounds.total}`
   }
 
   renderToolbar() {
@@ -290,14 +338,13 @@ export default class extends Controller {
       const amount = item.amount ? `R$ ${item.amount}` : "—"
       const date = item.date ? this.formatDate(item.date) : "—"
       const error = item.status === "error" ? `<p class="text-meta text-margem">${this.escape(item.error)}</p>` : ""
-      const identifying = item.status === "identifying" ? `<p class="text-meta">Identificando o arquivo…</p>` : ""
       return `
         <div role="option" data-lote-id="${item.id}" aria-selected="${selected ? "true" : "false"}" class="lote-row${selected ? " is-selected" : ""}${item.status === "error" ? " is-error" : ""}">
           <time class="tabular-nums">${date}</time>
           <div>
             <p class="font-medium">${this.escape(payee)}</p>
             <p class="text-meta text-ink-soft">${this.escape(item.arquivo)} · ${this.escape(item.filename)}</p>
-            ${error}${identifying}
+            ${error}
           </div>
           <p>${this.escape(item.kindLabel || (item.arquivo === "Foto" ? "Recibo" : "Nota fiscal"))}</p>
           <p class="tabular-nums font-medium text-right">${amount}</p>
@@ -345,8 +392,13 @@ export default class extends Controller {
     const stamp = (item.arquivo || "Foto").toUpperCase()
     this.captionTarget.innerHTML = `<strong class="font-semibold uppercase">${this.escape(stamp)}</strong> - ${this.escape(item.filename)}`
     this.clearTarget.hidden = this.loteSheet()
-    this.identifyingTarget.hidden = item.status !== "identifying"
+    this.identifyingTarget.hidden = !this.readingSelected(item)
     this.paintProof(item)
+  }
+
+  readingSelected(item) {
+    if (item.status !== "identifying") return false
+    return !this.loteSheet() || this.inWave(item)
   }
 
   paintProof(item) {
@@ -418,7 +470,7 @@ export default class extends Controller {
   }
 
   statusCopy(item) {
-    if (item.status === "identifying") return "Identificando o arquivo…"
+    if (item.status === "identifying") return this.inWave(item) ? "Identificando" : "Na fila"
     if (item.status === "error") return "Erro"
     if (item.status === "pronto") return "Pronto"
     return "Digitar"
