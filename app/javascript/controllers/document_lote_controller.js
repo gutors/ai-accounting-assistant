@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 const MAX = 30
+const IDENTIFY_WAVE = 4
 const MAX_NOTICE = "No máximo 30 arquivos neste lote"
 const XML_UNREADABLE = "O XML da nota fiscal não pôde ser lido"
 const MISSING_FIELDS = "Informe valor, data e favorecido"
@@ -33,6 +34,7 @@ export default class extends Controller {
     this.selected = null
     this.busy = false
     this.sending = new Set()
+    this.identifyingInFlight = false
   }
 
   pick() {
@@ -47,7 +49,7 @@ export default class extends Controller {
     if (incoming.length > room) this.notice(MAX_NOTICE)
     const queued = accepted.map((file) => this.enqueue(file))
     this.render()
-    if (queued.length) this.identifyBatch(queued)
+    if (queued.length) this.pumpIdentify()
   }
 
   typed() {
@@ -154,7 +156,15 @@ export default class extends Controller {
     return item
   }
 
+  pumpIdentify() {
+    if (this.identifyingInFlight) return
+    const pending = this.items.filter((item) => item.status === "identifying")
+    if (!pending.length) return
+    this.identifyBatch(pending.slice(0, IDENTIFY_WAVE))
+  }
+
   identifyBatch(items) {
+    this.identifyingInFlight = true
     const data = this.formData()
     items.forEach((item) => data.append("files[]", item.file, item.file.name))
     fetch("/supporting_documents/identify_batch", {
@@ -183,6 +193,9 @@ export default class extends Controller {
         })
       }
       this.render()
+    }).finally(() => {
+      this.identifyingInFlight = false
+      this.pumpIdentify()
     })
   }
 

@@ -1,0 +1,23 @@
+[
+  {
+    "file": "app/javascript/controllers/document_lote_controller.js",
+    "old": "const IDENTIFY_WAVE = 4",
+    "new": "const IDENTIFY_WAVE = 5",
+    "proof": "bin/rspec spec/system/document_lote_identify_batch_spec.rb -e \"five XMLs send identify_batch waves of 4 then 1\"",
+    "label": "wave size 4 -> 5"
+  },
+  {
+    "file": "app/javascript/controllers/document_lote_controller.js",
+    "old": "if (this.identifyingInFlight) return",
+    "new": "if (false) return",
+    "proof": "bin/rspec spec/system/document_lote_identify_batch_spec.rb -e \"second picker while identifying joins later waves with one POST in flight\"",
+    "label": "in-flight guard identifyingInFlight -> disabled"
+  },
+  {
+    "file": "app/javascript/controllers/document_lote_controller.js",
+    "old": "    }).finally(() => {\n      this.identifyingInFlight = false\n      this.pumpIdentify()\n    })",
+    "new": "    }).finally(() => {\n      this.identifyingInFlight = false\n    })",
+    "proof": "bin/rspec spec/system/document_lote_identify_batch_spec.rb -e \"five XMLs second wave paints fifth Pronto\"",
+    "label": "after wave finally pumpIdentify -> omitted"
+  }
+]
