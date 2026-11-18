@@ -17,6 +17,57 @@ module ImagePdfHelpers
     upload_path(name, bytes, "application/pdf")
   end
 
+  def padaria_recibo_text
+    <<~TEXT
+      RECIBO DE PAGAMENTO
+      Eu Padaria Central, portador
+      a quantia de R$ 155,00
+      15 de junho de 2026
+    TEXT
+  end
+
+  def kali_recibo_text
+    <<~TEXT
+      RECIBO
+      Recebi de Centro Social da Rua
+      o valor de R$ 295,00
+      27 / 06 / 2026
+      DATA
+      Kali Confeitaria
+    TEXT
+  end
+
+  def text_pdf(content)
+    lines = content.to_s.lines.map { |line| line.chomp.gsub("\\", "\\\\").gsub("(", "\\(").gsub(")", "\\)") }
+    ops = +"BT /F1 12 Tf 72 780 Td\n"
+    lines.each_with_index do |line, index|
+      ops << "0 -16 Td\n" if index.positive?
+      ops << "(#{line}) Tj\n"
+    end
+    ops << "ET\n"
+    objects = []
+    objects[1] = "<< /Type /Catalog /Pages 2 0 R >>\n"
+    objects[2] = "<< /Type /Pages /Kids [3 0 R] /Count 1 >>\n"
+    objects[3] = "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R " \
+                 "/Resources << /Font << /F1 5 0 R >> >> >>\n"
+    objects[4] = "<< /Length #{ops.bytesize} >>\nstream\n".b + ops.b + "endstream\n".b
+    objects[5] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\n"
+    out = +"%PDF-1.4\n".b
+    offsets = [ 0 ]
+    (1...objects.size).each do |num|
+      offsets[num] = out.bytesize
+      out << "#{num} 0 obj\n".b << objects[num] << "endobj\n".b
+    end
+    xref = out.bytesize
+    out << "xref\n0 #{objects.size}\n"
+    out << "0000000000 65535 f \n"
+    (1...objects.size).each do |num|
+      out << format("%010d 00000 n \n", offsets[num])
+    end
+    out << "trailer << /Size #{objects.size} /Root 1 0 R >>\nstartxref\n#{xref}\n%%EOF\n"
+    out
+  end
+
   def pngs_to_pdf(*png_bytes)
     images = png_bytes.map { |bytes| ChunkyPNG::Image.from_blob(bytes) }
     objects = []

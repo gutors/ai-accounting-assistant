@@ -19,6 +19,10 @@ module PhotoExtractHelpers
     PhotoFields.current.set(name, amount_cents:, document_on:, payee:)
   end
 
+  def stub_recibo_fields(name, amount_cents: 15500, document_on: Date.new(2026, 6, 15), payee: "Padaria Central")
+    ReciboFields.current.set(name, amount_cents:, document_on:, payee:)
+  end
+
   def stub_public_fields(url, amount_cents: 15500, payee: "Padaria Central", document_on: Date.new(2026, 5, 11))
     PublicNfceConsulta.current.set(
       url,

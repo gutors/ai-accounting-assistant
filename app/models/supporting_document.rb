@@ -368,6 +368,10 @@ class SupportingDocument < ApplicationRecord
       end
     end
 
+    recibo_fields, next_cents, next_on, next_payee = overlay_recibo_pdf(
+      extract_source, incoming_photo, next_kind, skip_photo_extract, next_cents, next_on, next_payee
+    )
+
     if fields_locked? && next_kind != "recibo" && parsed_nfe.nil?
       amount_changing = attrs.key?(:amount) && next_cents != amount_cents
       date_changing = attrs.key?(:date) && next_on != document_on
@@ -411,19 +415,9 @@ class SupportingDocument < ApplicationRecord
       end
     end
 
-    next_origin = if next_kind == "recibo"
-      ORIGIN_TYPED
-    elsif incoming_xml && parsed_nfe
-      ORIGIN_UPLOADED_XML
-    elsif identified_xml || identified_resumo
-      ORIGIN_IDENTIFIED
-    elsif public_fields
-      ORIGIN_NFC_E_PUBLIC
-    elsif photo_fields
-      ORIGIN_PHOTO
-    else
-      fields_origin.presence || ORIGIN_TYPED
-    end
+    next_origin = origin_after_submit(
+      next_kind, recibo_fields, incoming_xml, parsed_nfe, identified_xml, identified_resumo, public_fields, photo_fields
+    )
     next_chave = nil if next_kind == "recibo"
     confirm_pending = false if next_kind == "recibo"
 
@@ -665,5 +659,6 @@ class SupportingDocument < ApplicationRecord
   end
 end
 
+SupportingDocument.include SupportingDocument::ReciboPdf
 SupportingDocument.extend SupportingDocument::BatchIdentify
 SupportingDocument.extend SupportingDocument::InsertBatch

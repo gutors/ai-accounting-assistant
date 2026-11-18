@@ -130,6 +130,26 @@ RSpec.describe "Supporting document identify_batch", type: :request do
     expect(response).to have_http_status(:not_found)
   end
 
+  it "POST identify_batch Padaria recibo PDF origin Lido da foto" do
+    signed_in
+    stub_recibo_fields("padaria-recibo.pdf")
+
+    post "/supporting_documents/identify_batch", params: {
+      files: [ pdf_upload("padaria-recibo.pdf", text_pdf(padaria_recibo_text)) ]
+    }
+
+    expect(SupportingDocument.count).to eq(0)
+    expect(response).to have_http_status(:ok)
+    item = response.parsed_body.fetch("items").fetch(0)
+    expect(item["ok"]).to eq(true)
+    expect(item["kind"]).to eq("recibo")
+    expect(item["amount"]).to eq("155,00")
+    expect(item["date"]).to eq("2026-06-15")
+    expect(item["payee"]).to eq("Padaria Central")
+    expect(item["origin"]).to eq("Lido da foto")
+    expect(item["locked"]).to eq(false)
+  end
+
   it "POST identify_batch photo fields origin Lido da foto" do
     signed_in
     stub_photo_fields("danfe.jpg")

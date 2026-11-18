@@ -44,6 +44,11 @@ RSpec.describe "Application config" do
     expect(PhotoFields.current).not_to be_a(PhotoFields::Real)
   end
 
+  it "test recibo fields is the Fake" do
+    expect(ReciboFields.current).to be_a(ReciboFields::Fake)
+    expect(ReciboFields.current).not_to be_a(ReciboFields::Real)
+  end
+
   it "test public NFC-e consulta is the Fake" do
     expect(PublicNfceConsulta.current).to be_a(PublicNfceConsulta::Fake)
     expect(PublicNfceConsulta.current).not_to be_a(PublicNfceConsulta::Real)

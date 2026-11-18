@@ -1,0 +1,23 @@
+[
+  {
+    "file": "app/models/recibo_fields.rb",
+    "old": "      payer = payer_name(text)\n      from_eu = text[/Eu\\s+(.+?),\\s*portador/i, 1]",
+    "new": "      payer = payer_name(text)\n      return payer if payer.present?\n      from_eu = text[/Eu\\s+(.+?),\\s*portador/i, 1]",
+    "proof": "bin/rspec spec/models/recibo_fields_spec.rb -e \"Real Kali recibo PDF is 29500 2026-06-27 Kali Confeitaria not payer\"",
+    "label": "payee is the Recebi-de payer"
+  },
+  {
+    "file": "app/models/supporting_document/recibo_pdf.rb",
+    "old": "        recibo_fields ? ORIGIN_PHOTO : (fields_origin.presence || ORIGIN_TYPED)",
+    "new": "        ORIGIN_TYPED",
+    "proof": "bin/rspec spec/requests/supporting_documents_recibo_pdf_spec.rb -e \"POST Padaria recibo PDF persists photo origin 15500\"",
+    "label": "recibo photo origin always typed"
+  },
+  {
+    "file": "app/models/recibo_fields.rb",
+    "old": "      text.match?(/recibo da sua entrega/i) || text.match?(/Preço da viagem/i)",
+    "new": "      false",
+    "proof": "bin/rspec spec/models/recibo_fields_spec.rb -e \"Real app receipt PDF returns Miss\"",
+    "label": "app-receipt guard disabled"
+  }
+]

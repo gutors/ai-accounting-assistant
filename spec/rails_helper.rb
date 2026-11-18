@@ -90,6 +90,7 @@ RSpec.configure do |config|
     SefazConsulta.reset!
     PhotoSymbols.reset!
     PhotoFields.reset!
+    ReciboFields.reset!
     PhotoOcr.reset!
     PhotoZbar.reset!
     PhotoPdf.reset!
