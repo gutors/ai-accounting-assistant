@@ -17,9 +17,6 @@
           <time datetime="<%= document.document_on.iso8601 %>" class="tabular-nums"><%= l(document.document_on) %></time>
           <div data-cell="payee" class="min-w-0">
             <p class="font-medium"><%= document.payee %></p>
-            <% if document.chave.present? %>
-              <p data-chave class="font-mono text-meta break-words"><%= format_chave(document.chave) %></p>
-            <% end %>
             <% if document.photo.attached? || document.xml.attached? %>
               <p class="text-meta text-ink-soft break-all"><%= [ document.photo.attached? ? document.photo.filename : nil, document.xml.attached? ? document.xml.filename : nil ].compact.join(", ") %></p>
             <% end %>
