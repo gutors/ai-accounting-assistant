@@ -5,9 +5,16 @@ RSpec.describe "Focus", type: :request do
     account, org_a = plant_coordinator(email: "coord@example.com", organization_name: "ONG Norte")
     org_b = create_organization!(name: "ONG Sul")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
+    plant_month(org_b, year_month: "2026-05")
     sign_in_as(account, organization: org_a)
 
-    post "/focus", params: { organization_id: org_b.id }
+    get "/"
+    sul_form = page_doc(response.body).css("form").find do |form|
+      form["action"] == "/focus" && form.at_css("button")&.text&.strip == "ONG Sul"
+    end
+    expect(sul_form.at_css('input[name="organization_id"]')["value"]).to eq(org_b.id.to_s)
+
+    post "/focus", params: { organization_id: sul_form.at_css('input[name="organization_id"]')["value"] }
 
     expect(session[:organization_id]).to eq(org_b.id)
     expect(response).to have_http_status(:found)
@@ -15,9 +22,10 @@ RSpec.describe "Focus", type: :request do
     follow_redirect!
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
     expect(toast_message(response.body)).to eq("Agora em ONG Sul.")
-    expect(response.body).to include("ONG Sul")
-    sul = page_doc(response.body).css('nav[aria-label="Organizações"] button').find { |button| button.text.strip == "ONG Sul" }
+    expect(page_doc(response.body).at_css("header").text).to include("ONG Sul")
+    sul = page_doc(response.body).css('[role="group"][aria-label="Organização"] button').find { |button| button.text.strip == "ONG Sul" }
     expect(sul["aria-current"]).to eq("true")
+    expect(page_doc(response.body).at_css('[data-desk="in-work"] h1').text.strip).to eq("maio de 2026")
   end
 
   it "focused organization button carries aria-current" do
@@ -28,7 +36,10 @@ RSpec.describe "Focus", type: :request do
 
     get "/"
 
-    buttons = page_doc(response.body).css('nav[aria-label="Organizações"] button')
+    group = page_doc(response.body).at_css('[role="group"][aria-label="Organização"]')
+    expect(group).to be_present
+    buttons = group.css("button")
+    expect(buttons.map { |button| button.text.strip }).to contain_exactly("ONG Norte", "ONG Sul")
     norte = buttons.find { |button| button.text.strip == "ONG Norte" }
     sul = buttons.find { |button| button.text.strip == "ONG Sul" }
     expect(norte["aria-current"]).to eq("true")

@@ -11,10 +11,10 @@
     </p>
     <% if focused_organization %>
       <nav aria-label="Principal" class="flex flex-wrap items-center gap-x-5 gap-y-1 sm:ml-auto">
-        <%= link_to "Início", "/", class: "text-ink hover:underline underline-offset-2" %>
-        <%= link_to "Documentos", "/supporting_documents", class: "text-ink hover:underline underline-offset-2" %>
+        <%= principal_nav_link "Início", "/" %>
+        <%= principal_nav_link "Documentos", "/supporting_documents" %>
         <% if coordinator_on_focus? %>
-          <%= link_to "Configuração", "/setup", class: "text-ink hover:underline underline-offset-2" %>
+          <%= principal_nav_link "Configuração", "/setup" %>
         <% end %>
         <% if administrator? %>
           <%= link_to "Administração", "/administration", class: "text-ink hover:underline underline-offset-2" %>
