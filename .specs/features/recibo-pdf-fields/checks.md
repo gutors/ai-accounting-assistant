@@ -23,9 +23,11 @@ Proof: `bin/rspec spec/models/recibo_fields_spec.rb -e "Real amount-only PDF ret
 
 **C4** - If the PDF text is a DANFE (`EMITENTE`, `VALOR TOTAL DA NOTA`) with no `RECIBO` title, Real returns `Miss` (AC 4)
 Proof: `bin/rspec spec/models/recibo_fields_spec.rb -e "Real DANFE PDF without RECIBO title returns Miss"`
+Proof: `bin/rspec spec/models/recibo_fields_spec.rb -e "Real DANFE pdftotext does not use OCR Padaria triple"`
 
 **C5** - If the PDF text is an app receipt (`Aqui está o recibo da sua entrega`, `Total`, `Preço da viagem`), Real returns `Miss` (AC 5)
 Proof: `bin/rspec spec/models/recibo_fields_spec.rb -e "Real app receipt PDF returns Miss"`
+Proof: `bin/rspec spec/models/recibo_fields_spec.rb -e "Real app receipt pdftotext does not use OCR Padaria triple"`
 
 **C6** - When `pdftotext` yields a usable Padaria triple, `PhotoOcr` does not run; when `pdftotext` is empty or unusable and raster OCR of a page yields that Padaria triple, Real returns those three values (AC 6)
 Proof: `bin/rspec spec/models/recibo_fields_spec.rb -e "Real pdftotext Padaria triple does not call PhotoOcr"`
@@ -74,6 +76,7 @@ Proof: `bin/rspec spec/requests/supporting_documents_recibo_pdf_spec.rb -e "POST
 | Set (size) | Member -> proof | Unproven |
 | --- | --- | --- |
 | parser layouts (5) | Padaria C1 · Kali C2 · amount-only Miss C3 · DANFE Miss C4 · app Miss C5 | - |
+| kind-Miss vs OCR (2) | DANFE native C4 · app native C5 | - |
 | text vs OCR (3) | `pdftotext` usable C6 · empty `pdftotext` OCR C6 · unusable `pdftotext` OCR C6 | - |
 | identify callers (2) | coordinator C7 · submitter C9 | - |
 | identify_batch recibo origin (1) | `Lido da foto` C8 | - |

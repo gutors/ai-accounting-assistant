@@ -94,4 +94,39 @@ RSpec.describe ReciboFields, type: :model do
     expect(result.document_on).to eq(Date.new(2026, 6, 15))
     expect(result.payee).to eq("Padaria Central")
   end
+
+  it "Real DANFE pdftotext does not use OCR Padaria triple" do
+    text = <<~TEXT
+      EMITENTE
+      Padaria Central
+      VALOR TOTAL DA NOTA R$ 155,00
+      11/05/2026
+    TEXT
+    pdf = text_pdf(text)
+    allow(PhotoPdf).to receive(:text).and_return(text)
+    allow(PhotoPdf).to receive(:png_pages).and_return([ "png-bytes" ])
+    allow(PhotoOcr).to receive(:text).with("png-bytes").and_return(padaria_recibo_text)
+
+    result = ReciboFields::Real.new.read(bytes: pdf, filename: "danfe.pdf")
+
+    expect(result).to be_a(ReciboFields::Miss)
+  end
+
+  it "Real app receipt pdftotext does not use OCR Padaria triple" do
+    text = <<~TEXT
+      Aqui está o recibo da sua entrega
+      Total R$ 40,94
+      Preço da viagem R$ 39,23
+      27/06/2026
+      Kali Confeitaria
+    TEXT
+    pdf = text_pdf(text)
+    allow(PhotoPdf).to receive(:text).and_return(text)
+    allow(PhotoPdf).to receive(:png_pages).and_return([ "png-bytes" ])
+    allow(PhotoOcr).to receive(:text).with("png-bytes").and_return(padaria_recibo_text)
+
+    result = ReciboFields::Real.new.read(bytes: pdf, filename: "uber.pdf")
+
+    expect(result).to be_a(ReciboFields::Miss)
+  end
 end

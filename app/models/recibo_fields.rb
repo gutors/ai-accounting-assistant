@@ -50,6 +50,7 @@ module ReciboFields
       if extracted.present?
         result = parse(extracted)
         return result if complete?(result)
+        return Miss.new if danfe?(extracted) || app_receipt?(extracted)
       end
 
       pages = PhotoPdf.png_pages(bytes)
