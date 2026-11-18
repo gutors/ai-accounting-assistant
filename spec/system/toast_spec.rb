@@ -16,16 +16,21 @@ RSpec.describe "Toast", type: :system do
     expect(page).to have_css("header nav")
   end
 
-  def invite_and_see_toast
-    account, _organization = plant_coordinator
-    sign_in_through_google(account)
-    visit "/"
+  def open_people_and_invite
+    find("summary", text: "Pessoas").click
     with_env("MAIL_FROM" => "venda@example.com") do
       within("form[action='/coordinator_invites']") do
         fill_in "email", with: "guest@example.com"
         click_button "Convidar"
       end
     end
+  end
+
+  def invite_and_see_toast
+    account, _organization = plant_coordinator
+    sign_in_through_google(account)
+    visit "/"
+    open_people_and_invite
     expect(page).to have_css("[data-toast]")
   end
 
@@ -71,12 +76,7 @@ RSpec.describe "Toast", type: :system do
         };
       };
     JS
-    with_env("MAIL_FROM" => "venda@example.com") do
-      within("form[action='/coordinator_invites']") do
-        fill_in "email", with: "guest@example.com"
-        click_button "Convidar"
-      end
-    end
+    open_people_and_invite
     expect(page).to have_css("[data-toast]", wait: 1)
     expect(page).to have_no_css("[data-toast]", wait: 6)
   end

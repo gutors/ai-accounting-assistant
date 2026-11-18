@@ -1,0 +1,10 @@
+<% if @focusable_organizations.size > 1 %>
+  <div class="mb-7 flex flex-wrap gap-2" role="group" aria-label="Organização">
+    <% @focusable_organizations.each do |organization| %>
+      <% focused = organization.id == @organization.id %>
+      <%= button_to organization.name, "/focus", params: { organization_id: organization.id },
+            aria: { current: (focused ? "true" : nil) },
+            class: focused ? "rounded bg-caixa px-3 py-1 font-semibold text-white" : "rounded border border-ink px-3 py-1 text-ink" %>
+    <% end %>
+  </div>
+<% end %>

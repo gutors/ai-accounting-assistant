@@ -214,6 +214,50 @@
     line-height: 1.5rem;
   }
 
+  .stamp-closed-row {
+    display: inline-block;
+    border-radius: 2px;
+    border: 2px solid var(--color-ink);
+    outline: 1px solid var(--color-ink);
+    outline-offset: 3px;
+    padding: 1px 6px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.125rem;
+  }
+
+  .desk-month-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .desk-month-link {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    align-items: start;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--color-rule);
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .desk-month-title {
+    font-weight: 500;
+  }
+
+  .desk-month.is-live .desk-month-title {
+    font-weight: 600;
+  }
+
+  .desk-month-now {
+    color: var(--color-caixa);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.125rem;
+  }
+
   .file-field:has(input:disabled) {
     pointer-events: none;
     opacity: 0.5;
@@ -331,6 +375,10 @@
   @media (min-width: 768px) {
     .ledger-month {
       grid-template-columns: minmax(0, 1fr) 8rem 8rem 6rem;
+    }
+
+    .ledger-home-bank {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 6.5rem;
     }
 
     .ledger-people {

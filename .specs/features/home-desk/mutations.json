@@ -1,0 +1,23 @@
+[
+  {
+    "file": "app/controllers/application_controller.rb",
+    "old": "      .missing_document\n      .count",
+    "new": "      .count",
+    "proof": "bin/rspec spec/requests/organizations_spec.rb -e \"in-work summary says 3 pagamentos com documento faltante in margem without Falta o extrato\"",
+    "label": "missing-document filter stripped"
+  },
+  {
+    "file": "app/controllers/application_controller.rb",
+    "old": "@in_work_month = @months.find { |month| !month.closed? }",
+    "new": "@in_work_month = @months.find { |month| month.closed? }",
+    "proof": "bin/rspec spec/requests/organizations_spec.rb -e \"in-work skips a newer closed month\"",
+    "label": "in-work is newest closed month"
+  },
+  {
+    "file": "app/views/organizations/show.html.erb",
+    "old": "<% live = @in_work_month&.id == month.id %>",
+    "new": "<% live = !month.closed? %>",
+    "proof": "bin/rspec spec/requests/organizations_spec.rb -e \"open month row says em trabalho and Aberto, closed row stamps Fechado, year_month desc\"",
+    "label": "em trabalho on every open month"
+  }
+]

@@ -78,6 +78,18 @@ class ApplicationController < ActionController::Base
     @invites = @organization.invites.order(:email)
     @focusable_organizations = current_account.organizations.order(:name)
     @months = @organization.months.order(year_month: :desc)
+    @in_work_month = @months.find { |month| !month.closed? }
+    return unless @in_work_month
+
+    @active_bank_accounts = @organization.bank_accounts.where(active: true).joins(:bank).includes(:bank)
+      .order("banks.presentation_name", "bank_accounts.name")
+    @statements_by_account_id = @in_work_month.bank_statements.index_by(&:bank_account_id)
+    return unless @in_work_month.accounts_confirmed?
+
+    @missing_document_count = Payment.joins(:bank_statement)
+      .where(bank_statements: { month_id: @in_work_month.id })
+      .missing_document
+      .count
   end
 
   def deliver_invite(invite)

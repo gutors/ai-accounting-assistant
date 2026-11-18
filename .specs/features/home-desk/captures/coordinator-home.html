@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Cache-Control" content="no-store">
+  <title>Fechamento mensal — Início</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+  <style>
+    * { box-sizing: border-box; margin: 0; }
+    html, body { width: 100%; min-height: 100vh; overflow: auto; background: #f3f5f1; color: #1b3229; font: 16px/1.5 IBM Plex Sans, ui-sans-serif, system-ui, sans-serif; }
+    :focus-visible { outline: 2px solid #2e6b4e; outline-offset: 2px; }
+    header { display: flex; align-items: center; gap: 24px; min-height: 56px; padding: 12px 32px; border-bottom: 1px solid #c7d5ca; }
+    .mark { width: 20px; height: 20px; flex-shrink: 0; }
+    .brand { font-weight: 500; }
+    nav { margin-left: auto; display: flex; gap: 20px; }
+    nav a, .sair { color: #1b3229; text-decoration: none; font: inherit; background: none; border: 0; }
+    nav a[aria-current="page"] { font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+    nav a:hover { text-decoration: underline; text-underline-offset: 2px; }
+    .sair { color: #2e6b4e; text-decoration: underline; text-underline-offset: 2px; }
+    main { display: grid; grid-template-columns: 26rem 1fr; min-height: 844px; }
+    aside { padding: 40px 24px 64px 32px; border-right: 1px solid #c7d5ca; }
+    .orgs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; }
+    .orgs button { font: inherit; border-radius: 4px; padding: 4px 12px; cursor: pointer; }
+    .orgs [aria-current="true"] { background: #2e6b4e; color: #fff; font-weight: 600; border: 0; }
+    .orgs button:not([aria-current]) { background: transparent; color: #1b3229; border: 1px solid #1b3229; }
+    .open { margin-bottom: 28px; }
+    .open label, article h2 { display: block; font-weight: 600; font-size: 18px; line-height: 1.5; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #c7d5ca; }
+    aside h2 { font-weight: 600; font-size: 18px; line-height: 1.5; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #c7d5ca; }
+    .open-row { display: flex; flex-wrap: nowrap; align-items: stretch; gap: 8px; }
+    select, .btn { font: inherit; border-radius: 4px; }
+    select { flex: 1 1 auto; min-width: 0; border: 1px solid #c7d5ca; background: #fff; padding: 8px 12px; }
+    .btn { flex: 0 0 auto; white-space: nowrap; background: #2e6b4e; color: #fff; font-weight: 600; border: 0; padding: 8px 16px; }
+    .row { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 8px 0; border-bottom: 1px solid #c7d5ca; text-decoration: none; color: inherit; }
+    .row strong { font-weight: 500; }
+    .row .meta { font-size: 13px; color: #5c6e66; }
+    .row.is-live strong { font-weight: 600; }
+    .row.is-live .now { color: #2e6b4e; font-weight: 600; }
+    .stamp { display: inline-block; font-weight: 600; font-size: 13px; border: 2px solid #1b3229; outline: 1px solid #1b3229; outline-offset: 3px; padding: 1px 6px; }
+    article { padding: 40px 40px 64px 32px; }
+    .lead { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px 32px; }
+    h1 { font-size: 36px; line-height: 1.1; letter-spacing: -0.02em; font-weight: 600; }
+    .ym { margin-top: 4px; font-size: 13px; color: #5c6e66; }
+    .go { display: inline-block; background: #2e6b4e; color: #fff; font-weight: 600; padding: 8px 16px; border-radius: 4px; text-decoration: none; }
+    .block { margin-top: 24px; color: #b4372a; border-left: 3px solid #b4372a; padding-left: 12px; }
+    article h2 { margin-top: 40px; }
+    .sheet { margin-top: 8px; }
+    .bank-head, .bank { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 6.5rem; }
+    .bank-head span, .bank > * { padding: 6px 10px; border-bottom: 1px solid #c7d5ca; border-right: 1px solid #c7d5ca; }
+    .bank-head span:last-child, .bank > :last-child { border-right: 0; }
+    .bank-head { color: #5c6e66; font-size: 13px; }
+    .bank .name { font-weight: 500; }
+    .falta { color: #b4372a; font-weight: 500; }
+  </style>
+</head>
+<body>
+  <header>
+    <svg class="mark" viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="96" fill="#2e6b4e"/><rect x="96" y="208" width="320" height="28" fill="#f3f5f1"/><rect x="96" y="304" width="320" height="28" fill="#f3f5f1"/><rect x="152" y="96" width="28" height="320" fill="#b4372a"/></svg>
+    <p class="brand">Fechamento Mensal - ONG Norte</p>
+    <nav aria-label="Principal">
+      <a href="/" aria-current="page">Início</a>
+      <a href="/supporting_documents">Documentos</a>
+      <a href="/setup">Configuração</a>
+      <button class="sair" type="button">Sair</button>
+    </nav>
+  </header>
+  <main>
+    <aside>
+      <div class="orgs" role="group" aria-label="Organização">
+        <button type="button" aria-current="true">ONG Norte</button>
+        <button type="button">ONG Sul</button>
+      </div>
+      <form class="open">
+        <label for="year_month">Abrir mês</label>
+        <div class="open-row">
+          <select id="year_month"><option>novembro de 2026</option></select>
+          <button class="btn" type="button">Abrir mês</button>
+        </div>
+      </form>
+      <h2>Meses</h2>
+      <a class="row is-live" href="/months/2026-10"><span><strong>outubro de 2026</strong><br><span class="meta now">em trabalho</span></span><span class="meta">Aberto</span></a>
+      <a class="row" href="/months/2026-09"><span><strong>setembro de 2026</strong></span><span class="stamp">Fechado</span></a>
+      <a class="row" href="/months/2026-08"><span><strong>agosto de 2026</strong></span><span class="stamp">Fechado</span></a>
+      <a class="row" href="/months/2026-07"><span><strong>julho de 2026</strong></span><span class="stamp">Fechado</span></a>
+    </aside>
+    <article>
+      <div class="lead">
+        <div>
+          <h1>outubro de 2026</h1>
+          <p class="ym">2026-10</p>
+        </div>
+        <a class="go" href="/months/2026-10">Continuar</a>
+      </div>
+      <p class="block">3 pagamentos com documento faltante.</p>
+      <h2>Contas bancárias</h2>
+      <div class="sheet">
+        <div class="bank-head" aria-hidden="true"><span>Banco</span><span>Nome</span><span>Extrato</span></div>
+        <div class="bank">
+          <span>Banco do Brasil</span>
+          <span class="name">Conta Principal</span>
+          <span>Presente</span>
+        </div>
+        <div class="bank">
+          <span>Caixa</span>
+          <span class="name">Conta Alfa</span>
+          <span class="falta">Falta</span>
+        </div>
+      </div>
+    </article>
+  </main>
+</body>
+</html>

@@ -19,6 +19,62 @@ RSpec.describe "Layout header", type: :request do
     expect(sair).not_to be_nil
   end
 
+  def principal_nav_links(body)
+    page_doc(body).at_css('nav[aria-label="Principal"]').css("a")
+  end
+
+  it "GET / Inicio is the only principal nav link with aria-current page" do
+    account, organization = plant_coordinator(organization_name: "ONG Norte")
+    sign_in_as(account, organization: organization)
+
+    get "/"
+
+    links = principal_nav_links(response.body)
+    inicio = links.find { |link| link.text.strip == "Início" }
+    expect(inicio["aria-current"]).to eq("page")
+    expect(inicio["class"]).to include("font-semibold")
+    expect(links.count { |link| link["aria-current"] == "page" }).to eq(1)
+  end
+
+  it "POST /months 422 Inicio is the only principal nav link with aria-current page" do
+    account, organization = plant_coordinator(organization_name: "ONG Norte")
+    sign_in_as(account, organization: organization)
+
+    post "/months", params: { year_month: "" }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    links = principal_nav_links(response.body)
+    inicio = links.find { |link| link.text.strip == "Início" }
+    expect(inicio["aria-current"]).to eq("page")
+    expect(inicio["class"]).to include("font-semibold")
+    expect(links.count { |link| link["aria-current"] == "page" }).to eq(1)
+  end
+
+  it "GET /supporting_documents Documentos has aria-current page and Inicio does not" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    get "/supporting_documents"
+
+    links = principal_nav_links(response.body)
+    documentos = links.find { |link| link.text.strip == "Documentos" }
+    inicio = links.find { |link| link.text.strip == "Início" }
+    expect(documentos["aria-current"]).to eq("page")
+    expect(inicio["aria-current"]).to be_nil
+  end
+
+  it "GET /setup Configuracao has aria-current page" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    get "/setup"
+
+    links = principal_nav_links(response.body)
+    configuracao = links.find { |link| link.text.strip == "Configuração" }
+    expect(configuracao["aria-current"]).to eq("page")
+    expect(links.count { |link| link["aria-current"] == "page" }).to eq(1)
+  end
+
   it "submitter header omits Configuracao and /setup" do
     account, organization = plant_submitter(organization_name: "ONG Norte")
     sign_in_as(account, organization: organization)
@@ -138,9 +194,8 @@ RSpec.describe "Layout header", type: :request do
       node.text.include?(mail_failure)
     }
     expect(notice_with_mail).to be_nil
-    h1 = page_doc(response.body).at_css("h1")
-    expect(h1.text.strip).to eq("Início")
-    expect(h1.parent.at_css("section").text).not_to include(mail_failure)
+    expect(page_doc(response.body).at_css("[data-toast]")).to be_nil
+    expect(response.body).not_to include(mail_failure)
   end
 
   it "success toast sits after header before main" do
