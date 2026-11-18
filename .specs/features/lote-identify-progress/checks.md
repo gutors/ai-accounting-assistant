@@ -13,7 +13,7 @@ Plan: `.specs/features/lote-identify-progress/plan.md`
 **C1** - With ten files and the second wave in flight, the section matches `.specs/features/lote-identify-progress/captures/lote-b-faixa-fila.png`: the heading carries ten ticks with ticks 5–8 hollow, the sentence `Identificando os documentos 5 a 8 de 10` sits under them, and the heading's own border is gone (AC 1)
 Proof: browser - ten files, second wave gated in flight, save `captures/lote-b-faixa-fila.running.png` at 716×798
 
-**C2** - The ticks take the three states drawn in `.specs/features/lote-identify-progress/captures/ruler-states.png`: with ten files and the second wave in flight, ticks 1–4 have background `rgb(46, 107, 78)`, ticks 5–8 have background `rgb(243, 245, 241)` with a `2px` inset `rgb(46, 107, 78)` outline, ticks 9–10 have background `rgb(199, 213, 202)` (AC 1)
+**C2** - The ticks take the three states drawn in `.specs/features/lote-identify-progress/captures/ruler-states.png` (its detail of the same state C1 judges, not a state of its own): with ten files and the second wave in flight, ticks 1–4 have background `rgb(46, 107, 78)`, ticks 5–8 have background `rgb(243, 245, 241)` with a `2px` inset `rgb(46, 107, 78)` outline, ticks 9–10 have background `rgb(199, 213, 202)` (AC 1)
 Proof: `bin/rspec spec/system/document_lote_progress_spec.rb -e "ten files paint ten ticks in the three states"`
 
 **C3** - The sentence names each wave's 1-based bounds and the lote total: ten files give `Identificando os documentos 1 a 4 de 10`, then `5 a 8 de 10`, then `9 a 10 de 10`; five files give `Identificando os documentos 1 a 4 de 5`, then `Identificando o documento 5 de 5`, never `os documentos 5 a 5` (AC 2)
@@ -85,7 +85,7 @@ Proof: `bin/rspec spec/system/document_lote_progress_spec.rb -e "Incluir prontos
 ## Handoff
 
 - **Settled mid-build:** "Critério 4 manda: com um arquivo só, volta a tela de inclusão simples, sem régua" - a lote that drops to one file shows no rule and no sentence; AC 13 is proven with a ten-file lote that keeps six. "Registrar como diferenças do capture (ADR-0011), sem construir" - the two proof-square facts the capture draws stay as they are (AD-0011).
-- **Dispatched:** screens round 1 at `31fc255` returned (diverges, 6 rows); Verifier at `31fc255` returned (FAIL, 2 findings); screens round 2 at `e63456d` (pictures re-saved there; the commits after it touch only `.specs/`)
+- **Dispatched:** screens round 1 at `31fc255` returned (diverges, 6 rows); Verifier at `31fc255` returned (FAIL, 2 findings); screens round 2 at `e63456d` returned (matches) - the commits after it touch only `.specs/`, and `ruler-states.png` is a detail of that same state, so no second picture exists
 - **Boundary:** C1-C15 closed at `e17b34a`
 - **Abandoned:** none
 - **Walked:** Coordinator `/supporting_documents` with ten authorized XMLs `d1.xml`…`d10.xml` attached through the picker, waves gated so the second wave sat in flight; the section showed the ten-tick rule with ticks 5–8 hollow and `Identificando os documentos 5 a 8 de 10`, rows 1–4 `Pronto`, rows 5–8 `Identificando`, rows 9–10 `Na fila`, and `Incluir prontos (4)`. Saved as `captures/lote-b-faixa-fila.running.png` at 716×798, the section's own size at a 780px window. The 390px / 30-file state and the singular `Identificando o documento 5 de 5` are proven by C12 and C3.

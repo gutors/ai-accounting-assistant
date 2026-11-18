@@ -154,7 +154,7 @@ their copy.
 ## Sources
 
 - ![B · faixa em leitura, fila limpa](captures/lote-b-faixa-fila.png) - binding - form B (rule measures) + number 3 (wave range) + queue split, at 716×798, the size the section renders at 1280px
-- ![tick states](captures/ruler-states.png) - binding - the three tick states enlarged to 24px with `1–4 lido` / `5–8 em leitura` / `9–10 na fila` under them, at 928×74; the shipped ticks are 8px
+- ![tick states](captures/ruler-states.png) - binding, as a detail of the state above rather than a state of its own - the three tick states enlarged to 24px with `1–4 lido` / `5–8 em leitura` / `9–10 na fila` under them, at 928×74; the shipped ticks are 8px, so C2 proves the three states by measuring the pixels of the same `lote-b-faixa-fila.running.png` state and no second picture is taken
 - `.impeccable/mocks/identify-progress.html?v=b&c=faixa&s=1&queue=fila` - binding - the interactive source both captures come from; ten documents, waves of four
 - `.specs/features/lote-identify-waves/checks.md` - existing behaviour - the wave size and the one-POST-in-flight rule this builds on
 - [ADR-0010](../../../docs/adr/0010-lote-wave-progress.md) - the wave is `this.wave`, not a per-item flag; the row copy supersedes `lote-identify-waves` C3–C4
