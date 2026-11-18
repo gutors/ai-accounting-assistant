@@ -466,7 +466,7 @@ Sem mês                                         (h2)
               [Usar dados da SEFAZ]  (only when pending)
               Excluir (quiet, margem) sits in Ações, not inside Editar
               Editar does not offer a control that changes Tipo
-Justificativas                                  (h2)
+Vários documentos, um valor                     (h2)
   R$ 300,00   Padaria Central, Mercado Silva     ▸ Editar (submitter, when allowed)
   form: Valor gasto [    ]  ☐ Padaria Central … [Justificar]   (submitter only)
 ```
