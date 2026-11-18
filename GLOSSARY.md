@@ -91,7 +91,7 @@ A bank movement that decreases the account. It requires a match or a document ex
 _Avoid_: expense, saída, transaction (unqualified)
 
 **Supporting document**:
-The evidence kept to justify a payment: a **photo** (or image PDF) of a DANFE or recibo, and/or the authorized XML of a nota fiscal. Who inserts declares nota fiscal or recibo. Amount, date, and payee always exist. On a nota fiscal they come from the authorized XML (uploaded or obtained by identified SEFAZ consulta — not edited), from the consumer SEFAZ consulta opened by the NFC-e QR Code, from reading the photo, or are typed as fallback. Recibo has no XML; those three are typed and the photo is not read in this version. Image PDF of a DANFE or recibo counts as a photo. Several supporting documents may cover one payment; one document may cover more than one payment. It has no month until a confirmed match (the payment’s month) or until the coordinator includes it in a month’s package at close-for-send. Date is a hint, not a month assignment.
+The evidence kept to justify a payment: a **photo** (or image PDF) of a DANFE or recibo, and/or the authorized XML of a nota fiscal. Who inserts declares nota fiscal or recibo. Amount, date, and payee always exist. On a nota fiscal they come from the authorized XML (uploaded or obtained by identified SEFAZ consulta — not edited), from the consumer SEFAZ consulta opened by the NFC-e QR Code, from reading the photo, or are typed as fallback. Recibo has no XML; those three come from reading a PDF photo when that read is a complete triple (who received, not who paid), or are typed as fallback. A JPEG or PNG recibo photo is not read in this version. Image PDF of a DANFE or recibo counts as a photo. Several supporting documents may cover one payment; one document may cover more than one payment. It has no month until a confirmed match (the payment’s month) or until the coordinator includes it in a month’s package at close-for-send. Date is a hint, not a month assignment.
 _Avoid_: invoice (unqualified), note, attachment, XML (as if it were the only file)
 
 **Match**:
@@ -135,7 +135,7 @@ The organization’s optional A1 e-CNPJ for identified SEFAZ consulta. One at a 
 _Avoid_: A3, e-CPF (as this certificate), accountant’s certificate, organization tax id (when the file’s CNPJ is meant)
 
 **Recibo**:
-Proof of a payment that is not a nota fiscal. It has no XML, chave de acesso, or official barcode/QR.
+Proof of a payment that is not a nota fiscal. It has no XML, chave de acesso, or official barcode/QR. A PDF photo may fill amount, date, and who received when all three are read; otherwise those three are typed. A JPEG or PNG photo is not read.
 _Avoid_: receipt (unqualified, when the Brazilian document type is meant)
 
 **Extra exception kind**:
