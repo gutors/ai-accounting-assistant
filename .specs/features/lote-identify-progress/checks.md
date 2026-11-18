@@ -28,7 +28,7 @@ Proof: `bin/rspec spec/system/document_lote_progress_spec.rb -e "one file keeps 
 **C6** - With ten files and the second wave in flight, the lote sheet matches `.specs/features/lote-identify-progress/captures/lote-b-faixa-fila.png` in the rows it draws: the first three rows say `Pronto` with their date, payee, kind and amount, and no row carries a second sentence under its file name (AC 5)
 Proof: browser - ten files, second wave gated in flight, save `captures/lote-b-faixa-fila.running.png` at 716×798
 
-**C7** - Every row of a five-file lote carries its Situação word: four `Identificando` while the first wave is in flight and one `Na fila`; once that wave returns the first four say `Pronto` and the fifth still says `Na fila`; a row in `Erro` shows its error sentence and no reading sentence (AC 5)
+**C7** - Every row of a five-file lote carries its Situação word: four `Identificando` while the first wave is in flight and one `Na fila`; once that wave returns the first four say `Pronto` and the fifth says `Identificando`; a row in `Erro` shows its error sentence and no reading sentence (AC 5)
 Proof: `bin/rspec spec/system/document_lote_progress_spec.rb -e "five XMLs split Identificando from Na fila"`
 
 **C8** - An unreadable XML `nota.xml` as the first of four fills one tick `margem` — the error state of the enlarged detail — leaves three `caixa` ticks, and its row shows `Erro` with `O XML da nota fiscal não pôde ser lido` (AC 6)
