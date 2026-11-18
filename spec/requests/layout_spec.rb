@@ -36,6 +36,20 @@ RSpec.describe "Layout header", type: :request do
     expect(links.count { |link| link["aria-current"] == "page" }).to eq(1)
   end
 
+  it "POST /months 422 Inicio is the only principal nav link with aria-current page" do
+    account, organization = plant_coordinator(organization_name: "ONG Norte")
+    sign_in_as(account, organization: organization)
+
+    post "/months", params: { year_month: "" }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    links = principal_nav_links(response.body)
+    inicio = links.find { |link| link.text.strip == "Início" }
+    expect(inicio["aria-current"]).to eq("page")
+    expect(inicio["class"]).to include("font-semibold")
+    expect(links.count { |link| link["aria-current"] == "page" }).to eq(1)
+  end
+
   it "GET /supporting_documents Documentos has aria-current page and Inicio does not" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)

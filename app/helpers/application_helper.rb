@@ -45,7 +45,7 @@ module ApplicationHelper
   end
 
   def principal_nav_link(label, path)
-    current = current_page?(path)
+    current = current_page?(path) || (path == "/" && content_for?(:main_class))
     link_to label, path, aria: { current: ("page" if current) },
       class: [ "text-ink hover:underline underline-offset-2", ("font-semibold underline" if current) ]
   end
