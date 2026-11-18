@@ -65,19 +65,26 @@ class ApplicationController < ActionController::Base
   def load_documents
     base_scope = focused_organization.supporting_documents.unmatched.includes(:month, :justification)
     base_scope = base_scope.where(account: current_account) unless coordinator_on_focus?
-    @list_filters = {
+    @list_filters = document_list_filters
+    @documents = base_scope.filter_list(**@list_filters)
+    @justifiable_documents = base_scope.listed.where(month_id: nil, justification_id: nil) unless coordinator_on_focus?
+    justifications = focused_organization.justifications.includes(:supporting_documents).order(created_at: :desc, id: :desc)
+    justifications = justifications.where(account: current_account) unless coordinator_on_focus?
+    @justifications = justifications
+  end
+
+  def document_list_filters
+    blank = { q: "", kind: "", date_from: "", date_to: "", sort: "date", dir: "desc" }
+    return blank unless request.get?
+
+    blank.merge(
       q: params[:q].to_s.strip,
       kind: SupportingDocument.kinds.key?(params[:kind].to_s) ? params[:kind].to_s : "",
       date_from: SupportingDocument.parse_filter_date(params[:date_from])&.iso8601.to_s,
       date_to: SupportingDocument.parse_filter_date(params[:date_to])&.iso8601.to_s,
       sort: params[:sort].to_s == "amount" ? "amount" : "date",
       dir: params[:dir].to_s == "asc" ? "asc" : "desc"
-    }
-    @documents = base_scope.filter_list(**@list_filters)
-    @justifiable_documents = base_scope.listed.where(month_id: nil, justification_id: nil) unless coordinator_on_focus?
-    justifications = focused_organization.justifications.includes(:supporting_documents).order(created_at: :desc, id: :desc)
-    justifications = justifications.where(account: current_account) unless coordinator_on_focus?
-    @justifications = justifications
+    )
   end
 
   def load_home

@@ -196,6 +196,19 @@ RSpec.describe "Supporting documents Sem mês list", type: :request do
     expect(actions.at_css('button[aria-label="Excluir"]')).to be_nil
   end
 
+  it "POST /supporting_documents 422 does not apply insert kind as Sem mes filter" do
+    account, organization = signed_in
+    plant_doc(organization, account, payee: "Padaria Nota", kind: "nota_fiscal", date: "2026-05-14", filename: "nota.jpg")
+    plant_doc(organization, account, payee: "Papelaria Recibo", kind: "recibo", date: "2026-05-08")
+
+    post "/supporting_documents", params: {
+      kind: "recibo", amount: "155,00", date: "2026-05-11", payee: "Falha"
+    }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(listed_payees).to eq([ "Padaria Nota", "Papelaria Recibo" ])
+  end
+
   it "submitter justification checkboxes remain available when Sem mes filter matches nothing" do
     _coord, organization = plant_coordinator
     submitter, _ = plant_submitter(organization: organization)

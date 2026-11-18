@@ -4,7 +4,7 @@ Mutations: 3
 Build: `bin/rubocop`; `bin/erb_lint --lint-all`
 Plan: `.specs/features/documents-sem-mes-list/plan.md`
 
-15 checks in 4 slices · 0 one-way doors · 0 open
+16 checks in 4 slices · 0 one-way doors · 0 open
 
 Proofs use `bin/rspec` and `-e` as `.cursor/rules/rails.mdc` names. CI runs `bin/rspec`.
 
@@ -63,6 +63,9 @@ Proof: `bin/rspec spec/requests/supporting_documents_sem_mes_spec.rb -e "submitt
 **C15** - Unauthenticated `GET /supporting_documents` responds `302` to `/login` (Surface)
 Proof: `bin/rspec spec/requests/supporting_documents_spec.rb -e "unauthenticated GET /supporting_documents responds 302 to /login"`
 
+**C16** - `POST /supporting_documents` 422 with insert `kind=recibo` still lists unmatched `nota_fiscal` and `recibo` rows in `#sem-mes` (insert `kind` is not a list filter)
+Proof: `bin/rspec spec/requests/supporting_documents_sem_mes_spec.rb -e "POST /supporting_documents 422 does not apply insert kind as Sem mes filter"`
+
 ## Coverage
 
 | Set (size) | Member -> proof | Unproven |
@@ -74,11 +77,12 @@ Proof: `bin/rspec spec/requests/supporting_documents_spec.rb -e "unauthenticated
 | sort combinations (4) | `date desc` C8, C9 · `date asc` C8, C10 · `amount desc` C8, C11 · `amount asc` C8, C11 | - |
 | row action icon states (2) | `month_id` nil (`Editar` + `Excluir` SVGs) C12 · `month_id` present (`Editar` SVG only) C13 | - |
 | `GET /supporting_documents` statuses (2) | 200 C1 · 302 C15 | - |
+| insert 422 vs list filters (1) | POST `kind=recibo` still lists nota and recibo C16 | - |
 
 ## Swept
 
 - validation: C4, C5, C6, C8 - SQL LIKE wildcard escaping, kind enum whitelist, ISO date rescue, sort/dir whitelist
-- failure modes: C6 - malformed `date_from`/`date_to` or unknown `sort`/`kind` fall back cleanly without 500
+- failure modes: C6 - malformed `date_from`/`date_to` or unknown `sort`/`kind` fall back cleanly without 500; C16 - insert `kind` on POST 422 is not applied as a Sem mês filter
 - idempotency: n/a - `GET /supporting_documents` filtering and sorting are read-only
 - authorization: C1, C15 - existing organization/submitter scoping and unauthenticated `302` to `/login`
 - concurrency: n/a - read-only query parameters on list load
