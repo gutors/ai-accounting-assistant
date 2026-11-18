@@ -12,6 +12,15 @@
         ],
         "createdAt": "2026-11-17T22:34:25.585Z",
         "reason": "Styles come from the linked documents-batch.css (h1 1.5rem, h2 1.125rem); the detector reads this HTML without its stylesheet."
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "app/assets/tailwind/application.css"
+        ],
+        "createdAt": "2026-11-18T20:17:40.424Z",
+        "reason": "DESIGN.md: The red margin is a 3px left border with 12px of inset on the row and error notice"
       }
     ]
   }

@@ -1,0 +1,12 @@
+<% edit_label = local_assigns.fetch(:edit_label, "Editar") %>
+<% delete_label = local_assigns.fetch(:delete_label, "Excluir") %>
+<% can_delete = local_assigns.fetch(:can_delete, false) %>
+<% delete_confirm = local_assigns[:delete_confirm] %>
+<div data-cell="actions" class="ledger-row-actions">
+  <% if local_assigns[:edit_path].present? %>
+    <%= ledger_edit_icon_link(edit_path, label: edit_label) %>
+  <% end %>
+  <% if can_delete && local_assigns[:delete_path].present? %>
+    <%= ledger_delete_icon_button(delete_path, label: delete_label, confirm: delete_confirm) %>
+  <% end %>
+</div>

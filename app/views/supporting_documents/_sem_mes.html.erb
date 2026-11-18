@@ -1,14 +1,16 @@
+<% filters = @list_filters || { q: "", kind: "", date_from: "", date_to: "", sort: "date", dir: "desc" } %>
 <div id="sem-mes">
   <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Sem mês</h2>
+  <%= render "shared/ledger_filters", url: "/supporting_documents", filters: filters %>
   <% if @documents.empty? %>
     <p>Nenhum documento</p>
   <% else %>
     <div class="ledger-sheet">
-      <div class="ledger-row ledger-head ledger-doc" aria-hidden="true">
-        <span>Data</span>
+      <div class="ledger-row ledger-head ledger-doc">
+        <%= ledger_sort_cell("Data", column: "date", current_sort: filters[:sort], current_dir: filters[:dir], base_path: "/supporting_documents", filter_params: filters) %>
         <span>Favorecido</span>
         <span>Tipo</span>
-        <span class="ledger-amount">Valor</span>
+        <%= ledger_sort_cell("Valor", column: "amount", current_sort: filters[:sort], current_dir: filters[:dir], base_path: "/supporting_documents", filter_params: filters, align: :right) %>
         <span>Ações</span>
       </div>
       <ul>
@@ -25,22 +27,17 @@
             <% end %>
             <% if coordinator_on_focus? && document.month %>
               <p class="text-meta text-ink-soft">
-                <% if document.match_id? %>
-                  Casado em <%= document.month.year_month %>
-                <% else %>
-                  Sem casamento em <%= document.month.year_month %>
-                <% end %>
+                Sem casamento em <%= document.month.year_month %>
               </p>
             <% end %>
           </div>
           <p data-cell="kind"><%= document.recibo? ? "Recibo" : "Nota fiscal" %></p>
           <p data-cell="amount" class="font-medium tabular-nums"><%= format_reais(document.amount_cents) %></p>
-          <div data-cell="actions">
-            <%= link_to "Editar", "/supporting_documents/#{document.id}/edit", class: "font-medium text-caixa" %>
-            <% if document.month_id.nil? && (coordinator_on_focus? || document.account_id == current_account.id) %>
-              <%= button_to "Excluir", "/supporting_documents/#{document.id}", method: :delete, form: { data: { turbo_confirm: "Excluir este documento?" } }, class: "text-margem underline underline-offset-2" %>
-            <% end %>
-          </div>
+          <%= render "shared/ledger_row_actions",
+            edit_path: "/supporting_documents/#{document.id}/edit",
+            delete_path: "/supporting_documents/#{document.id}",
+            can_delete: document.month_id.nil? && (coordinator_on_focus? || document.account_id == current_account.id),
+            delete_confirm: "Excluir este documento?" %>
         </li>
       <% end %>
       </ul>
