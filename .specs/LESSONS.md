@@ -20,6 +20,18 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: C5 identify_batch 31-file 422 (validation)
 - last seen: 2026-11-17T03:17:04Z
 
+### L-016 - Assert a forbidden element is absent inside each row that could carry it, never through a selector no element matches
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `system specs, Stimulus` · harmful: 0
+- features: lote-identify-progress
+- evidence: verification.md finding 1 - document_lote_controller.js:347 (system specs, Stimulus)
+- last seen: 2026-11-18T02:04:34Z
+
+### L-017 - Write a check's concrete value from the state the gesture produces, not from the state before it
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `checks` · harmful: 0
+- features: lote-identify-progress
+- evidence: verification.md finding 2 - checks.md C10 (checks)
+- last seen: 2026-11-18T02:04:35Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

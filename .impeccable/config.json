@@ -1,3 +1,18 @@
 {
-  "buildPath": "comp"
+  "buildPath": "comp",
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "flat-type-hierarchy",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/identify-progress.html"
+        ],
+        "createdAt": "2026-11-17T22:34:25.585Z",
+        "reason": "Styles come from the linked documents-batch.css (h1 1.5rem, h2 1.125rem); the detector reads this HTML without its stylesheet."
+      }
+    ]
+  }
 }

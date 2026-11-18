@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 16,
+  "next_id": 18,
   "lessons": [
     {
       "id": "L-015",
@@ -22,6 +22,42 @@
       ],
       "created": "2026-11-17T03:17:04Z",
       "last_seen": "2026-11-17T03:17:04Z"
+    },
+    {
+      "id": "L-016",
+      "key": "surviving_mutant::assert a forbidden element is absent inside each row that could carry it never through a selector no element matches",
+      "text": "Assert a forbidden element is absent inside each row that could carry it, never through a selector no element matches",
+      "signal": "surviving_mutant",
+      "scope": "system specs, Stimulus",
+      "status": "candidate",
+      "features": [
+        "lote-identify-progress"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "verification.md finding 1 - document_lote_controller.js:347 (system specs, Stimulus)"
+      ],
+      "created": "2026-11-18T02:04:34Z",
+      "last_seen": "2026-11-18T02:04:34Z"
+    },
+    {
+      "id": "L-017",
+      "key": "spec_precision_gap::write a check s concrete value from the state the gesture produces not from the state before it",
+      "text": "Write a check's concrete value from the state the gesture produces, not from the state before it",
+      "signal": "spec_precision_gap",
+      "scope": "checks",
+      "status": "candidate",
+      "features": [
+        "lote-identify-progress"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "verification.md finding 2 - checks.md C10 (checks)"
+      ],
+      "created": "2026-11-18T02:04:35Z",
+      "last_seen": "2026-11-18T02:04:35Z"
     }
   ]
 }

@@ -1,5 +1,7 @@
 <section data-controller="document-lote">
-  <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold" data-document-lote-target="heading">Incluir documentos</h2>
+  <h2 class="lote-heading text-lg leading-6 font-semibold" data-document-lote-target="heading">Incluir documentos</h2>
+  <div hidden class="lote-rule" aria-hidden="true" data-document-lote-target="rule"></div>
+  <p class="lote-wave text-meta font-medium tabular-nums" role="status" aria-live="polite" data-document-lote-target="wave"></p>
   <%= form_with url: "/supporting_documents", method: :post, multipart: true, class: "contents" do %>
   <%= file_field_tag :file, id: "file", multiple: true, accept: "image/*,.pdf,application/pdf,.xml,application/xml,text/xml", class: "sr-only", tabindex: -1, data: { document_lote_target: "input", action: "change->document-lote#add" } %>
   <button type="button" class="mt-4 flex min-h-32 w-full cursor-pointer flex-col items-start justify-center gap-3 rounded border border-dashed border-rule bg-paper p-4 text-left" data-document-lote-target="drop" data-action="click->document-lote#pick">
@@ -10,7 +12,7 @@
     <div class="mt-4 grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_28rem] md:gap-6">
       <aside class="rounded border border-rule bg-sheet p-3" data-document-lote-target="proof">
         <div class="grid gap-2 border border-rule bg-paper p-3">
-          <div class="h-[28rem] overflow-auto">
+          <div class="h-[16rem] overflow-auto">
             <img hidden alt="" class="hidden h-full w-full object-contain" data-document-lote-target="thumb">
             <embed hidden type="application/pdf" class="hidden h-full w-full" data-document-lote-target="pdfThumb">
           </div>
