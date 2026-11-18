@@ -1,6 +1,6 @@
 # lote-identify-progress proofs
 
-**HEAD**: 417e61b
+**HEAD**: 866ec5d
 **Tree**: clean
 **Result**: 17 pass, 0 fail; mutations 3 killed, 0 not
 
