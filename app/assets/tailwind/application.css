@@ -147,13 +147,24 @@
   /* The section heading's own rule becomes the measure while a wave is in flight: one
      tick per document. Filled means it has a result, hollow means it is being read now,
      pale means it is still queued. */
-  .lote-heading {
+  .lote-mast-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 4px 24px;
     margin-bottom: 1rem;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--color-rule);
   }
 
-  .is-measuring > .lote-heading {
+  .lote-heading {
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .is-measuring > .lote-mast-row {
     margin-bottom: 0;
     padding-bottom: 0;
     border-bottom: 0;
@@ -163,7 +174,7 @@
     display: flex;
     gap: 2px;
     height: 8px;
-    margin: 0 0 16px;
+    margin: 8.8px 0 16px;
   }
 
   .lote-rule > span {
@@ -187,7 +198,7 @@
   }
 
   .lote-wave {
-    margin: 0 0 16px;
+    margin: 0;
   }
 
   .stamp-closed {
