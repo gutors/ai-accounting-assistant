@@ -74,17 +74,15 @@ class ApplicationController < ActionController::Base
   end
 
   def document_list_filters
-    blank = { q: "", kind: "", date_from: "", date_to: "", sort: "date", dir: "desc" }
-    return blank unless request.get?
-
-    blank.merge(
-      q: params[:q].to_s.strip,
-      kind: SupportingDocument.kinds.key?(params[:kind].to_s) ? params[:kind].to_s : "",
-      date_from: SupportingDocument.parse_filter_date(params[:date_from])&.iso8601.to_s,
-      date_to: SupportingDocument.parse_filter_date(params[:date_to])&.iso8601.to_s,
-      sort: params[:sort].to_s == "amount" ? "amount" : "date",
-      dir: params[:dir].to_s == "asc" ? "asc" : "desc"
-    )
+    query = request.query_parameters
+    {
+      q: query[:q].to_s.strip,
+      kind: SupportingDocument.kinds.key?(query[:kind].to_s) ? query[:kind].to_s : "",
+      date_from: SupportingDocument.parse_filter_date(query[:date_from])&.iso8601.to_s,
+      date_to: SupportingDocument.parse_filter_date(query[:date_to])&.iso8601.to_s,
+      sort: query[:sort].to_s == "amount" ? "amount" : "date",
+      dir: query[:dir].to_s == "asc" ? "asc" : "desc"
+    }
   end
 
   def load_home
