@@ -99,6 +99,6 @@ Proof: `bin/rspec spec/requests/supporting_documents_recibo_pdf_spec.rb -e "POST
 
 - **Settled mid-build:** none
 - **Dispatched:**
-- **Boundary:**
-- **Abandoned:**
-- **Walked:**
+- **Boundary:** C1-C17 closed at `b1501ab`
+- **Abandoned:** `SupportingDocument::ReciboPdf` and `spec/requests/supporting_documents_recibo_pdf_spec.rb` so `submit` and the existing request spec stay under file_tokens
+- **Walked:** Development `ReciboFields::Real` on a Padaria text PDF returns `15500` / `2026-06-15` / `Padaria Central`. Identify book, lote JSON, persist and edit are C7–C13. No capture. IDE tab cannot set `<input type=file>`.
