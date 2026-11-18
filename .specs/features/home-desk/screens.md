@@ -1,14 +1,16 @@
 # Home desk screens
 
 **Verifier**: independent sub-agent (author != verifier)
-**Round**: 1
-**HEAD**: 7b5a2b5
+**Round**: 2
+**HEAD**: 11ba80e
 
 | Screen | Compared with | Verdict | Finding |
 | --- | --- | --- | --- |
-| `captures/coordinator-home.running.png` | `captures/coordinator-home.png` | matches | all 28 rows `same` |
+| `captures/coordinator-home.running.png` | `captures/coordinator-home.png` | matches | all 28 rows re-confirmed `same` at `11ba80e`; no row differs and no `same` row regressed |
 
 ### `captures/coordinator-home.running.png`
+
+Round 1 had no `differs` rows to reopen. Regression scan of the re-saved picture against the round-1 `same` rows: none broke.
 
 | Element | Result | Picture draws |
 | --- | --- | --- |

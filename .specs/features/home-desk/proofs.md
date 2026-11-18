@@ -1,6 +1,6 @@
 # home-desk proofs
 
-**HEAD**: d59e7f1
+**HEAD**: 11ba80e
 **Tree**: clean
 **Result**: 32 pass, 0 fail; mutations 3 killed, 0 not
 

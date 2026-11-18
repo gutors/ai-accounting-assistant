@@ -135,7 +135,7 @@ Proof: `bin/rspec spec/requests/organizations_spec.rb -e "submitter two-organiza
 ## Handoff
 
 - **Settled mid-build:** none
-- **Dispatched:** Verifier at `7b5a2b5` (`c226cc7..7b5a2b5`) returned FAIL (3 findings, closed at `cb6353f`); screens round 1 at `7b5a2b5` returned (matches)
-- **Boundary:** C1-C24 closed at `cb6353f` (feature base `c226cc7`)
+- **Dispatched:** Verifier at `7b5a2b5` (`c226cc7..7b5a2b5`) returned FAIL (3 findings, closed at `cb6353f`); screens round 1 at `7b5a2b5` returned (matches); screens round 2 at `11ba80e` returned (matches)
+- **Boundary:** C1-C24 closed at `cb6353f` (feature base `c226cc7`); screens round 2 at `11ba80e`
 - **Abandoned:** none
 - **Walked:** Ambiente local `desk-walk@example.com` on `GET /` at 960×970: ONG Norte current with ONG Sul chip, Abrir mês on one row, open `2026-10` `em trabalho` plus three closed stamps, right pane `outubro de 2026` / `2026-10` / Continuar / `3 pagamentos com documento faltante.` / Contas Extrato Presente then Falta. Saved `captures/coordinator-home.running.png` at 960×970. `GET /supporting_documents` marks Documentos current; `GET /setup` marks Configuração current; Continuar opens `/months/2026-10` (three missing payments, one Falta extrato). Pessoas stays a closed details below the desk. One-org quiet chips and submitter home are request specs.
