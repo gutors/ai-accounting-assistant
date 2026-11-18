@@ -1,8 +1,8 @@
 # documents-sem-mes-list proofs
 
-**HEAD**: e062849
+**HEAD**: 4d71ecf
 **Tree**: clean
-**Result**: 17 pass, 0 fail; mutations 0 killed, 0 not
+**Result**: 17 pass, 0 fail; mutations 3 killed, 0 not
 
 | Check | Proof | Ran | Passed | Result |
 | --- | --- | --- | --- | --- |
@@ -23,3 +23,11 @@
 | C15 | `bin/rspec spec/requests/supporting_documents_spec.rb -e "unauthenticated GET /supporting_documents responds 30` | count unknown | - | pass |
 | Build | `bin/rubocop` | - | - | pass |
 | Build | `bin/erb_lint --lint-all` | - | - | pass |
+
+## Mutations
+
+| Mutation | Location | Killed |
+| --- | --- | --- |
+| C1: drop .unmatched from load_documents base_scope | `app/controllers/application_controller.rb:66` | yes |
+| C6: shift date_from boundary from >= to > | `app/models/supporting_document/filter_list.rb:14` | yes |
+| C13: allow Excluir icon when document belongs to a month | `app/views/supporting_documents/_sem_mes.html.erb:39` | yes |

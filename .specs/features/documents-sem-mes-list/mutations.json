@@ -1,0 +1,23 @@
+[
+  {
+    "file": "app/controllers/application_controller.rb",
+    "old": "base_scope = focused_organization.supporting_documents.unmatched.includes(:month, :justification)",
+    "new": "base_scope = focused_organization.supporting_documents.includes(:month, :justification)",
+    "proof": "bin/rspec spec/requests/supporting_documents_sem_mes_spec.rb -e \"GET /supporting_documents excludes matched documents from Sem mes\"",
+    "label": "C1: drop .unmatched from load_documents base_scope"
+  },
+  {
+    "file": "app/models/supporting_document/filter_list.rb",
+    "old": "relation = relation.where(\"document_on >= ?\", from_date) if from_date",
+    "new": "relation = relation.where(\"document_on > ?\", from_date) if from_date",
+    "proof": "bin/rspec spec/models/supporting_document_filter_list_spec.rb -e \"filter_list filters by date_from and date_to inclusive and ignores invalid dates\"",
+    "label": "C6: shift date_from boundary from >= to >"
+  },
+  {
+    "file": "app/views/supporting_documents/_sem_mes.html.erb",
+    "old": "can_delete: document.month_id.nil? && (coordinator_on_focus? || document.account_id == current_account.id),",
+    "new": "can_delete: coordinator_on_focus? || document.account_id == current_account.id,",
+    "proof": "bin/rspec spec/requests/supporting_documents_sem_mes_spec.rb -e \"GET /supporting_documents omits Excluir icon when document belongs to a month\"",
+    "label": "C13: allow Excluir icon when document belongs to a month"
+  }
+]
