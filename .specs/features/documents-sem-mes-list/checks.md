@@ -90,7 +90,7 @@ Proof: `bin/rspec spec/requests/supporting_documents_spec.rb -e "unauthenticated
 ## Handoff
 
 - **Settled mid-build:** none
-- **Dispatched:** none yet
-- **Boundary:** open
-- **Abandoned:** none
+- **Dispatched:** Verifier at `2dac52c`
+- **Boundary:** C1-C15 closed at `2dac52c`
+- **Abandoned:** extracted `SupportingDocument::FilterList` and `SupportingDocument::SefazConfirm` to keep `app/models/supporting_document.rb` under the 5000-token limit
 - **Walked:** Signed in on `/login` via Ambiente local (`gutors@gmail.com`) and opened `/supporting_documents`. Verified `#sem-mes` renders the reusable filter bar (`Favorecido`, `Tipo`, `De`, `Até`, `Filtrar`), sortable column headers (`Data` ↓ and `Valor` ↕), and SVG action icons (`Editar` pencil in `caixa`, `Excluir` trash in `margem`), excluding matched documents. Filtered with `q=Farmácia` and `sort=amount&dir=asc`, confirming only `Farmácia São José` (`R$ 89,40`) is listed and the `Limpar` link appears.
