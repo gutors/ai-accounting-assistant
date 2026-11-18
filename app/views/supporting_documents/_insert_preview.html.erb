@@ -7,9 +7,12 @@
     <p class="text-meta text-ink-soft">Solte a foto ou o XML, ou clique para escolher. Um arquivo só: foto ou XML.</p>
   </button>
   <div id="preview" class="grid gap-2 border border-rule bg-paper p-4<%= " hidden" unless loaded %>" <%= "hidden" unless loaded %> data-document-identify-target="preview">
-    <div class="h-[28rem] w-full overflow-auto bg-paper<%= " hidden" unless photo_name %>" <%= "hidden" unless photo_name %> data-document-identify-target="thumbWrap">
-      <img alt="<%= photo_name %>" class="h-full w-full object-contain" data-document-identify-target="thumb">
-      <embed type="application/pdf" class="hidden h-full w-full" hidden data-document-identify-target="pdfThumb">
+    <div class="relative w-full bg-paper<%= " hidden" unless photo_name %>" <%= "hidden" unless photo_name %> data-controller="image-zoom" data-image-zoom-scale-value="1" data-document-identify-target="thumbWrap">
+      <%= render "supporting_documents/image_zoom_controls" %>
+      <div class="h-[28rem] overflow-auto" data-image-zoom-target="pane">
+        <img alt="<%= photo_name %>" draggable="false" class="h-full w-full object-contain select-none" data-document-identify-target="thumb" data-image-zoom-target="image" data-action="pointerdown->image-zoom#pointerDown">
+        <embed type="application/pdf" class="hidden h-full w-full" hidden data-document-identify-target="pdfThumb">
+      </div>
     </div>
     <p class="text-meta text-ink-soft" data-document-identify-target="proofFile"><%= loaded ? "#{identification.intake_arquivo} · #{identification.intake_filename}" : "" %></p>
     <% if loaded %>

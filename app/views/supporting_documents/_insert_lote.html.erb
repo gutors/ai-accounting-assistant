@@ -14,9 +14,12 @@
     <div class="mt-4 grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_28rem] md:gap-6">
       <aside class="rounded border border-rule bg-sheet p-3" data-document-lote-target="proof">
         <div class="grid gap-2 border border-rule bg-paper p-3">
-          <div class="h-[16rem] overflow-auto">
-            <img hidden alt="" class="hidden h-full w-full object-contain" data-document-lote-target="thumb">
-            <embed hidden type="application/pdf" class="hidden h-full w-full" data-document-lote-target="pdfThumb">
+          <div class="relative" data-controller="image-zoom" data-image-zoom-scale-value="1">
+            <%= render "supporting_documents/image_zoom_controls" %>
+            <div class="h-[16rem] overflow-auto" data-image-zoom-target="pane">
+              <img hidden alt="" draggable="false" class="hidden h-full w-full object-contain select-none" data-document-lote-target="thumb" data-image-zoom-target="image" data-action="pointerdown->image-zoom#pointerDown">
+              <embed hidden type="application/pdf" class="hidden h-full w-full" data-document-lote-target="pdfThumb">
+            </div>
           </div>
           <div class="flex items-baseline justify-between gap-3">
             <p class="min-w-0 truncate" data-document-lote-target="caption"></p>

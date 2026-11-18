@@ -1,0 +1,23 @@
+[
+  {
+    "file": "app/javascript/controllers/image_zoom_controller.js",
+    "old": "const MAX = 4",
+    "new": "const MAX = 5",
+    "proof": "bin/rspec spec/system/image_zoom_spec.rb -e \"lote JPEG Ampliar at 4 stays 4 and disables Ampliar\"",
+    "label": "C3 max scale 4 -> 5"
+  },
+  {
+    "file": "app/javascript/controllers/image_zoom_controller.js",
+    "old": "        this.lastSrc = src\n        this.scaleValue = MIN\n",
+    "new": "        this.lastSrc = src\n",
+    "proof": "bin/rspec spec/system/image_zoom_spec.rb -e \"lote second JPEG row resets scale to 1\"",
+    "label": "C11 lote src change no longer resets scale"
+  },
+  {
+    "file": "app/views/supporting_documents/_sem_mes.html.erb",
+    "old": "            <p class=\"font-medium\"><%= document.payee %></p>\n            <% if document.photo.attached? || document.xml.attached? %>\n",
+    "new": "            <p class=\"font-medium\"><%= document.payee %></p>\n            <% if document.chave.present? %>\n              <p data-chave class=\"font-mono text-meta break-words\"><%= format_chave(document.chave) %></p>\n            <% end %>\n            <% if document.photo.attached? || document.xml.attached? %>\n",
+    "proof": "bin/rspec spec/requests/supporting_documents_proof_zoom_spec.rb -e \"GET supporting_documents omits grouped chave from Sem mes\"",
+    "label": "C17 Sem mes shows grouped chave again"
+  }
+]

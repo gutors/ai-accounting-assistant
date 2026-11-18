@@ -21,11 +21,18 @@
 <div data-edit="split" class="mt-12 grid items-start gap-12 md:grid-cols-[minmax(0,1fr)_28rem] md:gap-8">
   <aside data-edit="proof">
     <div class="rounded border border-rule bg-sheet p-4">
-      <div class="h-[28rem] overflow-auto border border-rule bg-paper">
+      <div class="border border-rule bg-paper">
         <% if document.photo.attached? && document.photo.content_type.to_s.start_with?("image/") %>
-          <%= image_tag url_for(document.photo), alt: document.photo.filename.to_s, class: "h-full w-full object-contain" %>
+          <div class="relative" data-controller="image-zoom" data-image-zoom-scale-value="1">
+            <%= render "supporting_documents/image_zoom_controls" %>
+            <div class="h-[28rem] overflow-auto" data-image-zoom-target="pane">
+              <%= image_tag url_for(document.photo), alt: document.photo.filename.to_s, draggable: false, class: "h-full w-full object-contain select-none", data: { image_zoom_target: "image", action: "pointerdown->image-zoom#pointerDown" } %>
+            </div>
+          </div>
         <% elsif document.photo.attached? && document.photo.content_type.to_s == "application/pdf" %>
-          <embed src="<%= url_for(document.photo) %>#toolbar=1&view=Fit" type="application/pdf" class="h-full w-full">
+          <div class="h-[28rem] overflow-auto">
+            <embed src="<%= url_for(document.photo) %>#toolbar=1&view=Fit" type="application/pdf" class="h-full w-full">
+          </div>
         <% elsif document.photo.attached? %>
           <p class="p-4 text-meta text-ink-soft"><%= document.photo.filename %></p>
         <% else %>
