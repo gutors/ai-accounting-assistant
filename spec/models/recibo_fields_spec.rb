@@ -47,6 +47,8 @@ RSpec.describe ReciboFields, type: :model do
       Aqui está o recibo da sua entrega
       Total R$ 40,94
       Preço da viagem R$ 39,23
+      27/06/2026
+      Kali Confeitaria
     TEXT
 
     result = ReciboFields::Real.new.read(bytes: text_pdf(text), filename: "uber.pdf")
@@ -68,6 +70,20 @@ RSpec.describe ReciboFields, type: :model do
   it "Real empty pdftotext uses OCR Padaria triple" do
     pdf = text_pdf("blank")
     allow(PhotoPdf).to receive(:text).and_return("")
+    allow(PhotoPdf).to receive(:png_pages).and_return([ "png-bytes" ])
+    allow(PhotoOcr).to receive(:text).with("png-bytes").and_return(padaria_recibo_text)
+
+    result = ReciboFields::Real.new.read(bytes: pdf, filename: "scan.pdf")
+
+    expect(result).to be_a(ReciboFields::Fields)
+    expect(result.amount_cents).to eq(15500)
+    expect(result.document_on).to eq(Date.new(2026, 6, 15))
+    expect(result.payee).to eq("Padaria Central")
+  end
+
+  it "Real unusable pdftotext uses OCR Padaria triple" do
+    pdf = text_pdf("R$ 155,00")
+    allow(PhotoPdf).to receive(:text).and_return("R$ 155,00")
     allow(PhotoPdf).to receive(:png_pages).and_return([ "png-bytes" ])
     allow(PhotoOcr).to receive(:text).with("png-bytes").and_return(padaria_recibo_text)
 

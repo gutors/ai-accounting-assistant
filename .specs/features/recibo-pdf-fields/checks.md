@@ -30,6 +30,7 @@ Proof: `bin/rspec spec/models/recibo_fields_spec.rb -e "Real app receipt PDF ret
 **C6** - When `pdftotext` yields a usable Padaria triple, `PhotoOcr` does not run; when `pdftotext` is empty or unusable and raster OCR of a page yields that Padaria triple, Real returns those three values (AC 6)
 Proof: `bin/rspec spec/models/recibo_fields_spec.rb -e "Real pdftotext Padaria triple does not call PhotoOcr"`
 Proof: `bin/rspec spec/models/recibo_fields_spec.rb -e "Real empty pdftotext uses OCR Padaria triple"`
+Proof: `bin/rspec spec/models/recibo_fields_spec.rb -e "Real unusable pdftotext uses OCR Padaria triple"`
 
 ### S2 - Identify fills the book
 
@@ -73,7 +74,7 @@ Proof: `bin/rspec spec/requests/supporting_documents_recibo_pdf_spec.rb -e "POST
 | Set (size) | Member -> proof | Unproven |
 | --- | --- | --- |
 | parser layouts (5) | Padaria C1 · Kali C2 · amount-only Miss C3 · DANFE Miss C4 · app Miss C5 | - |
-| text vs OCR (2) | `pdftotext` usable C6 · empty `pdftotext` OCR C6 | - |
+| text vs OCR (3) | `pdftotext` usable C6 · empty `pdftotext` OCR C6 · unusable `pdftotext` OCR C6 | - |
 | identify callers (2) | coordinator C7 · submitter C9 | - |
 | identify_batch recibo origin (1) | `Lido da foto` C8 | - |
 | stay typed (2) | JPEG C10 · app PDF C11 | - |
@@ -98,7 +99,7 @@ Proof: `bin/rspec spec/requests/supporting_documents_recibo_pdf_spec.rb -e "POST
 ## Handoff
 
 - **Settled mid-build:** none
-- **Dispatched:**
+- **Dispatched:** Verifier at `a4f83aa`
 - **Boundary:** C1-C17 closed at `b1501ab`
 - **Abandoned:** `SupportingDocument::ReciboPdf` and `spec/requests/supporting_documents_recibo_pdf_spec.rb` so `submit` and the existing request spec stay under file_tokens
 - **Walked:** Development `ReciboFields::Real` on a Padaria text PDF returns `15500` / `2026-06-15` / `Padaria Central`. Identify book, lote JSON, persist and edit are C7–C13. No capture. IDE tab cannot set `<input type=file>`.
