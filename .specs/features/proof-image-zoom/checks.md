@@ -121,7 +121,7 @@ Proof: `bin/rspec spec/requests/supporting_documents_edit_spec.rb -e "unauthenti
 ## Handoff
 
 - **Settled mid-build:** none
-- **Dispatched:** none
-- **Boundary:** none
-- **Abandoned:** none
+- **Dispatched:** Verifier at `2a92f5d` returned
+- **Boundary:** C1-C22 closed at `2a92f5d`
+- **Abandoned:** split `spec/requests/supporting_documents_spec.rb` so the chave example could be staged under file_tokens (`supporting_documents_edit_spec.rb`, `supporting_documents_identify_spec.rb`)
 - **Walked:** Coordinator `/login` Ambiente local `gutors@gmail.com` then `/supporting_documents`. Sem mês rows show payee, date, kind, `R$` amount and filename, not a grouped chave. Editar of `nota-gasolina-ranger-2205.jpeg` shows `Ampliar` / `Reduzir` (`Reduzir` disabled at fit); `Ampliar` enables `Reduzir` and the proof pane grows scrollbars; `input#chave` keeps raw digits. Insert JPEG attach is C1–C13 (IDE tab cannot set `<input type=file>`). No capture.
