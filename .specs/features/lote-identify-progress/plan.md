@@ -132,16 +132,18 @@ Every row's Situação matches its tick, so the two readings of the lote never c
 ## Differences from the source
 
 Every tick state, the sentence, the two row words and the absent sub-line are drawn by
-`captures/lote-b-faixa-fila.png` and reproduced as they are. Two facts the capture also draws are
+`captures/lote-b-faixa-fila.png` and reproduced as they are. Four facts the capture also draws are
 out of this cut, accepted by the user (ADR-0011).
 
 | Source shows | Product shows | Confirmed |
 | --- | --- | --- |
 | proof square of an XML carries the access key in monospace inside the frame | an empty frame — the frame holds a photo, a PDF or nothing (`documents-insert-refine`) | y - AD-0011 |
 | green note `Definido pelo XML.` under `Tipo` | no note under `Tipo`; origin notes only under `Valor`, `Data` and `Favorecido` | y - AD-0011 |
+| `Valor` field with the currency, `R$ 155,00` | the masked book string, `155,00`; `R$` appears on the lote rows and the month pages | y - AD-0011 |
+| access key grouped in fours with spaces | the raw 44-digit value in the editable field; the grouped form belongs where the key is read | y - AD-0011 |
 
-AD-0011 is [ADR-0011](../../../docs/adr/0011-lote-progress-capture-scope.md): the two facts belong
-to the single-file include screen, not to the lote's measure.
+AD-0011 is [ADR-0011](../../../docs/adr/0011-lote-progress-capture-scope.md): these facts belong to
+the single-file include screen and the field formats it already ships, not to the lote's measure.
 
 This feature does change behaviour shipped by `lote-identify-waves` (C3 and C4 assert
 `Identificando o arquivo…` on every lote row). That is a supersession of an earlier feature, not a
