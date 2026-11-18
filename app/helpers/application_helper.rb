@@ -43,4 +43,10 @@ module ApplicationHelper
   def amount_field_value(cents)
     BrlCents.field_value(cents)
   end
+
+  def principal_nav_link(label, path)
+    current = current_page?(path)
+    link_to label, path, aria: { current: ("page" if current) },
+      class: [ "text-ink hover:underline underline-offset-2", ("font-semibold underline" if current) ]
+  end
 end

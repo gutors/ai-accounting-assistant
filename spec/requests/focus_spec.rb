@@ -16,7 +16,7 @@ RSpec.describe "Focus", type: :request do
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
     expect(toast_message(response.body)).to eq("Agora em ONG Sul.")
     expect(response.body).to include("ONG Sul")
-    sul = page_doc(response.body).css('nav[aria-label="Organizações"] button').find { |button| button.text.strip == "ONG Sul" }
+    sul = page_doc(response.body).css('[role="group"][aria-label="Organização"] button').find { |button| button.text.strip == "ONG Sul" }
     expect(sul["aria-current"]).to eq("true")
   end
 
@@ -28,7 +28,10 @@ RSpec.describe "Focus", type: :request do
 
     get "/"
 
-    buttons = page_doc(response.body).css('nav[aria-label="Organizações"] button')
+    group = page_doc(response.body).at_css('[role="group"][aria-label="Organização"]')
+    expect(group).to be_present
+    buttons = group.css("button")
+    expect(buttons.map { |button| button.text.strip }).to contain_exactly("ONG Norte", "ONG Sul")
     norte = buttons.find { |button| button.text.strip == "ONG Norte" }
     sul = buttons.find { |button| button.text.strip == "ONG Sul" }
     expect(norte["aria-current"]).to eq("true")
