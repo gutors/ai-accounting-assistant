@@ -32,6 +32,18 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: verification.md finding 2 - checks.md C10 (checks)
 - last seen: 2026-11-18T02:04:35Z
 
+### L-018 - A Miss-for-kind fixture must still yield a complete triple so only the kind guard can produce Miss
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `parser specs` · harmful: 0
+- features: recibo-pdf-fields
+- evidence: C5 app-receipt PDF (parser specs)
+- last seen: 2026-11-18T15:01:31Z
+
+### L-019 - When a criterion names empty or unusable input, prove both paths, not only the empty stub
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `parser specs` · harmful: 0
+- features: recibo-pdf-fields
+- evidence: C6 AC 6 unusable pdftotext (parser specs)
+- last seen: 2026-11-18T15:01:31Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.
