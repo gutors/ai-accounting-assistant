@@ -85,7 +85,7 @@ Proof: `bin/rspec spec/system/document_lote_progress_spec.rb -e "Incluir prontos
 ## Handoff
 
 - **Settled mid-build:** "Critério 4 manda: com um arquivo só, volta a tela de inclusão simples, sem régua" - a lote that drops to one file shows no rule and no sentence; AC 13 is proven with a ten-file lote that keeps six. "Registrar como diferenças do capture (ADR-0011), sem construir" - the two proof-square facts the capture draws stay as they are (AD-0011).
-- **Dispatched:** screens round 1 at `31fc255` returned (diverges, 6 rows); Verifier at `31fc255` returned (FAIL, 2 findings); screens round 2 at `e63456d`
+- **Dispatched:** screens round 1 at `31fc255` returned (diverges, 6 rows); Verifier at `31fc255` returned (FAIL, 2 findings); screens round 2 at `e63456d` (pictures re-saved there; the commits after it touch only `.specs/`)
 - **Boundary:** C1-C15 closed at `e17b34a`
 - **Abandoned:** none
 - **Walked:** Coordinator `/supporting_documents` with ten authorized XMLs `d1.xml`…`d10.xml` attached through the picker, waves gated so the second wave sat in flight; the section showed the ten-tick rule with ticks 5–8 hollow and `Identificando os documentos 5 a 8 de 10`, rows 1–4 `Pronto`, rows 5–8 `Identificando`, rows 9–10 `Na fila`, and `Incluir prontos (4)`. Saved as `captures/lote-b-faixa-fila.running.png` at 716×798, the section's own size at a 780px window. The 390px / 30-file state and the singular `Identificando o documento 5 de 5` are proven by C12 and C3.
