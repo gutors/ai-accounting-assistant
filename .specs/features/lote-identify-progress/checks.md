@@ -37,7 +37,7 @@ Proof: `bin/rspec spec/system/document_lote_progress_spec.rb -e "unreadable XML 
 **C9** - When the last wave lands, the rule and the sentence are gone and `Incluir prontos (5)` carries the count (AC 7)
 Proof: `bin/rspec spec/system/document_lote_progress_spec.rb -e "last wave leaves no rule and the count on Incluir prontos"`
 
-**C10** - `Retirar` on a five-file lote while the first wave is in flight leaves four ticks, and the sentence names the same four documents `1 a 4 de 4` (AC 8)
+**C10** - `Retirar` on the five-file lote while the first wave is in flight leaves four ticks and the sentence names the same documents by their new 1-based bounds `Identificando os documentos 1 a 3 de 4`, ticks 1–3 hollow and tick 4 pale (AC 8)
 Proof: `bin/rspec spec/system/document_lote_progress_spec.rb -e "Retirar repaints the rule with one tick fewer"`
 
 **C11** - Attaching two more files while the first wave of five is in flight paints seven ticks, keeps ticks 1–4 hollow, and shows `f.xml` and `g.xml` as `Na fila` (AC 9)

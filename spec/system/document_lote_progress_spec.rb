@@ -30,6 +30,10 @@ RSpec.describe "Document lote progress", type: :system do
     page.find("[data-lote-id]", text: name).find("[data-lote-status]").text
   end
 
+  def row_of(name)
+    page.find("[data-lote-id]", text: name)
+  end
+
   def ten_xmls
     wave_xmls(*%w[a.xml b.xml c.xml d.xml e.xml f.xml g.xml h.xml i.xml j.xml])
   end
@@ -111,16 +115,18 @@ RSpec.describe "Document lote progress", type: :system do
 
     %w[a.xml b.xml c.xml d.xml].each { |name| expect(status_of(name)).to eq("Identificando") }
     expect(status_of("e.xml")).to eq("Na fila")
-    expect(page).to have_no_css("[data-lote-row]:has([data-lote-status]) p.text-meta", text: "Identificando o arquivo…")
+    %w[a.xml b.xml c.xml d.xml e.xml].each { |name| expect(row_of(name)).to have_no_content("Identificando o arquivo…") }
     expect(page).to have_no_css("[data-lote-status]", text: "Identificando o arquivo…")
 
     release_identify_wave
     expect(page).to have_css("[data-lote-status]", text: "Pronto", count: 4)
     expect(status_of("e.xml")).to eq("Identificando")
+    %w[a.xml b.xml c.xml d.xml e.xml].each { |name| expect(row_of(name)).to have_no_content("Identificando o arquivo…") }
 
     release_identify_wave
     expect(status_of("e.xml")).to eq("Pronto")
     expect(page).to have_no_css("[data-lote-status]", text: "Identificando o arquivo…")
+    %w[a.xml b.xml c.xml d.xml e.xml].each { |name| expect(row_of(name)).to have_no_content("Identificando o arquivo…") }
 
     visit "/supporting_documents"
     gate_identify_waves

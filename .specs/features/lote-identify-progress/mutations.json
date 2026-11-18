@@ -1,0 +1,23 @@
+[
+  {
+    "file": "app/javascript/controllers/document_lote_controller.js",
+    "old": "this.inWave(item) ? \"<span data-reading></span>\" : \"<span></span>\"",
+    "new": "this.inWave(item) ? \"<span data-reading></span>\" : \"<span data-reading></span>\"",
+    "proof": "bin/rspec spec/system/document_lote_progress_spec.rb -e \"ten files paint ten ticks in the three states\"",
+    "label": "queued tick pale -> hollow (tick state mapping)"
+  },
+  {
+    "file": "app/javascript/controllers/document_lote_controller.js",
+    "old": "bounds.start === bounds.end\n",
+    "new": "bounds.start === bounds.end + 1\n",
+    "proof": "bin/rspec spec/system/document_lote_progress_spec.rb -e \"sentence names every wave bounds and the total\"",
+    "label": "singular sentence never taken (o documento 5 de 5 -> os documentos 5 a 5)"
+  },
+  {
+    "file": "app/javascript/controllers/document_lote_controller.js",
+    "old": "            ${error}\n",
+    "new": "            ${error}${item.status === \"identifying\" ? `<p class=\"text-meta\">Identificando o arquivo…</p>` : \"\"}\n",
+    "proof": "bin/rspec spec/system/document_lote_progress_spec.rb -e \"five XMLs split Identificando from Na fila\"",
+    "label": "row sub-line `Identificando o arquivo…` under the file name restored"
+  }
+]

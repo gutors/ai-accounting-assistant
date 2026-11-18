@@ -1,17 +1,17 @@
 # lote-identify-progress proofs
 
-**HEAD**: e17b34a
+**HEAD**: bc4af95
 **Tree**: clean
-**Result**: 15 pass, 2 fail; mutations 0 killed, 0 not
+**Result**: 15 pass, 2 fail; mutations 2 killed, 1 not
 
 | Check | Proof | Ran | Passed | Result |
 | --- | --- | --- | --- | --- |
-| C1 | `browser - ten files, second wave gated in flight, save captures/lote-b-faixa-fila.running.png at 716×798` | - | - | **not judged** (screens.md) |
+| C1 | `browser - ten files, second wave gated in flight, save captures/lote-b-faixa-fila.running.png at 716×798` | - | - | **diverges** (screens.md) |
 | C2 | `bin/rspec spec/system/document_lote_progress_spec.rb -e "ten files paint ten ticks in the three states"` | count unknown | - | pass |
 | C3 | `bin/rspec spec/system/document_lote_progress_spec.rb -e "sentence names every wave bounds and the total"` | count unknown | - | pass |
 | C4 | `bin/rspec spec/system/document_lote_progress_spec.rb -e "four files show one wave over four ticks"` | count unknown | - | pass |
 | C5 | `bin/rspec spec/system/document_lote_progress_spec.rb -e "one file keeps the proof square sentence and no rule"` | count unknown | - | pass |
-| C6 | `browser - ten files, second wave gated in flight, save captures/lote-b-faixa-fila.running.png at 716×798` | - | - | **not judged** (screens.md) |
+| C6 | `browser - ten files, second wave gated in flight, save captures/lote-b-faixa-fila.running.png at 716×798` | - | - | **diverges** (screens.md) |
 | C7 | `bin/rspec spec/system/document_lote_progress_spec.rb -e "five XMLs split Identificando from Na fila"` | count unknown | - | pass |
 | C8 | `bin/rspec spec/system/document_lote_progress_spec.rb -e "unreadable XML fills one margem tick"` | count unknown | - | pass |
 | C9 | `bin/rspec spec/system/document_lote_progress_spec.rb -e "last wave leaves no rule and the count on Incluir pro` | count unknown | - | pass |
@@ -23,3 +23,11 @@
 | C15 | `bin/rspec spec/system/document_lote_progress_spec.rb -e "Incluir prontos while a wave is in flight repaints th` | count unknown | - | pass |
 | Build | `bin/rubocop` | - | - | pass |
 | Build | `bin/erb_lint --lint-all` | - | - | pass |
+
+## Mutations
+
+| Mutation | Location | Killed |
+| --- | --- | --- |
+| queued tick pale -> hollow (tick state mapping) | `app/javascript/controllers/document_lote_controller.js:305` | yes |
+| singular sentence never taken (o documento 5 de 5 -> os documentos 5 a 5) | `app/javascript/controllers/document_lote_controller.js:308` | yes |
+| row sub-line `Identificando o arquivo…` under the file name restored | `app/javascript/controllers/document_lote_controller.js:347` | no |
