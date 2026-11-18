@@ -75,14 +75,14 @@ The coordinator sees how far the reading has got, and which four documents it is
 
 **Acceptance Criteria**
 
-1. WHILE a wave of four is in flight over ten files, WHEN the coordinator looks at the section, THEN the system SHALL show `Identificando os documentos 5 a 8 de 10` under the rule, the rule SHALL have ten ticks, ticks 1–4 filled `caixa`, ticks 5–8 hollow with a 2px `caixa` outline, ticks 9–10 filled `rule`, as drawn in `.specs/features/lote-identify-progress/captures/lote-b-faixa-fila.png` (`captures/ruler-states.png`) (AC 1)
+1. WHILE a wave of four is in flight over ten files, WHEN the coordinator looks at the section, THEN the system SHALL show `Identificando os documentos 5 a 8 de 10` under the rule, the rule SHALL have ten ticks, ticks 1–4 filled `caixa`, ticks 5–8 hollow with a 2px `caixa` outline, ticks 9–10 filled `rule`, as drawn in `.specs/features/lote-identify-progress/captures/lote-b-faixa-fila.png`, whose three tick states the enlarged detail `ruler-states` in `## Sources` fixes at 24px (AC 1)
 2. WHEN a wave finishes and the next one starts, THEN the sentence SHALL name that wave's 1-based bounds and total — over ten files: `Identificando os documentos 1 a 4 de 10`, then `5 a 8 de 10`, then `9 a 10 de 10` (AC 2)
    - five files → `Identificando os documentos 1 a 4 de 5`, then `Identificando o documento 5 de 5`; one file in a wave takes the singular `o documento 5 de 5`, never `os documentos 5 de 5` or `5 a 5`
 3. WHEN the coordinator attaches four files, a single wave, THEN the system SHALL still show the sentence `Identificando os documentos 1 a 4 de 4` and four ticks (AC 3)
 4. WHILE the lote holds one file, WHEN the coordinator looks at the section, THEN the system SHALL show no rule and no sentence, and the proof square SHALL keep `Identificando o arquivo…` (AC 4)
 5. WHEN the coordinator attaches five files and the first wave is in flight, THEN rows of the wave SHALL show `Identificando` in Situação, rows 5 SHALL show `Na fila`, and no row SHALL show a second sentence under its file name, as drawn in `.specs/features/lote-identify-progress/captures/lote-b-faixa-fila.png` (AC 5)
    - the sentence under the file name is absent on every row: wave, queued, ready, error
-6. IF a document in the wave finishes in error, THEN its tick SHALL be filled `margem` and its row SHALL show `Erro` with the error sentence, per `.specs/features/lote-identify-progress/captures/ruler-states.png` (AC 6)
+6. IF a document in the wave finishes in error, THEN its tick SHALL be filled `margem` and its row SHALL show `Erro` with the error sentence, per the error state of the detail in `## Sources` (AC 6)
    - unreadable XML `nota.xml` as the first of four → one `margem` tick, three `caixa` ticks, row `Erro` with `O XML da nota fiscal não pôde ser lido`
 7. WHEN every file has a result, THEN the rule and the sentence SHALL be absent, and `Incluir prontos (n)` SHALL carry the count (AC 7)
 8. WHEN the coordinator removes a file from the lote, THEN the rule SHALL repaint with one tick fewer and the sentence SHALL keep naming the same documents by their new 1-based bounds (AC 8)

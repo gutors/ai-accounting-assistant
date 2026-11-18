@@ -13,7 +13,7 @@ Plan: `.specs/features/lote-identify-progress/plan.md`
 **C1** - With ten files and the second wave in flight, the section matches `.specs/features/lote-identify-progress/captures/lote-b-faixa-fila.png`: the heading carries ten ticks with ticks 5–8 hollow, the sentence `Identificando os documentos 5 a 8 de 10` sits under them, and the heading's own border is gone (AC 1)
 Proof: browser - ten files, second wave gated in flight, save `captures/lote-b-faixa-fila.running.png` at 716×798
 
-**C2** - The ticks take the three states drawn in `.specs/features/lote-identify-progress/captures/ruler-states.png` (its detail of the same state C1 judges, not a state of its own): with ten files and the second wave in flight, ticks 1–4 have background `rgb(46, 107, 78)`, ticks 5–8 have background `rgb(243, 245, 241)` with a `2px` inset `rgb(46, 107, 78)` outline, ticks 9–10 have background `rgb(199, 213, 202)` (AC 1)
+**C2** - The ticks take the three states the enlarged detail in `## Sources` draws: with ten files and the second wave in flight, ticks 1–4 have background `rgb(46, 107, 78)`, ticks 5–8 have background `rgb(243, 245, 241)` with a `2px` inset `rgb(46, 107, 78)` outline, ticks 9–10 have background `rgb(199, 213, 202)` (AC 1)
 Proof: `bin/rspec spec/system/document_lote_progress_spec.rb -e "ten files paint ten ticks in the three states"`
 
 **C3** - The sentence names each wave's 1-based bounds and the lote total: ten files give `Identificando os documentos 1 a 4 de 10`, then `5 a 8 de 10`, then `9 a 10 de 10`; five files give `Identificando os documentos 1 a 4 de 5`, then `Identificando o documento 5 de 5`, never `os documentos 5 a 5` (AC 2)
@@ -31,7 +31,7 @@ Proof: browser - ten files, second wave gated in flight, save `captures/lote-b-f
 **C7** - Every row of a five-file lote carries its Situação word: four `Identificando` while the first wave is in flight and one `Na fila`; once that wave returns the first four say `Pronto` and the fifth still says `Na fila`; a row in `Erro` shows its error sentence and no reading sentence (AC 5)
 Proof: `bin/rspec spec/system/document_lote_progress_spec.rb -e "five XMLs split Identificando from Na fila"`
 
-**C8** - An unreadable XML `nota.xml` as the first of four fills one tick `margem` — the error state of `.specs/features/lote-identify-progress/captures/ruler-states.png` — leaves three `caixa` ticks, and its row shows `Erro` with `O XML da nota fiscal não pôde ser lido` (AC 6)
+**C8** - An unreadable XML `nota.xml` as the first of four fills one tick `margem` — the error state of the enlarged detail — leaves three `caixa` ticks, and its row shows `Erro` with `O XML da nota fiscal não pôde ser lido` (AC 6)
 Proof: `bin/rspec spec/system/document_lote_progress_spec.rb -e "unreadable XML fills one margem tick"`
 
 **C9** - When the last wave lands, the rule and the sentence are gone and `Incluir prontos (5)` carries the count (AC 7)
