@@ -531,20 +531,27 @@ RSpec.describe "Organization home", type: :request do
     sign_in_as(account, organization: organization)
     closed = Month.open(organization: organization, year_month: "2026-09")
     closed.update!(closed: true)
+    Month.open(organization: organization, year_month: "2026-08")
     Month.open(organization: organization, year_month: "2026-10")
 
     get "/"
 
     month_rows = rows(response.body, "month")
-    expect(month_rows.map { |row| row.at_css("a")["href"] }).to eq([ "/months/2026-10", "/months/2026-09" ])
-    open_row = month_rows.first
+    expect(month_rows.map { |row| row.at_css("a")["href"] }).to eq(
+      [ "/months/2026-10", "/months/2026-09", "/months/2026-08" ]
+    )
+    open_row = month_rows[0]
     expect(open_row.at_css("a").text).to include("outubro de 2026")
     expect(open_row.text).to include("em trabalho")
     expect(open_row.text).to include("Aberto")
-    closed_row = month_rows.last
+    closed_row = month_rows[1]
     expect(closed_row.at_css("a").text).to include("setembro de 2026")
     expect(closed_row.at_css(".stamp-closed-row").text.strip).to eq("Fechado")
     expect(closed_row.text).not_to include("em trabalho")
+    older_open = month_rows[2]
+    expect(older_open.at_css("a").text).to include("agosto de 2026")
+    expect(older_open.text).to include("Aberto")
+    expect(older_open.text).not_to include("em trabalho")
   end
 
   it "in-work month 2026-10 right h1 is outubro de 2026 with Continuar to /months/2026-10" do
@@ -564,8 +571,11 @@ RSpec.describe "Organization home", type: :request do
   it "in-work summary says 3 pagamentos com documento faltante in margem without Falta o extrato" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
+    BankAccount.create_for(organization: organization, name: "Conta Principal", compe: "001")
+    BankAccount.create_for(organization: organization, name: "Conta Alfa", compe: "104")
     _month, statement = plant_month(organization, year_month: "2026-10")
     3.times { |i| plant_payment(statement, 1000 + i) }
+    plant_payment(statement, 1550, history: "Tarifa").mark_document_exception("bank_fee")
 
     get "/"
 
