@@ -167,7 +167,7 @@ The closed month is an ink stamp, the only double-ruled mark in the system. The 
 **Key Characteristics:**
 
 - **Ruled rows.** Money and document lists are a ledger sheet: vertical and horizontal rules, not cards.
-- **Two layouts.** Início is a two-pane desk. Close work, documents, setup, and administration stay a single ledger column.
+- **Two layouts.** Início and Configuração are two-pane desks. Close work, documents, and administration stay a single ledger column.
 - **One red.** `margem` is the only red. It is a left rule on a blocked row, a sentence, a quiet destructive word, or a toast fill.
 - **Flat paper.** Depth is a hairline rule, not a drop shadow. A work panel is a ruling-bordered sheet.
 - **The stamp.** A closed month is inked and double-ruled. The index uses a compact “Fechado”; the month page uses “Mês fechado”.
@@ -219,9 +219,11 @@ One family, self-hosted, Latin subset, `font-display: swap`. IBM Plex Sans at 40
 
 ## Layout
 
-Signed-in pages other than Início live in a 72rem column, left-aligned, inside the viewport. The page gutter is 20px on a phone and 32px from 768px. Below the header (minimum height 3.5rem) the title sits 40px down; sections stack 48px apart; the column ends with 64px.
+Signed-in pages other than Início and Configuração live in a 72rem column, left-aligned, inside the viewport. The page gutter is 20px on a phone and 32px from 768px. Below the header (minimum height 3.5rem) the title sits 40px down; sections stack 48px apart; the column ends with 64px.
 
 **Início (coordinator).** From 768px the main is a two-pane desk: a 26rem index with a right ruling, and a scrolling in-work pane. The index is `Abrir mês` (select and primary on one row), then `Meses` as a single-rule list (title `Setembro - 09/2026`, `Faltam extratos` in aviso or `Em andamento`, or the compact Fechado stamp), then a paper pin at the bottom for `Coordenadores e submitters`. The right pane shows the selected month (display title, `YYYY-MM`, Continuar, missing-document sentence, three-track Contas bancárias) or the people book. Below 768px the panes stack. Submitter home is not this desk: it is the one-column sentence that points at Documentos.
+
+**Configuração (coordinator).** From 768px the same two-pane desk: a 26rem index of the five standing items (Contador, Arquivo do pacote, Certificado A1, Contas bancárias, Tipos extras), and the selected item’s form on the right. Incomplete items take the red margin and `Falta` or `Expirado` in `margem`. Below 768px the panes stack. Submitter has no Configuração.
 
 **Sheets.** From 768px every money or document list is a ruled sheet: 1px vertical `rule` between cells, 1px horizontal `rule` between rows, snug cell padding (6px by 10px; payment rows 3px vertical). Head and body rows of one sheet share one column template. Below 768px the header hides, cells stack, and vertical rules drop. There is no horizontal scroll at 390px.
 
@@ -241,7 +243,7 @@ The people book is not a five-track sheet. It is grouped `person-entry` rows: em
 
 **The Shared Track Rule.** Head and body of a sheet use the same column template. Action tracks are fixed rem, never `auto` or `max-content`: the header cell is empty, and a content-sized track would let the row drift off the rule.
 
-**The Desk Rule.** Início is two panes from 768px. Do not restack Organizações / Abrir o fechamento / Meses / Pessoas as chapters on that page.
+**The Desk Rule.** Início and Configuração are two panes from 768px. Do not restack those pages as chapters.
 
 ## Elevation & Depth
 

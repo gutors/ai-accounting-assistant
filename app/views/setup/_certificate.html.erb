@@ -1,0 +1,24 @@
+<% if @organization.sefaz_titular_cnpj.blank? %>
+  <p class="mt-6">Não há certificado A1 instalado. Use Instalar certificado.</p>
+<% else %>
+  <p class="mt-6 font-medium"><%= @organization.sefaz_titular_display %></p>
+  <% if @organization.sefaz_certificate_expired? %>
+    <p class="text-margem">Expirado em <%= l(@organization.sefaz_not_after) %></p>
+  <% else %>
+    <p class="text-ink-soft">Válido até <%= l(@organization.sefaz_not_after) %></p>
+  <% end %>
+  <%= button_to "Remover", "/sefaz_certificate", method: :delete, form: { data: { turbo_confirm: "Remover o certificado SEFAZ?" } }, form_class: "mt-2 mb-4", class: "text-margem underline underline-offset-2" %>
+<% end %>
+<details<% if @certificate_error.present? %> open<% end %>>
+  <summary class="cursor-pointer font-medium text-caixa">Instalar certificado</summary>
+  <%= form_with url: "/sefaz_certificate", method: :post, multipart: true, class: "mt-3 grid max-w-3xl gap-4 rounded border border-rule bg-sheet p-4 md:grid-cols-2" do %>
+    <%= render "shared/file_field", name: :certificate, id: "certificate", field_label: "Arquivo", action_label: "Incluir arquivo" %>
+    <div>
+      <label for="passphrase" class="mb-1 block font-medium">Senha</label>
+      <%= password_field_tag :passphrase, nil, id: "passphrase", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
+    </div>
+    <div class="md:col-span-2">
+      <%= submit_tag "Instalar certificado", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+    </div>
+  <% end %>
+</details>

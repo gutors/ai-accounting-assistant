@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 20,
+  "next_id": 22,
   "lessons": [
     {
       "id": "L-015",
@@ -94,6 +94,42 @@
       ],
       "created": "2026-11-18T15:01:31Z",
       "last_seen": "2026-11-18T15:01:31Z"
+    },
+    {
+      "id": "L-020",
+      "key": "spec_precision_gap::when the default is the first incomplete key in list order prove a later key as that default not only the first key in the list",
+      "text": "When the default is the first incomplete key in list order, prove a later key as that default, not only the first key in the list.",
+      "signal": "spec_precision_gap",
+      "scope": "setup",
+      "status": "candidate",
+      "features": [
+        "setup-desk"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "C19 (setup)"
+      ],
+      "created": "2026-11-19T15:08:52Z",
+      "last_seen": "2026-11-19T15:08:52Z"
+    },
+    {
+      "id": "L-021",
+      "key": "spec_precision_gap::when a row has both a complete stamp and an incomplete stamp prove the incomplete stamp not only the complete one",
+      "text": "When a row has both a complete stamp and an incomplete stamp, prove the incomplete stamp, not only the complete one.",
+      "signal": "spec_precision_gap",
+      "scope": "setup",
+      "status": "candidate",
+      "features": [
+        "setup-desk"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "C33 (setup)"
+      ],
+      "created": "2026-11-19T15:08:52Z",
+      "last_seen": "2026-11-19T15:08:52Z"
     }
   ]
 }

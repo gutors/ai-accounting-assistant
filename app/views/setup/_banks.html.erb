@@ -1,0 +1,57 @@
+<% if @bank_accounts.empty? %>
+  <p class="mt-6">Nenhuma conta bancária</p>
+<% else %>
+  <div class="ledger-sheet mt-6 mb-6">
+    <div class="ledger-row ledger-head ledger-bank" aria-hidden="true">
+      <span>Banco</span>
+      <span>Nome</span>
+      <span>Agência/conta</span>
+      <span>Situação</span>
+      <span></span>
+      <span></span>
+    </div>
+    <ul>
+      <% @bank_accounts.each do |bank_account| %>
+        <li data-row="bank-account" data-bank-account-id="<%= bank_account.id %>" class="ledger-row ledger-bank">
+          <p class="font-medium"><%= bank_account.bank.presentation_name %></p>
+          <p class="font-medium"><%= bank_account.name %></p>
+          <div>
+            <p class="text-meta text-ink-soft"><%= bank_account.coordinates %></p>
+            <p class="text-meta text-ink-soft">extrato-<%= bank_account.slug %></p>
+          </div>
+          <span class="text-ink-soft"><%= bank_account.active? ? "Ativa" : "Inativa" %></span>
+          <span>
+            <% if bank_account.active? %>
+              <%= button_to "Desativar", "/bank_accounts/#{bank_account.id}", method: :patch, params: { active: false }, class: "text-margem underline underline-offset-2" %>
+            <% else %>
+              <%= button_to "Reativar", "/bank_accounts/#{bank_account.id}", method: :patch, params: { active: true }, class: "text-caixa underline underline-offset-2" %>
+            <% end %>
+          </span>
+          <%= link_to "Editar", "/setup?edit=bank_account&bank_account_id=#{bank_account.id}", class: "text-caixa underline underline-offset-2" %>
+        </li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>
+
+<% editing = @editing_bank_account %>
+<details<% if editing.present? || @bank_account_form_open %> open<% end %>>
+  <summary class="cursor-pointer font-medium text-caixa">Adicionar conta</summary>
+  <%= form_with url: (editing ? "/bank_accounts/#{editing.id}" : "/bank_accounts"), method: (editing ? :patch : :post), class: "mt-3 grid max-w-3xl gap-4 md:grid-cols-2" do %>
+    <div>
+      <label for="name" class="mb-1 block font-medium">Nome</label>
+      <%= text_field_tag :name, @bank_account_form[:name], id: "name", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
+    </div>
+    <div>
+      <label for="compe" class="mb-1 block font-medium">Banco</label>
+      <%= select_tag :compe, options_from_collection_for_select(@banks, :compe, :presentation_name, @bank_account_form[:compe]), id: "compe", class: "w-full rounded border border-rule bg-sheet px-3 py-2" %>
+    </div>
+    <div>
+      <label for="coordinates" class="mb-1 block font-medium">Agência/Conta Corrente</label>
+      <%= text_field_tag :coordinates, @bank_account_form[:coordinates], id: "coordinates", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
+    </div>
+    <div class="md:col-span-2">
+      <%= submit_tag editing ? "Salvar conta" : "Adicionar conta", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+    </div>
+  <% end %>
+</details>

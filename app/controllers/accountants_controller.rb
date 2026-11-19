@@ -3,8 +3,9 @@ class AccountantsController < ApplicationController
 
   def update
     if focused_organization.update_accountant(accountant_params)
-      redirect_success("/setup", ActionToast.accountant_saved(focused_organization))
+      redirect_success(setup_item_path("accountant"), ActionToast.accountant_saved(focused_organization))
     else
+      @setup_item = "accountant"
       load_setup
       @accountant_editing = true
       @accountant_error = focused_organization.errors[:base].first

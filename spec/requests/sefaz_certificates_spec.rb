@@ -18,12 +18,12 @@ RSpec.describe "SEFAZ certificates", type: :request do
     }
 
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/setup")
+    expect(response).to redirect_to("/setup?item=certificate")
     organization.reload
     expect(organization.sefaz_titular_cnpj).to eq("11222333000181")
     expect(organization.sefaz_not_after).to eq(Date.new(2027, 9, 18))
 
-    get "/setup"
+    get "/setup?item=certificate"
     expect_certificate_listed_cnpj_row(response.body)
     expect(response.body).not_to include("passphrase-secreta")
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
@@ -40,8 +40,8 @@ RSpec.describe "SEFAZ certificates", type: :request do
     }
 
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/setup")
-    get "/setup"
+    expect(response).to redirect_to("/setup?item=certificate")
+    get "/setup?item=certificate"
     expect(response.body).to include("11.222.333/0001-81")
   end
 
@@ -243,7 +243,7 @@ RSpec.describe "SEFAZ certificates", type: :request do
     }
 
     expect(response).to have_http_status(:found)
-    get "/setup"
+    get "/setup?item=certificate"
     expect(response.body).to include("12.345.678/0001-01")
     expect(response.body).not_to include("11.222.333/0001-81")
   end
@@ -258,9 +258,9 @@ RSpec.describe "SEFAZ certificates", type: :request do
     delete "/sefaz_certificate"
 
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/setup")
+    expect(response).to redirect_to("/setup?item=certificate")
     expect(organization.reload.sefaz_titular_cnpj).to be_nil
-    get "/setup"
+    get "/setup?item=certificate"
     expect_certificate_absent_copy(response.body)
     expect_certificate_install_fold(response.body, open: false)
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
@@ -325,7 +325,7 @@ RSpec.describe "SEFAZ certificates", type: :request do
     }
 
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/setup")
+    expect(response).to redirect_to("/setup?item=certificate")
     expect(organization.reload.sefaz_titular_cnpj).to eq("11222333000181")
   end
 end

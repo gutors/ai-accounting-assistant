@@ -8,13 +8,13 @@ RSpec.describe "Bank accounts", type: :request do
     post "/bank_accounts", params: { name: "Conta Principal", compe: "001", coordinates: "ag 1234" }
 
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/setup")
+    expect(response).to redirect_to("/setup?item=banks")
     bank_account = organization.bank_accounts.last
     expect(organization.bank_accounts.count).to eq(1)
     expect(bank_account).to be_active
     expect(bank_account.bank.presentation_name).to eq("Banco do Brasil")
 
-    get "/setup"
+    get "/setup?item=banks"
     row_html = row(response.body, "bank-account", bank_account_id: bank_account.id).to_html
     expect(row_html.index("Banco do Brasil")).to be < row_html.index("Conta Principal")
     expect(row_html.index("Conta Principal")).to be < row_html.index("ag 1234")
@@ -33,12 +33,12 @@ RSpec.describe "Bank accounts", type: :request do
     patch "/bank_accounts/#{bank_account.id}", params: { name: "Nova Conta", compe: "001", coordinates: "ag 1234" }
 
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/setup")
+    expect(response).to redirect_to("/setup?item=banks")
     bank_account.reload
     expect(bank_account.name).to eq("Nova Conta")
     expect(bank_account.slug).to eq("nova-conta")
 
-    get "/setup"
+    get "/setup?item=banks"
     expect_bank_account_add_form(response.body)
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
     expect(toast_message(response.body)).to eq("Conta bancária salva: Nova Conta.")
@@ -52,10 +52,10 @@ RSpec.describe "Bank accounts", type: :request do
     patch "/bank_accounts/#{bank_account.id}", params: { active: false }
 
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/setup")
+    expect(response).to redirect_to("/setup?item=banks")
     expect(BankAccount.find(bank_account.id)).not_to be_active
 
-    get "/setup"
+    get "/setup?item=banks"
     listed = row(response.body, "bank-account", bank_account_id: bank_account.id)
     expect(listed).to be_present
     expect(listed.to_html).to include("Conta Principal")
@@ -84,7 +84,7 @@ RSpec.describe "Bank accounts", type: :request do
     post "/bank_accounts", params: { name: "Conta Principal", compe: "001", coordinates: "ag 1234" }
 
     expect(response).to have_http_status(:found)
-    get "/setup"
+    get "/setup?item=banks"
     expect(bank_account_add_details(response.body).has_attribute?("open")).to eq(false)
   end
 
@@ -132,13 +132,13 @@ RSpec.describe "Bank accounts", type: :request do
     post "/bank_accounts", params: { name: "Conta Principal", compe: "001" }
 
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/setup")
+    expect(response).to redirect_to("/setup?item=banks")
     bank_account = organization.bank_accounts.last
     expect(bank_account).to be_active
     expect(bank_account.bank.presentation_name).to eq("Banco do Brasil")
     expect(bank_account.slug).to eq(ActiveSupport::Inflector.parameterize("Conta Principal"))
 
-    get "/setup"
+    get "/setup?item=banks"
     expect(response.body).to include("Conta Principal")
     expect(response.body).to include("extrato-#{bank_account.slug}")
   end
@@ -150,7 +150,7 @@ RSpec.describe "Bank accounts", type: :request do
     post "/bank_accounts", params: { name: "BB agência 1234", compe: "001" }
 
     expect(organization.bank_accounts.last.slug).to eq("bb-agencia-1234")
-    get "/setup"
+    get "/setup?item=banks"
     expect(response.body).to include("extrato-bb-agencia-1234")
   end
 
@@ -171,7 +171,7 @@ RSpec.describe "Bank accounts", type: :request do
     post "/bank_accounts", params: { name: "Principal", compe: "001", coordinates: "  ag 1234  " }
 
     expect(organization.bank_accounts.last.coordinates).to eq("ag 1234")
-    get "/setup"
+    get "/setup?item=banks"
     expect(response.body).to include("ag 1234")
   end
 
@@ -183,7 +183,7 @@ RSpec.describe "Bank accounts", type: :request do
     patch "/bank_accounts/#{bank_account.id}", params: { name: "Nova Conta" }
 
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/setup")
+    expect(response).to redirect_to("/setup?item=banks")
     bank_account.reload
     expect(bank_account.name).to eq("Nova Conta")
     expect(bank_account.slug).to eq("nova-conta")
@@ -241,10 +241,10 @@ RSpec.describe "Bank accounts", type: :request do
     patch "/bank_accounts/#{bank_account.id}", params: { active: false }
 
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/setup")
+    expect(response).to redirect_to("/setup?item=banks")
     expect(BankAccount.find(bank_account.id)).not_to be_active
 
-    get "/setup"
+    get "/setup?item=banks"
     expect(response.body).to include("Principal")
     expect(response.body).to include("Inativa")
   end
@@ -257,7 +257,7 @@ RSpec.describe "Bank accounts", type: :request do
 
     patch "/bank_accounts/#{bank_account.id}", params: { active: true }
 
-    get "/setup"
+    get "/setup?item=banks"
     expect(response.body).to include("Principal")
     expect(response.body).not_to include("Inativa")
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")

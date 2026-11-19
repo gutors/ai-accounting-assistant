@@ -1,0 +1,62 @@
+<ul class="ledger-sheet mt-6 mb-6">
+  <li data-row="extras-column-headings" class="ledger-row ledger-head ledger-extras">
+    <span>Nome</span>
+    <span>Justificativa</span>
+    <span>Situação</span>
+    <span></span>
+    <span></span>
+  </li>
+  <% ExtraExceptionKind::BASE_NAMES.each do |name| %>
+    <% kind = ExtraExceptionKind::BASE_OFFER_KINDS.fetch(name) %>
+    <% offered = @organization.public_send(:"#{kind}_exception_active?") %>
+    <li data-row="base-document-exception" class="ledger-row ledger-extras">
+      <p class="font-medium"><%= name %></p>
+      <p><%= ExtraExceptionKind::BASE_JUSTIFICATIONS.fetch(name) %></p>
+      <span class="text-ink-soft"><%= offered ? "Ativo" : "Inativo" %></span>
+      <span>
+        <% if offered %>
+          <%= button_to "Desativar", "/base_document_exceptions/#{kind}", method: :patch, params: { active: false }, class: "text-margem underline underline-offset-2" %>
+        <% else %>
+          <%= button_to "Ativar", "/base_document_exceptions/#{kind}", method: :patch, params: { active: true }, class: "text-caixa underline underline-offset-2" %>
+        <% end %>
+      </span>
+      <span></span>
+    </li>
+  <% end %>
+  <% @extra_exception_kinds.each do |extra_exception_kind| %>
+    <li data-row="extra-exception-kind" data-extra-exception-kind-id="<%= extra_exception_kind.id %>" class="ledger-row ledger-extras">
+      <p class="font-medium"><%= extra_exception_kind.name %></p>
+      <p><%= extra_exception_kind.justification %></p>
+      <span class="text-ink-soft"><%= extra_exception_kind.active? ? "Ativo" : "Inativo" %></span>
+      <span>
+        <% if extra_exception_kind.active? %>
+          <%= button_to "Desativar", "/extra_exception_kinds/#{extra_exception_kind.id}", method: :patch, params: { active: false }, class: "text-margem underline underline-offset-2" %>
+        <% else %>
+          <%= button_to "Ativar", "/extra_exception_kinds/#{extra_exception_kind.id}", method: :patch, params: { active: true }, class: "text-caixa underline underline-offset-2" %>
+        <% end %>
+      </span>
+      <span>
+        <% if extra_exception_kind.payments.none? %>
+          <%= button_to "Excluir", "/extra_exception_kinds/#{extra_exception_kind.id}", method: :delete, class: "text-margem underline underline-offset-2" %>
+        <% end %>
+      </span>
+    </li>
+  <% end %>
+</ul>
+
+<details<% if @extra_exception_kind_form_open %> open<% end %>>
+  <summary class="cursor-pointer font-medium text-caixa">Adicionar tipo extra</summary>
+  <%= form_with url: "/extra_exception_kinds", method: :post, class: "mt-3 grid max-w-3xl gap-4 md:grid-cols-2" do %>
+    <div>
+      <label for="extra_exception_kind_name" class="mb-1 block font-medium">Nome</label>
+      <%= text_field_tag :name, nil, id: "extra_exception_kind_name", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
+    </div>
+    <div>
+      <label for="extra_exception_kind_justification" class="mb-1 block font-medium">Justificativa</label>
+      <%= text_field_tag :justification, nil, id: "extra_exception_kind_justification", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
+    </div>
+    <div class="md:col-span-2">
+      <%= submit_tag "Adicionar tipo extra", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+    </div>
+  <% end %>
+</details>

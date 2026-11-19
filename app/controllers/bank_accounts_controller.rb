@@ -10,8 +10,9 @@ class BankAccountsController < ApplicationController
     )
 
     if bank_account.persisted?
-      redirect_success("/setup", ActionToast.bank_account_created(bank_account))
+      redirect_success(setup_item_path("banks"), ActionToast.bank_account_created(bank_account))
     else
+      @setup_item = "banks"
       load_setup
       assign_bank_account_form_from_params
       prepare_bank_account_form
@@ -29,10 +30,11 @@ class BankAccountsController < ApplicationController
 
     was_active = bank_account.active?
     if bank_account.apply_from(bank_account_params)
-      redirect_success("/setup", bank_account_toast(bank_account, was_active))
+      redirect_success(setup_item_path("banks"), bank_account_toast(bank_account, was_active))
     else
       editing_id = bank_account.id
       bank_account.reload
+      @setup_item = "banks"
       load_setup
       @editing_bank_account = @organization.bank_accounts.find(editing_id)
       assign_bank_account_form_from_params

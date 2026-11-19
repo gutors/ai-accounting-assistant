@@ -3,8 +3,9 @@ class PackageArchivesController < ApplicationController
 
   def update
     if focused_organization.update_package_archive(params[:url])
-      redirect_success("/setup", ActionToast.package_archive_saved)
+      redirect_success(setup_item_path("archive"), ActionToast.package_archive_saved)
     else
+      @setup_item = "archive"
       load_setup
       @package_archive_editing = focused_organization.package_archive_url.present?
       render "setup/show", status: :unprocessable_content

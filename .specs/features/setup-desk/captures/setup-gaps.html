@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Cache-Control" content="no-store">
+  <title>Fechamento mensal — Configuração</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+  <style>
+    * { box-sizing: border-box; margin: 0; }
+    html, body { width: 100%; min-height: 100vh; background: #f3f5f1; color: #1b3229; font: 16px/1.5 IBM Plex Sans, ui-sans-serif, system-ui, sans-serif; }
+    :focus-visible { outline: 2px solid #2e6b4e; outline-offset: 2px; }
+    header { display: flex; align-items: center; gap: 24px; min-height: 56px; padding: 12px 32px; border-bottom: 1px solid #c7d5ca; }
+    .mark { width: 20px; height: 20px; flex-shrink: 0; }
+    .brand { font-weight: 500; }
+    nav { margin-left: auto; display: flex; gap: 20px; }
+    nav a, .sair { color: #1b3229; text-decoration: none; font: inherit; background: none; border: 0; }
+    nav a[aria-current="page"] { font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+    .sair { color: #2e6b4e; text-decoration: underline; text-underline-offset: 2px; }
+    main { display: grid; grid-template-columns: 26rem 1fr; min-height: 844px; }
+    aside { padding: 40px 24px 64px 32px; border-right: 1px solid #c7d5ca; }
+    aside h2 { font-weight: 600; font-size: 18px; line-height: 1.5; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #c7d5ca; }
+    .item { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 8px 0; border-bottom: 1px solid #c7d5ca; color: inherit; text-decoration: none; }
+    .item-title { font-weight: 500; }
+    .item[aria-current="true"] .item-title { font-weight: 600; color: #2e6b4e; }
+    .item.is-block { border-left: 3px solid #b4372a; padding-left: 12px; }
+    .meta { font-size: 13px; color: #5c6e66; }
+    .falta { color: #b4372a; font-weight: 500; }
+    article { padding: 40px 40px 64px 32px; }
+    h1 { font-size: 36px; line-height: 1.1; letter-spacing: -0.02em; font-weight: 600; }
+    .ym { margin-top: 4px; font-size: 13px; color: #5c6e66; }
+    .block { margin: 24px 0; color: #b4372a; border-left: 3px solid #b4372a; padding-left: 12px; }
+    label { display: block; font-weight: 500; margin-bottom: 4px; }
+    input { width: 100%; max-width: 48rem; font: inherit; border: 1px solid #c7d5ca; border-radius: 4px; background: #fff; padding: 8px 12px; }
+    .btn { margin-top: 16px; background: #2e6b4e; color: #fff; font-weight: 600; border: 0; border-radius: 4px; padding: 8px 16px; }
+  </style>
+</head>
+<body>
+  <header>
+    <svg class="mark" viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="96" fill="#2e6b4e"/><rect x="96" y="208" width="320" height="28" fill="#f3f5f1"/><rect x="96" y="304" width="320" height="28" fill="#f3f5f1"/><rect x="152" y="96" width="28" height="320" fill="#b4372a"/></svg>
+    <p class="brand">Fechamento Mensal - ONG Norte</p>
+    <nav aria-label="Principal">
+      <a href="/">Início</a>
+      <a href="/supporting_documents">Documentos</a>
+      <a href="/setup" aria-current="page">Configuração</a>
+      <button class="sair" type="button">Sair</button>
+    </nav>
+  </header>
+  <main>
+    <aside>
+      <h2>Configuração</h2>
+      <nav aria-label="Itens de configuração">
+        <a class="item" href="/setup?item=accountant"><span><span class="item-title">Contador</span><br><span class="meta">Ana Contábil</span></span><span class="meta">Cadastrado</span></a>
+        <a class="item is-block" href="/setup?item=archive" aria-current="true"><span><span class="item-title">Arquivo do pacote</span><br><span class="meta">Pasta do Drive</span></span><span class="falta">Falta</span></a>
+        <a class="item is-block" href="/setup?item=certificate"><span><span class="item-title">Certificado A1</span><br><span class="meta">Consulta SEFAZ</span></span><span class="falta">Expirado</span></a>
+        <a class="item" href="/setup?item=banks"><span><span class="item-title">Contas bancárias</span><br><span class="meta">2 contas</span></span><span class="meta">Ativas</span></a>
+        <a class="item" href="/setup?item=extras"><span><span class="item-title">Tipos extras</span><br><span class="meta">Tarifa e honorário</span></span><span class="meta">2 ativos</span></a>
+      </nav>
+    </aside>
+    <article>
+      <h1>Arquivo do pacote</h1>
+      <p class="ym">Pasta do Google Drive onde o fechamento grava o mês.</p>
+      <p class="block">Cole a URL da pasta do Google Drive</p>
+      <label for="url">URL da pasta do Google Drive</label>
+      <input id="url" type="url" placeholder="https://drive.google.com/drive/folders/…">
+      <button class="btn" type="button">Salvar arquivo</button>
+    </article>
+  </main>
+</body>
+</html>

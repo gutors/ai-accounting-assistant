@@ -14,7 +14,7 @@ RSpec.describe "Accountants", type: :request do
     }
 
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/setup")
+    expect(response).to redirect_to("/setup?item=accountant")
     expect(organization.reload.accountant_tax_id).to eq("11222333000181")
   end
 
@@ -25,10 +25,10 @@ RSpec.describe "Accountants", type: :request do
     patch "/accountant", params: { presentation_name: "Ana" }
 
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/setup")
+    expect(response).to redirect_to("/setup?item=accountant")
     expect(organization.reload.accountant_presentation_name).to eq("Ana")
 
-    get "/setup"
+    get "/setup?item=accountant"
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
     expect(toast_message(response.body)).to eq("Contador salvo: Ana.")
   end
@@ -47,10 +47,10 @@ RSpec.describe "Accountants", type: :request do
     }
 
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/setup")
+    expect(response).to redirect_to("/setup?item=accountant")
     expect(organization.reload.accountant_tax_id).to eq("11222333000181")
 
-    get "/setup"
+    get "/setup?item=accountant"
     expect_accountant_leitura_cnpj_row(response.body)
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
     expect(toast_message(response.body)).to eq("Contador salvo: Ana Contábil.")
@@ -82,7 +82,7 @@ RSpec.describe "Accountants", type: :request do
     patch "/accountant", params: { presentation_name: "" }
 
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/setup")
+    expect(response).to redirect_to("/setup?item=accountant")
     organization.reload
     expect(organization.accountant_presentation_name).to be_nil
     expect(organization.accountant_tax_id).to be_nil
@@ -90,7 +90,7 @@ RSpec.describe "Accountants", type: :request do
     expect(organization.accountant_pix_key).to be_nil
     expect(organization.package_destination_email).to be_nil
 
-    get "/setup"
+    get "/setup?item=accountant"
     expect_accountant_cadastro(response.body)
   end
 
@@ -101,10 +101,10 @@ RSpec.describe "Accountants", type: :request do
     patch "/accountant", params: { presentation_name: "  Ana Contábil  " }
 
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/setup")
+    expect(response).to redirect_to("/setup?item=accountant")
     expect(organization.reload.accountant_presentation_name).to eq("Ana Contábil")
 
-    get "/setup"
+    get "/setup?item=accountant"
     expect(response.body).to include("Ana Contábil")
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
     expect(toast_message(response.body)).to eq("Contador salvo: Ana Contábil.")

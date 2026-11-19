@@ -1,6 +1,7 @@
 <% content_for :title, @organization.name %>
 
 <% if coordinator_on_focus? %>
+  <% content_for :home_desk, "1" %>
   <% content_for :body_class, "flex h-dvh flex-col overflow-hidden" %>
   <% content_for :main_class, "desk grid min-h-0 flex-1 overflow-hidden md:grid-cols-[26rem_1fr]" %>
 

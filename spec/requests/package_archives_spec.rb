@@ -10,12 +10,12 @@ RSpec.describe "Package archives", type: :request do
     patch "/package_archive", params: { url: folders_url }
 
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/setup")
+    expect(response).to redirect_to("/setup?item=archive")
     organization.reload
     expect(organization.package_archive_url).to eq(folders_url)
     expect(organization.package_archive_folder_id).to eq("15uNXeRBIhVvZJIhL4yTw4IsStMhUaaxl")
 
-    get "/setup"
+    get "/setup?item=archive"
     expect_archive_leitura(response.body, url: folders_url)
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
     expect(toast_message(response.body)).to eq("Pasta do pacote salva.")
@@ -40,12 +40,12 @@ RSpec.describe "Package archives", type: :request do
     patch "/package_archive", params: { url: "" }
 
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/setup")
+    expect(response).to redirect_to("/setup?item=archive")
     organization.reload
     expect(organization.package_archive_url).to be_nil
     expect(organization.package_archive_folder_id).to be_nil
 
-    get "/setup"
+    get "/setup?item=archive"
     expect_archive_cadastro(response.body)
   end
 
@@ -58,20 +58,20 @@ RSpec.describe "Package archives", type: :request do
     patch "/package_archive", params: { url: new_url }
 
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/setup")
+    expect(response).to redirect_to("/setup?item=archive")
     organization.reload
     expect(organization.package_archive_url).to eq(new_url)
     expect(organization.package_archive_folder_id).to eq("1AbCdEfGhIjKlMnOpQrStUvWxYz123456")
 
-    get "/setup"
+    get "/setup?item=archive"
     expect_archive_leitura(response.body, url: new_url)
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
     expect(toast_message(response.body)).to eq("Pasta do pacote salva.")
 
     patch "/package_archive", params: { url: new_url }
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/setup")
-    get "/setup"
+    expect(response).to redirect_to("/setup?item=archive")
+    get "/setup?item=archive"
     expect_archive_leitura(response.body, url: new_url)
   end
 
