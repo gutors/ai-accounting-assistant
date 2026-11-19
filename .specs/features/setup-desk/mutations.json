@@ -1,0 +1,23 @@
+[
+  {
+    "file": "app/models/setup_desk.rb",
+    "old": "    when \"extras\" then false",
+    "new": "    when \"extras\" then true",
+    "proof": "bin/rspec spec/requests/setup_desk_spec.rb -e \"Tipos extras row never takes the red margin\"",
+    "label": "extras never incomplete -> always incomplete"
+  },
+  {
+    "file": "app/models/setup_desk.rb",
+    "old": "    when \"certificate\" then organization.sefaz_titular_cnpj.blank? || organization.sefaz_certificate_expired?",
+    "new": "    when \"certificate\" then organization.sefaz_titular_cnpj.blank?",
+    "proof": "bin/rspec spec/requests/setup_desk_spec.rb -e \"expired A1 row is Expirado in margem with red margin\"",
+    "label": "expired A1 no longer incomplete"
+  },
+  {
+    "file": "app/models/setup_desk.rb",
+    "old": "    KEYS.find { |key| incomplete?(key) } || \"accountant\"",
+    "new": "    KEYS.find { |key| incomplete?(key) } || \"archive\"",
+    "proof": "bin/rspec spec/models/setup_desk_spec.rb -e \"complete setup selects accountant\"",
+    "label": "complete-setup fallback accountant -> archive"
+  }
+]

@@ -14,7 +14,7 @@
   <%= form_with url: "/package_archive", method: :patch, class: "mt-6 max-w-3xl space-y-4" do %>
     <div>
       <label for="url" class="mb-1 block font-medium">URL da pasta do Google Drive</label>
-      <%= url_field_tag :url, @organization.package_archive_url, id: "url", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
+      <%= url_field_tag :url, @organization.package_archive_url, id: "url", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off", placeholder: "https://drive.google.com/drive/folders/…" %>
     </div>
     <%= submit_tag(@organization.package_archive_url.present? ? "Confirmar" : "Salvar arquivo", class: "rounded bg-caixa px-4 py-2 font-semibold text-white") %>
   <% end %>

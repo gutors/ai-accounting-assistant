@@ -4,7 +4,7 @@ Mutations: 3
 Build: `bin/rubocop`; `bin/erb_lint --lint-all`
 Plan: `.specs/features/setup-desk/plan.md`
 
-32 checks in 4 slices · 0 one-way doors · 0 open
+33 checks in 4 slices · 0 one-way doors · 0 open
 
 Proofs use `bin/rspec` and `-e` as `.cursor/rules/rails.mdc` names. CI runs `bin/rspec`. Capture proof is at 1920×1080.
 
@@ -54,6 +54,9 @@ Proof: `bin/rspec spec/requests/setup_desk_spec.rb -e "two active extras row is 
 Proof: `bin/rspec spec/models/setup_desk_spec.rb -e "extras is never incomplete"`
 Proof: `bin/rspec spec/requests/setup_desk_spec.rb -e "Tipos extras row never takes the red margin"`
 
+**C33** - Accountant presentation name blank: Contador row includes `Falta` in `margem`, and takes the red margin (Landing Incomplete)
+Proof: `bin/rspec spec/requests/setup_desk_spec.rb -e "blank Contador row is Falta in margem with red margin"`
+
 ### S3 - Selecting an item fills the right desk
 
 **C14** - Arquivo do pacote row is `GET /setup?item=archive` (AC 14)
@@ -77,6 +80,7 @@ Proof: `bin/rspec spec/models/setup_desk_spec.rb -e "absent item selects first i
 Proof: `bin/rspec spec/models/setup_desk_spec.rb -e "empty item selects first incomplete"`
 Proof: `bin/rspec spec/models/setup_desk_spec.rb -e "unknown item selects first incomplete"`
 Proof: `bin/rspec spec/models/setup_desk_spec.rb -e "complete setup selects accountant"`
+Proof: `bin/rspec spec/models/setup_desk_spec.rb -e "missing A1 after complete accountant and archive selects certificate"`
 
 **C20** - GET `/setup` with no `item`, Contador complete, Arquivo do pacote `Falta`: selected item is `archive` (AC 20)
 Proof: `bin/rspec spec/requests/setup_desk_spec.rb -e "default GET setup selects archive when it is the first Falta"`
@@ -133,10 +137,10 @@ Proof: `bin/rspec spec/requests/layout_spec.rb -e "submitter header omits Config
 | home `aria-current` flag (2) | Início C3 · Configuração C2 | - |
 | source controls: `setup-gaps` (12) | header current C2 · left heading C4 · index nav C4 · Contador C5 · Arquivo href C14 · Arquivo Falta C6 · Certificado Expirado C7 · Contas C10 · Tipos extras C12 · right h1 C20 · Cole a URL C24 · Salvar arquivo C24 | - |
 | left titles (5) | Contador C4 · Arquivo do pacote C4 · Certificado A1 C4 · Contas bancárias C4 · Tipos extras C4 | - |
-| incomplete stamps (6) | archive Falta C6 · A1 Expirado C7 · A1 Falta C8 · A1 Instalado C9 · banks Falta C11 · extras never C13 | - |
+| incomplete stamps (6) | Contador Falta C33 · archive Falta C6 · A1 Expirado C7 · A1 Falta C8 · banks Falta C11 · extras never C13 | - |
 | complete stamps (4) | Contador Cadastrado C5 · banks Ativas C10 · extras 2 ativos C12 · A1 Instalado C9 | - |
 | item keys (5) | accountant C16 · archive C14 · certificate C15 · banks C17 · extras C18 | - |
-| item fallback (4) | absent C19 · empty C19 · unknown C19 · none incomplete C19 | - |
+| item fallback (5) | absent C19 · empty C19 · unknown C19 · missing A1 C19 · none incomplete C19 | - |
 | `edit=` (3) | accountant C21 · package_archive C22 · bank_account C23 | - |
 | success redirect `item=` (7) | accountant C27 · archive C27 · sefaz POST C27 · sefaz DELETE C27 · banks C27 · extras C27 · base exception C27 | - |
 | auth (3) | unsigned C30 · no-focus C31 · submitter C32 | - |
@@ -159,7 +163,7 @@ Proof: `bin/rspec spec/requests/layout_spec.rb -e "submitter header omits Config
 ## Handoff
 
 - **Settled mid-build:** none
-- **Dispatched:**
+- **Dispatched:** Verifier at `382107c` (`2a54b4a..382107c`); screens round 1 at `382107c`
 - **Boundary:**
 - **Abandoned:** none
-- **Walked:** Ambiente local `gutors@gmail.com`, focused organization `exemplo`, `GET /setup` at 1920×1080. Header `Configuração` is current; left heading `Configuração`; five index rows Contador `Ana Contábil` Cadastrado, Arquivo do pacote `Pasta do Drive` Falta (red margin, aria-current), Certificado A1 `Consulta SEFAZ` Expirado (red margin), Contas bancárias `2 contas` Ativas, Tipos extras `Tarifa e honorário` `2 ativos`. Right pane h1 `Arquivo do pacote`, Drive subtitle, `Cole a URL da pasta do Google Drive` in margem, URL field, `Salvar arquivo`. Saved `captures/setup-gaps.running.png`. Início still opens the two-pane month desk from the header. Item panes other than the capture default are request specs (`item=accountant|certificate|banks|extras` and `edit=`).
+- **Walked:** Ambiente local `desk-walk@example.com`, focused organization `ONG Norte` (one organization, not the administrator), `GET /setup` at 1920×1080. Header brand `Fechamento Mensal - ONG Norte`; `Configuração` current; no org chip; no `Administração`. Left heading `Configuração`; five index rows Contador `Ana Contábil` Cadastrado, Arquivo do pacote `Pasta do Drive` Falta (red margin, aria-current), Certificado A1 `Consulta SEFAZ` Expirado (red margin), Contas bancárias `2 contas` Ativas, Tipos extras `Tarifa e honorário` `2 ativos`. Right pane h1 `Arquivo do pacote`, Drive subtitle, `Cole a URL da pasta do Google Drive` in margem, URL field with placeholder `https://drive.google.com/drive/folders/…`, `Salvar arquivo`. Saved `captures/setup-gaps.running.png`. Início still opens the two-pane month desk from the header. Item panes other than the capture default are request specs (`item=accountant|certificate|banks|extras` and `edit=`).

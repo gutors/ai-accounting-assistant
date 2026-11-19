@@ -44,6 +44,14 @@ RSpec.describe SetupDesk, type: :model do
     expect(desk_for(organization.reload).selected).to eq("accountant")
   end
 
+  it "missing A1 after complete accountant and archive selects certificate" do
+    organization = create_organization!(name: "ONG")
+    persist_standing_accountant(organization)
+    persist_standing_archive(organization)
+
+    expect(desk_for(organization).selected).to eq("certificate")
+  end
+
   it "extras is never incomplete" do
     organization = create_organization!(name: "ONG")
     organization.update!(bank_fee_exception_active: false, accountant_fee_exception_active: false)

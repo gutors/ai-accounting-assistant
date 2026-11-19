@@ -49,6 +49,16 @@ RSpec.describe "Setup desk", type: :request do
     expect(row.to_html).not_to include("text-margem")
   end
 
+  it "blank Contador row is Falta in margem with red margin" do
+    _account, _organization = signed_setup
+
+    get "/setup?item=accountant"
+
+    row = setup_index_row(response.body, "Contador")
+    expect(row.at_css(".text-margem").text.strip).to eq("Falta")
+    expect(row["class"]).to include("is-block")
+  end
+
   it "blank archive row is Falta in margem with red margin" do
     _account, _organization = signed_setup
 
@@ -263,6 +273,8 @@ RSpec.describe "Setup desk", type: :request do
     prompt = pane.css("p").find { |node| node.text.strip == "Cole a URL da pasta do Google Drive" }
     expect(prompt["class"]).to include("text-margem")
     expect(prompt["class"]).to include("border-margem")
+    url = archive_form(response.body).at_css("#url")
+    expect(url["placeholder"]).to eq("https://drive.google.com/drive/folders/…")
     expect(archive_form(response.body).at_css('input[type="submit"][value="Salvar arquivo"]')).to be_present
   end
 
