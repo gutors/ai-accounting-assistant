@@ -114,8 +114,8 @@ Proof: `bin/rspec spec/system/month_statement_row_spec.rb -e "390px pagamentos s
 
 ## Handoff
 
-- **Settled mid-build:** the plan's AC 4 had the send gated on the PDF as well as the spreadsheet; the user's decision and `BankStatement#submit` both make the spreadsheet the only requirement, so a spreadsheet alone offers `Enviar extrato` and a PDF alone does not
+- **Settled mid-build:** the plan's AC 4 had the send gated on the PDF as well as the spreadsheet; the user's decision and `BankStatement#submit` both make the spreadsheet the only requirement, so a spreadsheet alone offers `Enviar extrato` and a PDF alone does not. Plan ACs 4-15 were renumbered to match.
 - **Dispatched:** -
 - **Boundary:** -
-- **Abandoned:** -
-- **Walked:** -
+- **Abandoned:** the first request-spec version asserted three controls per row; the row carries three controls with two `hidden`, so the proof reads the visible ones.
+- **Walked:** signed in at `/login` as a throwaway coordinator on a scratch organization, opened `/months/2026-05`, and staged files through the row picker by dispatching a `change` with a `DataTransfer`: `poupança` with a PDF alone → `Pdf extrato…` above `A planilha é obrigatória`, `+` and `×`, no send; `conta corrente` with a PDF and an `.xlsx` → both names, `Enviar extrato` and `×`; `aplicação` with a `.txt` → `Só PDF, .csv ou .xlsx` in margem above the hint, `+` and `×`. The Presente row carried the pencil when the statement had a PDF and a spreadsheet. Pagamentos rows measured 43px. At 390px the page measured 390px with no horizontal scroll (C15). The scratch organization and account were deleted after the walk.
