@@ -1,0 +1,23 @@
+[
+  {
+    "file": "app/models/investment_transfer_catalog.rb",
+    "old": "row[:compe] == compe.to_s && haystack.include?(row[:substring])",
+    "new": "row[:compe] != compe.to_s && haystack.include?(row[:substring])",
+    "proof": "bin/rspec spec/models/investment_transfer_catalog_spec.rb -e \"COMPE 001 debit Transferencia BB Rende Facil is a catalog match\"",
+    "label": "catalog COMPE equality inverted"
+  },
+  {
+    "file": "app/models/month_list_sort.rb",
+    "old": "return [ \"date\", \"asc\" ] unless columns.include?(s) && %w[asc desc].include?(d)",
+    "new": "return [ \"date\", \"asc\" ] unless columns.include?(s) || %w[asc desc].include?(d)",
+    "proof": "bin/rspec spec/requests/month_overview_lists_spec.rb -e \"invalid sort and dir params fall back to date ascending\"",
+    "label": "invalid sort/dir fallback AND to OR"
+  },
+  {
+    "file": "app/models/payment.rb",
+    "old": "Array(records).reject { |payment| InvestmentTransferCatalog.payment?(payment) }",
+    "new": "Array(records).select { |payment| InvestmentTransferCatalog.payment?(payment) }",
+    "proof": "bin/rspec spec/models/payment_spec.rb -e \"for_month omits leftover COMPE 001 Rende Facil payment\"",
+    "label": "without_catalog reject inverted to select"
+  }
+]

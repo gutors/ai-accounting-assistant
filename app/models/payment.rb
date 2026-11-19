@@ -11,6 +11,10 @@ class Payment < ApplicationRecord
   scope :for_month, ->(month) { joins(:bank_statement).where(bank_statements: { month_id: month.id }) }
   scope :missing_document, -> { where(match_id: nil, document_exception_kind: nil, extra_exception_kind_id: nil) }
 
+  def self.without_catalog(records)
+    Array(records).reject { |payment| InvestmentTransferCatalog.payment?(payment) }
+  end
+
   before_destroy :dissolve_own_match
 
   def missing_document?

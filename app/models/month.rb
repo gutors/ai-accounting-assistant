@@ -148,7 +148,9 @@ class Month < ApplicationRecord
 
   def close_blocker
     return CLOSED if closed?
-    return MISSING_DOCUMENT if Payment.for_month(self).missing_document.exists?
+    return MISSING_DOCUMENT if Payment.without_catalog(
+      Payment.for_month(self).missing_document.includes(bank_statement: { bank_account: :bank })
+    ).any?
     return MISSING_STATEMENT if missing_active_statement?
     return MISSING_ARCHIVE if organization.package_archive_folder_id.blank?
     return MISSING_ACCOUNTANT if organization.accountant_presentation_name.blank?

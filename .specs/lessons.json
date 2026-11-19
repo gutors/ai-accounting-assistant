@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 22,
+  "next_id": 23,
   "lessons": [
     {
       "id": "L-015",
@@ -130,6 +130,24 @@
       ],
       "created": "2026-11-19T15:08:52Z",
       "last_seen": "2026-11-19T15:08:52Z"
+    },
+    {
+      "id": "L-022",
+      "key": "surviving_mutant::when fallback is a conjunction of two validations prove mixed cases valid with invalid invalid with valid not only both invalid together",
+      "text": "When fallback is a conjunction of two validations, prove mixed cases (valid with invalid, invalid with valid), not only both-invalid together.",
+      "signal": "surviving_mutant",
+      "scope": "",
+      "status": "candidate",
+      "features": [
+        "month-overview-lists"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "C22"
+      ],
+      "created": "2026-11-19T19:37:09Z",
+      "last_seen": "2026-11-19T19:37:09Z"
     }
   ]
 }

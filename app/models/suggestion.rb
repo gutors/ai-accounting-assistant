@@ -161,12 +161,13 @@ class Suggestion
     end
 
     def missing_payments
-      @missing_payments ||= Payment.missing_document
-        .joins(bank_statement: :month)
-        .where(months: { organization_id: @organization.id, closed: false })
-        .includes(bank_statement: :month)
-        .order(:id)
-        .to_a
+      @missing_payments ||= Payment.without_catalog(
+        Payment.missing_document
+          .joins(bank_statement: :month)
+          .where(months: { organization_id: @organization.id, closed: false })
+          .includes(bank_statement: [ :month, { bank_account: :bank } ])
+          .order(:id)
+      )
     end
   end
   private_constant :Assigner

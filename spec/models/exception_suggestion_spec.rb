@@ -84,6 +84,15 @@ RSpec.describe ExceptionSuggestion, type: :model do
     expect(proposals.size).to eq(2)
   end
 
+  it "leftover COMPE 001 Rende Facil PIX hit is not proposed" do
+    set_pix("chave-pix")
+    leftover = plant_payment(statement, 22000, history: "Transferência — BB Rende Fácil chave-pix")
+    ordinary = plant_payment(statement, 15000, history: "Pix enviado chave-pix")
+
+    expect(proposal_for(leftover)).to be_nil
+    expect(proposal_for(ordinary).kind).to eq("accountant_fee")
+  end
+
   it "presentation name never hits" do
     organization.update!(accountant_presentation_name: "Ana Contadora")
     payment = plant_payment(statement, 22000, history: "Pix Ana Contadora")

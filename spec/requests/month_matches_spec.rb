@@ -387,6 +387,18 @@ RSpec.describe "Month matches screen", type: :request do
     expect(html.index('id="match-confirm"')).to be < html.index("match-split")
   end
 
+  it "GET matches next suggestion ignores leftover catalog debit of the same amount" do
+    account, organization, _month, statement = signed_month
+    plant_payment(statement, 22000, history: "Transferência — BB Rende Fácil")
+    plant_payment(statement, 22000, history: "Pix enviado — Padaria Central", occurred_on: Date.new(2026, 5, 11))
+    plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00", date: "2026-05-11")
+
+    get "/months/2026-05/matches"
+
+    expect(response.body).not_to include("Transferência — BB Rende Fácil")
+    expect(next_hit(response.body).text).to include("Pix enviado — Padaria Central")
+  end
+
   it "GET matches next suggestion is the earlier Fornecedor Norte payment" do
     account, organization, _month, statement = signed_month
     plant_payment(statement, 22000, history: "Pix enviado — Padaria Central", occurred_on: Date.new(2026, 5, 11))
@@ -433,6 +445,19 @@ RSpec.describe "Month matches screen", type: :request do
     expect(hit.text).to include("13/05")
     expect(hit.text).to include("Papelaria Norte, Papelaria Norte")
     expect(hit.text).to include("R$ 155,00")
+  end
+
+  it "GET matches still includes Sugestao de excecao" do
+    _account, organization, _month, statement = signed_month
+    organization.update!(accountant_pix_key: "chave-pix")
+    plant_payment(statement, 22000, history: "Pix enviado chave-pix")
+
+    get "/months/2026-05/matches"
+
+    row = page_doc(response.body).css('li[data-row="payment"][data-status="missing"]').find { |node|
+      node.text.include?("Pix enviado chave-pix")
+    }
+    expect(row.text).to include("Sugestão de exceção")
   end
 
   it "GET matches omits next suggestion when only exception suggestion remains" do

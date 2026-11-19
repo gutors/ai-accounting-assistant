@@ -84,6 +84,16 @@ RSpec.describe SummarySpreadsheet, type: :model do
     expect(row[header.index("Arquivo(s)")]).to eq("")
   end
 
+  it "custos section omits leftover COMPE 001 Rende Facil payment" do
+    plant_payment(statement, 2000, history: "Transferência — BB Rende Fácil")
+    plant_payment(statement, 22000, history: "Pix enviado — Padaria Central")
+    text = sheet_text(book)
+
+    expect(text).to include("Pix enviado — Padaria Central")
+    expect(text).not_to include("Rende Fácil")
+    expect(text).not_to include("Rende Facil")
+  end
+
   it "1N Arquivos is two notas names separated by semicolon space" do
     payment = plant_payment(statement, 22000)
     padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "100,00", date: "2026-05-11")

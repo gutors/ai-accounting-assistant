@@ -327,7 +327,7 @@ RSpec.describe "Month overview", type: :request do
     expect(row.text).to include("R$ 220,00")
     faltante = row.at_css('[data-cell="status"] .text-margem')
     expect(faltante.text.strip).to eq("Documento faltante")
-    expect(row.at_css('[data-cell="status"]').text).to include("Sugestão Padaria Central")
+    expect(row.at_css('[data-cell="status"]').text).not_to include("Sugestão")
     expect(row.at_css('[data-cell="document"]').text.strip).to eq("")
     expect(row.text).not_to include("Resolver")
     expect(row.css("form")).to be_empty
@@ -445,15 +445,15 @@ RSpec.describe "Month overview", type: :request do
       [ "Data", "Favorecido", "Tipo", "Valor", "Foto" ]
     )
     listed = fold.css('li[data-row="pool-document"]')
-    expect(listed.map { |node| node["data-document-id"].to_i }).to eq([ mercado.id, padaria.id ])
-    expect(listed[0].at_css("time")["datetime"]).to eq("2026-05-12")
-    expect(listed[0].text).to include("Mercado Silva")
-    expect(listed[0].text).to include("Nota fiscal")
-    expect(listed[0].text).to include("R$ 180,00")
-    expect(listed[1].at_css("time")["datetime"]).to eq("2026-05-11")
-    expect(listed[1].text).to include("Padaria Central")
-    expect(listed[1].text).to include("Recibo")
-    expect(listed[1].text).to include("R$ 220,00")
+    expect(listed.map { |node| node["data-document-id"].to_i }).to eq([ padaria.id, mercado.id ])
+    expect(listed[0].at_css("time")["datetime"]).to eq("2026-05-11")
+    expect(listed[0].text).to include("Padaria Central")
+    expect(listed[0].text).to include("Recibo")
+    expect(listed[0].text).to include("R$ 220,00")
+    expect(listed[1].at_css("time")["datetime"]).to eq("2026-05-12")
+    expect(listed[1].text).to include("Mercado Silva")
+    expect(listed[1].text).to include("Nota fiscal")
+    expect(listed[1].text).to include("R$ 180,00")
     expect(fold.at_css(".ledger-overview-pool")).to be_present
   end
 
@@ -468,17 +468,12 @@ RSpec.describe "Month overview", type: :request do
     get "/months/2026-05"
 
     open_row = row(response.body, "pool-document", document_id: open_doc.id)
-    checkbox = open_row.at_css('input[type="checkbox"]')
-    expect(checkbox["form"]).to eq("close-month")
-    expect(open_row.at_css("label").text.strip).to eq("Padaria Central")
+    expect(open_row.at_css('input[type="checkbox"]')).to be_nil
+    expect(open_row.text).to include("Padaria Central")
     packed_row = row(response.body, "pool-document", document_id: packed.id)
     expect(packed_row.at_css('input[type="checkbox"]')).to be_nil
-    devolver = packed_row.css("button").find { |node| node.text.strip == "Devolver" }
-    expect(devolver["class"]).to include("text-margem")
-    expect(devolver["class"]).to include("underline")
-    expect(devolver.ancestors("form").first["action"]).to eq(
-      "/months/2026-05/supporting_documents/#{packed.id}/return"
-    )
+    expect(packed_row.text).to include("Mercado Silva")
+    expect(packed_row.text).not_to include("Devolver")
   end
 
   it "GET month pool Foto filename blob link or empty" do

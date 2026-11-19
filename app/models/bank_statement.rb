@@ -101,10 +101,13 @@ class BankStatement < ApplicationRecord
       save!
       inflows.destroy_all
       payments.destroy_all
+      compe = bank_account.bank.compe
       movements.each do |movement|
         attrs = { occurred_on: movement.occurred_on, amount_cents: movement.amount_cents, history: movement.history }
         if movement.credit
           inflows.create!(attrs)
+        elsif InvestmentTransferCatalog.movement?(compe: compe, movement: movement)
+          next
         else
           payments.create!(attrs)
         end
