@@ -21,7 +21,7 @@ RSpec.describe "Document kind chrome", type: :system do
     sign_in_through_google(account)
     visit "/supporting_documents"
 
-    within("form[action='/supporting_documents']") do
+    within("form[action='/supporting_documents'][method='post']") do
       expect(find("#kind", visible: :all)).not_to be_visible
       expect(page).not_to have_css("#xml")
       expect(page).to have_css("#file", visible: :all)

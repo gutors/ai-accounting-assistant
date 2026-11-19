@@ -42,7 +42,7 @@ RSpec.describe "Keep form on 422", type: :system do
 
     attach_file "file", photo_path, make_visible: true
     expect(page).to have_field("arquivo", with: "Foto", disabled: true)
-    within("form[action='/supporting_documents']") do
+    within("form[action='/supporting_documents'][method='post']") do
       fill_in "amount", with: "155,00"
       fill_in "date", with: "2026-05-11"
       fill_in "payee", with: "Padaria Central"
@@ -50,7 +50,7 @@ RSpec.describe "Keep form on 422", type: :system do
     end
     expect(page).to have_css("[data-toast-kind=success]", text: "Recibo de Padaria Central, R$ 155,00, incluído.")
 
-    page.execute_script("document.querySelector('form[action=\"/supporting_documents\"]').requestSubmit()")
+    page.execute_script("document.querySelector('form[action=\"/supporting_documents\"][method=\"post\"]').requestSubmit()")
     expect(page).to have_css("[data-notice=error]", text: "Envie a foto ou o XML")
     expect(page).to have_css("[data-toast-kind=error]", text: "Envie a foto ou o XML")
     expect(page).to have_css("#toast-host [data-toast-kind=error]")
@@ -62,7 +62,7 @@ RSpec.describe "Keep form on 422", type: :system do
     visit "/supporting_documents"
     photo_path = write_upload("recibo.jpg", "jpeg-bytes")
 
-    within("form[action='/supporting_documents']") do
+    within("form[action='/supporting_documents'][method='post']") do
       attach_file "file", photo_path, make_visible: true
       expect(find("#file", visible: :all).value).to include("recibo.jpg")
       click_button "Limpar"
