@@ -10,11 +10,15 @@ export default class extends Controller {
   connect() {
     this.pdf = null
     this.spreadsheet = null
+    this.refused = false
+    this.rendered = null
   }
 
   picked(event) {
     const chosen = Array.from(event.target.files || [])
     event.target.value = ""
+
+    if (this.rendered === null) this.remember()
 
     let refused = false
     chosen.forEach((file) => {
@@ -37,7 +41,8 @@ export default class extends Controller {
     this.pdf = null
     this.spreadsheet = null
     this.refused = false
-    this.sync()
+    if (this.rendered === null) this.remember()
+    this.release()
   }
 
   send(event) {
@@ -59,8 +64,23 @@ export default class extends Controller {
   }
 
   sync() {
-    const staged = Boolean(this.pdf || this.spreadsheet)
+    if (this.rendered === null) this.remember()
     this.lines()
+    this.visibility()
+  }
+
+  release() {
+    this.filesTarget.innerHTML = this.rendered
+    this.visibility()
+  }
+
+  remember() {
+    this.rendered = this.filesTarget.innerHTML
+    this.renderedEmpty = !this.rendered.includes("statement-file")
+  }
+
+  visibility() {
+    const staged = Boolean(this.pdf || this.spreadsheet)
 
     this.triggerTarget.hidden = Boolean(this.spreadsheet)
     this.sendTarget.hidden = !this.spreadsheet
@@ -80,7 +100,7 @@ export default class extends Controller {
 
     if (this.spreadsheet) {
       this.filesTarget.append(this.line(`Planilha ${this.spreadsheet.name}`))
-    } else {
+    } else if (this.renderedEmpty) {
       this.filesTarget.append(this.hintLine())
     }
   }

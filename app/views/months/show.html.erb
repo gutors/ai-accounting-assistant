@@ -159,17 +159,8 @@
               </div>
               <p data-cell="amount" class="font-medium tabular-nums"><%= format_reais(payment.amount_cents) %></p>
               <div data-cell="status">
-                <% if status == "missing" %>
-                  <p class="pay-status text-margem">Documento faltante</p>
-                <% elsif status == "matched" %>
-                  <p class="pay-status">Casado</p>
-                <% elsif status == "bank_fee" %>
-                  <p class="pay-status">Tarifa bancária</p>
-                <% elsif status == "accountant_fee" %>
-                  <p class="pay-status">Honorário do contador</p>
-                <% elsif status == "extra" %>
-                  <p class="pay-status"><%= payment.extra_exception_kind.name %></p>
-                <% end %>
+                <% status_word = payment_status_word(payment, status) %>
+                <p class="pay-status<%= " text-margem" if status == "missing" %>" title="<%= status_word %>"><%= status_word %></p>
               </div>
               <% document_names = status == "matched" ? payment.match.supporting_documents.map(&:payee).join(", ") : "" %>
               <p data-cell="document" class="pay-document" title="<%= document_names %>"><%= document_names %></p>

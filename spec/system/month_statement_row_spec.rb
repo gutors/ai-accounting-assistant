@@ -140,6 +140,57 @@ RSpec.describe "Month statement row", type: :system do
     expect(organization.reload.months.first.bank_statements.count).to eq(0)
   end
 
+  it "descartar on a present row restores the statement's own document lines" do
+    account, organization = plant_coordinator
+    sign_in_through_google(account)
+    month, statement = plant_month(organization)
+    attach_statement_files(statement, spreadsheet: "extrato-maio-2026.xlsx")
+    visit "/months/2026-05"
+
+    row = account_row(statement.bank_account)
+    expect(document_lines(statement.bank_account)).to eq([
+      "Pdf extrato.pdf", "Planilha extrato-maio-2026.xlsx"
+    ])
+
+    stage(row, upload("extrato.pdf", "%PDF-1.1"))
+    expect(document_lines(statement.bank_account)).to eq([ "Pdf extrato.pdf" ])
+
+    within(row) { find("[data-statement-row-target='discard']").click }
+
+    expect(document_lines(statement.bank_account)).to eq([
+      "Pdf extrato.pdf", "Planilha extrato-maio-2026.xlsx"
+    ])
+    expect(row).to have_text("Presente")
+    expect(visible_icons(statement.bank_account)).to eq([ "Substituir extrato" ])
+  end
+
+  it "statement control measures the 1.75rem hit area with a 16px glyph" do
+    _account, organization, bank_account = open_month
+
+    box = page.evaluate_script(<<~JS)
+      (function () {
+        var row = document.querySelector('li[data-row="bank-account"][data-bank-account-id="#{bank_account.id}"]');
+        var control = Array.from(row.querySelectorAll(".ledger-row-actions .ledger-action-icon")).filter(function (node) {
+          return !node.hidden;
+        })[0];
+        var rect = control.getBoundingClientRect();
+        var glyph = control.querySelector("svg").getBoundingClientRect();
+        return {
+          width: Math.round(rect.width),
+          height: Math.round(rect.height),
+          glyphWidth: Math.round(glyph.width),
+          glyphHeight: Math.round(glyph.height)
+        };
+      })()
+    JS
+
+    expect(box["width"]).to eq(28)
+    expect(box["height"]).to eq(28)
+    expect(box["glyphWidth"]).to eq(16)
+    expect(box["glyphHeight"]).to eq(16)
+    expect(organization.bank_accounts.count).to eq(1)
+  end
+
   it "every Pagamentos row measures at most 48px across five statuses" do
     account, organization = plant_coordinator
     sign_in_through_google(account)
@@ -160,19 +211,26 @@ RSpec.describe "Month statement row", type: :system do
 
     visit "/months/2026-05"
 
-    heights = JSON.parse(page.evaluate_script(<<~JS))
+    heights = page.evaluate_script(<<~JS)
       (function () {
-        function textLines(node) {
+        var textLines = function (node) {
           var range = document.createRange();
           range.selectNodeContents(node);
           var tops = [];
-          Array.from(range.getClientRects()).forEach(function (rect) {
-            if (tops.indexOf(Math.round(rect.top)) === -1) tops.push(Math.round(rect.top));
+          var rects = Array.from(range.getClientRects());
+          rects.forEach(function (rect) {
+            var top = Math.round(rect.top);
+            if (tops.indexOf(top) === -1) tops.push(top);
           });
           return tops.length;
-        }
-
-        return JSON.stringify(Array.from(document.querySelectorAll('li[data-row="payment"]')).map(function (row) {
+        };
+        var step = function (selector) {
+          var node = document.querySelector('li[data-row="payment"] ' + selector);
+          if (!node) return { size: null, line: null };
+          var style = getComputedStyle(node);
+          return { size: style.fontSize, line: style.lineHeight };
+        };
+        var rows = Array.from(document.querySelectorAll('li[data-row="payment"]')).map(function (row) {
           var cells = [ ".pay-history", ".pay-status", ".pay-document" ].map(function (selector) {
             var node = row.querySelector(selector);
             return node ? textLines(node) : 0;
@@ -182,16 +240,33 @@ RSpec.describe "Month statement row", type: :system do
             height: Math.round(row.getBoundingClientRect().height),
             textLines: cells
           };
-        }));
+        });
+        return {
+          rows: rows,
+          steps: {
+            history: step(".pay-history"),
+            status: step(".pay-status"),
+            document: step(".pay-document"),
+            account: step(".pay-account")
+          }
+        };
       })()
     JS
 
-    expect(heights.size).to eq(5)
-    heights.each do |row|
+    rows = heights["rows"]
+    expect(rows.size).to eq(5)
+    rows.each do |row|
       expect(row["height"]).to be <= 48
       row["textLines"].each { |lines| expect(lines).to be <= 1 }
     end
 
+    steps = heights["steps"]
+    %w[history status document].each do |cell|
+      expect(steps[cell]["size"]).to eq("14px")
+      expect(steps[cell]["line"]).to eq("18px")
+    end
+    expect(steps["account"]["size"]).to eq("13px")
+    expect(steps["account"]["line"]).to eq("18px")
     expect(account_row_for(missing)).to have_css(".pay-history", visible: true)
     expect(account_row_for(matched)).to have_css(".pay-status", text: "Casado")
     expect(account_row_for(fee)).to have_css(".pay-status", text: "Tarifa bancária")

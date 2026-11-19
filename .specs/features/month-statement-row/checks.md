@@ -4,7 +4,7 @@ Mutations: 3
 Build: `bin/rubocop`; `bin/erb_lint --lint-all`
 Plan: `.specs/features/month-statement-row/plan.md`
 
-17 checks in 2 slices · 0 one-way doors · 0 open
+20 checks in 2 slices · 0 one-way doors · 0 open
 
 Proofs use `bin/rspec` and `-e` as `.cursor/rules/rails.mdc` names. The gesture checks run in
 Cuprite system specs, because staging two files behind one picker is JavaScript.
@@ -52,8 +52,15 @@ to `/months/2026-05`, and the page then lists the statement's own `Pdf` and `Pla
 the success toast (AC 9)
 Proof: `bin/rspec spec/system/month_statement_row_spec.rb -e "sending the staged files persists the statement and toasts"`
 
-**C10** - Clicking `Descartar` returns that row to the C1 state with nothing posted (AC 10)
+**C10** - Clicking `Descartar` returns that row to the state it was served with and posts nothing: an absent row returns to the `Incluir extrato` control and the hint, a Presente row returns to its own `Pdf` and `Planilha` lines and the pencil (AC 10)
 Proof: `bin/rspec spec/system/month_statement_row_spec.rb -e "descartar clears the staged files without posting"`
+Proof: `bin/rspec spec/system/month_statement_row_spec.rb -e "descartar on a present row restores the statement's own document lines"`
+
+**C19** - On an open month an account with a statement carries the pencil, named `Substituir extrato` by `aria-label` and `title`, and no visible `Substituir extrato` words (AC 1)
+Proof: `bin/rspec spec/requests/month_statement_row_spec.rb -e "open month present account row carries the pencil named Substituir extrato"`
+
+**C20** - That control renders a 28px by 28px box with a 16px glyph at 1280px, which is the 1.75rem `.ledger-action-icon` hit area (AC 1)
+Proof: `bin/rspec spec/system/month_statement_row_spec.rb -e "statement control measures the 1.75rem hit area with a 16px glyph"`
 
 **C11** - WHILE the month is closed no account row shows a statement control and the page has no
 `Enviar extrato` (AC 11)
@@ -93,12 +100,14 @@ Proof: `bin/rspec spec/system/month_statement_row_spec.rb -e "390px pagamentos s
 
 | Set (size) | Member -> proof | Unproven |
 | --- | --- | --- |
-| statement row states (5) | empty `+` C1 · PDF only `+` `×` C5 · spreadsheet alone `✓` `×` C4 · both `✓` `×` C6 · refused sentence C8 · present pencil C1 | - |
+| statement row states (5) | empty `+` C1 · PDF only `+` `×` C5 · spreadsheet alone `✓` `×` C4 · both `✓` `×` C6 · refused sentence C8 · present pencil C19 | - |
 | picker input space (7) | `.pdf` C5 · `.csv` C4 · `.xlsx` C4 · `.txt` C8 · `.ofx` C8 · second of a kind C7 · both kinds at once C6 | - |
 | `POST /months/:year_month/bank_statements` statuses this change can reach (2) | `302` `/months/2026-05` C9 · `422` C17 | - |
 | Pagamentos statuses measured (5) | `Documento faltante` C12 · `Casado` C12 · `Tarifa bancária` C12 · `Honorário do contador` C12 · extra kind C12 | - |
+| Pagamentos cell type steps (4) | `.pay-history` 14px/18px C12 · `.pay-status` C12 · `.pay-document` C12 · `.pay-account` 13px/18px C12 | - |
 | capture states (2) | `captures/statement-row.png` C3 · `captures/statement-row-390.png` C15 | - |
-| row control names (2) | `Incluir extrato` C1, C11 · `Substituir extrato` C1 | - |
+| row control names (2) | `Incluir extrato` C1, C11 · `Substituir extrato` C19 | - |
+| statement control box (2) | 1.75rem hit area C20 · 16px glyph C20 | - |
 
 ## Swept
 

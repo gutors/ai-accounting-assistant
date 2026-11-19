@@ -41,6 +41,17 @@ module ApplicationHelper
     end
   end
 
+  # The word the month page prints for a status; one line, truncated with its title.
+  def payment_status_word(payment, status)
+    case status
+    when "missing" then "Documento faltante"
+    when "matched" then "Casado"
+    when "bank_fee" then "Tarifa bancária"
+    when "accountant_fee" then "Honorário do contador"
+    when "extra" then payment.extra_exception_kind.name
+    end
+  end
+
   # The 44-digit chave de acesso as printed on the DANFE: groups of four.
   def format_chave(chave)
     chave.to_s.scan(/.{1,4}/).join(" ")

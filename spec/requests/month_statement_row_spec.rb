@@ -100,6 +100,8 @@ RSpec.describe "Month statement row", type: :request do
     history = "Pix - Enviado — 06/05 10:14 MARCIO ANTONIO ZANNONI DA SILVA E SOUZA"
     payment = plant_payment(statement, 120_000, history: history)
     document = plant_recibo(organization, account, payee: "Atacado de Confecções Forte Sul Limitada", amount: "1200,00")
+    fee = plant_payment(statement, 3_990, history: "Tarifa pacote")
+    fee.update!(document_exception_kind: "accountant_fee")
     Match.confirm(month: month, payments: [ payment ], supporting_documents: [ document ])
 
     get "/months/2026-05"
@@ -113,7 +115,14 @@ RSpec.describe "Month statement row", type: :request do
     document_cell = payment_row.at_css('[data-cell="document"]')
     expect(document_cell["class"]).to include("pay-document")
     expect(document_cell["title"]).to eq("Atacado de Confecções Forte Sul Limitada")
-    expect(payment_row.at_css('[data-cell="status"]').at_css(".pay-status")["title"].to_s).to eq("")
+
+    wide_row = row(response.body, "payment", payment_id: fee.id)
+    wide_status_cell = wide_row.at_css(".pay-status")
+    expect(wide_status_cell.text.strip).to eq("Honorário do contador")
+    expect(wide_status_cell["title"]).to eq("Honorário do contador")
+    short_status = payment_row.at_css(".pay-status")
+    expect(short_status.text.strip).to eq("Casado")
+    expect(short_status["title"]).to eq("Casado")
   end
 
   it "Pagamentos omits the match observation that matches still shows" do

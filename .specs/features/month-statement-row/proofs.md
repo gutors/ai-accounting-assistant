@@ -1,8 +1,8 @@
 # month-statement-row proofs
 
-**HEAD**: de99997
+**HEAD**: e6ab476
 **Tree**: clean
-**Result**: 18 pass, 2 fail; mutations 0 killed, 0 not
+**Result**: 18 pass, 2 fail; mutations 3 killed, 0 not
 
 | Check | Proof | Ran | Passed | Result |
 | --- | --- | --- | --- | --- |
@@ -26,3 +26,11 @@
 | C15 | `bin/rspec spec/system/month_statement_row_spec.rb -e "390px pagamentos stacks two lines without horizontal scr` | count unknown | - | pass |
 | Build | `bin/rubocop` | - | - | pass |
 | Build | `bin/erb_lint --lint-all` | - | - | pass |
+
+## Mutations
+
+| Mutation | Location | Killed |
+| --- | --- | --- |
+| send hidden unless a spreadsheet is staged -> send always visible (C5) | `app/javascript/controllers/statement_row_controller.js:66` | yes |
+| second PDF ignored -> second PDF replaces the first (C7) | `app/javascript/controllers/statement_row_controller.js:22` | yes |
+| unknown extension refused -> unknown extension staged as a PDF (C8) | `app/javascript/controllers/statement_row_controller.js:114` | yes |

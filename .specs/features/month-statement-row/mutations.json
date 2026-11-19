@@ -1,0 +1,23 @@
+[
+  {
+    "file": "app/javascript/controllers/statement_row_controller.js",
+    "old": "    this.sendTarget.hidden = !this.spreadsheet",
+    "new": "    this.sendTarget.hidden = false",
+    "proof": "bin/rspec spec/system/month_statement_row_spec.rb -e \"picking a PDF alone withholds the send and keeps the hint\"",
+    "label": "send hidden unless a spreadsheet is staged -> send always visible (C5)"
+  },
+  {
+    "file": "app/javascript/controllers/statement_row_controller.js",
+    "old": "      if (kind === \"pdf\" && !this.pdf) {",
+    "new": "      if (kind === \"pdf\") {",
+    "proof": "bin/rspec spec/system/month_statement_row_spec.rb -e \"two files of each kind stage the first of each\"",
+    "label": "second PDF ignored -> second PDF replaces the first (C7)"
+  },
+  {
+    "file": "app/javascript/controllers/statement_row_controller.js",
+    "old": "    return null\n  }",
+    "new": "    return \"pdf\"\n  }",
+    "proof": "bin/rspec spec/system/month_statement_row_spec.rb -e \"nota txt and extrato ofx are refused and a staged xlsx clears the sentence\"",
+    "label": "unknown extension refused -> unknown extension staged as a PDF (C8)"
+  }
+]
