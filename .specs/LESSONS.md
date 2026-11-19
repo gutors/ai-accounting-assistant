@@ -56,6 +56,12 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: C33 (setup)
 - last seen: 2026-11-19T15:08:52Z
 
+### L-022 - When fallback is a conjunction of two validations, prove mixed cases (valid with invalid, invalid with valid), not only both-invalid together.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · harmful: 0
+- features: month-overview-lists
+- evidence: C22
+- last seen: 2026-11-19T19:37:09Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.
