@@ -233,7 +233,8 @@
     list-style: none;
   }
 
-  .desk-month-link {
+  .desk-month-link,
+  .desk-item-link {
     display: grid;
     grid-template-columns: 1fr auto;
     gap: 8px;
@@ -244,13 +245,20 @@
     text-decoration: none;
   }
 
-  .desk-month-title {
+  .desk-month-title,
+  .desk-item-title {
     font-weight: 500;
   }
 
-  .desk-month-link[aria-current="true"] .desk-month-title {
+  .desk-month-link[aria-current="true"] .desk-month-title,
+  .desk-item-link[aria-current="true"] .desk-item-title {
     font-weight: 600;
     color: var(--color-caixa);
+  }
+
+  .desk-item-link.is-block {
+    border-left: 3px solid var(--color-margem);
+    padding-left: 12px;
   }
 
   .desk-month-status {

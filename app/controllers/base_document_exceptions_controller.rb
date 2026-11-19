@@ -7,7 +7,7 @@ class BaseDocumentExceptionsController < ApplicationController
       return
     end
 
-    redirect_success("/setup", ActionToast.base_document_exception_changed(params[:kind], base_offer_active?))
+    redirect_success(setup_item_path("extras"), ActionToast.base_document_exception_changed(params[:kind], base_offer_active?))
   end
 
   private

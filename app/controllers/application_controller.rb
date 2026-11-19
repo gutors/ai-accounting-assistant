@@ -11,7 +11,7 @@ class ApplicationController < ActionController::Base
   after_action :repair_stale_focus
 
   helper_method :current_account, :focused_organization, :coordinator_on_focus?, :administrator?,
-    :people_desk_path
+    :people_desk_path, :setup_item_path
 
   private
 
@@ -93,6 +93,10 @@ class ApplicationController < ActionController::Base
 
   def people_desk_path
     root_path(desk: "people")
+  end
+
+  def setup_item_path(item)
+    "/setup?item=#{item}"
   end
 
   def people_desk_requested?
@@ -268,6 +272,15 @@ class ApplicationController < ActionController::Base
     @extra_exception_kinds = @organization.extra_exception_kinds.order(:name)
     assign_editing_bank_account_from_query unless instance_variable_defined?(:@editing_bank_account)
     prepare_bank_account_form
+    @setup_desk = SetupDesk.new(
+      @organization,
+      bank_accounts: @bank_accounts,
+      extra_exception_kinds: @extra_exception_kinds,
+      item: params[:item],
+      edit: params[:edit],
+      forced_item: @setup_item
+    )
+    @setup_item = @setup_desk.selected
   end
 
   def assign_editing_bank_account_from_query

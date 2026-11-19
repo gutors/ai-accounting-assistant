@@ -54,8 +54,27 @@ module PageHelpers
 
   STANDING_ARCHIVE_URL = "https://drive.google.com/drive/folders/15uNXeRBIhVvZJIhL4yTw4IsStMhUaaxl"
 
+  def setup_index(body)
+    page_doc(body).at_css('nav[aria-label="Itens de configuração"]')
+  end
+
+  def setup_index_row(body, title)
+    setup_index(body)&.css("a")&.find { |node| node.at_css(".desk-item-title")&.text&.strip == title }
+  end
+
+  def setup_pane(body)
+    page_doc(body).at_css('[data-desk="in-work"]')
+  end
+
+  def setup_pane_named(body, title)
+    pane = setup_pane(body)
+    return unless pane&.at_css("h1")&.text&.strip == title
+
+    pane
+  end
+
   def accountant_section(body)
-    page_doc(body).css("section").find { |section| section.at_css("h2")&.text&.strip == "Contador" }
+    setup_pane_named(body, "Contador")
   end
 
   def accountant_form(body)
@@ -63,7 +82,7 @@ module PageHelpers
   end
 
   def accountant_edit_control(body)
-    accountant_section(body)&.css("a, button").find { |node| node.text.strip == "Editar" }
+    accountant_section(body)&.css("a, button")&.find { |node| node.text.strip == "Editar" }
   end
 
   def accountant_input_ids
@@ -85,7 +104,7 @@ module PageHelpers
   end
 
   def archive_section(body)
-    page_doc(body).css("section").find { |section| section.at_css("h2")&.text&.strip == "Armazenamento do pacote mensal" }
+    setup_pane_named(body, "Arquivo do pacote")
   end
 
   def archive_form(body)
@@ -93,11 +112,11 @@ module PageHelpers
   end
 
   def archive_edit_control(body)
-    archive_section(body)&.css("a, button").find { |node| node.text.strip == "Editar" }
+    archive_section(body)&.css("a, button")&.find { |node| node.text.strip == "Editar" }
   end
 
   def extras_section(body)
-    page_doc(body).css("section").find { |section| section.at_css("h2")&.text&.strip == "Tipos extras de exceção" }
+    setup_pane_named(body, "Tipos extras")
   end
 
   def extra_kind_row(body, name)
@@ -155,7 +174,7 @@ module PageHelpers
   end
 
   def expect_archive_cadastro(body)
-    expect(page_doc(body).css("h2").map { |node| node.text.strip }).to include("Armazenamento do pacote mensal")
+    expect(archive_section(body).at_css("h1").text.strip).to eq("Arquivo do pacote")
     expect(body).to include("Cole a URL da pasta do Google Drive")
     form = archive_form(body)
     expect(form.at_css('input[type="submit"][value="Salvar arquivo"]')).to be_present
@@ -169,7 +188,6 @@ module PageHelpers
     expect(archive_edit_control(body)).to be_nil
     expect(section.at_css('input[type="submit"][value="Confirmar"]')).to be_nil
     copy = page_doc(body).xpath("//text()").map { |node| node.text.strip }
-    expect(copy).not_to include("Arquivo do pacote")
     expect(copy).not_to include("Cole a URL da pasta do Drive")
     expect(copy).not_to include("URL da pasta do Drive")
   end
@@ -207,7 +225,7 @@ module PageHelpers
   end
 
   def certificate_heading
-    "Certificado Digital A1 - Para consulta na SEFAZ"
+    "Certificado A1"
   end
 
   def certificate_empty_line
@@ -215,7 +233,7 @@ module PageHelpers
   end
 
   def certificate_section(body)
-    page_doc(body).css("section").find { |section| section.at_css("h2")&.text&.strip == certificate_heading }
+    setup_pane_named(body, certificate_heading)
   end
 
   def certificate_install_details(body)
@@ -262,7 +280,7 @@ module PageHelpers
   end
 
   def bank_accounts_section(body)
-    page_doc(body).css("section").find { |section| section.at_css("h2")&.text&.strip == "Contas bancárias" }
+    setup_pane_named(body, "Contas bancárias")
   end
 
   def bank_account_section_form(body)

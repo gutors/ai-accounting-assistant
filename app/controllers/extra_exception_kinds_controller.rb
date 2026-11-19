@@ -9,8 +9,9 @@ class ExtraExceptionKindsController < ApplicationController
     )
 
     if extra_exception_kind.persisted?
-      redirect_success("/setup", ActionToast.extra_exception_kind_created(extra_exception_kind))
+      redirect_success(setup_item_path("extras"), ActionToast.extra_exception_kind_created(extra_exception_kind))
     else
+      @setup_item = "extras"
       load_setup
       @extra_exception_kind_form_open = true
       render "setup/show", status: :unprocessable_content
@@ -26,7 +27,7 @@ class ExtraExceptionKindsController < ApplicationController
 
     was_active = extra_exception_kind.active?
     extra_exception_kind.apply_active(params[:active]) if params.key?(:active)
-    redirect_success("/setup", kind_toast(extra_exception_kind, was_active))
+    redirect_success(setup_item_path("extras"), kind_toast(extra_exception_kind, was_active))
   end
 
   def destroy
@@ -38,8 +39,9 @@ class ExtraExceptionKindsController < ApplicationController
 
     name = extra_exception_kind.name
     if extra_exception_kind.destroy_if_unused
-      redirect_success("/setup", ActionToast.extra_exception_kind_deleted(name))
+      redirect_success(setup_item_path("extras"), ActionToast.extra_exception_kind_deleted(name))
     else
+      @setup_item = "extras"
       load_setup
       render "setup/show", status: :unprocessable_content
     end

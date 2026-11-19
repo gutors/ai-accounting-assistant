@@ -32,7 +32,7 @@ RSpec.describe "Setup", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include('lang="pt-BR"')
     expect(response.body).to include("Contador")
-    expect(response.body).to include("Armazenamento do pacote mensal")
+    expect(response.body).to include("Arquivo do pacote")
     expect(response.body).to include("Contas bancárias")
   end
 
@@ -40,7 +40,7 @@ RSpec.describe "Setup", type: :request do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
 
-    get "/setup"
+    get "/setup?item=certificate"
 
     expect(response).to have_http_status(:ok)
     expect_certificate_absent_copy(response.body)
@@ -50,7 +50,7 @@ RSpec.describe "Setup", type: :request do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
 
-    get "/setup"
+    get "/setup?item=certificate"
 
     expect_certificate_install_fold(response.body, open: false)
   end
@@ -59,7 +59,7 @@ RSpec.describe "Setup", type: :request do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
 
-    get "/setup"
+    get "/setup?item=certificate"
 
     form = certificate_install_details(response.body).at_css('form[action="/sefaz_certificate"]')
     certificate = form.at_css("#certificate")
@@ -67,7 +67,7 @@ RSpec.describe "Setup", type: :request do
     expect(limpar.size).to eq(1)
     notice = error_notice(response.body)
     expect(notice.attribute("hidden")).not_to be_nil
-    expect(notice.parent.name).to eq("main")
+    expect(notice.parent["data-desk"]).to eq("in-work")
     expect(page_doc(response.body).at_css("#toast-host")).not_to be_nil
     expect(toast_node(response.body)).to be_nil
   end
@@ -96,7 +96,7 @@ RSpec.describe "Setup", type: :request do
     sign_in_as(account, organization: organization)
     persist_standing_accountant(organization)
 
-    get "/setup"
+    get "/setup?item=accountant"
 
     expect(response).to have_http_status(:ok)
     expect_accountant_leitura_cnpj_row(response.body)
@@ -108,7 +108,7 @@ RSpec.describe "Setup", type: :request do
     sign_in_as(account, organization: organization)
     organization.update_accountant(presentation_name: "Ana", tax_id: "39053344705")
 
-    get "/setup"
+    get "/setup?item=accountant"
 
     section = accountant_section(response.body)
     expect(section.at_css("p#tax_id").text.strip).to eq("390.533.447-05")
@@ -120,7 +120,7 @@ RSpec.describe "Setup", type: :request do
     sign_in_as(account, organization: organization)
     organization.update_accountant(presentation_name: "Ana")
 
-    get "/setup"
+    get "/setup?item=accountant"
 
     section = accountant_section(response.body)
     %w[tax_id legal_name pix_key destination_email].each do |id|
@@ -147,7 +147,7 @@ RSpec.describe "Setup", type: :request do
     sign_in_as(account, organization: organization)
     persist_standing_accountant(organization)
 
-    get "/setup"
+    get "/setup?item=accountant"
     edit_url = accountant_edit_control(response.body)["href"]
 
     get edit_url
@@ -179,13 +179,13 @@ RSpec.describe "Setup", type: :request do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
 
-    get "/setup"
+    get "/setup?item=archive"
 
     expect(response).to have_http_status(:ok)
     expect_archive_cadastro(response.body)
-    headings = page_doc(response.body).css("h2").map { |node| node.text.strip }
-    expect(headings.index("Contador")).to be < headings.index("Armazenamento do pacote mensal")
-    expect(headings.index("Armazenamento do pacote mensal")).to be < headings.index(certificate_heading)
+    titles = setup_index(response.body).css(".desk-item-title").map { |node| node.text.strip }
+    expect(titles.index("Contador")).to be < titles.index("Arquivo do pacote")
+    expect(titles.index("Arquivo do pacote")).to be < titles.index("Certificado A1")
   end
 
   it "GET /setup leitura archive is labeled text" do
@@ -193,7 +193,7 @@ RSpec.describe "Setup", type: :request do
     sign_in_as(account, organization: organization)
     persist_standing_archive(organization)
 
-    get "/setup"
+    get "/setup?item=archive"
 
     expect(response).to have_http_status(:ok)
     expect_archive_leitura(response.body)
@@ -204,7 +204,7 @@ RSpec.describe "Setup", type: :request do
     sign_in_as(account, organization: organization)
     persist_standing_archive(organization)
 
-    get "/setup"
+    get "/setup?item=archive"
     edit_url = archive_edit_control(response.body)["href"]
 
     get edit_url
@@ -223,7 +223,6 @@ RSpec.describe "Setup", type: :request do
 
     expect(response).to have_http_status(:ok)
     expect_archive_edicao(response.body)
-    expect_accountant_leitura_cnpj_row(response.body)
   end
 
   it "GET /setup edit=accountant unlocks accountant and keeps archive leitura" do
@@ -247,7 +246,6 @@ RSpec.describe "Setup", type: :request do
     expect(form.at_css("#tax_id")["value"]).to eq("11.222.333/0001-81")
     expect(form["class"]).to include("md:grid-cols-2")
     expect(accountant_section(response.body).at_css("p#presentation_name")).to be_nil
-    expect_archive_leitura(response.body)
   end
 
   it "setup does not include another organization archive URL" do
@@ -267,7 +265,7 @@ RSpec.describe "Setup", type: :request do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
 
-    get "/setup"
+    get "/setup?item=banks"
 
     picker = response.body[%r{<select[^>]*\bid="compe"[^>]*>.*?</select>}m]
     expect(picker).to be_present
@@ -295,7 +293,7 @@ RSpec.describe "Setup", type: :request do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
 
-    get "/setup"
+    get "/setup?item=banks"
 
     expect(response.body).to include("Nenhuma conta bancária")
   end
@@ -304,7 +302,7 @@ RSpec.describe "Setup", type: :request do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
 
-    get "/setup"
+    get "/setup?item=banks"
 
     expect(response).to have_http_status(:ok)
     section = bank_accounts_section(response.body)
@@ -325,7 +323,7 @@ RSpec.describe "Setup", type: :request do
     BankAccount.create_for(organization: organization, name: "Zeta", compe: "001")
     BankAccount.create_for(organization: organization, name: "Alfa", compe: "001")
 
-    get "/setup"
+    get "/setup?item=banks"
 
     principal_row = row(response.body, "bank-account", bank_account_id: principal.id)
     parada_row = row(response.body, "bank-account", bank_account_id: parada.id)
@@ -360,7 +358,7 @@ RSpec.describe "Setup", type: :request do
     parada = BankAccount.create_for(organization: organization, name: "Parada", compe: "033")
     parada.apply_from(active: false)
 
-    get "/setup"
+    get "/setup?item=banks"
 
     section = bank_accounts_section(response.body)
     forms = section.css("form").select { |form| form.at_css("#name") && form.at_css("#compe") && form.at_css("#coordinates") }
@@ -407,7 +405,7 @@ RSpec.describe "Setup", type: :request do
     parada = BankAccount.create_for(organization: organization, name: "Parada", compe: "033")
     parada.apply_from(active: false)
 
-    get "/setup"
+    get "/setup?item=banks"
     edit_url = bank_account_row_edit_control(row(response.body, "bank-account", bank_account_id: principal.id))["href"]
 
     get edit_url
@@ -460,7 +458,7 @@ RSpec.describe "Setup", type: :request do
     parada = BankAccount.create_for(organization: organization, name: "Parada", compe: "033")
     parada.apply_from(active: false)
 
-    get "/setup"
+    get "/setup?item=banks"
 
     expect(row(response.body, "bank-account", bank_account_id: principal.id).to_html).to include("Desativar")
     parada_html = row(response.body, "bank-account", bank_account_id: parada.id).to_html
@@ -475,7 +473,7 @@ RSpec.describe "Setup", type: :request do
     BankAccount.create_for(organization: organization, name: "Zeta", compe: "001")
     BankAccount.create_for(organization: organization, name: "Alfa", compe: "001")
 
-    get "/setup"
+    get "/setup?item=banks"
 
     expect(response.body.index("Alfa")).to be < response.body.index("Zeta")
   end
@@ -487,7 +485,7 @@ RSpec.describe "Setup", type: :request do
     inactive = BankAccount.create_for(organization: organization, name: "Parada", compe: "033")
     inactive.apply_from(active: false)
 
-    get "/setup"
+    get "/setup?item=banks"
 
     expect(active).to be_active
     expect(response.body).to include("Desativar")
@@ -527,7 +525,7 @@ RSpec.describe "Setup", type: :request do
     sign_in_as(account, organization: organization)
     organization.install_sefaz_certificate(file: sefaz_pfx, passphrase: "passphrase-secreta")
 
-    get "/setup"
+    get "/setup?item=certificate"
 
     expect(response).to have_http_status(:ok)
     expect_certificate_listed_cnpj_row(response.body)
@@ -559,7 +557,7 @@ RSpec.describe "Setup", type: :request do
     end
 
     travel_to Date.new(2026, 5, 12) do
-      get "/setup"
+      get "/setup?item=certificate"
     end
 
     expect(response.body).to include("Expirado em 11/05/2026")
@@ -573,7 +571,7 @@ RSpec.describe "Setup", type: :request do
     sign_in_as(account, organization: organization)
 
     with_env("SEFAZ_WRAP_KEY" => nil) do
-      get "/setup"
+      get "/setup?item=certificate"
     end
 
     expect(response).to have_http_status(:ok)
@@ -596,15 +594,14 @@ RSpec.describe "Setup", type: :request do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
 
-    get "/setup"
+    get "/setup?item=extras"
 
     expect(response).to have_http_status(:ok)
     section = extras_section(response.body)
-    expect(page_doc(response.body).css("div.space-y-12 > section > h2").last.text.strip).to eq("Tipos extras de exceção")
-    expect(section.at_css("h2 + ul")).to be_present
-    expect(section.at_css("h2 + p")).to be_nil
+    expect(section.at_css("h1").text.strip).to eq("Tipos extras")
+    expect(section.at_css("ul")).to be_present
     html = section.to_html
-    heading = html.index("Tipos extras de exceção")
+    heading = html.index("Tipos extras")
     tarifa = html.index("Tarifa bancária")
     tarifa_copy = html.index("Tarifa cobrada pelo banco; não há documento fiscal a anexar.")
     honorario = html.index("Honorário do contador")
@@ -629,7 +626,7 @@ RSpec.describe "Setup", type: :request do
       organization: organization, name: "Doação", justification: "Doação pontual sem nota."
     )
 
-    get "/setup"
+    get "/setup?item=extras"
 
     extra_names = rows(response.body, "extra-exception-kind").map { |node| node.text }
     expect(extra_names.join).to include("Doação")
@@ -657,7 +654,7 @@ RSpec.describe "Setup", type: :request do
     sign_in_as(account, organization: organization)
     persist_standing_accountant(organization)
 
-    get "/setup"
+    get "/setup?item=accountant"
 
     section = accountant_section(response.body)
     %w[presentation_name tax_id legal_name pix_key destination_email].each do |id|
@@ -666,14 +663,14 @@ RSpec.describe "Setup", type: :request do
       expect(label["class"]).not_to include("font-medium")
       expect(section.at_css(%(p##{id}))["class"]).to include("font-medium")
     end
-    expect(section.at_css("h2")["class"]).not_to include("text-ink-soft")
+    expect(section.at_css("h1")["class"]).not_to include("text-ink-soft")
   end
 
   it "GET /setup cadastro Contador labels are text-ink-soft and other sections keep font-medium" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
 
-    get "/setup"
+    get "/setup?item=accountant"
 
     section = accountant_section(response.body)
     %w[presentation_name tax_id legal_name pix_key destination_email].each do |id|
@@ -681,10 +678,6 @@ RSpec.describe "Setup", type: :request do
       expect(label["class"]).to include("text-ink-soft")
       expect(label["class"]).not_to include("font-medium")
     end
-    expect(archive_section(response.body).at_css('label[for="url"]')["class"]).to include("font-medium")
-    expect(certificate_section(response.body).at_css('label[for="passphrase"]')["class"]).to include("font-medium")
-    expect(bank_accounts_section(response.body).at_css('label[for="name"]')["class"]).to include("font-medium")
-    expect(extras_section(response.body).at_css('label[for="extra_exception_kind_name"]')["class"]).to include("font-medium")
   end
 
   it "GET /setup edit accountant Contador labels are text-ink-soft" do
@@ -706,7 +699,7 @@ RSpec.describe "Setup", type: :request do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
 
-    get "/setup"
+    get "/setup?item=banks"
 
     details = bank_account_add_details(response.body)
     expect(details).to be_present
@@ -715,7 +708,6 @@ RSpec.describe "Setup", type: :request do
     form = bank_account_section_form(response.body)
     expect(form.at_css('input[type="submit"][value="Adicionar conta"]')).to be_present
     expect(details.at_css("#certificate")).to be_nil
-    expect(page_doc(response.body).at_css("#certificate").ancestors("details")).not_to include(details)
   end
 
   it "GET /setup bank rows show Ativa and Inativa" do
@@ -727,7 +719,7 @@ RSpec.describe "Setup", type: :request do
     parada = BankAccount.create_for(organization: organization, name: "Parada", compe: "033")
     parada.apply_from(active: false)
 
-    get "/setup"
+    get "/setup?item=banks"
 
     principal_row = row(response.body, "bank-account", bank_account_id: principal.id)
     parada_row = row(response.body, "bank-account", bank_account_id: parada.id)
@@ -761,7 +753,7 @@ RSpec.describe "Setup", type: :request do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
 
-    get "/setup"
+    get "/setup?item=extras"
 
     details = extra_kind_add_details(response.body)
     expect(details).to be_present
@@ -784,7 +776,7 @@ RSpec.describe "Setup", type: :request do
     )
     folha.apply_active(false)
 
-    get "/setup"
+    get "/setup?item=extras"
 
     doacao = extra_kind_row(response.body, "Doação")
     folha_row = extra_kind_row(response.body, "Folha")
@@ -805,7 +797,7 @@ RSpec.describe "Setup", type: :request do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
 
-    get "/setup"
+    get "/setup?item=extras"
 
     expect(organization.extra_exception_kinds.count).to eq(0)
     expect(organization.bank_fee_exception_active).to eq(true)
@@ -835,7 +827,7 @@ RSpec.describe "Setup", type: :request do
       organization: organization, name: "Alfa", justification: "Isento de documento de suporte."
     )
 
-    get "/setup"
+    get "/setup?item=extras"
 
     html = extras_section(response.body).to_html
     expect(html.index("Tarifa bancária")).to be < html.index("Honorário do contador")
@@ -847,7 +839,7 @@ RSpec.describe "Setup", type: :request do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
 
-    get "/setup"
+    get "/setup?item=extras"
 
     section = extras_section(response.body)
     form = section.at_css('form[action="/extra_exception_kinds"]')
@@ -860,7 +852,7 @@ RSpec.describe "Setup", type: :request do
     heading = section.at_css('li[data-row="extras-column-headings"]')
     expect(heading.text.gsub(/\s+/, " ").strip).to eq("Nome Justificativa Situação")
     expect(heading.ancestors("form")).to be_empty
-    list = section.at_css("h2 + ul")
+    list = section.at_css("ul")
     expect(list.css("li").first["data-row"]).to eq("extras-column-headings")
     expect(form.ancestors("details").first.previous_element).to eq(list)
   end
@@ -872,7 +864,7 @@ RSpec.describe "Setup", type: :request do
       organization: organization, name: "Doação", justification: "Doação pontual sem nota."
     )
 
-    get "/setup"
+    get "/setup?item=extras"
 
     row = extra_kind_row(response.body, "Doação")
     expect(row).to be_present
@@ -889,7 +881,7 @@ RSpec.describe "Setup", type: :request do
     )
     kind.apply_active(false)
 
-    get "/setup"
+    get "/setup?item=extras"
 
     row = extra_kind_row(response.body, "Doação")
     expect(row.text).to include("Doação pontual sem nota.")
@@ -906,7 +898,7 @@ RSpec.describe "Setup", type: :request do
     )
     inactive.apply_active(false)
 
-    get "/setup"
+    get "/setup?item=extras"
 
     expect(extra_kind_row(response.body, "Ativa Extra").text).to include("Desativar")
     expect(extra_kind_row(response.body, "Parada Extra").text).to include("Ativar")
@@ -919,7 +911,7 @@ RSpec.describe "Setup", type: :request do
       organization: organization, name: "Folha", justification: "Isento de documento de suporte."
     )
 
-    get "/setup"
+    get "/setup?item=extras"
 
     expect(extra_kind_row(response.body, "Folha").text).to include("Excluir")
   end
@@ -934,7 +926,7 @@ RSpec.describe "Setup", type: :request do
     payment = plant_payment(statement, 22000)
     payment.update!(extra_exception_kind: kind)
 
-    get "/setup"
+    get "/setup?item=extras"
 
     expect(response.body).not_to include("Excluir")
   end
@@ -958,10 +950,10 @@ RSpec.describe "Setup", type: :request do
     sign_in_as(account, organization: organization)
     bank_account = BankAccount.create_for(organization: organization, name: "Conta Principal", compe: "001")
 
-    get "/setup"
+    get "/setup?item=banks"
 
     expect(response).to have_http_status(:ok)
-    expect(page_doc(response.body).at_css("h1").text.strip).to eq("Configuração")
+    expect(page_doc(response.body).at_css("h1").text.strip).to eq("Contas bancárias")
     account_row = row(response.body, "bank-account", bank_account_id: bank_account.id)
     expect(account_row).not_to be_nil
     expect(account_row.at_css("details")).to be_nil

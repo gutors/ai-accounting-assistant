@@ -1,0 +1,58 @@
+<% accountant_reading = @organization.accountant_presentation_name.present? && !@accountant_editing %>
+<% accountant_label = "mb-1 block text-ink-soft" %>
+<% if @organization.accountant_presentation_name.blank? %>
+  <p class="mt-6">Cadastre o contador</p>
+<% end %>
+<% if accountant_reading %>
+  <div class="mt-6 grid max-w-3xl gap-4 md:grid-cols-2">
+    <div>
+      <label for="presentation_name" class="<%= accountant_label %>">Nome de apresentação</label>
+      <p id="presentation_name" class="font-medium"><%= @organization.accountant_presentation_name %></p>
+    </div>
+    <div>
+      <label for="tax_id" class="<%= accountant_label %>">CPF/CNPJ (preencher apenas números)</label>
+      <p id="tax_id" class="font-medium"><%= BrazilianTaxId.format(@organization.accountant_tax_id) %></p>
+    </div>
+    <div>
+      <label for="legal_name" class="<%= accountant_label %>">Razão social</label>
+      <p id="legal_name" class="font-medium"><%= @organization.accountant_legal_name %></p>
+    </div>
+    <div>
+      <label for="pix_key" class="<%= accountant_label %>">PIX</label>
+      <p id="pix_key" class="font-medium"><%= @organization.accountant_pix_key %></p>
+    </div>
+    <div>
+      <label for="destination_email" class="<%= accountant_label %>">Email para envio</label>
+      <p id="destination_email" class="font-medium"><%= @organization.package_destination_email %></p>
+    </div>
+    <div class="md:col-span-2">
+      <%= link_to "Editar", "/setup?edit=accountant", class: "inline-block rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+    </div>
+  </div>
+<% else %>
+  <%= form_with url: "/accountant", method: :patch, class: "mt-6 grid max-w-3xl gap-4 md:grid-cols-2" do %>
+    <div>
+      <label for="presentation_name" class="<%= accountant_label %>">Nome de apresentação</label>
+      <%= text_field_tag :presentation_name, @organization.accountant_presentation_name.to_s, id: "presentation_name", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
+    </div>
+    <div>
+      <label for="tax_id" class="<%= accountant_label %>">CPF/CNPJ (preencher apenas números)</label>
+      <%= text_field_tag :tax_id, BrazilianTaxId.format(@organization.accountant_tax_id).to_s, id: "tax_id", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off", inputmode: "numeric", data: { controller: "tax-id-mask", action: "input->tax-id-mask#typed" } %>
+    </div>
+    <div>
+      <label for="legal_name" class="<%= accountant_label %>">Razão social</label>
+      <%= text_field_tag :legal_name, @organization.accountant_legal_name.to_s, id: "legal_name", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "organization" %>
+    </div>
+    <div>
+      <label for="pix_key" class="<%= accountant_label %>">PIX</label>
+      <%= text_field_tag :pix_key, @organization.accountant_pix_key.to_s, id: "pix_key", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off" %>
+    </div>
+    <div>
+      <label for="destination_email" class="<%= accountant_label %>">Email para envio</label>
+      <%= email_field_tag :destination_email, @organization.package_destination_email.to_s, id: "destination_email", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "email" %>
+    </div>
+    <div class="md:col-span-2">
+      <%= submit_tag "Salvar contador", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+    </div>
+  <% end %>
+<% end %>

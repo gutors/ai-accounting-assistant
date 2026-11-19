@@ -8,13 +8,13 @@ RSpec.describe "Base document exceptions", type: :request do
     patch "/base_document_exceptions/bank_fee", params: { active: false }
 
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/setup")
+    expect(response).to redirect_to("/setup?item=extras")
     organization.reload
     expect(organization.bank_fee_exception_active).to eq(false)
     expect(organization.accountant_fee_exception_active).to eq(true)
     expect(organization.extra_exception_kinds.count).to eq(0)
 
-    get "/setup"
+    get "/setup?item=extras"
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
     expect(toast_message(response.body)).to eq("Exceção Tarifa bancária desativada.")
     row = base_exception_row(response.body, "Tarifa bancária")
@@ -42,7 +42,7 @@ RSpec.describe "Base document exceptions", type: :request do
     expect(organization.bank_fee_exception_active).to eq(true)
     expect(organization.extra_exception_kinds.count).to eq(0)
 
-    get "/setup"
+    get "/setup?item=extras"
     row = base_exception_row(response.body, "Honorário do contador")
     expect(row.text).to include("Inativo")
     expect(row.text).to include("Ativar")
@@ -58,7 +58,7 @@ RSpec.describe "Base document exceptions", type: :request do
 
     expect(organization.reload.bank_fee_exception_active).to eq(true)
 
-    get "/setup"
+    get "/setup?item=extras"
     expect(toast_message(response.body)).to eq("Exceção Tarifa bancária reativada.")
     row = base_exception_row(response.body, "Tarifa bancária")
     expect(row.text).to include("Ativo")

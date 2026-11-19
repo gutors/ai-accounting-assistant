@@ -8,13 +8,13 @@ RSpec.describe "Extra exception kinds", type: :request do
     post "/extra_exception_kinds", params: { name: "Doação", justification: "Doação pontual sem nota." }
 
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/setup")
+    expect(response).to redirect_to("/setup?item=extras")
     kind = organization.extra_exception_kinds.last
     expect(kind).to be_active
     expect(kind.name).to eq("Doação")
     expect(kind.justification).to eq("Doação pontual sem nota.")
 
-    get "/setup"
+    get "/setup?item=extras"
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
     expect(toast_message(response.body)).to eq("Tipo extra criado: Doação.")
     row = extra_kind_row(response.body, "Doação")
@@ -85,7 +85,7 @@ RSpec.describe "Extra exception kinds", type: :request do
     expect(response).to have_http_status(:unprocessable_content)
     expect(organization.extra_exception_kinds.count).to eq(0)
 
-    get "/setup"
+    get "/setup?item=extras"
     expect(extras_section(response.body).to_html.scan("Tarifa bancária").size).to eq(1)
   end
 
@@ -191,10 +191,10 @@ RSpec.describe "Extra exception kinds", type: :request do
     patch "/extra_exception_kinds/#{kind.id}", params: { active: false }
 
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/setup")
+    expect(response).to redirect_to("/setup?item=extras")
     expect(kind.reload).not_to be_active
 
-    get "/setup"
+    get "/setup?item=extras"
     expect(response.body).to include("Doação")
     expect(response.body).to include("Inativo")
     expect(response.body).not_to include("Desativado")
@@ -209,7 +209,7 @@ RSpec.describe "Extra exception kinds", type: :request do
 
     patch "/extra_exception_kinds/#{kind.id}", params: { active: true }
 
-    get "/setup"
+    get "/setup?item=extras"
     expect(toast_message(response.body)).to eq("Tipo extra ativado: Doação.")
     row = extra_kind_row(response.body, "Doação")
     expect(row).to include("Doação")
@@ -226,10 +226,10 @@ RSpec.describe "Extra exception kinds", type: :request do
     delete "/extra_exception_kinds/#{organization.extra_exception_kinds.find_by!(name: "Folha").id}"
 
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/setup")
+    expect(response).to redirect_to("/setup?item=extras")
     expect(organization.extra_exception_kinds.find_by(name: "Folha")).to be_nil
 
-    get "/setup"
+    get "/setup?item=extras"
     # The deleted-kind toast names Folha, so the absence is the extras list's.
     expect(extras_section(response.body).text).not_to include("Folha")
     expect(toast_message(response.body)).to eq("Tipo extra excluído: Folha.")
@@ -310,7 +310,7 @@ RSpec.describe "Extra exception kinds", type: :request do
     post "/extra_exception_kinds", params: { name: "Doação", justification: "Doação pontual sem nota." }
 
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/setup")
+    expect(response).to redirect_to("/setup?item=extras")
     expect(organization.extra_exception_kinds.find_by(name: "Doação")).to be_present
   end
 
@@ -355,7 +355,7 @@ RSpec.describe "Extra exception kinds", type: :request do
     sign_in_as(account, organization: organization)
     kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
 
-    get "/setup"
+    get "/setup?item=extras"
 
     kind_row = row(response.body, "extra-exception-kind", extra_exception_kind_id: kind.id)
     expect(kind_row).not_to be_nil
