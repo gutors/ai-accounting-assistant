@@ -163,7 +163,7 @@ Proof: `bin/rspec spec/requests/layout_spec.rb -e "submitter header omits Config
 ## Handoff
 
 - **Settled mid-build:** none
-- **Dispatched:** Verifier at `382107c` (`2a54b4a..382107c`); screens round 1 at `382107c`
+- **Dispatched:** Verifier at `382107c` (`2a54b4a..382107c`) returned FAIL (2 findings, closed at `b03e73d`); screens round 1 at `382107c` returned (diverges, 4 rows); screens round 2 at `b03e73d` returned (matches)
 - **Boundary:**
 - **Abandoned:** none
 - **Walked:** Ambiente local `desk-walk@example.com`, focused organization `ONG Norte` (one organization, not the administrator), `GET /setup` at 1920×1080. Header brand `Fechamento Mensal - ONG Norte`; `Configuração` current; no org chip; no `Administração`. Left heading `Configuração`; five index rows Contador `Ana Contábil` Cadastrado, Arquivo do pacote `Pasta do Drive` Falta (red margin, aria-current), Certificado A1 `Consulta SEFAZ` Expirado (red margin), Contas bancárias `2 contas` Ativas, Tipos extras `Tarifa e honorário` `2 ativos`. Right pane h1 `Arquivo do pacote`, Drive subtitle, `Cole a URL da pasta do Google Drive` in margem, URL field with placeholder `https://drive.google.com/drive/folders/…`, `Salvar arquivo`. Saved `captures/setup-gaps.running.png`. Início still opens the two-pane month desk from the header. Item panes other than the capture default are request specs (`item=accountant|certificate|banks|extras` and `edit=`).
