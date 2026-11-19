@@ -29,14 +29,17 @@ RSpec.describe "Reopen month", type: :request do
     expect(toast_message(response.body)).to eq("Maio de 2026 reaberto.")
   end
 
-  it "GET after reopen includes Fechar para envio and omits Mes fechado" do
-    _account, _organization, _month, _statement = signed_closed
+  it "reopen shows the statement control and hides the send" do
+    _account, _organization, _month, statement = signed_closed
     post "/months/2026-05/reopen"
 
     get "/months/2026-05"
 
     expect(response.body).to include("Fechar para envio")
-    expect(response.body).to include("Enviar extrato")
+    account_row = row(response.body, "bank-account", bank_account_id: statement.bank_account_id)
+    expect(account_row.at_css(".ledger-row-actions .ledger-action-icon")["aria-label"]).to eq("Substituir extrato")
+    send_button = account_row.at_css(%([data-statement-row-target="send"]))
+    expect(send_button.has_attribute?("hidden")).to eq(true)
     expect(response.body).not_to include("Mês fechado")
   end
 
