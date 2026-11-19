@@ -358,9 +358,10 @@ RSpec.describe "Month overview", type: :request do
     expect(matched["data-status"]).to eq("matched")
     status = matched.at_css('[data-cell="status"]').text
     expect(status).to include("Casado")
-    expect(status).to include("desconto não documentado")
+    expect(status).not_to include("desconto não documentado")
     expect(status).not_to include("Padaria Central")
     expect(status).not_to include("Mercado Silva")
+    expect(matched.text).not_to include("desconto não documentado")
     expect(matched.at_css('[data-cell="document"]').text.strip).to eq("Padaria Central, Mercado Silva")
     expect(matched.text).not_to include("Desfazer casamento")
     n1_row = row(response.body, "payment", payment_id: other.id)

@@ -135,8 +135,8 @@ RSpec.describe "Months", type: :request do
 
     expect(response.body).to include("Conta Principal")
     expect(response.body).to include("Falta")
-    expect(response.body).to include("Incluir PDF")
-    expect(response.body).to include("Incluir planilha")
+    expect(response.body).to include("A planilha é obrigatória")
+    expect(response.body).to include("Incluir extrato")
   end
 
   it "GET /months/2026-05 includes coordinates on the account card" do
@@ -1562,7 +1562,7 @@ RSpec.describe "Months", type: :request do
     expect(payment_b).to be_missing_document
   end
 
-  it "present statement folds the upload form under Substituir extrato" do
+  it "present statement row carries the pencil and its hidden upload form" do
     _account, _organization, _month, statement = signed_open_month
     attach_statement_files(statement)
 
@@ -1571,19 +1571,15 @@ RSpec.describe "Months", type: :request do
     account_row = row(response.body, "bank-account", bank_account_id: statement.bank_account_id)
     form = account_row.css("form").find { |node| node["action"] == "/months/2026-05/bank_statements" }
     expect(form).not_to be_nil
-    details = form.ancestors("details").first
-    expect(details).not_to be_nil
-    expect(details.at_css("summary").text.strip).to eq("Substituir extrato")
-    expect(details.has_attribute?("open")).to eq(false)
-    expect(details.text).to include("PDF")
-    expect(details.text).to include("Incluir PDF")
-    expect(details.text).to include("Planilha")
-    expect(details.text).to include("Incluir planilha")
-    expect(details.at_css('input[type="submit"][value="Enviar extrato"]')).to be_present
-    expect(account_row.css("summary").map { |node| node.text.strip }).not_to include("Incluir extrato")
+    expect(form.has_attribute?("hidden")).to eq(true)
+    expect(form.css('input[type="file"]').map { |node| node["name"] }).to eq(%w[pdf spreadsheet])
+    expect(account_row.css("details")).to be_empty
+    expect(account_row.at_css(".ledger-row-actions .ledger-action-icon")["aria-label"]).to eq("Substituir extrato")
+    expect(account_row.at_css('[data-cell="documents"]').css("p").map { |node| node.text.strip })
+      .to eq([ "Pdf extrato.pdf", "Planilha extrato.xlsx" ])
   end
 
-  it "absent statement folds the upload form under Incluir extrato" do
+  it "absent statement row carries the plus icon and the planilha hint" do
     _account, organization, _month, _statement = signed_open_month
     bank_account = BankAccount.create_for(organization: organization, name: "Conta Alfa", compe: "033")
 
@@ -1592,16 +1588,9 @@ RSpec.describe "Months", type: :request do
     account_row = row(response.body, "bank-account", bank_account_id: bank_account.id)
     form = account_row.css("form").find { |node| node["action"] == "/months/2026-05/bank_statements" }
     expect(form).not_to be_nil
-    details = form.ancestors("details").first
-    expect(details).not_to be_nil
-    expect(details.at_css("summary").text.strip).to eq("Incluir extrato")
-    expect(details.has_attribute?("open")).to eq(false)
-    expect(details.text).to include("PDF")
-    expect(details.text).to include("Incluir PDF")
-    expect(details.text).to include("Planilha")
-    expect(details.text).to include("Incluir planilha")
-    expect(details.at_css('input[type="submit"][value="Enviar extrato"]')).to be_present
-    expect(account_row.css("summary").map { |node| node.text.strip }).not_to include("Substituir extrato")
+    expect(account_row.css("details")).to be_empty
+    expect(account_row.at_css(".ledger-row-actions .ledger-action-icon")["aria-label"]).to eq("Incluir extrato")
+    expect(account_row.at_css('[data-cell="documents"]').text.strip).to eq("A planilha é obrigatória")
   end
 
   it "Falta row Situacao is Falta and Documentos has no Pdf or Planilha" do
@@ -1657,9 +1646,8 @@ RSpec.describe "Months", type: :request do
     expect(cells[3]["data-cell"]).to eq("situation")
     expect(cells[4]["data-cell"]).to eq("documents")
     expect(cells[4]["class"].to_s).not_to include("whitespace-nowrap")
-    expect(cells[4].at_css("p")["class"]).to include("text-meta")
-    expect(cells[4].at_css("p")["class"]).to include("truncate")
-    expect(cells[5].at_css("summary").text.strip).to eq("Substituir extrato")
+    expect(cells[4].at_css("p")["class"]).to include("statement-file")
+    expect(cells[5].at_css(".ledger-action-icon")["aria-label"]).to eq("Substituir extrato")
   end
 
   it "two accounts only Presente row lists Pdf and Planilha filenames" do
