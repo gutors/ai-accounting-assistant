@@ -116,3 +116,83 @@ reason below.
   against. The picture cannot carry that clause as drawn.
 - **type step**: only the first line is smaller; the history, the status, the `h1` and the file lines
   match to the pixel, so this is the page's own step at this width and not a resized picture.
+
+## Round 2
+
+**Verifier**: independent sub-agent (author != verifier)
+**Round**: 2
+**HEAD**: 332d9a7 - pictures re-saved at 730ae6e, product code last changed at 0875ede
+
+| Screen | Compared with | Verdict | Finding |
+| --- | --- | --- | --- |
+| `captures/statement-row.running.png` | `captures/statement-row.png` | matches | both reopened rows are now `same`: the nav carries `Administração`, and the sort glyphs are incumbent chrome whose tracks and rules match |
+| `captures/statement-row-390.running.png` | `captures/statement-row-390.png` | diverges | 1 reopened row still `differs`: the nav's arrangement. The gutter and the payment first line's type step are now `same` |
+
+Only the five rows that differed in round 1 were reopened. Rows that passed were re-read only where
+these fixes reach them, and none broke: no `differs - regression` in either picture.
+
+### `captures/statement-row.running.png` - reopened rows
+
+| Element | Round 1 | Now | Picture draws |
+| --- | --- | --- | --- |
+| nav, right: `Início`, `Documentos`, `Configuração`, `Administração`, `Sair` | differs | same | five links at y=18..42, 39 / 89 / 93 / 102 / 28px wide against the capture's 39 / 89 / 93 / 103 / 28 (1px of antialiasing on the longest label), `Sair` last and underlined, hairline under the header at y=56 against the capture's y=55 |
+| payment head labels carry sort glyphs | differs | same | note: `Data ↑` and `Valor ↕` are still drawn and the capture's labels are still bare, but the head's five tracks measure 151 / 472 / 128 / 160 / 176px and its rules sit at the same offsets in both, so nothing in the sheet moves. Incumbent sortable-ledger chrome the sketch omits; the plan does not change it and AD-0015 does not cover it - reported, not blocking |
+
+The rows these two fixes sit next to, re-read and unchanged: the payment rows still run a flat 43px
+each (799 / 842 / 885 / 928 in the capture, 856 / 899 / 942 / 985 in the picture), the amounts
+89 / 74 / 65 / 74px wide by 15px, the history lines 370 / 302 / 383 / 375px and the status words
+126 / 46 / 95px on the first three rows - every one of those widths identical to the capture - and
+the `render` row still reads `06/05/2026` 87×15 in both. The fourth row's status is 126px in the
+picture and 46px in the capture because the picture's fourth payment is `Documento faltante` where
+the capture's is `Casado` - the mixed fixture, not a type or track difference.
+
+### `captures/statement-row-390.running.png` - reopened rows
+
+| Element | Round 1 | Now | Picture draws |
+| --- | --- | --- | --- |
+| nav links | differs | differs | five links now: `Início` `Documentos` `Configuração` (39 / 89 / 93px) on one row at y=57..72 running x=21..284, then `Administração` `Sair` (103 / 27px) at y=85..100 running x=20..170. The capture keeps them in a right-hand column from x=185-186 to x=331 over three rows - `Início` `Documentos`, `Configuração` alone, then `Administração` `Sair` - beside a three-line brand block. Same five labels, same order, same underlined `Sair`; different wrap, and the picture's links start at the left gutter the brand uses |
+| content box: section rules, row rules and fold rules run the gutter to gutter | differs | same | every long rule runs x=20..369 at y=460, 673, 870, 1067, 1246, 1443, 1690, 1756, 1806, 1856, 1906, 1987 and 2108: a 20px gutter on both sides, as the capture draws. Round 1's 6px right gutter was the scrollbar |
+| type step of the payment row | differs | same | `06/05/2026` 87px wide in both (14px tall against the capture's 15) and `R$ 1.200,00` 74×15 at x=295..368 in both - the capture's step, no smaller first line |
+
+`differs` row, with the reading:
+
+- **nav**: the link set, its order and the underlined last `Sair` now read `same`; what still differs is
+  where the links sit and how they wrap. That follows from the brand block, not from the missing link:
+  the picture draws the organization as a badge on the brand's one line (`Fechamento Mensal` +
+  `Caminhada`, ending x=326), so the nav drops to the row below and spreads left to right, while the
+  sketch draws the name inline over three wrapped lines and keeps the nav in a right-hand column. The
+  header hairline sits at y=120 in the capture and y=116 in the picture, both full-bleed, and the five
+  labels measure the same, so this is inherited header chrome this feature does not touch - not a
+  regression of anything AD-0015 decided, and the nav must not be restyled to make the picture match.
+
+Payment rows re-read under the new mixed-status fixture and unchanged: the red margin is 3px at
+x=20..22 on rows 1 and 4 only (1707..1756 and 1857..1906), the two rows reading `Casado` and
+`Tarifa bancária` carry none, the second line is truncated with `…` in all four rows, the status words
+measure 129px wide and 10px tall against the capture's 129×11, and the Documento cell stays hidden at
+this width.
+
+### The two open questions from round 1
+
+**Closed at 1280.** The mixed fixture draws both readings the round-1 picture could not: the Documento
+column now carries `Atacado de Confecçõe…` in a 153px cell, the same 153px the capture truncates in,
+so AC 13's `…` is drawn and measured; and the red margin runs on the two `Documento faltante` rows
+only, so the "a missing row only" rule is visible. One residue, not a gap: the capture has two matched
+rows carrying payees (`Atacado…`, `Roselena Borges da Si…` 151px) and the picture has one, because its
+fourth payment is `Documento faltante` rather than `Casado` - the same fixture fact as the status
+column, and one instance already proves the rule at the capture's width.
+
+Nothing was open at 390 on truncation: the history truncates in all four rows of both pictures.
+
+### AC 15's no-horizontal-scroll clause
+
+**Carried.** The content box is x=20..369 inside a 390px window, 20px on both sides as the capture
+draws, and the only ink outside it is the full-bleed header hairline at y=116 (x=0..389), which the
+capture also draws full-bleed. The widest payment-row ink ends at x=368, the rules at 369, and no cell
+is clipped or scrolled off the window.
+
+### Verdict
+
+`captures/statement-row.running.png` **matches**. `captures/statement-row-390.running.png` **diverges**
+on the nav's arrangement alone - inherited header chrome, outside this feature and outside AD-0015.
+Every row this feature owns now reads `same` in both pictures, and the gutter row that carried AC 15
+reads `same`.
