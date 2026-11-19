@@ -14,7 +14,7 @@ RSpec.describe "Submitter invites", type: :request do
     expect(invite.kind).to eq("submitter")
     expect(invite.organization).to eq(organization)
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/")
+    expect(response).to redirect_to("/?desk=people")
     follow_redirect!
     expect(response.body).to include("guest@example.com")
   end
@@ -65,9 +65,9 @@ RSpec.describe "Submitter invites", type: :request do
 
     item = pending_invite_item(response.body, "docs@exemplo.org")
     expect(item).to be_present
-    expect(item.text).to include("Submitter")
-    expect(item.text).to include("enviado")
-    expect(item.text).not_to include("Coordenador")
+    expect(item.text).to include("Convite · enviado")
+    submitters = page_doc(response.body).css("h2").find { |h2| h2.text.strip == "Submitters" }.parent
+    expect(submitters.to_html).to include("docs@exemplo.org")
   end
 
   it "rejected submitter invite emails return 422" do
@@ -112,7 +112,7 @@ RSpec.describe "Submitter invites", type: :request do
 
     expect(Invite.find_by(id: invite.id)).to be_nil
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/")
+    expect(response).to redirect_to("/?desk=people")
     follow_redirect!
     expect(toast_message(response.body)).to eq("Convite para guest@example.com cancelado.")
   end

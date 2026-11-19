@@ -1,0 +1,52 @@
+<div class="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
+  <div>
+    <h1 class="text-display leading-[1.1] font-semibold tracking-[-0.02em]"><%= month_title(@selected_month.year_month) %></h1>
+    <p class="mt-1 text-meta text-ink-soft"><%= @selected_month.year_month %></p>
+    <% if @selected_month.closed? %>
+      <p class="stamp-closed">Mês fechado</p>
+    <% end %>
+  </div>
+  <div class="flex flex-wrap items-center gap-3">
+    <%= link_to "Continuar", "/months/#{@selected_month.year_month}", class: "ds-btn-primary" %>
+    <% if @selected_month.never_sent? %>
+      <%= button_to "Excluir", "/months/#{@selected_month.year_month}", method: :delete,
+            form: { data: { turbo_confirm: "Excluir este fechamento?" } },
+            class: "ds-btn-secondary ds-btn-danger" %>
+    <% end %>
+  </div>
+</div>
+
+<% if !@missing_document_count.nil? %>
+  <% if @missing_document_count.zero? %>
+    <p data-desk="missing" class="mt-6">Nenhum documento faltante.</p>
+  <% else %>
+    <p data-desk="missing" class="mt-6 border-l-[3px] border-margem pl-3 text-margem"><%= @missing_document_count %> <%= @missing_document_count == 1 ? "pagamento" : "pagamentos" %> com documento faltante.</p>
+  <% end %>
+<% end %>
+
+<h2 class="mt-10 mb-2 border-b border-rule pb-2 text-lg leading-6 font-semibold">Contas bancárias</h2>
+<% if @active_bank_accounts.empty? %>
+  <p>Nenhuma conta bancária ativa</p>
+<% else %>
+  <div class="ledger-sheet">
+    <div class="ledger-row ledger-head ledger-home-bank" aria-hidden="true">
+      <span>Banco</span>
+      <span>Nome</span>
+      <span>Extrato</span>
+    </div>
+    <ul>
+      <% @active_bank_accounts.each do |bank_account| %>
+        <% statement = @statements_by_account_id[bank_account.id] %>
+        <li data-row="bank-account" data-bank-account-id="<%= bank_account.id %>" class="ledger-row ledger-home-bank">
+          <p><%= bank_account.bank.presentation_name %></p>
+          <p class="font-medium"><%= bank_account.name %></p>
+          <% if statement %>
+            <p>Presente</p>
+          <% else %>
+            <p class="font-medium text-margem">Falta</p>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>

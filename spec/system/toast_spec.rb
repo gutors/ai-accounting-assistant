@@ -17,12 +17,10 @@ RSpec.describe "Toast", type: :system do
   end
 
   def open_people_and_invite
-    find("summary", text: "Pessoas").click
+    click_link "Coordenadores e submitters"
     with_env("MAIL_FROM" => "venda@example.com") do
-      within("form[action='/coordinator_invites']") do
-        fill_in "email", with: "guest@example.com"
-        click_button "Convidar"
-      end
+      fill_in "E-mail", with: "guest@example.com"
+      click_button "Convidar"
     end
   end
 

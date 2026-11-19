@@ -1,0 +1,74 @@
+<div class="people-sheet-head">
+  <h1 class="text-display leading-[1.1] font-semibold tracking-[-0.02em]">Coordenadores e submitters</h1>
+  <p class="text-meta text-ink-soft"><%= people_book_meta(
+    coordinator_count: @coordinator_accesses.size,
+    submitter_count: @submitter_accesses.size,
+    invite_count: @invites.size,
+    failed_count: @failed_invite_count
+  ) %></p>
+</div>
+
+<%= form_with url: "/coordinator_invites", method: :post, class: "invite-form",
+      data: { controller: "invite-kind", action: "submit->invite-kind#route change->invite-kind#route" } do %>
+  <label class="sr-only" for="invite-email">E-mail</label>
+  <%= email_field_tag :email, nil, id: "invite-email", class: "min-w-0 rounded border border-rule bg-sheet px-3 py-2",
+        autocomplete: "email", placeholder: "E-mail", required: true %>
+  <label class="sr-only" for="invite-kind">Tipo</label>
+  <%= select_tag :kind, options_for_select([ [ "Coordenador", "Coordenador" ], [ "Submitter", "Submitter" ] ], "Coordenador"),
+        id: "invite-kind", class: "rounded border border-rule bg-sheet px-3 py-2", data: { invite_kind_target: "kind" } %>
+  <%= submit_tag "Convidar", class: "ds-btn-secondary" %>
+<% end %>
+
+<section class="people-group" aria-labelledby="coord-list-heading">
+  <h2 id="coord-list-heading" class="mb-2 border-b border-rule pb-2 text-lg leading-6 font-semibold">Coordenadores</h2>
+  <% if @coordinator_accesses.empty? && @coordinator_invites.empty? %>
+    <p>Nenhum coordenador</p>
+  <% else %>
+    <ul>
+      <% @coordinator_accesses.each do |access| %>
+        <% principal = @organization.principal_coordinator_account_id == access.account_id %>
+        <li data-row="person" class="person-entry">
+          <span>
+            <span data-cell="email" class="font-medium"><%= access.account.email %></span>
+            <% if principal %>
+              <br><span class="text-meta text-ink-soft">Principal</span>
+            <% end %>
+          </span>
+          <span class="row-actions">
+            <% if principal == false && @organization.principal_coordinator_account_id == current_account.id %>
+              <%= button_to "Revogar", "/accesses/#{access.id}", method: :delete,
+                    form: { data: { turbo_confirm: "Revogar o acesso deste coordenador?" } },
+                    class: "text-margem underline underline-offset-2" %>
+            <% end %>
+          </span>
+        </li>
+      <% end %>
+      <% @coordinator_invites.each do |invite| %>
+        <%= render "organizations/invite_row", invite: invite %>
+      <% end %>
+    </ul>
+  <% end %>
+</section>
+
+<section class="people-group" aria-labelledby="sub-list-heading">
+  <h2 id="sub-list-heading" class="mb-2 border-b border-rule pb-2 text-lg leading-6 font-semibold">Submitters</h2>
+  <% if @submitter_accesses.empty? && @submitter_invites.empty? %>
+    <p>Nenhum submitter</p>
+  <% else %>
+    <ul>
+      <% @submitter_accesses.each do |access| %>
+        <li data-row="person" class="person-entry">
+          <span data-cell="email" class="font-medium"><%= access.account.email %></span>
+          <span class="row-actions">
+            <%= button_to "Revogar", "/accesses/#{access.id}", method: :delete,
+                  form: { data: { turbo_confirm: "Revogar o acesso deste submitter?" } },
+                  class: "text-margem underline underline-offset-2" %>
+          </span>
+        </li>
+      <% end %>
+      <% @submitter_invites.each do |invite| %>
+        <%= render "organizations/invite_row", invite: invite %>
+      <% end %>
+    </ul>
+  <% end %>
+</section>
