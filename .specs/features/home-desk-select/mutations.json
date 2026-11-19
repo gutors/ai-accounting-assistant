@@ -1,0 +1,23 @@
+[
+  {
+    "file": "app/controllers/application_controller.rb",
+    "old": "@selected_month = selected_month_from_params || @in_work_month",
+    "new": "@selected_month = selected_month_from_params",
+    "proof": "bin/rspec spec/requests/organizations_spec.rb -e \"absent year_month selects the in-work open month\"",
+    "label": "selected month drops in-work fallback"
+  },
+  {
+    "file": "app/views/organizations/_month_desk.html.erb",
+    "old": "<% if @selected_month.never_sent? %>",
+    "new": "<% if @selected_month.closed? %>",
+    "proof": "bin/rspec spec/requests/organizations_spec.rb -e \"selected never-sent 2026-11 right h1 Continuar and Excluir\"",
+    "label": "Excluir gated on closed instead of never_sent"
+  },
+  {
+    "file": "app/controllers/application_controller.rb",
+    "old": "@coordinator_accesses = @organization.accesses.coordinator.includes(:account).order(:created_at, :id)",
+    "new": "@coordinator_accesses = @organization.accesses.coordinator.includes(:account).order(created_at: :desc, id: :desc)",
+    "proof": "bin/rspec spec/requests/organizations_spec.rb -e \"people book lists standing then pending in insertion order\"",
+    "label": "standing coordinators listed newest first"
+  }
+]
