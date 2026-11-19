@@ -1,6 +1,6 @@
 <li data-row="invite" class="person-entry<%= " is-block" unless invite.sent? %>">
   <span>
-    <span class="font-medium"><%= invite.email %></span>
+    <span class="cell-label font-medium"><%= invite.email %></span>
     <br>
     <% if invite.sent? %>
       <span class="text-meta text-ink-soft">Convite · enviado</span>
