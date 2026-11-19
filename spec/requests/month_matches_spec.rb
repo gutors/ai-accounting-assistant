@@ -387,6 +387,18 @@ RSpec.describe "Month matches screen", type: :request do
     expect(html.index('id="match-confirm"')).to be < html.index("match-split")
   end
 
+  it "GET matches next suggestion ignores leftover catalog debit of the same amount" do
+    account, organization, _month, statement = signed_month
+    plant_payment(statement, 22000, history: "Transferência — BB Rende Fácil")
+    plant_payment(statement, 22000, history: "Pix enviado — Padaria Central", occurred_on: Date.new(2026, 5, 11))
+    plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00", date: "2026-05-11")
+
+    get "/months/2026-05/matches"
+
+    expect(response.body).not_to include("Transferência — BB Rende Fácil")
+    expect(next_hit(response.body).text).to include("Pix enviado — Padaria Central")
+  end
+
   it "GET matches next suggestion is the earlier Fornecedor Norte payment" do
     account, organization, _month, statement = signed_month
     plant_payment(statement, 22000, history: "Pix enviado — Padaria Central", occurred_on: Date.new(2026, 5, 11))

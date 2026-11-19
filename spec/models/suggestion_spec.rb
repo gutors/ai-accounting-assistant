@@ -58,6 +58,15 @@ RSpec.describe Suggestion, type: :model do
     expect(proposals).to be_empty
   end
 
+  it "leftover COMPE 001 Rende Facil does not take the equal-amount proposal" do
+    leftover = plant_payment(statement, 22000, history: "Transferência — BB Rende Fácil")
+    visible = plant_payment(statement, 22000, history: "Pix enviado")
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
+
+    expect(proposal_for(leftover)).to be_nil
+    expect(proposal_for(visible).supporting_documents.map(&:id)).to eq([ document.id ])
+  end
+
   it "recibo equal 1:1 is assigned" do
     payment = plant_payment(statement, 22000, history: "Pix enviado — Padaria Central")
     document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
