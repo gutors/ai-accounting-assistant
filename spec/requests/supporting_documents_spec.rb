@@ -1176,8 +1176,15 @@ RSpec.describe "Supporting documents", type: :request do
     get "/months/2026-05"
     mercado = payment_status_html(response.body, history: "Pix enviado — Mercado Silva")
     padaria = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
-    expect(mercado).to include("Sugestão")
+    expect(mercado).to include("Documento faltante")
+    expect(padaria).to include("Documento faltante")
+    expect(mercado).not_to include("Sugestão")
     expect(padaria).not_to include("Sugestão")
+
+    get "/months/2026-05/matches"
+    hit = page_doc(response.body).at_css(".match-next__hit")
+    expect(hit.text).to include("Pix enviado — Mercado Silva")
+    expect(hit.text).not_to include("Pix enviado — Padaria Central")
   end
 
   it "POST authorized XML fills amount date payee chave and redirects" do
