@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-13T17:40:00-03:00",
+  "generatedAt": "2026-11-19T11:30:00-03:00",
   "title": "Design System: Fechamento mensal",
   "extensions": {
     "colorMeta": {
@@ -113,7 +113,7 @@
     "typographyMeta": {
       "display": {
         "displayName": "Display",
-        "purpose": "The month in words (`maio de 2026`). Steps to 1.75rem below 768px; the token itself is the larger size."
+        "purpose": "The month in words and the people-book title. Month and match pages step to 1.75rem below 768px; the home desk keeps the token size."
       },
       "headline": {
         "displayName": "Headline",
@@ -133,11 +133,11 @@
       },
       "button": {
         "displayName": "Button",
-        "purpose": "Primary actions and the stamp. Secondary buttons stay at body weight."
+        "purpose": "Primary actions and the month-page stamp. Secondary buttons stay at body weight."
       },
       "meta": {
         "displayName": "Meta",
-        "purpose": "Filenames, coordinates, the month-folder slug, document kind, in soft ink."
+        "purpose": "Filenames, coordinates, the month-folder slug, document kind, in soft ink. Compact stamp uses this size at weight 600."
       },
       "amount": {
         "displayName": "Amount",
@@ -148,18 +148,29 @@
         "purpose": "The 44-digit access key only, in IBM Plex Mono, shown as eleven groups of four."
       }
     },
-    "shadows": [],
+    "shadows": [
+      {
+        "name": "lote-tick-reading",
+        "value": "inset 0 0 0 2px var(--color-caixa)",
+        "purpose": "Hollow tick while a document is being read. A drawn outline, not elevation."
+      }
+    ],
     "motion": [],
     "breakpoints": [
       {
         "name": "sm",
         "value": "640px",
-        "purpose": "Navigation wraps under the organization name below this width."
+        "purpose": "Navigation wraps under the product name below this width."
       },
       {
         "name": "md",
         "value": "768px",
-        "purpose": "Wide gutter, ruled ledger sheets (head and body share one column template), two-column forms, and the people list begin here. Display type is the token size from this width; below it, 1.75rem."
+        "purpose": "Wide gutter, two-pane home desk, ruled ledger sheets, two-column insert, and display type on month/match pages."
+      },
+      {
+        "name": "match",
+        "value": "1100px",
+        "purpose": "Match screen splits payments and documents into two columns."
       }
     ]
   },
@@ -181,18 +192,18 @@
       "css": ".ds-btn-secondary { background: transparent; color: var(--color-ink); padding: 8px 16px; border: 1px solid var(--color-ink); border-radius: 4px; font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; font-size: 1rem; font-weight: 400; line-height: 1.5; cursor: pointer; } .ds-btn-secondary:hover { background: transparent; } .ds-btn-secondary:focus-visible { outline: 2px solid var(--color-caixa); outline-offset: 2px; }"
     },
     {
-      "name": "Destructive Text Action",
+      "name": "Danger Secondary",
       "kind": "button",
-      "refersTo": "action-destructive",
-      "description": "A quiet underlined action in margin red. Revoke, delete, undo, deactivate.",
-      "html": "<button class=\"ds-action-destructive\">Revogar</button>",
-      "css": ".ds-action-destructive { background: none; border: none; padding: 0; color: var(--color-margem); text-decoration: underline; text-underline-offset: 2px; font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; font-size: 1rem; font-weight: 400; line-height: 1.5; cursor: pointer; } .ds-action-destructive:hover { text-decoration: underline; } .ds-action-destructive:focus-visible { outline: 2px solid var(--color-caixa); outline-offset: 2px; }"
+      "refersTo": "button-danger",
+      "description": "The secondary shape in margin red. Excluir a never-sent month, Retirar a lote row.",
+      "html": "<button class=\"ds-btn-secondary ds-btn-danger\">Excluir</button>",
+      "css": ".ds-btn-secondary { background: transparent; padding: 8px 16px; border-radius: 4px; font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; font-size: 1rem; font-weight: 400; line-height: 1.5; cursor: pointer; } .ds-btn-danger { color: var(--color-margem); border: 1px solid var(--color-margem); } .ds-btn-danger:hover { background: transparent; } .ds-btn-danger:focus-visible { outline: 2px solid var(--color-caixa); outline-offset: 2px; }"
     },
     {
       "name": "Text Field",
       "kind": "input",
       "refersTo": "input",
-      "description": "A sheet-white field with a ruling border. The label stays visible above it. Error is a notice under the title, not a red field border.",
+      "description": "A sheet-white field with a ruling border. The label stays visible above it. Error is a notice or a toast, not a red field border.",
       "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Favorecido</span><input class=\"ds-input\" type=\"text\" value=\"Padaria Central\"></label>",
       "css": ".ds-field { display: flex; flex-direction: column; gap: 4px; font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; color: var(--color-ink); max-width: 28rem; } .ds-field-label { font-size: 1rem; font-weight: 500; line-height: 1.5; } .ds-input { background: var(--color-sheet); color: var(--color-ink); border: 1px solid var(--color-rule); border-radius: 4px; padding: 8px 12px; width: 100%; font: inherit; font-weight: 400; } .ds-input:hover { border-color: var(--color-rule); } .ds-input:focus-visible { outline: 2px solid var(--color-caixa); outline-offset: 2px; }"
     },
@@ -200,25 +211,25 @@
       "name": "Header",
       "kind": "nav",
       "refersTo": "action-quiet",
-      "description": "Paper bar, mark, organization name (or product name), text links, and a quiet exit. Login and the denied page have no navigation.",
-      "html": "<header class=\"ds-header\"><div class=\"ds-header-inner\"><p class=\"ds-brand\"><svg class=\"ds-mark\" viewBox=\"0 0 512 512\" aria-hidden=\"true\"><rect width=\"512\" height=\"512\" rx=\"96\" fill=\"#2e6b4e\"></rect><rect x=\"96\" y=\"208\" width=\"320\" height=\"28\" fill=\"#f3f5f1\"></rect><rect x=\"96\" y=\"304\" width=\"320\" height=\"28\" fill=\"#f3f5f1\"></rect><rect x=\"152\" y=\"96\" width=\"28\" height=\"320\" fill=\"#b4372a\"></rect></svg><span>ONG Norte</span></p><nav class=\"ds-nav\" aria-label=\"Principal\"><a class=\"ds-nav-link\" href=\"#\">Início</a><a class=\"ds-nav-link\" href=\"#\">Documentos</a><a class=\"ds-nav-link\" href=\"#\">Configuração</a><a class=\"ds-nav-link\" href=\"#\">Administração</a><button class=\"ds-nav-exit\" type=\"button\">Sair</button></nav></div></header>",
-      "css": ".ds-header { background: var(--color-paper); border-bottom: 1px solid var(--color-rule); color: var(--color-ink); font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; } .ds-header-inner { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; min-height: 56px; padding: 12px 32px; max-width: 72rem; } .ds-brand { display: flex; align-items: center; gap: 8px; margin: 0; font-weight: 500; } .ds-mark { width: 20px; height: 20px; flex-shrink: 0; } .ds-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; margin-left: auto; } .ds-nav-link { color: var(--color-ink); text-decoration: none; text-underline-offset: 2px; } .ds-nav-link:hover { text-decoration: underline; } .ds-nav-link:focus-visible, .ds-nav-exit:focus-visible { outline: 2px solid var(--color-caixa); outline-offset: 2px; } .ds-nav-exit { background: none; border: none; padding: 0; color: var(--color-caixa); text-decoration: underline; text-underline-offset: 2px; font: inherit; cursor: pointer; } .ds-nav-exit:hover { text-decoration: underline; }"
+      "description": "Paper bar with the mark, product name, org switcher when there is more than one organization, text links, and a quiet exit.",
+      "html": "<header class=\"ds-header\"><div class=\"ds-header-inner\"><p class=\"ds-brand\"><svg class=\"ds-mark\" viewBox=\"0 0 512 512\" aria-hidden=\"true\"><rect width=\"512\" height=\"512\" rx=\"96\" fill=\"#2e6b4e\"></rect><rect x=\"96\" y=\"208\" width=\"320\" height=\"28\" fill=\"#f3f5f1\"></rect><rect x=\"96\" y=\"304\" width=\"320\" height=\"28\" fill=\"#f3f5f1\"></rect><rect x=\"152\" y=\"96\" width=\"28\" height=\"320\" fill=\"#b4372a\"></rect></svg><span>Fechamento Mensal</span></p><button class=\"ds-org-switch\" type=\"button\" aria-haspopup=\"listbox\" aria-expanded=\"false\">ONG Norte</button><nav class=\"ds-nav\" aria-label=\"Principal\"><a class=\"ds-nav-link ds-nav-current\" href=\"#\" aria-current=\"page\">Início</a><a class=\"ds-nav-link\" href=\"#\">Documentos</a><a class=\"ds-nav-link\" href=\"#\">Configuração</a><button class=\"ds-nav-exit\" type=\"button\">Sair</button></nav></div></header>",
+      "css": ".ds-header { background: var(--color-paper); border-bottom: 1px solid var(--color-rule); color: var(--color-ink); font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; } .ds-header-inner { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; min-height: 56px; padding: 12px 32px; max-width: 72rem; } .ds-brand { display: flex; align-items: center; gap: 8px; margin: 0; font-weight: 500; } .ds-mark { width: 20px; height: 20px; flex-shrink: 0; } .ds-org-switch { margin: 0; padding: 4px 12px; border: 0; border-radius: 4px; background: var(--color-caixa); color: var(--color-sheet); font: inherit; font-weight: 600; max-width: 18rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; } .ds-org-switch:focus-visible { outline: 2px solid var(--color-caixa); outline-offset: 2px; } .ds-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; margin-left: auto; } .ds-nav-link { color: var(--color-ink); text-decoration: none; text-underline-offset: 2px; } .ds-nav-link:hover { text-decoration: underline; } .ds-nav-current { font-weight: 600; text-decoration: underline; } .ds-nav-link:focus-visible, .ds-nav-exit:focus-visible { outline: 2px solid var(--color-caixa); outline-offset: 2px; } .ds-nav-exit { background: none; border: none; padding: 0; color: var(--color-caixa); text-decoration: underline; text-underline-offset: 2px; font: inherit; cursor: pointer; }"
     },
     {
       "name": "Ledger Row",
       "kind": "custom",
       "refersTo": "notice",
-      "description": "A payment with a missing document: five tracks, vertical rules, tabular amount, red margin, actions in their own column. Head and body share the template.",
-      "html": "<div class=\"ds-ledger\"><div class=\"ds-row ds-head\" aria-hidden=\"true\"><span>Data</span><span>Histórico</span><span class=\"ds-row-amount\">Valor</span><span>Status</span><span>Ações</span></div><ul class=\"ds-ledger-list\"><li class=\"ds-row\" data-status=\"missing\"><time class=\"ds-row-date\">11/05/2026</time><div><p class=\"ds-row-primary\">Pix enviado — Padaria Central</p><p class=\"ds-row-meta\">Conta Principal</p></div><p class=\"ds-row-amount\">R$ 220,00</p><p class=\"ds-row-status\">Documento faltante</p><button class=\"ds-row-action\" type=\"button\">Resolver</button></li></ul></div>",
-      "css": ".ds-ledger { font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; color: var(--color-ink); max-width: 72rem; } .ds-ledger-list { list-style: none; margin: 0; padding: 0; } .ds-row { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr) 8rem 12rem 11rem; align-items: stretch; border-bottom: 1px solid var(--color-rule); } .ds-row > * { min-width: 0; padding: 3px 10px; border-right: 1px solid var(--color-rule); } .ds-row > *:last-child { border-right: 0; } .ds-head { color: var(--color-ink-soft); font-size: 0.8125rem; font-weight: 500; line-height: 1.125rem; border-bottom: 1px solid var(--color-ink); } .ds-head > * { padding-top: 4px; padding-bottom: 6px; } .ds-row[data-status=\"missing\"] { border-left: 3px solid var(--color-margem); } .ds-row[data-status=\"missing\"] > *:first-child { padding-left: 12px; } .ds-row-date { font-variant-numeric: tabular-nums; white-space: nowrap; } .ds-row-primary, .ds-row-meta, .ds-row-amount, .ds-row-status { margin: 0; } .ds-row-primary { font-weight: 500; } .ds-row-meta { color: var(--color-ink-soft); font-size: 0.8125rem; line-height: 1.125rem; } .ds-row-amount { text-align: right; font-weight: 500; font-variant-numeric: tabular-nums; } .ds-row-status { color: var(--color-margem); } .ds-row-action { background: none; border: none; padding: 3px 10px; color: var(--color-caixa); font: inherit; font-weight: 500; text-align: left; cursor: pointer; } .ds-row-action:focus-visible { outline: 2px solid var(--color-caixa); outline-offset: 2px; }"
+      "description": "A payment with a missing document: five tracks, vertical rules, tabular amount, red margin, Documento as its own column. Head and body share the template.",
+      "html": "<div class=\"ds-ledger\"><div class=\"ds-row ds-head\" aria-hidden=\"true\"><span>Data</span><span>Histórico</span><span class=\"ds-row-amount\">Valor</span><span>Status</span><span>Documento</span></div><ul class=\"ds-ledger-list\"><li class=\"ds-row\" data-status=\"missing\"><time class=\"ds-row-date\">11/05/2026</time><div><p class=\"ds-row-primary\">Pix enviado — Padaria Central</p><p class=\"ds-row-meta\">Conta Principal</p></div><p class=\"ds-row-amount\">R$ 220,00</p><p class=\"ds-row-status\">Documento faltante</p><p class=\"ds-row-doc\">—</p></li></ul></div>",
+      "css": ".ds-ledger { font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; color: var(--color-ink); max-width: 72rem; } .ds-ledger-list { list-style: none; margin: 0; padding: 0; } .ds-row { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr) 8rem 12rem 11rem; align-items: stretch; border-bottom: 1px solid var(--color-rule); } .ds-row > * { min-width: 0; padding: 3px 10px; border-right: 1px solid var(--color-rule); } .ds-row > *:last-child { border-right: 0; } .ds-head { color: var(--color-ink-soft); font-size: 0.8125rem; font-weight: 500; line-height: 1.125rem; border-bottom: 1px solid var(--color-ink); } .ds-head > * { padding-top: 4px; padding-bottom: 6px; } .ds-row[data-status=\"missing\"] { border-left: 3px solid var(--color-margem); } .ds-row[data-status=\"missing\"] > *:first-child { padding-left: 12px; } .ds-row-date { font-variant-numeric: tabular-nums; white-space: nowrap; } .ds-row-primary, .ds-row-meta, .ds-row-amount, .ds-row-status, .ds-row-doc { margin: 0; } .ds-row-primary { font-weight: 500; } .ds-row-meta { color: var(--color-ink-soft); font-size: 0.8125rem; line-height: 1.125rem; } .ds-row-amount { text-align: right; font-weight: 500; font-variant-numeric: tabular-nums; } .ds-row-status { color: var(--color-margem); }"
     },
     {
       "name": "Closed-Month Stamp",
       "kind": "custom",
       "refersTo": "stamp",
-      "description": "The only boxed mark. Double-ruled ink around “Mês fechado”. Replaces the primary close action on a closed month.",
+      "description": "The only double-ruled mark. “Mês fechado” on the month page; compact “Fechado” on the home index.",
       "html": "<span class=\"ds-stamp\">Mês fechado</span>",
-      "css": ".ds-stamp { display: inline-block; color: var(--color-ink); border: 2px solid var(--color-ink); border-radius: 2px; padding: 2px 8px; font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; font-size: 1rem; font-weight: 600; line-height: 1.5; outline: 1px solid var(--color-ink); outline-offset: 3px; }"
+      "css": ".ds-stamp { display: inline-block; color: var(--color-ink); border: 2px solid var(--color-ink); border-radius: 2px; padding: 2px 8px; font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; font-size: 1.125rem; font-weight: 600; line-height: 1.5; outline: 1px solid var(--color-ink); outline-offset: 3px; }"
     },
     {
       "name": "Error Notice",
@@ -229,41 +240,42 @@
       "css": ".ds-notice { margin: 0; color: var(--color-margem); border-left: 3px solid var(--color-margem); padding-left: 12px; font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; font-size: 1rem; line-height: 1.5; }"
     },
     {
-      "name": "Disclosure",
-      "kind": "custom",
-      "refersTo": "disclosure",
-      "description": "Status stays on the row. The form opens in a sheet panel under a ledger-green summary. Open on a payment row only when a suggestion is waiting.",
-      "html": "<details class=\"ds-details\" open><summary class=\"ds-summary\">Resolver</summary><div class=\"ds-panel\"><button class=\"ds-btn-primary\" type=\"button\">Confirmar casamento</button></div></details>",
-      "css": ".ds-details { font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; color: var(--color-ink); max-width: 36rem; } .ds-summary { color: var(--color-caixa); font-weight: 500; cursor: pointer; } .ds-summary:hover { text-decoration: underline; text-underline-offset: 2px; } .ds-summary:focus-visible { outline: 2px solid var(--color-caixa); outline-offset: 2px; } .ds-panel { margin-top: 12px; background: var(--color-sheet); border: 1px solid var(--color-rule); border-radius: 4px; padding: 16px; } .ds-btn-primary { background: var(--color-caixa); color: var(--color-sheet); padding: 8px 16px; border: none; border-radius: 4px; font-family: inherit; font-size: 1rem; font-weight: 600; line-height: 1.5; cursor: pointer; } .ds-btn-primary:hover { background: var(--color-caixa); } .ds-btn-primary:focus-visible { outline: 2px solid var(--color-caixa); outline-offset: 2px; }"
-    },
-    {
       "name": "Organization Switcher",
       "kind": "chip",
-      "refersTo": "button-org-current",
-      "description": "The focused organization is a primary fill with tighter padding and aria-current. The others keep an ink border.",
-      "html": "<div class=\"ds-orgs\" role=\"navigation\" aria-label=\"Organizações\"><button class=\"ds-org ds-org-current\" type=\"button\" aria-current=\"true\">ONG Norte</button><button class=\"ds-org ds-org-idle\" type=\"button\">ONG Sul</button></div>",
-      "css": ".ds-orgs { display: flex; flex-wrap: wrap; gap: 8px; font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; } .ds-org { border-radius: 4px; padding: 4px 12px; font-size: 1rem; line-height: 1.5; cursor: pointer; } .ds-org:focus-visible { outline: 2px solid var(--color-caixa); outline-offset: 2px; } .ds-org-current { background: var(--color-caixa); color: var(--color-sheet); border: none; font-weight: 600; } .ds-org-current:hover { background: var(--color-caixa); } .ds-org-idle { background: transparent; color: var(--color-ink); border: 1px solid var(--color-ink); font-weight: 400; } .ds-org-idle:hover { background: transparent; }"
+      "refersTo": "button-org-switch",
+      "description": "Header control when more than one organization can be focused. Caixa-filled trigger; sheet list underneath.",
+      "html": "<div class=\"ds-org-switcher\"><button class=\"ds-org-btn\" type=\"button\" aria-haspopup=\"listbox\" aria-expanded=\"true\">ONG Norte</button><div class=\"ds-org-list\" role=\"listbox\"><button class=\"ds-org-option ds-org-current\" type=\"button\" aria-current=\"true\">ONG Norte</button><button class=\"ds-org-option\" type=\"button\">ONG Sul</button></div></div>",
+      "css": ".ds-org-switcher { position: relative; display: inline-block; font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; } .ds-org-btn { padding: 4px 12px; border: 0; border-radius: 4px 4px 0 0; background: var(--color-caixa); color: var(--color-sheet); font: inherit; font-weight: 600; cursor: pointer; } .ds-org-btn:focus-visible { outline: 2px solid var(--color-caixa); outline-offset: 2px; } .ds-org-list { position: absolute; top: 100%; left: 0; min-width: 16rem; margin: 0; padding: 4px 0; background: var(--color-sheet); border: 1px solid var(--color-rule); border-radius: 0 4px 4px 4px; } .ds-org-option { display: block; width: 100%; padding: 8px 12px; border: 0; background: transparent; color: var(--color-ink); font: inherit; text-align: left; cursor: pointer; } .ds-org-option:hover { text-decoration: underline; text-underline-offset: 2px; } .ds-org-current { background: var(--color-caixa); color: var(--color-sheet); font-weight: 600; } .ds-org-current:hover { text-decoration: none; }"
+    },
+    {
+      "name": "Toast",
+      "kind": "custom",
+      "refersTo": "toast-ok",
+      "description": "Full-bleed bar at the top of the viewport. Caixa for success and progress, margem for error. Quiet Fechar on the right.",
+      "html": "<div class=\"ds-toast\" role=\"status\"><p>Documento incluído.</p><button class=\"ds-toast-close\" type=\"button\">Fechar</button></div>",
+      "css": ".ds-toast { display: flex; align-items: start; justify-content: space-between; gap: 16px; padding: 12px 32px; background: var(--color-caixa); color: var(--color-sheet); font-family: \"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif; font-size: 1rem; line-height: 1.5; } .ds-toast p { margin: 0; } .ds-toast-close { background: none; border: 0; padding: 0; color: inherit; font: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; } .ds-toast-close:focus-visible { outline: 2px solid var(--color-sheet); outline-offset: 2px; }"
     }
   ],
   "narrative": {
     "northStar": "Livro-caixa",
-    "overview": "The interface is a well-kept Brazilian cash book. The page is cool ledger paper. Every list of money is a ruled row: date, history, amount, status, with figures in tabular numbers and the amount on the right. The only loud device is the red margin. It marks a payment that still lacks a document, and an error. A month page with no red is ready to close.\n\nDensity follows the coordinator's laptop ritual. One left-aligned column, sections separated by a rule, status always visible, and the form that changes a row folded into a disclosure the person opens. The submitter's phone uses the same tokens, stacked. Nothing is a card. Nothing floats.\n\nThe closed month is an ink stamp, the only double-ruled mark in the system. The app mark repeats the same three strokes — a green field, two paper rules, one red margin — and carries no wordmark. When no organization is focused, the header reads the product name in the same medium weight as an organization name.",
+    "overview": "The interface is a well-kept Brazilian cash book. The page is cool ledger paper. Every list of money is a ruled row: date, history, amount, status, with figures in tabular numbers and the amount on the right. The only loud hue is the red of the cash-book margin. It marks a payment that still lacks a document, an error, a failed invite, and a destructive action. A month page with no red in the records is ready to close.\n\nDensity follows the coordinator's laptop ritual. Início is a two-pane close desk: a 26rem month index on the left, the selected month or the people book on the right. Every other signed-in page is one left-aligned column, 72rem at most, sections separated by a rule. Status stays on the row. The form that changes a row folds into a disclosure or a work panel the person opens. The submitter's phone uses the same tokens, stacked.\n\nThe closed month is an ink stamp, the only double-ruled mark in the system. The app mark repeats the same three strokes — a green field, two paper rules, one red margin — and carries no wordmark. The header always reads the product name. When more than one organization is in play, a caixa-filled switcher opens a sheet list under it.",
     "keyCharacteristics": [
-      "**Ruled rows.** Record lists are a ledger sheet: vertical and horizontal rules, not cards.",
-      "**One red margin.** Red appears only on a missing document or an error.",
-      "**Flat paper.** Depth is a hairline rule, not a shadow.",
-      "**The stamp.** A closed month is inked and double-ruled. Nothing else is boxed.",
+      "**Ruled rows.** Money and document lists are a ledger sheet: vertical and horizontal rules, not cards.",
+      "**Two layouts.** Início is a two-pane desk. Close work, documents, setup, and administration stay a single ledger column.",
+      "**One red.** `margem` is the only red. It is a left rule on a blocked row, a sentence, a quiet destructive word, or a toast fill.",
+      "**Flat paper.** Depth is a hairline rule, not a drop shadow. A work panel is a ruling-bordered sheet.",
+      "**The stamp.** A closed month is inked and double-ruled. The index uses a compact “Fechado”; the month page uses “Mês fechado”.",
       "**One type family.** IBM Plex Sans for the book; IBM Plex Mono only for the access key."
     ],
     "rules": [
       {
         "name": "The One Red Rule",
-        "body": "`margem` marks a payment with a missing document and an error. A month page with no red is ready to close.",
+        "body": "`margem` is the only red. A month page with no red in the records is ready to close.",
         "section": "colors"
       },
       {
         "name": "The Sentence Case Rule",
-        "body": "Labels, buttons, and headings stay in sentence case. No all-caps, no eyebrow, no letterspaced small caps.",
+        "body": "Labels, buttons, and headings stay in sentence case. No all-caps, no eyebrow, no letterspaced small caps. The header product name is the one title-case exception: `Fechamento Mensal`.",
         "section": "typography"
       },
       {
@@ -273,7 +285,7 @@
       },
       {
         "name": "The Ledger Column Rule",
-        "body": "Every record list is a ruled sheet with aligned columns, vertical rules, and tabular figures. The amount is right-aligned. Status and each action occupy their own columns.",
+        "body": "Money and document records are a ruled sheet with aligned columns, vertical rules, and tabular figures. The amount is right-aligned. Status and each action occupy their own columns. The home month index and the people book are single-rule lists, not sheets.",
         "section": "layout"
       },
       {
@@ -282,37 +294,43 @@
         "section": "layout"
       },
       {
+        "name": "The Desk Rule",
+        "body": "Início is two panes from 768px. Do not restack Organizações / Abrir o fechamento / Meses / Pessoas as chapters on that page.",
+        "section": "layout"
+      },
+      {
         "name": "The Flat Ledger Rule",
-        "body": "Surfaces stay flat. Depth is the ruling line and the red margin.",
+        "body": "Surfaces stay flat. Depth is the ruling line and the red margin. Do not introduce a drop shadow to float a panel.",
         "section": "elevation"
       },
       {
         "name": "The Stamp Rule",
-        "body": "The only boxed mark is the closed-month stamp. Its double rule is the whole treatment.",
+        "body": "The only double-ruled mark is the closed-month stamp. Its double rule is the whole treatment.",
         "section": "shapes"
       },
       {
         "name": "The Four Pixel Rule",
-        "body": "Controls, fields, and disclosure panels share one small corner. The page itself stays square.",
+        "body": "Controls, fields, and panels share one small corner. The page itself stays square.",
         "section": "shapes"
       }
     ],
     "dos": [
       "**Do** set a missing-document row and an error notice with a 3px left border in `margem` and 12px of inset.",
       "**Do** fill a primary action with `caixa`, a sheet-white label, weight 600, and 8px by 16px padding.",
-      "**Do** separate sections with a ruling line under the heading, and draw each record list as one flat ruled sheet with vertical rules between cells.",
-      "**Do** keep payment rows denser than other lists, with Status and Ações as separate columns.",
+      "**Do** separate sections with a ruling line under the heading, and draw each money or document list as one flat ruled sheet with vertical rules between cells.",
+      "**Do** keep payment rows denser than other lists, with Status and Documento as separate columns on the month payment sheet.",
       "**Do** give the header row and every data row of a sheet the same column template; size action tracks in rem, not auto.",
       "**Do** self-host IBM Plex Sans and IBM Plex Mono. The page makes no third-party font request.",
-      "**Do** draw focus as a 2px solid `caixa` ring, offset 2px, on every control."
+      "**Do** draw focus as a 2px solid `caixa` ring, offset 2px, on every control.",
+      "**Do** keep Início as a two-pane desk for the coordinator; keep the 72rem column for every other close-work page."
     ],
     "donts": [
-      "**Don't** introduce a second red, a shadow, a gradient, or an icon besides the app mark.",
-      "**Don't** put a record in a card. Column alignment is how the book is scanned.",
+      "**Don't** introduce a second red, a drop shadow, a gradient, or a decorative icon set. Sort and row-action strokes, and “+” / “−” zoom, are the allowed exceptions; the mark stays the only brand emblem.",
+      "**Don't** put a money record in a card. Column alignment is how the book is scanned.",
       "**Don't** set a heading in all caps, small caps, or a serif display.",
       "**Don't** tint the page warm cream. The paper is the cool ledger gray-green.",
       "**Don't** disable the close action to hide a reason. The reason is a `margem` sentence.",
-      "**Don't** add motion the person did not trigger. Opening a disclosure is the only state change."
+      "**Don't** add CSS transitions or keyframes. Wait and toast appear because the person submitted; they do not ease in."
     ]
   }
 }
