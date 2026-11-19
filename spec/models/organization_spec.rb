@@ -687,20 +687,6 @@ RSpec.describe Organization, type: :model do
     expect(organization.reload.listed_coordinator_signed_in?).to be(true)
   end
 
-  it "home coordinator Accesses list the principal first then accounts.email" do
-    zoe = Account.create!(email: "zoe@exemplo.org")
-    organization = create_organization!(name: "ONG Norte", principal_coordinator_account: zoe)
-    ana = Account.create!(email: "ana@exemplo.org")
-    bia = Account.create!(email: "bia@exemplo.org")
-    Access.create!(account: zoe, organization: organization, kind: :coordinator)
-    Access.create!(account: bia, organization: organization, kind: :coordinator)
-    Access.create!(account: ana, organization: organization, kind: :coordinator)
-
-    expect(organization.home_coordinator_accesses.map { |access| access.account.email }).to eq([
-      "zoe@exemplo.org", "ana@exemplo.org", "bia@exemplo.org"
-    ])
-  end
-
   it "replace_coordinator promotes submitter Access then destroys the old principal" do
     old = Account.create!(email: "coordenador@exemplo.org")
     norte = create_organization!(name: "ONG Norte", principal_coordinator_account: old)

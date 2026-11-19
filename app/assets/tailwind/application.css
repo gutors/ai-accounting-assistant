@@ -247,8 +247,9 @@
     font-weight: 500;
   }
 
-  .desk-month.is-live .desk-month-title {
+  .desk-month-link[aria-current="true"] .desk-month-title {
     font-weight: 600;
+    color: var(--color-caixa);
   }
 
   .desk-month-now {
@@ -256,6 +257,161 @@
     font-size: 0.8125rem;
     font-weight: 600;
     line-height: 1.125rem;
+  }
+
+  .desk-index-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding-bottom: 16px;
+  }
+
+  .desk-index-pin {
+    flex-shrink: 0;
+    margin: 0 -2rem;
+    padding: 0 2rem 24px;
+    border-top: 1px solid var(--color-rule);
+    background: var(--color-paper);
+  }
+
+  @media (min-width: 768px) {
+    .desk-index-pin {
+      margin-right: -1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+
+  .people-nav {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    align-items: start;
+    width: 100%;
+    padding: 12px 0 8px;
+    text-align: left;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .people-nav-title {
+    font-weight: 500;
+  }
+
+  .people-nav[aria-current="true"] .people-nav-title {
+    font-weight: 600;
+    color: var(--color-caixa);
+  }
+
+  .org-switch {
+    position: relative;
+  }
+
+  .org-switch-btn {
+    display: inline-flex;
+    align-items: center;
+    max-width: 18rem;
+    padding: 4px 12px;
+    border-radius: 4px;
+    background: var(--color-caixa);
+    color: var(--color-sheet);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .org-switch-btn[aria-expanded="true"] {
+    border-radius: 4px 4px 0 0;
+  }
+
+  .org-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 5;
+    min-width: 16rem;
+    max-width: 22rem;
+    margin: 0;
+    padding: 4px 0;
+    background: var(--color-sheet);
+    border: 1px solid var(--color-rule);
+    border-radius: 0 4px 4px 4px;
+  }
+
+  .org-list[hidden] {
+    display: none;
+  }
+
+  .org-list button {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    text-align: left;
+  }
+
+  .org-list button[aria-current="true"] {
+    background: var(--color-caixa);
+    color: var(--color-sheet);
+    font-weight: 600;
+  }
+
+  .org-list button:not([aria-current="true"]):hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .people-sheet-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px 16px;
+    margin-bottom: 16px;
+  }
+
+  .people-group {
+    margin-top: 40px;
+  }
+
+  .person-entry {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 16px;
+    align-items: start;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  .person-entry.is-block {
+    padding-left: 12px;
+    border-left: 3px solid var(--color-margem);
+  }
+
+  .person-entry .cell-label {
+    overflow-wrap: anywhere;
+  }
+
+  .row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px 12px;
+  }
+
+  .invite-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .invite-form input[type="email"] {
+    flex: 1 1 10rem;
+  }
+
+  .invite-form select {
+    flex: 0 0 11rem;
   }
 
   .file-field:has(input:disabled) {

@@ -78,12 +78,6 @@ class Organization < ApplicationRecord
     [ principal ].compact + rest
   end
 
-  def home_coordinator_accesses
-    records = accesses.coordinator.includes(:account).to_a
-    principal, others = records.partition { |access| access.account_id == principal_coordinator_account_id }
-    principal + others.sort_by { |access| access.account.email }
-  end
-
   PrincipalReplacement = Data.define(:account, :created_account)
 
   def replace_coordinator(access:, email:)

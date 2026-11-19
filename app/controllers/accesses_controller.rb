@@ -15,10 +15,9 @@ class AccessesController < ApplicationController
 
     email = access.account.email
     if access.destroy
-      redirect_success(root_path, ActionToast.access_revoked(email))
+      redirect_success(people_desk_path, ActionToast.access_revoked(email))
     else
-      load_home
-      render "organizations/show", status: :unprocessable_content
+      render_people_home(status: :unprocessable_content)
     end
   end
 

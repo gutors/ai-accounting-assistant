@@ -6,7 +6,6 @@ class OrganizationsController < ApplicationController
       load_home
     else
       @organization = focused_organization
-      @focusable_organizations = current_account.organizations.order(:name)
     end
   end
 end

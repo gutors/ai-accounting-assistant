@@ -6,8 +6,7 @@ class CoordinatorInvitesController < ApplicationController
     if invite.persisted?
       redirect_after_invite_mail(invite, sent_message: ActionToast.invite_sent(invite))
     else
-      load_home
-      render "organizations/show", status: :unprocessable_content
+      render_people_home(status: :unprocessable_content)
     end
   end
 
@@ -30,6 +29,6 @@ class CoordinatorInvitesController < ApplicationController
 
     email = invite.email
     invite.destroy!
-    redirect_success(root_path, ActionToast.invite_cancelled(email))
+    redirect_success(people_desk_path, ActionToast.invite_cancelled(email))
   end
 end

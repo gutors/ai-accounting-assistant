@@ -1,0 +1,9 @@
+<div class="desk-index-pin">
+  <%= link_to people_desk_path, class: "people-nav", aria: { current: ("true" if @people_desk) } do %>
+    <span>
+      <span class="people-nav-title">Coordenadores e submitters</span>
+      <br>
+      <span class="text-meta text-ink-soft"><%= people_role_count(@coordinator_accesses.size, "coordenador", "coordenadores") %> · <%= people_role_count(@submitter_accesses.size, "submitter", "submitters") %></span><% if @failed_invite_count.positive? %> · <span class="font-medium text-margem"><%= @failed_invite_count %> falhou envio</span><% end %>
+    </span>
+  <% end %>
+</div>
