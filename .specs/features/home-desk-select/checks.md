@@ -198,7 +198,7 @@ Proof: `bin/rspec spec/requests/sessions_spec.rb -e "unauthenticated GET / respo
 ## Handoff
 
 - **Settled mid-build:** none
-- **Dispatched:** Verifier at `b459ac1` (`2318ac0..b459ac1`); screens round 1 at `b459ac1`
-- **Boundary:**
+- **Dispatched:** Verifier at `b459ac1` (`2318ac0..b459ac1`) returned PASS; screens round 1 at `b459ac1` returned (people-desk diverges, closed at `495c3c7`); screens round 2 at `495c3c7` returned (matches)
+- **Boundary:** C1-C39 closed at `495c3c7` (feature base `2318ac0`); screens round 2 at `495c3c7`
 - **Abandoned:** none
 - **Walked:** Ambiente local `gutors@gmail.com` on `GET /` at 903×970: header button ONG Exemplo (Instituto Água Viva in the list), Abrir mês on one row, Meses novembro de 2026 `em trabalho` Aberto plus outubro/agosto Fechado and setembro Aberto, pin `3 coordenadores · 2 submitters · 1 falhou envio`, right pane novembro de 2026 / `2026-11` / Continuar / Excluir / `2 pagamentos com documento faltante.` / Contas Extrato Presente then Falta. Saved `captures/month-desk.running.png`. Header list open: ONG Exemplo `aria-current` then Instituto Água Viva. Saved `captures/org-list.running.png`. `GET /?year_month=2026-10`: stamp `Mês fechado`, Continuar, no Excluir. Saved `captures/closed-month.running.png`. `GET /?desk=people`: h1 `Coordenadores e submitters`, invite form (E-mail, Coordenador/Submitter, Convidar), Coordenadores then Submitters in insertion order, Principal without Revogar, `Convite · enviado` and `Convite · falhou envio do e-mail` with Reenviar/Cancelar. Saved `captures/people-desk.running.png`. Meses row stays on `/?year_month=`; pin is `GET /?desk=people`; Excluir only on the selected never-sent right desk. One-org quiet and submitter home are request specs.
