@@ -1,8 +1,8 @@
 # month-statement-row proofs
 
-**HEAD**: 9d98ffd
+**HEAD**: de99997
 **Tree**: clean
-**Result**: 17 pass, 3 fail; mutations 0 killed, 0 not
+**Result**: 18 pass, 2 fail; mutations 0 killed, 0 not
 
 | Check | Proof | Ran | Passed | Result |
 | --- | --- | --- | --- | --- |
@@ -18,7 +18,7 @@
 | C10 | `bin/rspec spec/system/month_statement_row_spec.rb -e "descartar clears the staged files without posting"` | count unknown | - | pass |
 | C11 | `bin/rspec spec/requests/month_statement_row_spec.rb -e "closed month rows have no statement control"` | count unknown | - | pass |
 | C17 | `bin/rspec spec/requests/month_statement_row_spec.rb -e "refused POST re-renders with Envie a planilha and no s` | count unknown | - | pass |
-| C18 | `bin/rspec spec/requests/reopen_spec.rb -e "reopen shows the statement control and hides the send"` | count unknown | - | **fail** |
+| C18 | `bin/rspec spec/requests/reopen_spec.rb -e "reopen shows the statement control and hides the send"` | count unknown | - | pass |
 | C12 | `bin/rspec spec/system/month_statement_row_spec.rb -e "every Pagamentos row measures at most 48px across five s` | count unknown | - | pass |
 | C13 | `bin/rspec spec/requests/month_statement_row_spec.rb -e "long history document and status cells truncate and ca` | count unknown | - | pass |
 | C14 | `bin/rspec spec/requests/month_statement_row_spec.rb -e "Pagamentos omits the match observation that matches st` | count unknown | - | pass |
