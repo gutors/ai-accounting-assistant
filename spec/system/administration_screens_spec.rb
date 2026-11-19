@@ -94,6 +94,7 @@ RSpec.describe "Administration screens", type: :system do
       stub_google_oauth(email: "seller@example.com", uid: "uid-seller")
       visit "/auth/google_oauth2/callback"
       visit "/"
+      find('header [aria-haspopup="listbox"]').click
       click_button "ONG Norte"
       visit "/administration/#{norte.id}/edit"
       click_button "Corrigir"

@@ -280,7 +280,11 @@ RSpec.describe "Administration", type: :request do
       expect(session[:organization_id]).to eq(created.id)
       expect(session[:organization_id]).not_to eq(previous.id)
       follow_redirect!
-      expect(page.at_css("header").text).to include("Fechamento Mensal - ONG Norte")
+      header = page.at_css("header")
+      expect(header.text).to include("Fechamento Mensal")
+      button = header.at_css('[aria-haspopup="listbox"]')
+      expect(button["aria-label"]).to eq("Organização: ONG Norte. Abrir lista")
+      expect(button.text.strip).to eq("ONG Norte")
     end
   end
 
