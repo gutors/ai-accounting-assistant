@@ -16,17 +16,17 @@ Proofs use `bin/rspec` and `-e` as `.cursor/rules/rails.mdc` names. CI runs `bin
 Proof: browser - reach that coordinator home, save `captures/month-desk.running.png` at 903×970
 
 **C2** - Coordinator GET `/`: the Meses list does not include `Excluir` and does not include a link to `/months/:year_month` (AC 2)
-Proof: `bin/rspec spec/requests/organizations_spec.rb -e "Meses list omits Excluir and omits month-page links"`
+Proof: `bin/rspec spec/requests/organizations_desk_spec.rb -e "Meses list omits Excluir and omits month-page links"`
 
 **C3** - Coordinator GET `/`: the left column pin includes the title `Coordenadores e submitters` and stays in the first viewport while the Meses list scrolls (AC 3)
-Proof: `bin/rspec spec/requests/organizations_spec.rb -e "people pin sits outside the Meses scroll"`
+Proof: `bin/rspec spec/requests/organizations_desk_spec.rb -e "people pin sits outside the Meses scroll"`
 Proof: `bin/rspec spec/system/home_desk_select_spec.rb -e "people pin stays in the viewport while Meses scrolls"`
 
 **C4** - Pin with 3 standing coordinators, 2 standing submitters, and 1 invite whose last delivery failed: `3 coordenadores · 2 submitters` and `1 falhou envio` in `margem`, and does not include `convite` (AC 4)
-Proof: `bin/rspec spec/requests/organizations_spec.rb -e "people pin says 3 coordenadores 2 submitters and 1 falhou envio without convite"`
+Proof: `bin/rspec spec/requests/organizations_desk_spec.rb -e "people pin says 3 coordenadores 2 submitters and 1 falhou envio without convite"`
 
 **C5** - Pin with 1 standing coordinator, 1 standing submitter, and no failed invite: `1 coordenador · 1 submitter` and does not include `falhou envio` (AC 5)
-Proof: `bin/rspec spec/requests/organizations_spec.rb -e "people pin says 1 coordenador 1 submitter without falhou envio"`
+Proof: `bin/rspec spec/requests/organizations_desk_spec.rb -e "people pin says 1 coordenador 1 submitter without falhou envio"`
 
 ### S2 - Organization is a header list
 
@@ -49,27 +49,27 @@ Proof: `bin/rspec spec/system/home_desk_select_spec.rb -e "org list closes on Es
 ### S3 - A month row fills the right desk
 
 **C11** - Using a Meses row for `2026-10` issues `GET /?year_month=2026-10` (AC 11)
-Proof: `bin/rspec spec/requests/organizations_spec.rb -e "Meses row for 2026-10 is GET year_month 2026-10"`
+Proof: `bin/rspec spec/requests/organizations_desk_spec.rb -e "Meses row for 2026-10 is GET year_month 2026-10"`
 
 **C12** - GET `/?year_month=2026-10` for a closed month shows `.specs/features/home-desk-select/captures/closed-month.png` (AC 12)
 Proof: browser - select the closed month, save `captures/closed-month.running.png` at 903×970
 
 **C13** - GET `/?year_month=2026-11` for the open never-sent in-work month: right column `<h1>` is that month’s `month_title`, the body includes `2026-11`, Continuar links to `/months/2026-11`, and Excluir is a secondary danger button whose confirm is `Excluir este fechamento?` (AC 13)
-Proof: `bin/rspec spec/requests/organizations_spec.rb -e "selected never-sent 2026-11 right h1 Continuar and Excluir"`
+Proof: `bin/rspec spec/requests/organizations_desk_spec.rb -e "selected never-sent 2026-11 right h1 Continuar and Excluir"`
 
 **C14** - Using Excluir and confirming DELETEs `/months/:year_month` and keeps today’s success redirect and toast (AC 14)
-Proof: `bin/rspec spec/requests/organizations_spec.rb -e "selected never-sent Excluir is DELETE with turbo confirm"`
+Proof: `bin/rspec spec/requests/organizations_desk_spec.rb -e "selected never-sent Excluir is DELETE with turbo confirm"`
 Proof: `bin/rspec spec/requests/months_account_confirmation_spec.rb -e "DELETE never-sent empty month redirects home and frees year_month"`
 
 **C15** - Selected month closed, or open and not `never_sent?`: right column does not include `Excluir` (AC 15)
-Proof: `bin/rspec spec/requests/organizations_spec.rb -e "closed selected month omits Excluir"`
+Proof: `bin/rspec spec/requests/organizations_desk_spec.rb -e "closed selected month omits Excluir"`
 Proof: `bin/rspec spec/requests/organizations_spec.rb -e "reopened selected month omits Excluir"`
 
 **C16** - Selected month closed: right column includes the stamp `Mês fechado` and Continuar still links to `/months/:year_month` (AC 16)
-Proof: `bin/rspec spec/requests/organizations_spec.rb -e "closed selected month stamps Mes fechado and Continuar still links"`
+Proof: `bin/rspec spec/requests/organizations_desk_spec.rb -e "closed selected month stamps Mes fechado and Continuar still links"`
 
 **C17** - Selected month accounts confirmed and 2 payments missing a document: right column includes exactly one missing-document sentence `2 pagamentos com documento faltante.` in `margem` (AC 17)
-Proof: `bin/rspec spec/requests/organizations_spec.rb -e "selected month says 2 pagamentos com documento faltante in margem"`
+Proof: `bin/rspec spec/requests/organizations_desk_spec.rb -e "selected month says 2 pagamentos com documento faltante in margem"`
 
 **C18** - Accounts confirmed and 0 payments missing a document: the sentence is `Nenhum documento faltante.` and does not use `margem` for that sentence (AC 18)
 Proof: `bin/rspec spec/requests/organizations_spec.rb -e "selected month says Nenhum documento faltante without margem"`
@@ -81,15 +81,15 @@ Proof: `bin/rspec spec/requests/organizations_spec.rb -e "unconfirmed selected m
 Proof: `bin/rspec spec/requests/organizations_spec.rb -e "selected Contas bancarias Extrato is Presente and Falta in margem"`
 
 **C21** - `year_month` absent, empty, or not a month of the focused organization: the selected month is the in-work open month when one exists (AC 21)
-Proof: `bin/rspec spec/requests/organizations_spec.rb -e "absent year_month selects the in-work open month"`
-Proof: `bin/rspec spec/requests/organizations_spec.rb -e "empty year_month selects the in-work open month"`
-Proof: `bin/rspec spec/requests/organizations_spec.rb -e "unknown year_month selects the in-work open month"`
+Proof: `bin/rspec spec/requests/organizations_desk_spec.rb -e "absent year_month selects the in-work open month"`
+Proof: `bin/rspec spec/requests/organizations_desk_spec.rb -e "empty year_month selects the in-work open month"`
+Proof: `bin/rspec spec/requests/organizations_desk_spec.rb -e "unknown year_month selects the in-work open month"`
 
 **C22** - No months: Meses includes `Nenhum mês aberto`, the right column includes `Selecione um mês na lista.`, and does not include Continuar or Excluir (AC 22)
 Proof: `bin/rspec spec/requests/organizations_spec.rb -e "empty home lists Nenhum mes aberto and Selecione um mes"`
 
 **C23** - GET `/?desk=people` showing the people book, using a Meses row: the right column is that month’s desk and the people pin is not `aria-current` (AC 23)
-Proof: `bin/rspec spec/requests/organizations_spec.rb -e "Meses row from people desk fills the month desk"`
+Proof: `bin/rspec spec/requests/organizations_desk_spec.rb -e "Meses row from people desk fills the month desk"`
 
 **C24** - Coordinator GET `/`: Abrir mês is `<label for="year_month">Abrir mês</label>`, a `select#year_month` and submit `Abrir mês` on one row, above the Meses list, posting `year_month` to `/months`; the 25-month picker window and a successful `POST /months` redirect and toast stay as today’s specs (AC 24)
 Proof: `bin/rspec spec/requests/organizations_spec.rb -e "Abrir mes is label select and submit on one row above Meses posting to /months"`
@@ -100,25 +100,25 @@ Proof: `bin/rspec spec/requests/months_spec.rb -e "POST /months names the opened
 ### S4 - People sit on the desk
 
 **C25** - Using the left pin `Coordenadores e submitters` issues `GET /?desk=people` (AC 25)
-Proof: `bin/rspec spec/requests/organizations_spec.rb -e "people pin is GET desk people"`
+Proof: `bin/rspec spec/requests/organizations_desk_spec.rb -e "people pin is GET desk people"`
 
 **C26** - GET `/?desk=people` shows `.specs/features/home-desk-select/captures/people-desk.png` (AC 26)
 Proof: browser - open the people book, save `captures/people-desk.running.png` at 903×970
 
 **C27** - `desk=people`: the pin is `aria-current="true"` and no Meses row is `aria-current` (AC 27)
-Proof: `bin/rspec spec/requests/organizations_spec.rb -e "people desk pin is aria-current and no Meses row is"`
+Proof: `bin/rspec spec/requests/organizations_desk_spec.rb -e "people desk pin is aria-current and no Meses row is"`
 
 **C28** - People book: right column `<h1>` is `Coordenadores e submitters`; the invite form sits directly under that heading, with email placeholder `E-mail`, a kind select whose options are `Coordenador` then `Submitter` (default `Coordenador`), and submit `Convidar`; below the form a heading `Coordenadores` then a heading `Submitters` (AC 28)
-Proof: `bin/rspec spec/requests/organizations_spec.rb -e "people book heading invite form Coordenadores then Submitters"`
+Proof: `bin/rspec spec/requests/organizations_desk_spec.rb -e "people book heading invite form Coordenadores then Submitters"`
 
 **C29** - 3 standing coordinators, 2 standing submitters, 1 pending coordinator invite, and 1 failed submitter invite: people-book meta is `5 pessoas · 2 convites · 1 falhou envio` (AC 29)
-Proof: `bin/rspec spec/requests/organizations_spec.rb -e "people book meta is 5 pessoas 2 convites 1 falhou envio"`
+Proof: `bin/rspec spec/requests/organizations_desk_spec.rb -e "people book meta is 5 pessoas 2 convites 1 falhou envio"`
 
 **C30** - Standing coordinators in insertion order (`accesses.created_at`, then `id`), then pending coordinator invites in insertion order; standing submitters in insertion order, then pending submitter invites in insertion order. The principal coordinator’s row includes `Principal` and does not include `Revogar` (AC 30)
-Proof: `bin/rspec spec/requests/organizations_spec.rb -e "people book lists standing then pending in insertion order"`
+Proof: `bin/rspec spec/requests/organizations_desk_spec.rb -e "people book lists standing then pending in insertion order"`
 
 **C31** - A pending invite row includes `Convite · enviado` when `last_delivery` is sent, and `Convite · falhou envio do e-mail` in `margem` when it failed; each pending row includes `Reenviar e-mail` and `Cancelar` (AC 31)
-Proof: `bin/rspec spec/requests/organizations_spec.rb -e "pending invite rows say Convite enviado or falhou envio do e-mail"`
+Proof: `bin/rspec spec/requests/organizations_desk_spec.rb -e "pending invite rows say Convite enviado or falhou envio do e-mail"`
 
 **C32** - Using `Convidar` with kind `Coordenador` POSTs `/coordinator_invites` with `email`; with kind `Submitter` POSTs `/submitter_invites` with `email`. Today’s validation, mail, and toast remain (AC 32)
 Proof: `bin/rspec spec/system/home_desk_select_spec.rb -e "Convidar Coordenador posts coordinator_invites and Submitter posts submitter_invites"`
@@ -135,7 +135,7 @@ Proof: `bin/rspec spec/requests/accesses_spec.rb -e "DELETE /accesses/:id of a n
 Proof: `bin/rspec spec/requests/coordinator_invites_spec.rb -e "rejected invite emails return 422"`
 
 **C35** - No standing coordinators and no coordinator invites: Coordenadores includes `Nenhum coordenador`; no standing submitters and no submitter invites: Submitters includes `Nenhum submitter` (AC 35)
-Proof: `bin/rspec spec/requests/organizations_spec.rb -e "empty people book says Nenhum coordenador and Nenhum submitter"`
+Proof: `bin/rspec spec/requests/organizations_desk_spec.rb -e "empty people book says Nenhum coordenador and Nenhum submitter"`
 
 **C36** - People book: revoke confirm copy stays `Revogar o acesso deste coordenador?` and `Revogar o acesso deste submitter?`; who may revoke stays as today’s access destroy specs. The page does not include a `<details>` whose summary is `Pessoas` and does not include a heading `Convites pendentes` (AC 36)
 Proof: `bin/rspec spec/requests/organizations_spec.rb -e "principal coordinator sees Revogar on peer and submitter rows"`
@@ -146,11 +146,11 @@ Proof: `bin/rspec spec/requests/organizations_spec.rb -e "people book omits Pess
 **C37** - Submitter GET `/`: `<h1>` is `Início`, the Documentos sentence is present, Abrir mês, Continuar, Contas bancárias, `Coordenadores e submitters`, and `Convidar` are absent, and `year_month` and `desk` are ignored (AC 37)
 Proof: `bin/rspec spec/requests/organizations_spec.rb -e "submitter home says Inicio and points to Documentos"`
 Proof: `bin/rspec spec/requests/organizations_spec.rb -e "submitter home omits close-ritual chrome"`
-Proof: `bin/rspec spec/requests/organizations_spec.rb -e "submitter home ignores year_month and desk"`
+Proof: `bin/rspec spec/requests/organizations_desk_spec.rb -e "submitter home ignores year_month and desk"`
 
 **C38** - Submitter with two organizations: the header uses the same organization listbox as C7–C10; with one, the header follows C6 (AC 38)
 Proof: `bin/rspec spec/requests/organizations_spec.rb -e "submitter two-organization home uses the header org listbox"`
-Proof: `bin/rspec spec/requests/organizations_spec.rb -e "submitter one-organization home omits org listbox"`
+Proof: `bin/rspec spec/requests/organizations_desk_spec.rb -e "submitter one-organization home omits org listbox"`
 
 **C39** - Unauthenticated GET `/` responds `302` to `/login`
 Proof: `bin/rspec spec/requests/sessions_spec.rb -e "unauthenticated GET / responds 302 to /login"`

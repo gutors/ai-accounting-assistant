@@ -23,7 +23,7 @@ RSpec.describe "Home desk select", type: :system do
     end
     sign_in_through_google(account)
     visit "/"
-    page.driver.resize(903, 970)
+    page.current_window.resize_to(903, 970)
 
     expect(page.evaluate_script(<<~JS)).to eq(true)
       (function () {
