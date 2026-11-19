@@ -21,6 +21,15 @@
         ],
         "createdAt": "2026-11-18T20:17:40.424Z",
         "reason": "DESIGN.md: The red margin is a 3px left border with 12px of inset on the row and error notice"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/setup-desk.html"
+        ],
+        "createdAt": "2026-11-19T14:23:56.519Z",
+        "reason": "DESIGN.md ledger sheet: 1px vertical rules between cells with the product's 6px 10px inset; empty action tracks are intentional"
       }
     ]
   }
