@@ -131,10 +131,12 @@ class ApplicationController < ActionController::Base
     @statements_by_account_id = @selected_month.bank_statements.index_by(&:bank_account_id)
     return unless @selected_month.accounts_confirmed?
 
-    @missing_document_count = Payment.joins(:bank_statement)
-      .where(bank_statements: { month_id: @selected_month.id })
-      .missing_document
-      .count
+    @missing_document_count = Payment.without_catalog(
+      Payment.joins(:bank_statement)
+        .where(bank_statements: { month_id: @selected_month.id })
+        .missing_document
+        .includes(bank_statement: { bank_account: :bank })
+    ).size
   end
 
   def selected_month_from_params
@@ -209,7 +211,7 @@ class ApplicationController < ActionController::Base
   def load_matches_page
     load_month_page
     apply_bank_account_movement_filter
-    @unmatched_documents = @unmatched_documents.unscope(:order).order(document_on: :asc, id: :asc)
+    @unmatched_documents = @unmatched_documents.sort_by { |document| [ document.document_on, document.id ] }
     @next_suggestion_payment = Suggestion.next_one_payment(
       @missing_document_payments,
       @suggestions_by_payment_id
@@ -250,12 +252,22 @@ class ApplicationController < ActionController::Base
     @organization = focused_organization
     @active_bank_accounts = @organization.bank_accounts.where(active: true).includes(:bank).order(:name)
     @statements_by_account_id = @month.bank_statements.with_attached_pdf.with_attached_spreadsheet.index_by(&:bank_account_id)
-    @inflows = Inflow.joins(:bank_statement).where(bank_statements: { month_id: @month.id }).includes(bank_statement: :bank_account).order(:occurred_on, :id)
-    @payments = Payment.joins(:bank_statement).where(bank_statements: { month_id: @month.id }).includes(:extra_exception_kind, match: :supporting_documents, bank_statement: :bank_account).order(:occurred_on, :id)
+    @inflows = Inflow.joins(:bank_statement).where(bank_statements: { month_id: @month.id }).includes(bank_statement: :bank_account).order(:occurred_on, :id).to_a
+    @payments = Payment.without_catalog(
+      Payment.joins(:bank_statement).where(bank_statements: { month_id: @month.id })
+        .includes(:extra_exception_kind, match: :supporting_documents, bank_statement: { bank_account: :bank })
+        .order(:occurred_on, :id)
+    )
     @active_extra_exception_kinds = @organization.extra_exception_kinds.where(active: true).order(:name)
     @unmatched_documents = @organization.supporting_documents.unmatched.listed.with_attached_photo.where(
       month_id: @month.closed? ? @month.id : [ nil, @month.id ]
-    )
+    ).to_a
+    @payments_sort, @payments_dir = MonthListSort.parse(params[:payments_sort], params[:payments_dir], columns: %w[date amount])
+    @inflows_sort, @inflows_dir = MonthListSort.parse(params[:inflows_sort], params[:inflows_dir], columns: %w[date amount])
+    @pool_sort, @pool_dir = MonthListSort.parse(params[:pool_sort], params[:pool_dir], columns: %w[date payee amount])
+    @payments = MonthListSort.apply(@payments, @payments_sort, @payments_dir, date: :occurred_on)
+    @inflows = MonthListSort.apply(@inflows, @inflows_sort, @inflows_dir, date: :occurred_on)
+    @unmatched_documents = MonthListSort.apply(@unmatched_documents, @pool_sort, @pool_dir, date: :document_on, payee: :payee)
     @missing_document_payments = @payments.select(&:missing_document?)
     @suggestions_by_payment_id = suggestions_on_month
     @exception_suggestions_by_payment_id = exception_suggestions_on_month

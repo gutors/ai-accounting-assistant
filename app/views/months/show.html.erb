@@ -140,7 +140,7 @@
         </div>
       <% end %>
       <%= form_with url: "/months/#{@month.year_month}/account_confirmation", method: :post, html: { class: "mt-4" } do %>
-        <%= submit_tag "Iniciar fechamento", class: "rounded bg-caixa px-4 py-2 font-semibold text-white", disabled: !@month.spreadsheet_present? %>
+        <%= submit_tag "Iniciar fechamento", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
       <% end %>
     </section>
   <% end %>
@@ -161,21 +161,28 @@
       <% end %>
     </div>
 
+    <% month_sort_query = {
+      bank_account_id: @bank_account_id,
+      payments_sort: params[:payments_sort],
+      payments_dir: params[:payments_dir],
+      inflows_sort: params[:inflows_sort],
+      inflows_dir: params[:inflows_dir],
+      pool_sort: params[:pool_sort],
+      pool_dir: params[:pool_dir]
+    } %>
     <details class="month-fold" open>
       <summary>Pagamentos</summary>
       <div class="ledger-sheet">
         <div class="ledger-row ledger-head ledger-pay ledger-overview-pay">
-          <span class="sort-key">Data</span>
+          <%= ledger_sort_cell("Data", column: "date", current_sort: @payments_sort, current_dir: @payments_dir, base_path: "/months/#{@month.year_month}", filter_params: month_sort_query, sort_param: :payments_sort, dir_param: :payments_dir) %>
           <span>Histórico</span>
-          <span class="ledger-amount">Valor</span>
+          <%= ledger_sort_cell("Valor", column: "amount", current_sort: @payments_sort, current_dir: @payments_dir, base_path: "/months/#{@month.year_month}", filter_params: month_sort_query, sort_param: :payments_sort, dir_param: :payments_dir, align: :right) %>
           <span>Status</span>
           <span>Documento</span>
         </div>
         <ul>
           <% @payments.each do |payment| %>
             <% status = payment_status(payment) %>
-            <% suggestion = @suggestions_by_payment_id[payment.id] %>
-            <% exception_suggestion = @exception_suggestions_by_payment_id[payment.id] %>
             <li data-row="payment" data-payment-id="<%= payment.id %>" data-status="<%= status %>" class="ledger-row ledger-pay ledger-overview-pay<%= " is-block" if status == "missing" %>">
               <time datetime="<%= payment.occurred_on.iso8601 %>" class="tabular-nums"><%= l(payment.occurred_on) %></time>
               <div>
@@ -186,11 +193,6 @@
               <div data-cell="status">
                 <% if status == "missing" %>
                   <p class="font-medium text-margem">Documento faltante</p>
-                  <% if suggestion %>
-                    <p class="text-meta text-ink-soft">Sugestão <%= suggestion.supporting_documents.map(&:payee).join(", ") %></p>
-                  <% elsif exception_suggestion %>
-                    <p class="text-meta text-ink-soft">Sugestão de exceção</p>
-                  <% end %>
                 <% elsif status == "matched" %>
                   <p class="font-medium">Casado</p>
                   <% if payment.match.observation.present? %>
@@ -221,36 +223,23 @@
         <p>Nenhum documento sem casamento</p>
       <% else %>
         <div class="ledger-sheet">
-          <div class="ledger-row ledger-head ledger-overview-pool" aria-hidden="true">
-            <span>Data</span>
-            <span>Favorecido</span>
+          <div class="ledger-row ledger-head ledger-overview-pool">
+            <%= ledger_sort_cell("Data", column: "date", current_sort: @pool_sort, current_dir: @pool_dir, base_path: "/months/#{@month.year_month}", filter_params: month_sort_query, sort_param: :pool_sort, dir_param: :pool_dir) %>
+            <%= ledger_sort_cell("Favorecido", column: "payee", current_sort: @pool_sort, current_dir: @pool_dir, base_path: "/months/#{@month.year_month}", filter_params: month_sort_query, sort_param: :pool_sort, dir_param: :pool_dir) %>
             <span>Tipo</span>
-            <span class="ledger-amount">Valor</span>
+            <%= ledger_sort_cell("Valor", column: "amount", current_sort: @pool_sort, current_dir: @pool_dir, base_path: "/months/#{@month.year_month}", filter_params: month_sort_query, sort_param: :pool_sort, dir_param: :pool_dir, align: :right) %>
             <span>Foto</span>
-            <span></span>
           </div>
           <ul>
             <% @unmatched_documents.each do |document| %>
               <li data-row="pool-document" data-document-id="<%= document.id %>" class="ledger-row ledger-overview-pool">
                 <time datetime="<%= document.document_on.iso8601 %>" class="tabular-nums"><%= l(document.document_on) %></time>
-                <div class="flex items-center gap-2 font-medium">
-                  <% if !@month.closed? && document.month_id.nil? %>
-                    <%= check_box_tag "supporting_document_ids[]", document.id, false, id: "close_doc_#{document.id}", form: "close-month" %>
-                    <label for="close_doc_<%= document.id %>"><%= document.payee %></label>
-                  <% else %>
-                    <%= document.payee %>
-                  <% end %>
-                </div>
+                <p class="font-medium"><%= document.payee %></p>
                 <p><%= document.recibo? ? "Recibo" : "Nota fiscal" %></p>
                 <p data-cell="amount" class="font-medium tabular-nums"><%= format_reais(document.amount_cents) %></p>
                 <div data-cell="photo" class="min-w-0 truncate text-meta">
                   <% if document.photo.attached? %>
                     <%= link_to document.photo.filename, url_for(document.photo), class: "text-caixa underline underline-offset-2" %>
-                  <% end %>
-                </div>
-                <div>
-                  <% if !@month.closed? && document.month_id == @month.id %>
-                    <%= button_to "Devolver", "/months/#{@month.year_month}/supporting_documents/#{document.id}/return", method: :post, class: "text-margem underline underline-offset-2" %>
                   <% end %>
                 </div>
               </li>
@@ -263,10 +252,10 @@
     <details class="month-fold" open>
       <summary>Recebimentos</summary>
       <div class="ledger-sheet">
-        <div class="ledger-row ledger-head ledger-inflow" aria-hidden="true">
-          <span>Data</span>
+        <div class="ledger-row ledger-head ledger-inflow">
+          <%= ledger_sort_cell("Data", column: "date", current_sort: @inflows_sort, current_dir: @inflows_dir, base_path: "/months/#{@month.year_month}", filter_params: month_sort_query, sort_param: :inflows_sort, dir_param: :inflows_dir) %>
           <span>Histórico</span>
-          <span class="ledger-amount">Valor</span>
+          <%= ledger_sort_cell("Valor", column: "amount", current_sort: @inflows_sort, current_dir: @inflows_dir, base_path: "/months/#{@month.year_month}", filter_params: month_sort_query, sort_param: :inflows_sort, dir_param: :inflows_dir, align: :right) %>
         </div>
         <ul>
           <% @inflows.each do |inflow| %>

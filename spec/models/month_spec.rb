@@ -198,6 +198,15 @@ RSpec.describe Month, type: :model do
       expect(writer.calls.size).to eq(calls)
     end
 
+    it "close does not refuse leftover catalog debit as missing document" do
+      plant_payment(statement, 2000, history: "Transferência — BB Rende Fácil")
+
+      month.close_for_send
+
+      expect(month.errors[:base]).not_to include("Há documento faltante")
+      expect(month.reload.closed?).to eq(true)
+    end
+
     it "close with extra Doacao payment does not add Ha documento faltante" do
       kind = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
       payment = plant_payment(statement, 22000)

@@ -314,9 +314,9 @@ Confirmar contas para fechamento                (h2)
   Nome           Situação
   Conta Alfa     Falta                         ← Falta in margem; ledger name order
   Conta Principal Presente
-  [Iniciar fechamento]                         ← disabled while no account has a spreadsheet;
+  [Iniciar fechamento]                         ← always enabled; refused POST is error toast
                                                    notice: Inclua o extrato planilha de pelo menos uma conta bancária.
-                                                   enabled with at least one Presente (mixed Falta allowed)
+                                                   mixed Falta allowed when at least one Presente exists
 ```
 
 Recebimentos, Pagamentos, and Documentos sem casamento are omitted while unconfirmed and open.
@@ -340,13 +340,12 @@ Contas bancárias                                (h2, not in details)
 ▾ Pagamentos                                (details open; summary heading, no h2)
   Data  Histórico  Valor  Status  Documento
 ▌ 11/05 Pix enviado — Padaria Central  R$ 220,00  Documento faltante
-▌             Conta Principal                      Sugestão Padaria Central
   13/05 Energia                         R$ 340,00  Casado              Enel, CEMIG
   15/05 Honorários                      R$ 800,00  Honorário do contador
 ▾ Documentos sem casamento
-  Data  Favorecido  Tipo  Valor  Foto  Devolver
-  11/05 ☐ Padaria Central  Recibo  R$ 220,00  foto.jpg
-  18/05 Material de limpeza Recibo R$ 50,00  danfe.jpg  Devolver
+  Data  Favorecido  Tipo  Valor  Foto
+  11/05 Padaria Central  Recibo  R$ 220,00  foto.jpg
+  18/05 Material de limpeza Recibo R$ 50,00  danfe.jpg
 ▾ Recebimentos                              (last)
   Data  Histórico  Valor
   04/05 Pix - Recebido  Conta Principal  R$ 63,00
@@ -370,10 +369,10 @@ Contas bancárias                                (h2, not in details)
 - After Contas bancárias, while unconfirmed and open: a step `Confirmar contas para
   fechamento` lists each active account’s name with `Presente` or `Falta` (`Falta` in
   `margem`) in ledger name order, two-column ledger (`Nome`, `Situação`), submit
-  `Iniciar fechamento`. While that step is shown and no account has a spreadsheet
-  statement, `Iniciar fechamento` is disabled and the notice is `Inclua o extrato
-  planilha de pelo menos uma conta bancária.`; with at least one Presente it stays
-  enabled (mixed Falta allowed). Close-for-send still requires every active account’s statement.
+  `Iniciar fechamento`. The submit stays enabled; a refused confirm is an error toast
+  with `Inclua o extrato planilha de pelo menos uma conta bancária.` (that notice also
+  remains on the GET). Mixed Falta is allowed. Close-for-send still requires every
+  active account’s statement.
   That step is absent after confirmation or while closed.
   `Recebimentos`, `Pagamentos`, and `Documentos sem casamento` are omitted until then.
   After confirmation (or while closed), the missing-document summary and those three
@@ -395,14 +394,13 @@ Contas bancárias                                (h2, not in details)
   margin. Columns: Data, Histórico, Valor, Status, Documento. There is no Ações, no `Resolver`,
   no N:1 fold, no `Marcar tarifa` / `Marcar honorário` / extra submit, no `Desfazer casamento`,
   no `Desmarcar exceção`. Status cell shows the status words (`Documento faltante`, `Casado` +
-  observation, `Tarifa bancária`, `Honorário do contador`, or the extra kind name) and
-  `Sugestão` / `Sugestão de exceção` meta when present. Documento is matched payee names,
+  observation, `Tarifa bancária`, `Honorário do contador`, or the extra kind name) only;
+  `Sugestão` / `Sugestão de exceção` stay on Casar. Documento is matched payee names,
   comma-separated; empty on missing and on every exception.
 - Pool `li[data-row="pool-document"][data-document-id]`: Data (`time` `document_on`), Favorecido
-  (checkbox `form="close-month"` when the document has no month and the month is open, payee as
-  label), Tipo `Recibo` / `Nota fiscal`, Valor, Foto (filename as `text-caixa` underlined
-  `url_for` of the photo blob, same tab; empty when no photo), then `Devolver` when `month_id`
-  is this Month. Closed month: no checkbox and no Devolver. Empty: `Nenhum documento sem casamento`.
+  (payee text), Tipo `Recibo` / `Nota fiscal`, Valor, Foto (filename as `text-caixa` underlined
+  `url_for` of the photo blob, same tab; empty when no photo). No close checkbox and no
+  `Devolver` on this list. Empty: `Nenhum documento sem casamento`.
 - New copy: `Voltar para Início`, the summary sentences, `Incluir extrato`, `Substituir extrato`,
   `Casar pagamentos`, month names, Documentos `Pdf` / `Planilha`, pool `Foto`.
 

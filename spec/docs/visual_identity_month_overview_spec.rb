@@ -27,9 +27,19 @@ RSpec.describe "Visual identity month overview" do
     expect(month).to include("Sugestão")
     expect(month).to include("Foto")
     expect(month).to include("url_for")
-    expect(month).to include("form=\"close-month\"")
-    expect(month).to include("Devolver")
     expect(source).to include("Voltar para Início")
     expect(source).to include("Livro com bloqueio")
+  end
+
+  it "visual-identity month omits disabled Iniciar Sugestao under Status pool checkbox and Devolver" do
+    design = Rails.root.join(".specs/features/visual-identity/design.md").read
+    month = design.split("### `month` — `GET /months/:year_month`", 2).last.split("### `", 2).first
+
+    expect(month).not_to include("disabled while no account")
+    expect(month).not_to include("Sugestão Padaria Central")
+    expect(month).not_to include('form="close-month"')
+    expect(month).not_to include("Foto  Devolver")
+    expect(month).to include("always enabled")
+    expect(month).to include("Data  Favorecido  Tipo  Valor  Foto")
   end
 end

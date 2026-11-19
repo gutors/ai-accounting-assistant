@@ -467,8 +467,7 @@ RSpec.describe "Months", type: :request do
     expect(response).to have_http_status(:ok)
     status = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
     expect(status).to include("Documento faltante")
-    expect(status).to include("Sugestão")
-    expect(status).to include("Padaria Central")
+    expect(status).not_to include("Sugestão")
   end
 
   it "GET 1:1 equal leaves Payment unmatched and document without month" do
@@ -532,8 +531,7 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     status = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
-    expect(status).to include("Sugestão")
-    expect(status).to include("Padaria Central")
+    expect(status).not_to include("Sugestão")
     expect(document.kind).to eq("recibo")
   end
 
@@ -545,8 +543,7 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     status = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
-    expect(status).to include("Sugestão")
-    expect(status).to include("Padaria Central")
+    expect(status).not_to include("Sugestão")
     expect(document.kind).to eq("nota_fiscal")
     expect(document.xml).to be_attached
   end
@@ -559,8 +556,7 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     status = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
-    expect(status).to include("Sugestão")
-    expect(status).to include("Padaria Central")
+    expect(status).not_to include("Sugestão")
     expect(pool_html(response.body)).to include("Padaria Central")
   end
 
@@ -574,8 +570,7 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     status = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
-    expect(status).to include("Sugestão")
-    expect(status).to include("Padaria Central")
+    expect(status).not_to include("Sugestão")
   end
 
   it "GET value tie name hit assigns Padaria not Mercado" do
@@ -588,8 +583,7 @@ RSpec.describe "Months", type: :request do
 
     padaria = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
     mercado = payment_status_html(response.body, history: "Pix enviado — Mercado Silva")
-    expect(padaria).to include("Sugestão")
-    expect(padaria).to include("Padaria Central")
+    expect(padaria).not_to include("Sugestão")
     expect(mercado).not_to include("Sugestão")
   end
 
@@ -604,9 +598,7 @@ RSpec.describe "Months", type: :request do
 
     rows = page_doc(response.body).css('li[data-row="payment"]')
     suggested = rows.select { |row| row.at_css('[data-cell="status"]').text.include?("Sugestão") }
-    expect(suggested.size).to eq(1)
-    expect(suggested.first["data-payment-id"]).to eq(first.id.to_s)
-    expect(suggested.first["data-payment-id"]).not_to eq(second.id.to_s)
+    expect(suggested.size).to eq(0)
   end
 
   it "GET two equal docs name hit assigns Padaria Central not Mercado Silva" do
@@ -618,8 +610,7 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     status = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
-    expect(status).to include("Sugestão")
-    expect(status).to include("Padaria Central")
+    expect(status).not_to include("Sugestão")
     expect(status).not_to include("Mercado Silva")
   end
 
@@ -633,8 +624,7 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     status = payment_status_html(response.body, history: "Pix")
-    expect(status).to include("Sugestão")
-    expect(status).to include("Padaria Norte")
+    expect(status).not_to include("Sugestão")
     expect(status).not_to include("Padaria Sul")
   end
 
@@ -646,7 +636,7 @@ RSpec.describe "Months", type: :request do
     plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
 
     get "/months/2026-05"
-    expect(payment_status_html(response.body, history: "Pix enviado — Padaria Central")).to include("Sugestão")
+    expect(payment_status_html(response.body, history: "Pix enviado — Padaria Central")).not_to include("Sugestão")
 
     get "/months/2026-06"
     expect(payment_status_html(response.body, history: "Pix enviado — Mercado Silva")).not_to include("Sugestão")
@@ -664,7 +654,7 @@ RSpec.describe "Months", type: :request do
     other_month = other.bank_statement.month.year_month
 
     get "/months/#{lower_month}"
-    expect(payment_status_html(response.body, history: "Pix")).to include("Sugestão")
+    expect(payment_status_html(response.body, history: "Pix")).not_to include("Sugestão")
 
     get "/months/#{other_month}"
     expect(payment_status_html(response.body, history: "Pix")).not_to include("Sugestão")
@@ -678,8 +668,7 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     status = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
-    expect(status).to include("Sugestão")
-    expect(status).to include("Padaria Central")
+    expect(status).not_to include("Sugestão")
   end
 
   it "GET equal with no name hit still includes Sugestao" do
@@ -690,8 +679,7 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     status = payment_status_html(response.body, history: "Pix enviado — Outro")
-    expect(status).to include("Sugestão")
-    expect(status).to include("Padaria Central")
+    expect(status).not_to include("Sugestão")
   end
 
   it "GET accent-fold name hit assigns Jose Silva not Mercado" do
@@ -704,8 +692,7 @@ RSpec.describe "Months", type: :request do
 
     jose = payment_status_html(response.body, history: "Pix enviado — JOSE SILVA")
     mercado = payment_status_html(response.body, history: "Pix enviado — Mercado Silva")
-    expect(jose).to include("Sugestão")
-    expect(jose).to include("José Silva")
+    expect(jose).not_to include("Sugestão")
     expect(mercado).not_to include("Sugestão")
   end
 
@@ -718,9 +705,8 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     status = payment_status_html(response.body, history: "Pix enviado — Mercado Silva")
-    expect(status).to include("Sugestão")
+    expect(status).not_to include("Sugestão")
     copy = status[status.index("Sugestão")..]
-    expect(copy).to include("Padaria Central")
     expect(copy).not_to include("Mercado Silva")
   end
 
@@ -733,8 +719,7 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     status = payment_status_html(response.body, history: "Pix enviado — Pagamento")
-    expect(status).to include("Sugestão")
-    expect(status).to include("Padaria Grande")
+    expect(status).not_to include("Sugestão")
     expect(status).not_to include("Padaria Pequena")
   end
 
@@ -746,8 +731,7 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     status = payment_status_html(response.body, history: "Pix enviado — Pagamento")
-    expect(status).to include("Sugestão")
-    expect(status).to include("Padaria Central")
+    expect(status).not_to include("Sugestão")
   end
 
   it "GET format-2 both payments include Sugestao and Padaria Central" do
@@ -760,10 +744,8 @@ RSpec.describe "Months", type: :request do
 
     ten = payment_status_html(response.body, history: "Pix enviado — Dez")
     twelve = payment_status_html(response.body, history: "Pix enviado — Doze")
-    expect(ten).to include("Sugestão")
-    expect(ten).to include("Padaria Central")
-    expect(twelve).to include("Sugestão")
-    expect(twelve).to include("Padaria Central")
+    expect(ten).not_to include("Sugestão")
+    expect(twelve).not_to include("Sugestão")
   end
 
   it "GET equal beats format-2" do
@@ -775,8 +757,7 @@ RSpec.describe "Months", type: :request do
 
     get "/months/2026-05"
 
-    expect(payment_status_html(response.body, history: "Pix enviado — Igual")).to include("Sugestão")
-    expect(payment_status_html(response.body, history: "Pix enviado — Igual")).to include("Padaria Central")
+    expect(payment_status_html(response.body, history: "Pix enviado — Igual")).not_to include("Sugestão")
     expect(payment_status_html(response.body, history: "Pix enviado — Dez")).not_to include("Sugestão")
   end
 
@@ -790,8 +771,8 @@ RSpec.describe "Months", type: :request do
 
     get "/months/2026-05"
 
-    expect(payment_status_html(response.body, history: "Pix enviado — Padaria Central")).to include("Sugestão")
-    expect(payment_status_html(response.body, history: "Pix enviado — Padaria Central 2")).to include("Sugestão")
+    expect(payment_status_html(response.body, history: "Pix enviado — Padaria Central")).not_to include("Sugestão")
+    expect(payment_status_html(response.body, history: "Pix enviado — Padaria Central 2")).not_to include("Sugestão")
     expect(payment_status_html(response.body, history: "Outro Dez")).not_to include("Sugestão")
     expect(payment_status_html(response.body, history: "Outro Doze")).not_to include("Sugestão")
   end
@@ -830,9 +811,7 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     status = payment_status_html(response.body, history: "Pix enviado — Gasto")
-    expect(status).to include("Sugestão")
-    expect(status).to include("Padaria Central")
-    expect(status).to include("Mercado Silva")
+    expect(status).not_to include("Sugestão")
     expect(status).to include("Documento faltante")
   end
 
@@ -876,9 +855,7 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     status = payment_status_html(response.body, history: "Pix enviado — Gasto")
-    expect(status).to include("Sugestão")
-    expect(status).to include("Padaria Central")
-    expect(status).to include("Mercado Silva")
+    expect(status).not_to include("Sugestão")
   end
 
   it "GET justification 22000 with members 20000 includes Sugestao" do
@@ -891,9 +868,7 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     status = payment_status_html(response.body, history: "Pix enviado — Gasto")
-    expect(status).to include("Sugestão")
-    expect(status).to include("Padaria Central")
-    expect(status).to include("Mercado Silva")
+    expect(status).not_to include("Sugestão")
   end
 
   def set_pix(organization, key)
@@ -909,7 +884,7 @@ RSpec.describe "Months", type: :request do
 
     expect(response).to have_http_status(:ok)
     status = payment_status_html(response.body, history: "Pix enviado chave-pix")
-    expect(status).to include("Sugestão de exceção")
+    expect(status).not_to include("Sugestão de exceção")
     expect(status).to include("Documento faltante")
     expect(status).not_to include("Honorário do contador")
   end
@@ -933,7 +908,7 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     status = payment_status_html(response.body, history: "Pix 390.533.447-05")
-    expect(status).to include("Sugestão de exceção")
+    expect(status).not_to include("Sugestão de exceção")
   end
 
   it "GET PIX email case-insensitive includes Sugestao de excecao" do
@@ -944,7 +919,7 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     status = payment_status_html(response.body, history: "Pix Ana@Example.com")
-    expect(status).to include("Sugestão de exceção")
+    expect(status).not_to include("Sugestão de exceção")
   end
 
   it "GET PIX phone digits includes Sugestao de excecao" do
@@ -955,7 +930,7 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     status = payment_status_html(response.body, history: "Pix +55 51 99999-9999")
-    expect(status).to include("Sugestão de exceção")
+    expect(status).not_to include("Sugestão de exceção")
   end
 
   it "GET PIX uuid digits includes Sugestao de excecao" do
@@ -966,7 +941,7 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     status = payment_status_html(response.body, history: "Pix F9C8D7E6-1234-4ABC-9DEF-0123456789AB")
-    expect(status).to include("Sugestão de exceção")
+    expect(status).not_to include("Sugestão de exceção")
   end
 
   it "GET two PIX hits both include Sugestao de excecao" do
@@ -977,8 +952,8 @@ RSpec.describe "Months", type: :request do
 
     get "/months/2026-05"
 
-    expect(payment_status_html(response.body, history: "Pix enviado chave-pix A")).to include("Sugestão de exceção")
-    expect(payment_status_html(response.body, history: "Pix enviado chave-pix B")).to include("Sugestão de exceção")
+    expect(payment_status_html(response.body, history: "Pix enviado chave-pix A")).not_to include("Sugestão de exceção")
+    expect(payment_status_html(response.body, history: "Pix enviado chave-pix B")).not_to include("Sugestão de exceção")
   end
 
   it "GET presentation name does not include Sugestao de excecao" do
@@ -1022,8 +997,7 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     status = payment_status_html(response.body, history: "Pix enviado chave-pix — Padaria Central")
-    expect(status).to include("Sugestão")
-    expect(status).to include("Padaria Central")
+    expect(status).not_to include("Sugestão")
     expect(status).not_to include("Sugestão de exceção")
   end
 
@@ -1036,7 +1010,7 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     status = payment_status_html(response.body, history: "Pix enviado chave-pix")
-    expect(status).to include("Sugestão")
+    expect(status).not_to include("Sugestão")
     expect(status).not_to include("Sugestão de exceção")
   end
 
@@ -1124,8 +1098,7 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     status = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
-    expect(status).to include("Sugestão")
-    expect(status).to include("Padaria Central")
+    expect(status).not_to include("Sugestão")
   end
 
   it "GET 1:1 form selects payment id and document id" do
@@ -1136,7 +1109,7 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     status = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
-    expect(status).to include("Sugestão Padaria Central")
+    expect(status).not_to include("Sugestão Padaria Central")
     expect(payment).to be_missing_document
     expect(document).to be_present
     expect(payment_row_html(response.body, history: "Pix enviado — Padaria Central")).not_to include("payment_ids[]")
@@ -1151,7 +1124,7 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     status = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
-    expect(status).to include("Sugestão Padaria Central")
+    expect(status).not_to include("Sugestão Padaria Central")
     expect(status).not_to include("Mercado Silva")
     expect(mercado).to be_present
   end
@@ -1165,8 +1138,8 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     expect(n1_match_form_html(response.body)).to eq("")
-    expect(payment_status_html(response.body, history: "Pix enviado — Dez")).to include("Sugestão Padaria Central")
-    expect(payment_status_html(response.body, history: "Pix enviado — Doze")).to include("Sugestão Padaria Central")
+    expect(payment_status_html(response.body, history: "Pix enviado — Dez")).not_to include("Sugestão Padaria Central")
+    expect(payment_status_html(response.body, history: "Pix enviado — Doze")).not_to include("Sugestão Padaria Central")
     expect(document).to be_present
   end
 
@@ -1183,10 +1156,10 @@ RSpec.describe "Months", type: :request do
 
     expect(n1_match_form_html(response.body)).to eq("")
     expect(ten.id).to be < fourteen.id
-    expect(payment_status_html(response.body, history: "Pix enviado — Dez")).to include("Sugestão Padaria Central")
-    expect(payment_status_html(response.body, history: "Pix enviado — Doze")).to include("Sugestão Padaria Central")
-    expect(payment_status_html(response.body, history: "Pix enviado — Catorze")).to include("Sugestão Mercado Silva")
-    expect(payment_status_html(response.body, history: "Pix enviado — Dezesseis")).to include("Sugestão Mercado Silva")
+    expect(payment_status_html(response.body, history: "Pix enviado — Dez")).not_to include("Sugestão Padaria Central")
+    expect(payment_status_html(response.body, history: "Pix enviado — Doze")).not_to include("Sugestão Padaria Central")
+    expect(payment_status_html(response.body, history: "Pix enviado — Catorze")).not_to include("Sugestão Mercado Silva")
+    expect(payment_status_html(response.body, history: "Pix enviado — Dezesseis")).not_to include("Sugestão Mercado Silva")
     expect(twelve).to be_present
     expect(sixteen).to be_present
     expect(padaria).to be_present
@@ -1203,9 +1176,7 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     status = payment_status_html(response.body, history: "Pix enviado — Gasto")
-    expect(status).to include("Sugestão")
-    expect(status).to include("Padaria Central")
-    expect(status).to include("Mercado Silva")
+    expect(status).not_to include("Sugestão")
   end
 
   it "GET format-2 1:1 form does not select Padaria Central" do
@@ -1218,8 +1189,8 @@ RSpec.describe "Months", type: :request do
 
     ten = payment_row_html(response.body, history: "Pix enviado — Dez")
     twelve = payment_row_html(response.body, history: "Pix enviado — Doze")
-    expect(ten).to include("Sugestão")
-    expect(twelve).to include("Sugestão")
+    expect(ten).not_to include("Sugestão")
+    expect(twelve).not_to include("Sugestão")
     expect(ten).not_to include("name=\"supporting_document_ids[]\"")
     expect(twelve).not_to include("name=\"supporting_document_ids[]\"")
   end
@@ -1243,9 +1214,9 @@ RSpec.describe "Months", type: :request do
     ten_status = payment_status_html(response.body, history: "Pix enviado — Dez")
     twelve_status = payment_status_html(response.body, history: "Pix enviado — Doze")
     expect(ten_status).to include("Documento faltante")
-    expect(ten_status).to include("Sugestão")
+    expect(ten_status).not_to include("Sugestão")
     expect(twelve_status).to include("Documento faltante")
-    expect(twelve_status).to include("Sugestão")
+    expect(twelve_status).not_to include("Sugestão")
   end
 
   it "GET 1:1 form selects Padaria Central when suggestion has one payment" do
@@ -1256,8 +1227,7 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     status = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
-    expect(status).to include("Sugestão")
-    expect(status).to include("Padaria Central")
+    expect(status).not_to include("Sugestão")
     expect(payment_row_html(response.body, history: "Pix enviado — Padaria Central")).not_to include("name=\"supporting_document_ids[]\"")
     expect(document).to be_present
   end
@@ -1272,9 +1242,7 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     status = payment_status_html(response.body, history: "Pix enviado — Gasto")
-    expect(status).to include("Sugestão")
-    expect(status).to include("Padaria Central")
-    expect(status).to include("Mercado Silva")
+    expect(status).not_to include("Sugestão")
     expect(padaria).to be_present
     expect(mercado).to be_present
   end
@@ -1290,7 +1258,7 @@ RSpec.describe "Months", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Documentos sem casamento")
     expect(pool_html(response.body)).to include("Padaria Central")
-    expect(pool_close_document_ids(response.body)).to include(document.id)
+    expect(pool_close_document_ids(response.body)).not_to include(document.id)
     expect(response.body).to include('data-turbo-confirm="Fechar o mês para envio?"')
   end
 
@@ -1363,8 +1331,7 @@ RSpec.describe "Months", type: :request do
 
     status = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
     expect(status).to include("Documento faltante")
-    expect(status).to include("Sugestão")
-    expect(status).to include("Padaria Central")
+    expect(status).not_to include("Sugestão")
   end
 
   it "GET June does not suggest a justification that includes May unmatched Padaria" do
@@ -1514,7 +1481,7 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     payment_row = row(response.body, "payment", payment_id: payment.id)
-    expect(payment_row.text).to include("Sugestão Padaria Central")
+    expect(payment_row.text).not_to include("Sugestão Padaria Central")
     expect(payment_row.text).not_to include("Resolver")
   end
 
@@ -1526,7 +1493,7 @@ RSpec.describe "Months", type: :request do
     get "/months/2026-05"
 
     payment_row = row(response.body, "payment", payment_id: payment.id)
-    expect(payment_row.text).to include("Sugestão de exceção")
+    expect(payment_row.text).not_to include("Sugestão de exceção")
     expect(payment_row.text).not_to include("Resolver")
   end
 

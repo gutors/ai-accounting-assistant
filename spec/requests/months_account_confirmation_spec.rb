@@ -9,6 +9,21 @@ RSpec.describe "Months account confirmation", type: :request do
     page_doc(body).css("section").find { |section| section.at_css("h2")&.text&.strip == "Confirmar contas para fechamento" }
   end
 
+  it "unconfirmed GET without spreadsheet enables Iniciar fechamento and shows spreadsheet notice" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    BankAccount.create_for(organization: organization, name: "Conta Principal", compe: "001")
+    post "/months", params: { year_month: "2026-05" }
+
+    get "/months/2026-05"
+
+    expect(response).to have_http_status(:ok)
+    submit = page_doc(response.body).at_css('input[type="submit"][value="Iniciar fechamento"]')
+    expect(submit).to be_present
+    expect(submit["disabled"]).to be_nil
+    expect(error_notice_text(response.body)).to eq("Inclua o extrato planilha de pelo menos uma conta bancária.")
+  end
+
   it "unconfirmed GET hides movements and shows confirm step" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
@@ -26,7 +41,7 @@ RSpec.describe "Months account confirmation", type: :request do
     expect(form).to be_present
     submit = form.at_css('input[type="submit"][value="Iniciar fechamento"]')
     expect(submit).to be_present
-    expect(submit["disabled"]).to eq("disabled")
+    expect(submit["disabled"]).to be_nil
     expect(error_notice_text(response.body)).to eq("Inclua o extrato planilha de pelo menos uma conta bancária.")
     expect(response.body).to include("Insira os extratos das contas bancárias com as quais deseja realizar o fechamento.")
     expect(headings).not_to include("Recebimentos")
@@ -82,7 +97,7 @@ RSpec.describe "Months account confirmation", type: :request do
     expect(headings).to include("Confirmar contas para fechamento")
     submit = page_doc(response.body).at_css('input[type="submit"][value="Iniciar fechamento"]')
     expect(submit).to be_present
-    expect(submit["disabled"]).to eq("disabled")
+    expect(submit["disabled"]).to be_nil
     expect(error_notice_text(response.body)).to eq("Inclua o extrato planilha de pelo menos uma conta bancária.")
     expect(headings).not_to include("Recebimentos")
     expect(headings).not_to include("Pagamentos")
@@ -158,7 +173,7 @@ RSpec.describe "Months account confirmation", type: :request do
     expect(alfa_row.at_css('[data-cell="situation"]').text.strip).to eq("Falta")
   end
 
-  it "POST account_confirmation without spreadsheet returns 422" do
+  it "POST account_confirmation without spreadsheet returns 422 error toast" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
     BankAccount.create_for(organization: organization, name: "Conta Principal", compe: "001")
@@ -167,8 +182,9 @@ RSpec.describe "Months account confirmation", type: :request do
     post "/months/2026-05/account_confirmation"
 
     expect(response).to have_http_status(:unprocessable_content)
-    expect(error_notice_text(response.body)).to eq("Inclua o extrato planilha de pelo menos uma conta bancária.")
     expect(organization.months.find_by!(year_month: "2026-05").accounts_confirmed).to eq(false)
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("error")
+    expect(toast_message(response.body)).to eq("Inclua o extrato planilha de pelo menos uma conta bancária.")
   end
 
   it "second POST account_confirmation is idempotent" do
@@ -207,7 +223,7 @@ RSpec.describe "Months account confirmation", type: :request do
     expect(rows(response.body, "payment")).not_to be_empty
   end
 
-  it "POST account_confirmation on closed month returns 422 Mes fechado" do
+  it "POST account_confirmation on closed month returns 422 toast Mes fechado" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
     _month, statement = plant_month(organization, accounts_confirmed: false)
@@ -218,8 +234,27 @@ RSpec.describe "Months account confirmation", type: :request do
     post "/months/2026-05/account_confirmation"
 
     expect(response).to have_http_status(:unprocessable_content)
-    expect(error_notice_text(response.body)).to eq("Mês fechado")
+    expect(toast_node(response.body)["data-toast-kind"]).to eq("error")
+    expect(toast_message(response.body)).to eq("Mês fechado")
     expect(month.reload.accounts_confirmed).to eq(false)
+  end
+
+  it "unauthenticated POST account_confirmation responds 302 to /login" do
+    post "/months/2026-05/account_confirmation"
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/login")
+  end
+
+  it "submitter POST account_confirmation responds 404" do
+    _coord, organization = plant_coordinator
+    submitter, _ = plant_submitter(organization: organization)
+    Month.open(organization: organization, year_month: "2026-05")
+    sign_in_as(submitter, organization: organization)
+
+    post "/months/2026-05/account_confirmation"
+
+    expect(response).to have_http_status(:not_found)
   end
 
   it "DELETE never-sent empty month redirects home and frees year_month" do

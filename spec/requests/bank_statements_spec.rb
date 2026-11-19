@@ -22,7 +22,7 @@ RSpec.describe "Bank statements", type: :request do
 
     follow_redirect!
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
-    expect(toast_message(response.body)).to eq("Extrato de Conta Principal importado: 18 recebimentos e 13 pagamentos.")
+    expect(toast_message(response.body)).to eq("Extrato de Conta Principal importado: 18 recebimentos e 8 pagamentos.")
 
     get "/months/2026-05"
     expect(response.body).to include("Presente")
@@ -39,7 +39,7 @@ RSpec.describe "Bank statements", type: :request do
 
     statement = bank_account.bank_statements.last
     expect(statement.inflows.count).to eq(18)
-    expect(statement.payments.count).to eq(13)
+    expect(statement.payments.count).to eq(8)
   end
 
   it "POST BB xlsx persists tarifa Payment 15500 cents" do
@@ -205,7 +205,7 @@ RSpec.describe "Bank statements", type: :request do
 
     statement = bank_account.bank_statements.last
     expect(statement.inflows.count).to eq(18)
-    expect(statement.payments.count).to eq(13)
+    expect(statement.payments.count).to eq(8)
   end
 
   it "unauthenticated POST bank_statements responds 302 to /login" do
@@ -403,6 +403,17 @@ RSpec.describe "Bank statements", type: :request do
     get "/months/2026-05"
     expect(bank_account.bank_statements.count).to eq(1)
     expect(response.body).to include("Presente")
+  end
+
+  it "import toast counts 1 recebimento and 1 pagamento omitting catalog debit" do
+    _account, _organization, bank_account = open_with_account
+
+    post "/months/2026-05/bank_statements", params: {
+      bank_account_id: bank_account.id, spreadsheet: catalog_ordinary_and_credit_bb_csv
+    }
+
+    follow_redirect!
+    expect(toast_message(response.body)).to eq("Extrato de Conta Principal importado: 1 recebimento e 1 pagamento.")
   end
 
   it "POST one-row import uses the singular in the toast" do

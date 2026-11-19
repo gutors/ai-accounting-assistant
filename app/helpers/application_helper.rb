@@ -67,7 +67,7 @@ module ApplicationHelper
       class: [ "text-ink hover:underline underline-offset-2", ("font-semibold underline" if current) ]
   end
 
-  def ledger_sort_cell(label, column:, current_sort:, current_dir:, base_path:, filter_params: {}, align: :left)
+  def ledger_sort_cell(label, column:, current_sort:, current_dir:, base_path:, filter_params: {}, align: :left, sort_param: :sort, dir_param: :dir)
     active = current_sort.to_s == column.to_s
     dir = current_dir.to_s == "asc" ? "asc" : "desc"
     aria_sort = active ? (dir == "asc" ? "ascending" : "descending") : "none"
@@ -80,19 +80,21 @@ module ApplicationHelper
         current_sort: current_sort,
         current_dir: dir,
         base_path: base_path,
-        filter_params: filter_params
+        filter_params: filter_params,
+        sort_param: sort_param,
+        dir_param: dir_param
       )
     end
   end
 
-  def ledger_sort_link(label, column:, current_sort:, current_dir:, base_path:, filter_params: {})
+  def ledger_sort_link(label, column:, current_sort:, current_dir:, base_path:, filter_params: {}, sort_param: :sort, dir_param: :dir)
     active = current_sort.to_s == column.to_s
     dir = current_dir.to_s == "asc" ? "asc" : "desc"
     next_dir = active && dir == "desc" ? "asc" : "desc"
     icon_state = active ? dir : "none"
-    query = filter_params.to_h.symbolize_keys.slice(:q, :kind, :date_from, :date_to).compact_blank
-    query[:sort] = column.to_s
-    query[:dir] = next_dir
+    query = filter_params.to_h.symbolize_keys.compact_blank
+    query[sort_param] = column.to_s
+    query[dir_param] = next_dir
     href = "#{base_path}?#{query.to_query}"
 
     link_to href, class: [ "ledger-sort-link", ("sort-key" if active) ].compact.join(" "), data: { sort_column: column } do

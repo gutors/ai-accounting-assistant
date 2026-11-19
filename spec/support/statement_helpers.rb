@@ -77,6 +77,16 @@ module StatementHelpers
   end
 
   # One credit and one debit, so a toast that names both counts can use the singular twice.
+  def catalog_ordinary_and_credit_bb_csv
+    content = <<~CSV
+      Data,observacao,Data balancete,Agencia Origem,Lote,Numero Documento,Cod. Historico,Historico,Valor R$ ,Inf.,Detalhamento Hist.
+      04/05/2026,,04/05/2026,0000,00000,0,821,Pix - Recebido,"10,00 ",C,entrada
+      11/05/2026,,11/05/2026,0000,00000,0,821,Transferência,"20,00 ",D,BB Rende Fácil
+      20/05/2026,,20/05/2026,0000,00000,0,821,Pix - Enviado,"30,00 ",D,saida
+    CSV
+    upload_path("catalog-triple.csv", content, "text/csv")
+  end
+
   def one_inflow_one_payment_csv
     content = <<~CSV
       Data,observacao,Data balancete,Agencia Origem,Lote,Numero Documento,Cod. Historico,Historico,Valor R$ ,Inf.,Detalhamento Hist.

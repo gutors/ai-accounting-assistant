@@ -137,7 +137,7 @@ RSpec.describe "Reopen month", type: :request do
     get "/months/2026-05"
     expect(response.body).to include("Fechar para envio")
     expect(response.body).to include('data-turbo-confirm="Fechar o mês para envio?"')
-    expect(pool_html(response.body)).to include("Devolver")
+    expect(pool_html(response.body)).not_to include("Devolver")
     expect(pool_html(response.body)).to include("Padaria Central")
     expect(response.body).not_to include("Restaurar pasta")
     expect(response.body).not_to include("Mês fechado")

@@ -23,6 +23,7 @@ class MonthsController < ApplicationController
     else
       @month = month
       @month_error = month.errors[:base].first
+      toast_now(kind: "error", message: @month_error)
       render_month_show(status: :unprocessable_content)
     end
   end

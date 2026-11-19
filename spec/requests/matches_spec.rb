@@ -577,8 +577,10 @@ RSpec.describe "Matches", type: :request do
     get "/months/2026-05"
     status = payment_status_html(response.body, history: "Pix enviado — Padaria Central")
     expect(status).to include("Documento faltante")
-    expect(status).to include("Sugestão")
-    expect(status).to include("Padaria Central")
+    expect(status).not_to include("Sugestão")
+
+    get "/months/2026-05/matches"
+    expect(response.body).to include("Padaria Central")
   end
 
   it "POST format-1 Match of unmatched-in-package Padaria keeps month_id" do

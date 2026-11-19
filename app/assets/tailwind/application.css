@@ -695,7 +695,7 @@
     }
 
     .ledger-overview-pool {
-      grid-template-columns: 9.5rem minmax(0, 1fr) 7rem 8rem minmax(0, 11rem) 6rem;
+      grid-template-columns: 9.5rem minmax(0, 1fr) 7rem 8rem minmax(0, 11rem);
     }
   }
 

@@ -35,7 +35,7 @@ RSpec.describe BankStatement, type: :model do
     statement = BankStatement.import(month: month, bank_account: bb_account, pdf: statement_pdf, spreadsheet: bb_xlsx)
 
     expect(statement.inflows.count).to eq(18)
-    expect(statement.payments.count).to eq(13)
+    expect(statement.payments.count).to eq(8)
   end
 
   it "BB fixture tarifa is Payment 15500 cents on 2026-05-11" do
@@ -110,7 +110,7 @@ RSpec.describe BankStatement, type: :model do
     statement = BankStatement.import(month: month, bank_account: bb_account, pdf: statement_pdf, spreadsheet: bb_csv)
 
     expect(statement.inflows.count).to eq(18)
-    expect(statement.payments.count).to eq(13)
+    expect(statement.payments.count).to eq(8)
   end
 
   it "PagSeguro May 2026 fixture yields 64 Inflows and 7 Payments" do
@@ -357,5 +357,56 @@ RSpec.describe BankStatement, type: :model do
 
     expect(result.errors[:base]).to include("Mês fechado")
     expect(existing.reload.payments.count).to eq(payment_count)
+  end
+
+  it "persist_import on COMPE 001 skips catalog debit and inserts other movements" do
+    statement = BankStatement.import(
+      month: month, bank_account: bb_account, pdf: nil, spreadsheet: catalog_ordinary_and_credit_bb_csv
+    )
+
+    expect(statement.inflows.count).to eq(1)
+    expect(statement.payments.count).to eq(1)
+    expect(statement.payments.first.history).to include("Pix - Enviado")
+    expect(statement.payments.where("history LIKE ?", "%Rende%")).to be_empty
+  end
+
+  it "persist_import on COMPE 033 inserts Rende Facil debit as Payment" do
+    santander = BankAccount.create_for(organization: organization, name: "Santander", compe: "033")
+    statement = BankStatement.create!(month: month, bank_account: santander)
+    movement = StatementSpreadsheet::Movement.new(
+      occurred_on: Date.new(2026, 5, 11),
+      amount_cents: 2000,
+      history: "Transferência — BB Rende Fácil",
+      credit: false
+    )
+    statement.send(
+      :persist_import,
+      pdf: nil,
+      spreadsheet: one_row_csv,
+      movements: [ movement ]
+    )
+
+    expect(statement.payments.count).to eq(1)
+    expect(statement.payments.first.history).to eq("Transferência — BB Rende Fácil")
+  end
+
+  it "persist_import on COMPE 001 inserts Rende Facil credit as Inflow" do
+    statement = BankStatement.create!(month: month, bank_account: bb_account)
+    movement = StatementSpreadsheet::Movement.new(
+      occurred_on: Date.new(2026, 5, 4),
+      amount_cents: 1000,
+      history: "Transferência — BB Rende Fácil",
+      credit: true
+    )
+    statement.send(
+      :persist_import,
+      pdf: nil,
+      spreadsheet: one_row_csv,
+      movements: [ movement ]
+    )
+
+    expect(statement.inflows.count).to eq(1)
+    expect(statement.payments.count).to eq(0)
+    expect(statement.inflows.first.history).to eq("Transferência — BB Rende Fácil")
   end
 end

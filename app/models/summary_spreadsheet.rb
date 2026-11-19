@@ -141,9 +141,11 @@ class SummarySpreadsheet
   end
 
   def expenses
-    Payment.joins(:bank_statement).where(bank_statements: { month_id: @month.id })
-      .includes(:extra_exception_kind, match: :supporting_documents, bank_statement: :bank_account)
-      .order(:occurred_on, :id)
+    Payment.without_catalog(
+      Payment.joins(:bank_statement).where(bank_statements: { month_id: @month.id })
+        .includes(:extra_exception_kind, match: :supporting_documents, bank_statement: { bank_account: :bank })
+        .order(:occurred_on, :id)
+    )
   end
 
   def exception_label(payment)

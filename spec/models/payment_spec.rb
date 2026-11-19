@@ -28,6 +28,16 @@ RSpec.describe Payment, type: :model do
     expect(Payment.for_month(month).missing_document).to include(payment)
   end
 
+  it "for_month omits leftover COMPE 001 Rende Facil payment" do
+    leftover = plant_payment(statement, 2000, history: "Transferência — BB Rende Fácil")
+    ordinary = plant_payment(statement, 22000, history: "Pix enviado — Padaria Central")
+
+    visible = Payment.without_catalog(Payment.for_month(month).includes(bank_statement: { bank_account: :bank }))
+
+    expect(visible).to include(ordinary)
+    expect(visible).not_to include(leftover)
+  end
+
   it "mark bank_fee on missing-document payment" do
     payment = plant_payment(statement, 22000)
 
