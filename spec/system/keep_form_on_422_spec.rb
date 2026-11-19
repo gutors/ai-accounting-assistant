@@ -74,7 +74,7 @@ RSpec.describe "Keep form on 422", type: :system do
   it "Limpar clears A1 certificate without submit" do
     account, _organization = plant_coordinator
     sign_in_through_google(account)
-    visit "/setup"
+    visit "/setup?item=certificate"
     find("summary", text: "Instalar certificado").click
     cert_path = write_upload("cert.pfx", "pkcs12-bytes")
 
@@ -84,6 +84,6 @@ RSpec.describe "Keep form on 422", type: :system do
       find("#certificate", visible: :all).sibling("button", text: "Limpar").click
       expect(find("#certificate", visible: :all).value).to eq("")
     end
-    expect(page).to have_current_path("/setup")
+    expect(page).to have_current_path("/setup?item=certificate")
   end
 end
