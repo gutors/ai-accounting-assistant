@@ -29,7 +29,7 @@
         <% principal = @organization.principal_coordinator_account_id == access.account_id %>
         <li data-row="person" class="person-entry">
           <span>
-            <span data-cell="email" class="font-medium"><%= access.account.email %></span>
+            <span data-cell="email" class="cell-label font-medium"><%= access.account.email %></span>
             <% if principal %>
               <br><span class="text-meta text-ink-soft">Principal</span>
             <% end %>
@@ -58,7 +58,7 @@
     <ul>
       <% @submitter_accesses.each do |access| %>
         <li data-row="person" class="person-entry">
-          <span data-cell="email" class="font-medium"><%= access.account.email %></span>
+          <span data-cell="email" class="cell-label font-medium"><%= access.account.email %></span>
           <span class="row-actions">
             <%= button_to "Revogar", "/accesses/#{access.id}", method: :delete,
                   form: { data: { turbo_confirm: "Revogar o acesso deste submitter?" } },

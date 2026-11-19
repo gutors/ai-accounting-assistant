@@ -387,6 +387,10 @@
     border-left: 3px solid var(--color-margem);
   }
 
+  .person-entry .cell-label {
+    overflow-wrap: anywhere;
+  }
+
   .row-actions {
     display: flex;
     flex-wrap: wrap;
