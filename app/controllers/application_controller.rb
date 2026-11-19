@@ -116,7 +116,8 @@ class ApplicationController < ActionController::Base
     @invites = @organization.invites.order(:created_at, :id)
     @failed_invite_count = @organization.invites.where(last_delivery: :failed).count
     @people_desk = people_desk_requested?
-    @months = @organization.months.order(year_month: :desc)
+    @months = @organization.months.order(year_month: :desc).includes(:bank_statements)
+    @active_bank_account_ids = @organization.bank_accounts.where(active: true).pluck(:id)
     @in_work_month = @months.find { |month| !month.closed? }
     @selected_month = selected_month_from_params || @in_work_month
     return unless @selected_month

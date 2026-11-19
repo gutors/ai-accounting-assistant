@@ -4,6 +4,7 @@ description: A well-kept ledger for closing an NGO's month.
 colors:
   caixa: "#2e6b4e"
   margem: "#b4372a"
+  aviso: "#8a5c0a"
   paper: "#f3f5f1"
   sheet: "#ffffff"
   ink: "#1b3229"
@@ -184,6 +185,8 @@ Tokens live as theme colors. Views use the token, never a raw palette step. Cont
 
 **Margin red** (`margem`) is the red rule of the cash book. It is the left edge of a payment with a missing document, the color of an error notice, a failed-invite count, a destructive text action, a danger secondary border, and an error toast. It is not a second brand color.
 
+**Mustard ink** (`aviso`) is the only yellow. It marks `Faltam extratos` on an open month row in the home Meses list. It is not a fill, a badge, or a second brand color. Missing documents stay `margem`.
+
 **The One Red Rule.** `margem` is the only red. A month page with no red in the records is ready to close.
 
 ### Neutral
@@ -192,7 +195,7 @@ Tokens live as theme colors. Views use the token, never a raw palette step. Cont
 
 **Sheet white** (`sheet`) is the field inside a control, the open org list, a work panel, and the selected lote row. Inputs sit on a sheet; the page stays paper.
 
-**Forest ink** (`ink`) is text, the secondary button's border, the stamp, and the match-suggestion outline. **Soft ink** (`ink-soft`) is the second line: filenames, account coordinates, the month-folder name, an inactive account, "Aberto".
+**Forest ink** (`ink`) is text, the secondary button's border, the stamp, and the match-suggestion outline. **Soft ink** (`ink-soft`) is the second line: filenames, account coordinates, the month-folder name, an inactive account, and "Em andamento" on an open month row that already has its statements.
 
 **Ruling green** (`rule`) is the 1px line under a section heading, between rows, around a field or an open panel, and the dashed drop zone.
 
@@ -218,7 +221,7 @@ One family, self-hosted, Latin subset, `font-display: swap`. IBM Plex Sans at 40
 
 Signed-in pages other than Início live in a 72rem column, left-aligned, inside the viewport. The page gutter is 20px on a phone and 32px from 768px. Below the header (minimum height 3.5rem) the title sits 40px down; sections stack 48px apart; the column ends with 64px.
 
-**Início (coordinator).** From 768px the main is a two-pane desk: a 26rem index with a right ruling, and a scrolling in-work pane. The index is `Abrir mês` (select and primary on one row), then `Meses` as a single-rule list (title, optional `em trabalho`, `Aberto` or compact stamp), then a paper pin at the bottom for `Coordenadores e submitters`. The right pane shows the selected month (display title, `YYYY-MM`, Continuar, missing-document sentence, three-track Contas bancárias) or the people book. Below 768px the panes stack. Submitter home is not this desk: it is the one-column sentence that points at Documentos.
+**Início (coordinator).** From 768px the main is a two-pane desk: a 26rem index with a right ruling, and a scrolling in-work pane. The index is `Abrir mês` (select and primary on one row), then `Meses` as a single-rule list (title `Setembro - 09/2026`, `Faltam extratos` in aviso or `Em andamento`, or the compact Fechado stamp), then a paper pin at the bottom for `Coordenadores e submitters`. The right pane shows the selected month (display title, `YYYY-MM`, Continuar, missing-document sentence, three-track Contas bancárias) or the people book. Below 768px the panes stack. Submitter home is not this desk: it is the one-column sentence that points at Documentos.
 
 **Sheets.** From 768px every money or document list is a ruled sheet: 1px vertical `rule` between cells, 1px horizontal `rule` between rows, snug cell padding (6px by 10px; payment rows 3px vertical). Head and body rows of one sheet share one column template. Below 768px the header hides, cells stack, and vertical rules drop. There is no horizontal scroll at 390px.
 
@@ -312,7 +315,7 @@ A list item in a CSS grid sheet (`.ledger-sheet` / `.ledger-row`), not a table a
 
 ### Desk lists
 
-The month index and the people book are not sheets. Each row is a two-column grid with a 1px `rule` under it. The live month (`em trabalho`) and the current people-nav title go caixa and semibold. A blocked person or a failed invite takes the red margin on the row.
+The month index and the people book are not sheets. Each row is a two-column grid with a 1px `rule` under it. The selected month title and the current people-nav title go caixa and semibold. Open month rows carry `Faltam extratos` in aviso or `Em andamento` in soft ink; closed rows carry the compact Fechado stamp. A blocked person or a failed invite takes the red margin on the row.
 
 ### Notice
 

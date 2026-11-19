@@ -99,6 +99,27 @@ RSpec.describe Month, type: :model do
     expect(organization.months.where(year_month: "2026-05").count).to eq(1)
   end
 
+  it "home_list_status is closed when the month is closed" do
+    month = Month.open(organization: organization, year_month: "2026-05")
+    BankAccount.create_for(organization: organization, name: "Conta Principal", compe: "001")
+    month.update!(closed: true)
+
+    expect(month.home_list_status).to eq(:closed)
+  end
+
+  it "home_list_status is missing_statements when an active account has no statement" do
+    month = Month.open(organization: organization, year_month: "2026-05")
+    BankAccount.create_for(organization: organization, name: "Conta Principal", compe: "001")
+
+    expect(month.home_list_status).to eq(:missing_statements)
+  end
+
+  it "home_list_status is in_progress when every active account has a statement" do
+    month, _statement = plant_month(organization, year_month: "2026-05")
+
+    expect(month.home_list_status).to eq(:in_progress)
+  end
+
   it "finds existing 2026-05 rather than creating a second" do
     first = Month.open(organization: organization, year_month: "2026-05")
     second = Month.open(organization: organization, year_month: "2026-05")

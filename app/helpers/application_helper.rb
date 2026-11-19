@@ -8,6 +8,12 @@ module ApplicationHelper
     l(Date.strptime(year_month, "%Y-%m"), format: :month_title)
   end
 
+  # "2026-09" -> "Setembro - 09/2026"
+  def month_list_title(year_month)
+    date = Date.strptime(year_month, "%Y-%m")
+    "#{I18n.t("date.month_names")[date.month].upcase_first} - #{date.strftime("%m/%Y")}"
+  end
+
   def openable_month_options(today = Date.current)
     first = today.beginning_of_month.prev_month(12)
     (0..24).map do |offset|

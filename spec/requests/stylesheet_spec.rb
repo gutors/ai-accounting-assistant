@@ -78,6 +78,12 @@ RSpec.describe "Served stylesheet", type: :request do
     end
   end
 
+  it "served stylesheet declares aviso mustard for missing statements" do
+    css = served_stylesheet
+
+    expect(css).to match(/--color-aviso:\s*#8a5c0a\b/i)
+  end
+
   it "served stylesheet declares sheet, ink-soft and the two font stacks" do
     css = served_stylesheet
 

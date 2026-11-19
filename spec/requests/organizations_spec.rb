@@ -197,7 +197,7 @@ RSpec.describe "Organization home", type: :request do
     month_row = rows(response.body, "month").first
     link = month_row.at_css('a[href="/?year_month=2026-05"]')
     expect(link).not_to be_nil
-    expect(link.text).to include("maio de 2026")
+    expect(link.text).to include("Maio - 05/2026")
     values = page_doc(response.body).css("select#year_month option").map { |option| option["value"] }
     expect(values).to include("2026-05")
   end
@@ -273,7 +273,7 @@ RSpec.describe "Organization home", type: :request do
     expect(response.body).not_to include("Convidar")
   end
 
-  it "home h1 is Inicio and an open month row says Aberto" do
+  it "home h1 is Inicio and an open month row says Em andamento" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
     Month.open(organization: organization, year_month: "2026-05")
@@ -283,8 +283,9 @@ RSpec.describe "Organization home", type: :request do
     month_rows = rows(response.body, "month")
     expect(month_rows.size).to eq(1)
     expect(month_rows.first.at_css('a[href="/?year_month=2026-05"]')).not_to be_nil
-    expect(month_rows.first.text).to include("maio de 2026")
-    expect(month_rows.first.text).to include("Aberto")
+    expect(month_rows.first.text).to include("Maio - 05/2026")
+    expect(month_rows.first.at_css(".desk-month-progress").text.strip).to eq("Em andamento")
+    expect(month_rows.first.text).not_to include("Aberto")
     expect(month_rows.first.text).not_to include("Fechado")
   end
 
@@ -302,7 +303,7 @@ RSpec.describe "Organization home", type: :request do
     get "/"
 
     month_row = rows(response.body, "month").first
-    expect(month_row.text).to include("Aberto")
+    expect(month_row.text).to include("Em andamento")
     expect(month_delete_form(month_row, "2026-05")).to be_nil
     in_work = page_doc(response.body).at_css('[data-desk="in-work"]')
     form = month_delete_form(in_work, "2026-05")
@@ -321,7 +322,7 @@ RSpec.describe "Organization home", type: :request do
     get "/"
 
     month_row = rows(response.body, "month").first
-    expect(month_row.text).to include("Aberto")
+    expect(month_row.text).to include("Em andamento")
     expect(month_delete_form(month_row, "2026-05")).to be_nil
     expect(page_doc(response.body).at_css('[data-desk="in-work"]').text).not_to include("Excluir")
   end
@@ -365,6 +366,8 @@ RSpec.describe "Organization home", type: :request do
     expect(month_row.at_css('a[href="/?year_month=2026-05"]')).not_to be_nil
     expect(month_row.text).to include("Fechado")
     expect(month_row.text).not_to include("Aberto")
+    expect(month_row.text).not_to include("Em andamento")
+    expect(month_row.text).not_to include("Faltam extratos")
     expect(month_row.text).not_to include("Excluir")
     expect(month_delete_form(month_row, "2026-05")).to be_nil
   end
@@ -522,12 +525,13 @@ RSpec.describe "Organization home", type: :request do
     expect(in_work.text).not_to include("Excluir")
   end
 
-  it "open month row says em trabalho and Aberto, closed row stamps Fechado, year_month desc" do
+  it "open month row titles Setembro 09/2026 and stamps missing statements in progress and Fechado" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
+    BankAccount.create_for(organization: organization, name: "Conta Principal", compe: "001")
     closed = Month.open(organization: organization, year_month: "2026-09")
     closed.update!(closed: true)
-    Month.open(organization: organization, year_month: "2026-08")
+    plant_month(organization, year_month: "2026-08")
     Month.open(organization: organization, year_month: "2026-10")
 
     get "/"
@@ -537,17 +541,35 @@ RSpec.describe "Organization home", type: :request do
       [ "/?year_month=2026-10", "/?year_month=2026-09", "/?year_month=2026-08" ]
     )
     open_row = month_rows[0]
-    expect(open_row.at_css("a").text).to include("outubro de 2026")
-    expect(open_row.text).to include("em trabalho")
-    expect(open_row.text).to include("Aberto")
+    expect(open_row.at_css(".desk-month-title").text.strip).to eq("Outubro - 10/2026")
+    expect(open_row.at_css(".desk-month-missing").text.strip).to eq("Faltam extratos")
+    expect(open_row.at_css(".desk-month-missing")["class"]).to include("desk-month-status")
+    expect(open_row.text).not_to include("Aberto")
+    expect(open_row.text).not_to include("em trabalho")
     closed_row = month_rows[1]
-    expect(closed_row.at_css("a").text).to include("setembro de 2026")
+    expect(closed_row.at_css(".desk-month-title").text.strip).to eq("Setembro - 09/2026")
     expect(closed_row.at_css(".stamp-closed-row").text.strip).to eq("Fechado")
-    expect(closed_row.text).not_to include("em trabalho")
+    expect(closed_row.text).not_to include("Faltam extratos")
+    expect(closed_row.text).not_to include("Em andamento")
     older_open = month_rows[2]
-    expect(older_open.at_css("a").text).to include("agosto de 2026")
-    expect(older_open.text).to include("Aberto")
-    expect(older_open.text).not_to include("em trabalho")
+    expect(older_open.at_css(".desk-month-title").text.strip).to eq("Agosto - 08/2026")
+    expect(older_open.at_css(".desk-month-progress").text.strip).to eq("Em andamento")
+    expect(older_open.text).not_to include("Faltam extratos")
+  end
+
+  it "open month with two accounts and one statement says Faltam extratos" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    BankAccount.create_for(organization: organization, name: "Conta Principal", compe: "001")
+    BankAccount.create_for(organization: organization, name: "Conta Alfa", compe: "104")
+    plant_month(organization, year_month: "2026-10")
+
+    get "/"
+
+    month_row = rows(response.body, "month").first
+    expect(month_row.at_css(".desk-month-title").text.strip).to eq("Outubro - 10/2026")
+    expect(month_row.at_css(".desk-month-missing").text.strip).to eq("Faltam extratos")
+    expect(month_row.text).not_to include("Em andamento")
   end
 
   it "in-work month 2026-10 right h1 is outubro de 2026 with Continuar to /months/2026-10" do

@@ -24,20 +24,20 @@
       <% else %>
         <ul class="desk-month-list">
           <% @months.each do |month| %>
-            <% live = @in_work_month&.id == month.id %>
             <% selected = !@people_desk && @selected_month&.id == month.id %>
-            <li data-row="month" class="desk-month<%= " is-live" if live %>">
+            <% status = month.home_list_status(active_bank_account_ids: @active_bank_account_ids) %>
+            <li data-row="month" class="desk-month">
               <%= link_to root_path(year_month: month.year_month), class: "desk-month-link", aria: { current: ("true" if selected) } do %>
                 <span>
-                  <strong class="desk-month-title"><%= month_title(month.year_month) %></strong>
-                  <% if live %>
-                    <br><span class="desk-month-now">em trabalho</span>
+                  <strong class="desk-month-title"><%= month_list_title(month.year_month) %></strong>
+                  <% if status == :missing_statements %>
+                    <br><span class="desk-month-status desk-month-missing">Faltam extratos</span>
+                  <% elsif status == :in_progress %>
+                    <br><span class="desk-month-status desk-month-progress">Em andamento</span>
                   <% end %>
                 </span>
                 <% if month.closed? %>
                   <span class="stamp-closed-row">Fechado</span>
-                <% else %>
-                  <span class="text-meta text-ink-soft">Aberto</span>
                 <% end %>
               <% end %>
             </li>

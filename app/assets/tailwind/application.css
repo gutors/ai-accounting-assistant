@@ -33,7 +33,7 @@
   src: url(/IBMPlexMono-Regular.woff2) format("woff2");
 }
 
-/* livro-caixa tokens: ledger paper, green ruling, one red margin. Views use these utilities only. */
+/* livro-caixa tokens: ledger paper, green ruling, one red margin, mustard aviso. Views use these utilities only. */
 @theme {
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -45,6 +45,7 @@
   --color-rule: #c7d5ca;
   --color-caixa: #2e6b4e;
   --color-margem: #b4372a;
+  --color-aviso: #8a5c0a;
 
   --text-meta: 0.8125rem;
   --text-meta--line-height: 1.125rem;
@@ -252,11 +253,19 @@
     color: var(--color-caixa);
   }
 
-  .desk-month-now {
-    color: var(--color-caixa);
+  .desk-month-status {
     font-size: 0.8125rem;
-    font-weight: 600;
     line-height: 1.125rem;
+  }
+
+  .desk-month-missing {
+    color: var(--color-aviso);
+    font-weight: 600;
+  }
+
+  .desk-month-progress {
+    color: var(--color-ink-soft);
+    font-weight: 400;
   }
 
   .desk-index-scroll {

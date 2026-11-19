@@ -127,6 +127,23 @@ class Month < ApplicationRecord
     !closed? && month_folder_id.blank?
   end
 
+  def missing_active_statement?(active_ids = nil)
+    ids = active_ids.nil? ? organization.bank_accounts.where(active: true).pluck(:id) : Array(active_ids)
+    present_ids = if bank_statements.loaded?
+      bank_statements.map(&:bank_account_id)
+    else
+      bank_statements.where(bank_account_id: ids).pluck(:bank_account_id)
+    end
+    (ids - present_ids).any?
+  end
+
+  def home_list_status(active_bank_account_ids: nil)
+    return :closed if closed?
+    return :missing_statements if missing_active_statement?(active_bank_account_ids)
+
+    :in_progress
+  end
+
   private
 
   def close_blocker
@@ -137,12 +154,6 @@ class Month < ApplicationRecord
     return MISSING_ACCOUNTANT if organization.accountant_presentation_name.blank?
 
     nil
-  end
-
-  def missing_active_statement?
-    active_ids = organization.bank_accounts.where(active: true).pluck(:id)
-    present_ids = bank_statements.where(bank_account_id: active_ids).pluck(:bank_account_id)
-    (active_ids - present_ids).any?
   end
 
   def persist_closed_package(writer, supporting_documents:)
