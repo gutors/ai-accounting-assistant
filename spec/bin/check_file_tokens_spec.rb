@@ -125,6 +125,19 @@ RSpec.describe "bin/check-file-tokens" do
     end
   end
 
+  it "ignores staged DESIGN.md and .impeccable even when they exceed 5000 tokens" do
+    files = {
+      "DESIGN.md" => over_product_limit,
+      ".impeccable/design.json" => over_product_limit
+    }
+    repo_with(files) do |dir|
+      _stdout, stderr, status = run_hook(dir)
+
+      expect(status.exitstatus).to eq(0)
+      expect(stderr).to eq("")
+    end
+  end
+
   it "ignores staged lockfiles and db/schema.rb even when they exceed 5000 tokens" do
     files = {
       "Gemfile.lock" => over_product_limit,

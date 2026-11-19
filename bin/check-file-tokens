@@ -4,15 +4,17 @@
 # Pre-commit gate: staged blobs over the path's token cap (bytes/4) fail the commit.
 # Product files: 5,000. spec/: 20,000 — a request spec's HTTP matrix is larger than
 # one class. Checks the index, not the working tree, so unstaged edits are ignored.
-# Skips lockfiles, generated schema, vendored/minified assets, binaries, and
-# .specs/.tasks/.checks (one document per feature; splitting them breaks the Verifier).
+# Skips lockfiles, generated schema, vendored/minified assets, binaries,
+# .specs/.tasks/.checks (one document per feature; splitting them breaks the Verifier),
+# and DESIGN.md plus .impeccable/ (one design-system document; splitting it breaks Impeccable).
 
 require "open3"
 
 MAX_TOKENS = 5_000
 SPEC_MAX_TOKENS = 20_000
 BYTES_PER_TOKEN = 4
-PLANNING_PREFIXES = %w[.specs/ .tasks/ .checks/].freeze
+PLANNING_PREFIXES = %w[.specs/ .tasks/ .checks/ .impeccable/].freeze
+DESIGN_BASENAMES = %w[DESIGN.md].freeze
 
 LOCKFILE_NAMES = %w[
   Gemfile.lock
@@ -44,6 +46,7 @@ def ignore?(path)
   base = File.basename(path)
   return true if LOCKFILE_NAMES.include?(base)
   return true if CODEGEN_BASENAMES.include?(base)
+  return true if DESIGN_BASENAMES.include?(base)
   return true if base.end_with?(".min.js", ".min.css")
 
   ext = File.extname(base).delete_prefix(".").downcase
@@ -109,9 +112,9 @@ def split_instructions(violations)
       "  4. Repeat until every remaining file is at or under its path limit.",
       "  5. git add the old path and every new path.",
       "",
-      "Lockfiles, db/schema.rb, minified/vendored assets, binaries, and .specs/.tasks/.checks",
-      "are skipped. Do not use git commit --no-verify, and do not shrink the file by deleting",
-      "tests or comments."
+      "Lockfiles, db/schema.rb, minified/vendored assets, binaries, .specs/.tasks/.checks,",
+      "DESIGN.md, and .impeccable/ are skipped. Do not use git commit --no-verify, and do not",
+      "shrink the file by deleting tests or comments."
     ]
   )
   lines.join("\n")
