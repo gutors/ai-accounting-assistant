@@ -7,9 +7,11 @@ class ApplicationController < ActionController::Base
 
   before_action :require_account
   before_action :repair_stale_focus
+  before_action :assign_focusable_organizations
   after_action :repair_stale_focus
 
-  helper_method :current_account, :focused_organization, :coordinator_on_focus?, :administrator?
+  helper_method :current_account, :focused_organization, :coordinator_on_focus?, :administrator?,
+    :people_desk_path
 
   private
 
@@ -71,25 +73,56 @@ class ApplicationController < ActionController::Base
     @justifications = justifications
   end
 
+  def assign_focusable_organizations
+    @focusable_organizations = current_account ? current_account.organizations.order(:name) : Organization.none
+  end
+
+  def people_desk_path
+    root_path(desk: "people")
+  end
+
+  def people_desk_requested?
+    return true if @people_desk
+
+    params[:desk].to_s == "people"
+  end
+
+  def render_people_home(status:)
+    @people_desk = true
+    load_home
+    render "organizations/show", status: status
+  end
+
   def load_home
     @organization = focused_organization
-    @coordinator_accesses = @organization.home_coordinator_accesses
-    @submitter_accesses = @organization.accesses.submitter.includes(:account).order("accounts.email")
-    @invites = @organization.invites.order(:email)
-    @focusable_organizations = current_account.organizations.order(:name)
+    @coordinator_accesses = @organization.accesses.coordinator.includes(:account).order(:created_at, :id)
+    @submitter_accesses = @organization.accesses.submitter.includes(:account).order(:created_at, :id)
+    @coordinator_invites = @organization.invites.coordinator.order(:created_at, :id)
+    @submitter_invites = @organization.invites.submitter.order(:created_at, :id)
+    @invites = @organization.invites.order(:created_at, :id)
+    @failed_invite_count = @organization.invites.where(last_delivery: :failed).count
+    @people_desk = people_desk_requested?
     @months = @organization.months.order(year_month: :desc)
     @in_work_month = @months.find { |month| !month.closed? }
-    return unless @in_work_month
+    @selected_month = selected_month_from_params || @in_work_month
+    return unless @selected_month
 
     @active_bank_accounts = @organization.bank_accounts.where(active: true).joins(:bank).includes(:bank)
       .order("banks.presentation_name", "bank_accounts.name")
-    @statements_by_account_id = @in_work_month.bank_statements.index_by(&:bank_account_id)
-    return unless @in_work_month.accounts_confirmed?
+    @statements_by_account_id = @selected_month.bank_statements.index_by(&:bank_account_id)
+    return unless @selected_month.accounts_confirmed?
 
     @missing_document_count = Payment.joins(:bank_statement)
-      .where(bank_statements: { month_id: @in_work_month.id })
+      .where(bank_statements: { month_id: @selected_month.id })
       .missing_document
       .count
+  end
+
+  def selected_month_from_params
+    year_month = params[:year_month].to_s
+    return if year_month.blank?
+
+    @months.find { |month| month.year_month == year_month }
   end
 
   def deliver_invite(invite)
@@ -208,7 +241,6 @@ class ApplicationController < ActionController::Base
     @suggestions_by_payment_id = suggestions_on_month
     @exception_suggestions_by_payment_id = exception_suggestions_on_month
     @format_2_suggestion = format_2_suggestion_on_month
-    @focusable_organizations = current_account.organizations.order(:name)
     if !@month.accounts_confirmed? && !@month.closed? && !@month.spreadsheet_present?
       @month_error ||= Month::CONFIRM_NEEDS_SPREADSHEET
     end
@@ -219,7 +251,6 @@ class ApplicationController < ActionController::Base
     @banks = Bank.ordered_catalog
     @bank_accounts = @organization.bank_accounts.includes(:bank).order(:name)
     @extra_exception_kinds = @organization.extra_exception_kinds.order(:name)
-    @focusable_organizations = current_account.organizations.order(:name)
     assign_editing_bank_account_from_query unless instance_variable_defined?(:@editing_bank_account)
     prepare_bank_account_form
   end
@@ -289,9 +320,9 @@ class ApplicationController < ActionController::Base
 
   def redirect_after_invite_mail(invite, sent_message:)
     if deliver_invite(invite)
-      redirect_success(root_path, sent_message)
+      redirect_success(people_desk_path, sent_message)
     else
-      redirect_with_toast(root_path, kind: "error", message: "O convite foi gravado, mas o e-mail não saiu.")
+      redirect_with_toast(people_desk_path, kind: "error", message: "O convite foi gravado, mas o e-mail não saiu.")
     end
   end
 

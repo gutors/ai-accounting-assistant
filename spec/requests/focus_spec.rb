@@ -23,12 +23,11 @@ RSpec.describe "Focus", type: :request do
     expect(toast_node(response.body)["data-toast-kind"]).to eq("success")
     expect(toast_message(response.body)).to eq("Agora em ONG Sul.")
     expect(page_doc(response.body).at_css("header").text).to include("ONG Sul")
-    sul = page_doc(response.body).css('[role="group"][aria-label="Organização"] button').find { |button| button.text.strip == "ONG Sul" }
-    expect(sul["aria-current"]).to eq("true")
     expect(page_doc(response.body).at_css('[data-desk="in-work"] h1').text.strip).to eq("maio de 2026")
+    expect(page_doc(response.body).at_css('[data-desk="in-work"] h1').text).not_to include("Coordenadores e submitters")
   end
 
-  it "focused organization button carries aria-current" do
+  it "two-organization header switcher names the focused org" do
     account, org_a = plant_coordinator(email: "coord@example.com", organization_name: "ONG Norte")
     org_b = create_organization!(name: "ONG Sul")
     Access.create!(account: account, organization: org_b, kind: :coordinator)
@@ -36,9 +35,22 @@ RSpec.describe "Focus", type: :request do
 
     get "/"
 
-    group = page_doc(response.body).at_css('[role="group"][aria-label="Organização"]')
-    expect(group).to be_present
-    buttons = group.css("button")
+    button = page_doc(response.body).at_css('header [aria-haspopup="listbox"]')
+    expect(button["aria-label"]).to eq("Organização: ONG Norte. Abrir lista")
+    expect(button["aria-expanded"]).to eq("false")
+    expect(button.text.strip).to eq("ONG Norte")
+  end
+
+  it "header list marks the focused organization aria-current" do
+    account, org_a = plant_coordinator(email: "coord@example.com", organization_name: "ONG Norte")
+    org_b = create_organization!(name: "ONG Sul")
+    Access.create!(account: account, organization: org_b, kind: :coordinator)
+    sign_in_as(account, organization: org_a)
+
+    get "/"
+
+    list = page_doc(response.body).at_css("#org-list")
+    buttons = list.css("button")
     expect(buttons.map { |button| button.text.strip }).to contain_exactly("ONG Norte", "ONG Sul")
     norte = buttons.find { |button| button.text.strip == "ONG Norte" }
     sul = buttons.find { |button| button.text.strip == "ONG Sul" }

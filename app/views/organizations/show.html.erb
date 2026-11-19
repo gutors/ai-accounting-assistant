@@ -1,202 +1,63 @@
 <% content_for :title, @organization.name %>
 
 <% if coordinator_on_focus? %>
-  <% content_for :main_class, "grid min-h-[844px] md:grid-cols-[26rem_1fr]" %>
+  <% content_for :body_class, "flex h-dvh flex-col overflow-hidden" %>
+  <% content_for :main_class, "desk grid min-h-0 flex-1 overflow-hidden md:grid-cols-[26rem_1fr]" %>
 
-  <aside data-desk="index" class="border-rule px-8 pt-10 pb-16 md:min-h-[calc(100vh-3.5rem)] md:border-r md:pr-6">
-    <%= render "organizations/chips" %>
-
-    <%= form_with url: "/months", method: :post, class: "mb-7" do %>
-      <label for="year_month" class="mb-2 block border-b border-rule pb-2 text-lg leading-6 font-semibold">Abrir mês</label>
-      <div class="flex flex-nowrap items-stretch gap-2">
-        <%= select_tag :year_month, options_for_select(openable_month_options, previous_calendar_year_month), id: "year_month", class: "min-w-0 flex-1 rounded border border-rule bg-sheet px-3 py-2" %>
-        <%= submit_tag "Abrir mês", class: "ds-btn-primary shrink-0 whitespace-nowrap" %>
-      </div>
-    <% end %>
-
-    <% if @month_error.present? %>
-      <%= render "shared/notice", message: @month_error %>
-    <% end %>
-
-    <h2 class="mb-2 border-b border-rule pb-2 text-lg leading-6 font-semibold">Meses</h2>
-    <% if @months.empty? %>
-      <p>Nenhum mês aberto</p>
-    <% else %>
-      <ul class="desk-month-list">
-        <% @months.each do |month| %>
-          <% live = @in_work_month&.id == month.id %>
-          <li data-row="month" class="desk-month<%= " is-live" if live %>">
-            <%= link_to "/months/#{month.year_month}", class: "desk-month-link" do %>
-              <span>
-                <strong class="desk-month-title"><%= month_title(month.year_month) %></strong>
-                <% if live %>
-                  <br><span class="desk-month-now">em trabalho</span>
-                <% end %>
-              </span>
-              <% if month.closed? %>
-                <span class="stamp-closed-row">Fechado</span>
-              <% else %>
-                <span class="text-meta text-ink-soft">Aberto</span>
-              <% end %>
-            <% end %>
-            <% if month.never_sent? %>
-              <%= button_to "Excluir", "/months/#{month.year_month}", method: :delete, form: { data: { turbo_confirm: "Excluir este fechamento?" } }, class: "text-margem underline underline-offset-2" %>
-            <% end %>
-          </li>
-        <% end %>
-      </ul>
-    <% end %>
-  </aside>
-
-  <article data-desk="in-work" class="px-8 pt-10 pb-16 md:min-h-[calc(100vh-3.5rem)] md:px-10">
-    <% if @in_work_month %>
-      <div class="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
-        <div>
-          <h1 class="text-display leading-[1.1] font-semibold tracking-[-0.02em]"><%= month_title(@in_work_month.year_month) %></h1>
-          <p class="mt-1 text-meta text-ink-soft"><%= @in_work_month.year_month %></p>
+  <aside data-desk="index" class="flex min-h-0 flex-col overflow-hidden border-rule px-8 pt-10 md:border-r md:pr-6">
+    <div class="desk-index-scroll">
+      <%= form_with url: "/months", method: :post, class: "mb-7" do %>
+        <label for="year_month" class="mb-2 block border-b border-rule pb-2 text-lg leading-6 font-semibold">Abrir mês</label>
+        <div class="flex flex-nowrap items-stretch gap-2">
+          <%= select_tag :year_month, options_for_select(openable_month_options, previous_calendar_year_month), id: "year_month", class: "min-w-0 flex-1 rounded border border-rule bg-sheet px-3 py-2" %>
+          <%= submit_tag "Abrir mês", class: "ds-btn-primary shrink-0 whitespace-nowrap" %>
         </div>
-        <%= link_to "Continuar", "/months/#{@in_work_month.year_month}", class: "ds-btn-primary" %>
-      </div>
-
-      <% if !@missing_document_count.nil? %>
-        <% if @missing_document_count.zero? %>
-          <p data-desk="missing" class="mt-6">Nenhum documento faltante.</p>
-        <% else %>
-          <p data-desk="missing" class="mt-6 border-l-[3px] border-margem pl-3 text-margem"><%= @missing_document_count %> <%= @missing_document_count == 1 ? "pagamento" : "pagamentos" %> com documento faltante.</p>
-        <% end %>
       <% end %>
 
-      <h2 class="mt-10 mb-2 border-b border-rule pb-2 text-lg leading-6 font-semibold">Contas bancárias</h2>
-      <% if @active_bank_accounts.empty? %>
-        <p>Nenhuma conta bancária ativa</p>
+      <% if @month_error.present? %>
+        <%= render "shared/notice", message: @month_error %>
+      <% end %>
+
+      <h2 class="mb-2 border-b border-rule pb-2 text-lg leading-6 font-semibold">Meses</h2>
+      <% if @months.empty? %>
+        <p>Nenhum mês aberto</p>
       <% else %>
-        <div class="ledger-sheet">
-          <div class="ledger-row ledger-head ledger-home-bank" aria-hidden="true">
-            <span>Banco</span>
-            <span>Nome</span>
-            <span>Extrato</span>
-          </div>
-          <ul>
-            <% @active_bank_accounts.each do |bank_account| %>
-              <% statement = @statements_by_account_id[bank_account.id] %>
-              <li data-row="bank-account" data-bank-account-id="<%= bank_account.id %>" class="ledger-row ledger-home-bank">
-                <p><%= bank_account.bank.presentation_name %></p>
-                <p class="font-medium"><%= bank_account.name %></p>
-                <% if statement %>
-                  <p>Presente</p>
-                <% else %>
-                  <p class="font-medium text-margem">Falta</p>
-                <% end %>
-              </li>
-            <% end %>
-          </ul>
-        </div>
-      <% end %>
-    <% end %>
-  </article>
-
-  <details class="col-span-full border-t border-rule px-8 py-10">
-    <summary class="cursor-pointer text-lg leading-6 font-semibold">Pessoas</summary>
-    <div class="mt-8 grid gap-x-8 gap-y-10 md:grid-cols-2">
-      <div>
-        <h3 class="mb-2 font-medium">Coordenadores</h3>
-        <div class="ledger-sheet">
-          <div class="ledger-row ledger-head ledger-people" aria-hidden="true">
-            <span>E-mail</span>
-            <span>Papel</span>
-            <span></span>
-          </div>
-          <ul>
-            <% @coordinator_accesses.each do |access| %>
-              <li class="ledger-row ledger-people">
-                <span data-cell="email" class="min-w-0 break-all font-medium"><%= access.account.email %></span>
-                <span class="text-ink-soft"><%= @organization.principal_coordinator_account_id == access.account_id ? "Principal" : "Coordenador" %></span>
+        <ul class="desk-month-list">
+          <% @months.each do |month| %>
+            <% live = @in_work_month&.id == month.id %>
+            <% selected = !@people_desk && @selected_month&.id == month.id %>
+            <li data-row="month" class="desk-month<%= " is-live" if live %>">
+              <%= link_to root_path(year_month: month.year_month), class: "desk-month-link", aria: { current: ("true" if selected) } do %>
                 <span>
-                  <% if @organization.principal_coordinator_account_id == current_account.id && access.account_id != current_account.id %>
-                    <%= button_to "Revogar", "/accesses/#{access.id}", method: :delete, form: { data: { turbo_confirm: "Revogar o acesso deste coordenador?" } }, class: "text-margem underline underline-offset-2" %>
+                  <strong class="desk-month-title"><%= month_title(month.year_month) %></strong>
+                  <% if live %>
+                    <br><span class="desk-month-now">em trabalho</span>
                   <% end %>
                 </span>
-              </li>
-            <% end %>
-          </ul>
-        </div>
-        <%= form_with url: "/coordinator_invites", method: :post, class: "mt-4" do %>
-          <fieldset>
-            <legend class="mb-2 font-medium">Convidar coordenador</legend>
-            <label for="email" class="mb-1 block">E-mail</label>
-            <div class="flex flex-wrap gap-2">
-              <%= email_field_tag :email, nil, id: "email", class: "min-w-0 grow rounded border border-rule bg-sheet px-3 py-2", autocomplete: "email" %>
-              <%= submit_tag "Convidar", class: "ds-btn-secondary" %>
-            </div>
-          </fieldset>
-        <% end %>
-      </div>
-
-      <div>
-        <h3 class="mb-2 font-medium">Submitters</h3>
-        <div class="ledger-sheet">
-          <div class="ledger-row ledger-head ledger-people" aria-hidden="true">
-            <span>E-mail</span>
-            <span>Papel</span>
-            <span></span>
-          </div>
-          <ul>
-            <% @submitter_accesses.each do |access| %>
-              <li class="ledger-row ledger-people">
-                <span data-cell="email" class="min-w-0 break-all font-medium"><%= access.account.email %></span>
-                <span class="text-ink-soft">Submitter</span>
-                <span>
-                  <%= button_to "Revogar", "/accesses/#{access.id}", method: :delete, form: { data: { turbo_confirm: "Revogar o acesso deste submitter?" } }, class: "text-margem underline underline-offset-2" %>
-                </span>
-              </li>
-            <% end %>
-          </ul>
-        </div>
-        <%= form_with url: "/submitter_invites", method: :post, class: "mt-4" do %>
-          <fieldset>
-            <legend class="mb-2 font-medium">Convidar submitter</legend>
-            <label for="submitter_email" class="mb-1 block">E-mail</label>
-            <div class="flex flex-wrap gap-2">
-              <%= email_field_tag :email, nil, id: "submitter_email", class: "min-w-0 grow rounded border border-rule bg-sheet px-3 py-2", autocomplete: "email" %>
-              <%= submit_tag "Convidar", class: "ds-btn-secondary" %>
-            </div>
-          </fieldset>
-        <% end %>
-      </div>
-    </div>
-
-    <section class="mt-12">
-      <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Convites pendentes</h2>
-      <% if @invites.any? %>
-        <div class="ledger-sheet">
-          <div class="ledger-row ledger-head ledger-invite" aria-hidden="true">
-            <span>E-mail</span>
-            <span>Tipo</span>
-            <span>Status</span>
-            <span></span>
-            <span></span>
-          </div>
-          <ul>
-            <% @invites.each do |invite| %>
-              <li data-row="invite" class="ledger-row ledger-invite<%= " is-block" unless invite.sent? %>">
-                <span class="min-w-0 break-all font-medium"><%= invite.email %></span>
-                <span><%= invite.coordinator? ? "Coordenador" : "Submitter" %></span>
-                <span class="<%= invite.sent? ? "text-ink-soft" : "font-medium text-margem" %>"><%= invite.sent? ? "enviado" : "falhou envio do e-mail" %></span>
-                <%= button_to "Reenviar e-mail", "/#{invite.submitter? ? "submitter" : "coordinator"}_invites/#{invite.id}/mail", method: :post, class: "text-caixa underline underline-offset-2" %>
-                <% if invite.submitter? %>
-                  <%= button_to "Cancelar", "/submitter_invites/#{invite.id}", method: :delete, class: "text-margem underline underline-offset-2" %>
+                <% if month.closed? %>
+                  <span class="stamp-closed-row">Fechado</span>
                 <% else %>
-                  <%= button_to "Cancelar", "/coordinator_invites/#{invite.id}", method: :delete, class: "text-margem underline underline-offset-2" %>
+                  <span class="text-meta text-ink-soft">Aberto</span>
                 <% end %>
-              </li>
-            <% end %>
-          </ul>
-        </div>
+              <% end %>
+            </li>
+          <% end %>
+        </ul>
       <% end %>
-    </section>
-  </details>
+    </div>
+    <%= render "organizations/people_pin" %>
+  </aside>
+
+  <article data-desk="in-work" class="min-h-0 overflow-auto px-8 pt-10 pb-16 md:px-10">
+    <% if @people_desk %>
+      <%= render "organizations/people_book" %>
+    <% elsif @selected_month %>
+      <%= render "organizations/month_desk" %>
+    <% else %>
+      <p>Selecione um mês na lista.</p>
+    <% end %>
+  </article>
 <% else %>
-  <%= render "organizations/chips" %>
   <h1 class="text-2xl leading-7 font-semibold tracking-[-0.01em]">Início</h1>
   <p class="mt-4">Inclua e acompanhe seus documentos de suporte em <%= link_to "Documentos", "/supporting_documents", class: "text-caixa underline underline-offset-2" %>.</p>
 <% end %>

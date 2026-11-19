@@ -19,7 +19,7 @@ RSpec.describe "Coordinator invites", type: :request do
     expect(invite.kind).to eq("coordinator")
     expect(invite.organization).to eq(organization)
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/")
+    expect(response).to redirect_to("/?desk=people")
   end
 
   it "POST /coordinator_invites names the invited email in the toast" do
@@ -32,7 +32,7 @@ RSpec.describe "Coordinator invites", type: :request do
     end
 
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/")
+    expect(response).to redirect_to("/?desk=people")
     expect(Invite.find_by!(email: "pessoa@exemplo.org", organization: organization).kind).to eq("coordinator")
     expect(ActionMailer::Base.deliveries.size).to eq(1)
     message = ActionMailer::Base.deliveries.last
@@ -71,9 +71,9 @@ RSpec.describe "Coordinator invites", type: :request do
 
     item = pending_invite_item(response.body, "pessoa@exemplo.org")
     expect(item).to be_present
-    expect(item.text).to include("Coordenador")
-    expect(item.text).to include("enviado")
-    expect(item.text).not_to include("Submitter")
+    expect(item.text).to include("Convite · enviado")
+    coord = page_doc(response.body).css("h2").find { |h2| h2.text.strip == "Coordenadores" }.parent
+    expect(coord.to_html).to include("pessoa@exemplo.org")
     expect(item.inner_html.index("Reenviar e-mail")).to be < item.inner_html.index("Cancelar")
   end
 
@@ -96,7 +96,25 @@ RSpec.describe "Coordinator invites", type: :request do
       expect(response).to have_http_status(:unprocessable_content)
       expect(ActionMailer::Base.deliveries).to be_empty
       expect(toast_node(response.body)).to be_nil
+      in_work = page_doc(response.body).at_css('[data-desk="in-work"]')
+      expect(in_work.at_css("h1").text.strip).to eq("Coordenadores e submitters")
+      expect(in_work.at_css('input[type="submit"][value="Convidar"]')).to be_present
     end
+  end
+
+  it "POST mail redirects to people desk" do
+    account, organization = plant_coordinator
+    invite = Invite.create!(organization: organization, email: "pessoa@exemplo.org", kind: :coordinator)
+    sign_in_as(account, organization: organization)
+
+    with_env("MAIL_FROM" => "venda@example.com") do
+      post "/coordinator_invites/#{invite.id}/mail"
+    end
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/?desk=people")
+    follow_redirect!
+    expect(page_doc(response.body).at_css('[data-desk="in-work"] h1').text.strip).to eq("Coordenadores e submitters")
   end
 
   it "unauthenticated POST /coordinator_invites responds 302 to /login" do
@@ -117,7 +135,7 @@ RSpec.describe "Coordinator invites", type: :request do
 
     expect(Invite.find_by(id: invite.id)).to be_nil
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/")
+    expect(response).to redirect_to("/?desk=people")
   end
 
   it "DELETE /coordinator_invites/:id of another organization returns 404" do
@@ -151,7 +169,7 @@ RSpec.describe "Coordinator invites", type: :request do
     expect(invite.last_delivery).to eq("failed")
     expect(session[:invite_mail_failed]).not_to eq(true)
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/")
+    expect(response).to redirect_to("/?desk=people")
     follow_redirect!
     expect(response).to have_http_status(:ok)
     toast = toast_node(response.body)
@@ -174,7 +192,7 @@ RSpec.describe "Coordinator invites", type: :request do
     follow_redirect!
     expect(toast_node(response.body)["data-toast-kind"]).to eq("error")
 
-    get "/"
+    get "/?desk=people"
 
     expect(toast_node(response.body)).to be_nil
     expect(response.body).not_to include("O convite foi gravado, mas o e-mail não saiu.")

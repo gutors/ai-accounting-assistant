@@ -11,7 +11,7 @@ RSpec.describe "Accesses", type: :request do
 
     expect(Access.find_by(id: other_access.id)).to be_nil
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/")
+    expect(response).to redirect_to("/?desk=people")
   end
 
   it "DELETE last coordinator Access returns 404" do
@@ -95,7 +95,7 @@ RSpec.describe "Accesses", type: :request do
     expect(Access.find_by(id: access.id)).to be_nil
     expect(Account.find(submitter.id)).to eq(submitter)
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/")
+    expect(response).to redirect_to("/?desk=people")
   end
 
   it "DELETE last submitter Access leaves coordinator Accesses" do
@@ -130,7 +130,7 @@ RSpec.describe "Accesses", type: :request do
     delete "/accesses/#{ana_access.id}"
 
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/")
+    expect(response).to redirect_to("/?desk=people")
     expect(Access.find_by(id: ana_access.id)).to be_nil
     expect(organization.accesses.coordinator.find_by(account: zoe)).to be_present
     expect(organization.reload.principal_coordinator_account).to eq(zoe)
@@ -207,7 +207,7 @@ RSpec.describe "Accesses", type: :request do
     delete "/accesses/#{submitter_access.id}"
 
     expect(response).to have_http_status(:found)
-    expect(response).to redirect_to("/")
+    expect(response).to redirect_to("/?desk=people")
     expect(Access.find_by(id: submitter_access.id)).to be_nil
   end
 

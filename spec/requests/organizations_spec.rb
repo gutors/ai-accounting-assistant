@@ -9,32 +9,21 @@ RSpec.describe "Organization home", type: :request do
     Invite.create!(organization: organization, email: "ana@exemplo.org", kind: :coordinator)
     sign_in_as(account, organization: organization)
 
-    get "/"
+    get "/?desk=people"
 
     ana = pending_invite_item(response.body, "ana@exemplo.org")
     zoe = pending_invite_item(response.body, "zoe@exemplo.org")
     expect(ana).to be_present
     expect(zoe).to be_present
     expect(response.body.index("ana@exemplo.org")).to be < response.body.index("zoe@exemplo.org")
-    expect(ana.text).to include("Coordenador")
-    expect(ana.text).not_to include("Submitter")
-    expect(zoe.text).to include("Submitter")
-    expect(zoe.text).not_to include("Coordenador")
-
-    doc = page_doc(response.body)
-    invites_heading = doc.css("h2").find { |h2| h2.text.strip == "Convites pendentes" }
-    invites_section = invites_heading.parent
-    expect(invites_section.text).to include("E-mail")
-    expect(invites_section.text).to include("Tipo")
-    expect(invites_section.text).to include("Status")
-    expect(invites_section.css("li").map(&:text).join).to include("ana@exemplo.org")
-    expect(invites_section.css("li").map(&:text).join).to include("zoe@exemplo.org")
-    pessoas = doc.at_css("details")
-    expect(pessoas.at_css("summary").text.strip).to eq("Pessoas")
-    expect(pessoas.css("h2").map { |h2| h2.text.strip }).to include("Convites pendentes")
-    coordenadores = pessoas.css("h3").find { |node| node.text.strip == "Coordenadores" }.parent
-    expect(coordenadores.css("li").map(&:text).join).not_to include("ana@exemplo.org")
+    expect(ana.text).to include("Convite")
+    expect(zoe.text).to include("Convite")
+    coordenadores = people_section(response.body, "Coordenadores")
+    submitters = people_section(response.body, "Submitters")
+    expect(coordenadores.css("li").map(&:text).join).to include("ana@exemplo.org")
     expect(coordenadores.css("li").map(&:text).join).not_to include("zoe@exemplo.org")
+    expect(submitters.css("li").map(&:text).join).to include("zoe@exemplo.org")
+    expect(submitters.css("li").map(&:text).join).not_to include("ana@exemplo.org")
   end
 
   it "home pending invite shows exactly one last-delivery copy" do
@@ -43,7 +32,7 @@ RSpec.describe "Organization home", type: :request do
     Invite.create!(organization: organization, email: "fail@exemplo.org", kind: :submitter, last_delivery: :failed)
     sign_in_as(account, organization: organization)
 
-    get "/"
+    get "/?desk=people"
 
     sent_item = pending_invite_item(response.body, "ok@exemplo.org")
     failed_item = pending_invite_item(response.body, "fail@exemplo.org")
@@ -58,7 +47,7 @@ RSpec.describe "Organization home", type: :request do
     Invite.create!(organization: organization, email: "guest@example.com", kind: :coordinator)
     sign_in_as(account, organization: organization)
 
-    get "/"
+    get "/?desk=people"
 
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("coord@example.com")
@@ -70,7 +59,7 @@ RSpec.describe "Organization home", type: :request do
     plant_submitter(email: "sub@example.com", organization: organization)
     sign_in_as(account, organization: organization)
 
-    get "/"
+    get "/?desk=people"
 
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("sub@example.com")
@@ -93,7 +82,7 @@ RSpec.describe "Organization home", type: :request do
     Access.create!(account: other, organization: organization, kind: :coordinator)
     sign_in_as(account, organization: organization)
 
-    get "/"
+    get "/?desk=people"
 
     expect(response.body).to include("data-turbo-confirm")
   end
@@ -206,7 +195,7 @@ RSpec.describe "Organization home", type: :request do
     end
 
     month_row = rows(response.body, "month").first
-    link = month_row.at_css('a[href="/months/2026-05"]')
+    link = month_row.at_css('a[href="/?year_month=2026-05"]')
     expect(link).not_to be_nil
     expect(link.text).to include("maio de 2026")
     values = page_doc(response.body).css("select#year_month option").map { |option| option["value"] }
@@ -252,7 +241,9 @@ RSpec.describe "Organization home", type: :request do
     get "/"
 
     expect(response.body).to include("2026-05")
-    expect(response.body).to include('href="/months/2026-05"')
+    in_work = page_doc(response.body).at_css('[data-desk="in-work"]')
+    expect(in_work.at_css('a[href="/months/2026-05"]')).to be_present
+    expect(rows(response.body, "month").first.at_css('a[href="/?year_month=2026-05"]')).to be_present
   end
 
   it "submitter home lists organization names when Account has multiple Accesses" do
@@ -278,7 +269,8 @@ RSpec.describe "Organization home", type: :request do
     expect(response.body).not_to include("Contas bancárias")
     expect(response.body).not_to include("Fechar para envio")
     expect(response.body).not_to include("Configuração")
-    expect(response.body).not_to include("Convidar coordenador")
+    expect(response.body).not_to include("Coordenadores e submitters")
+    expect(response.body).not_to include("Convidar")
   end
 
   it "home h1 is Inicio and an open month row says Aberto" do
@@ -290,7 +282,7 @@ RSpec.describe "Organization home", type: :request do
 
     month_rows = rows(response.body, "month")
     expect(month_rows.size).to eq(1)
-    expect(month_rows.first.at_css('a[href="/months/2026-05"]')).not_to be_nil
+    expect(month_rows.first.at_css('a[href="/?year_month=2026-05"]')).not_to be_nil
     expect(month_rows.first.text).to include("maio de 2026")
     expect(month_rows.first.text).to include("Aberto")
     expect(month_rows.first.text).not_to include("Fechado")
@@ -311,14 +303,16 @@ RSpec.describe "Organization home", type: :request do
 
     month_row = rows(response.body, "month").first
     expect(month_row.text).to include("Aberto")
-    form = month_delete_form(month_row, "2026-05")
+    expect(month_delete_form(month_row, "2026-05")).to be_nil
+    in_work = page_doc(response.body).at_css('[data-desk="in-work"]')
+    form = month_delete_form(in_work, "2026-05")
     expect(form).to be_present
     expect(form["data-turbo-confirm"]).to eq("Excluir este fechamento?")
     expect(form.at_css('button, input[type="submit"]').text).to include("Excluir")
-    expect(month_row.text).to include("Aberto")
+    expect(form.at_css('button, input[type="submit"]')["class"]).to include("ds-btn-danger")
   end
 
-  it "reopened month row omits Excluir" do
+  it "reopened selected month omits Excluir" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
     month = Month.open(organization: organization, year_month: "2026-05")
@@ -329,7 +323,7 @@ RSpec.describe "Organization home", type: :request do
     month_row = rows(response.body, "month").first
     expect(month_row.text).to include("Aberto")
     expect(month_delete_form(month_row, "2026-05")).to be_nil
-    expect(month_row.text).not_to include("Excluir")
+    expect(page_doc(response.body).at_css('[data-desk="in-work"]').text).not_to include("Excluir")
   end
 
   it "confirmed never-sent month row includes Excluir" do
@@ -341,7 +335,8 @@ RSpec.describe "Organization home", type: :request do
     get "/"
 
     month_row = rows(response.body, "month").first
-    form = month_delete_form(month_row, "2026-05")
+    expect(month_delete_form(month_row, "2026-05")).to be_nil
+    form = month_delete_form(page_doc(response.body).at_css('[data-desk="in-work"]'), "2026-05")
     expect(form).to be_present
     expect(form["data-turbo-confirm"]).to eq("Excluir este fechamento?")
     expect(form.at_css('button, input[type="submit"]').text).to include("Excluir")
@@ -367,7 +362,7 @@ RSpec.describe "Organization home", type: :request do
     get "/"
 
     month_row = rows(response.body, "month").first
-    expect(month_row.at_css('a[href="/months/2026-05"]')).not_to be_nil
+    expect(month_row.at_css('a[href="/?year_month=2026-05"]')).not_to be_nil
     expect(month_row.text).to include("Fechado")
     expect(month_row.text).not_to include("Aberto")
     expect(month_row.text).not_to include("Excluir")
@@ -409,11 +404,11 @@ RSpec.describe "Organization home", type: :request do
     expect(response.body).not_to include("O convite foi gravado, mas o e-mail não saiu.")
   end
 
-  it "principal coordinator is first and sees Revogar on peer coordinator and submitter rows" do
+  it "principal coordinator sees Revogar on peer and submitter rows" do
     zoe, organization = plant_home_people
     sign_in_as(zoe, organization: organization)
 
-    get "/"
+    get "/?desk=people"
 
     emails = coordinator_emails_on_home
     expect(emails).to eq([ "zoe@exemplo.org", "ana@exemplo.org" ])
@@ -423,8 +418,7 @@ RSpec.describe "Organization home", type: :request do
     expect(ana_revoke.ancestors("form").first["data-turbo-confirm"]).to eq("Revogar o acesso deste coordenador?")
     submitter_revoke = revogar_on_submitter_row("submitter@exemplo.org")
     expect(submitter_revoke.ancestors("form").first["data-turbo-confirm"]).to eq("Revogar o acesso deste submitter?")
-    expect(response.body).to include("Convidar coordenador")
-    expect(response.body).to include("Convidar submitter")
+    expect(page_doc(response.body).at_css('input[type="submit"][value="Convidar"]')).to be_present
     expect(response.body).not_to include("coordenador principal")
   end
 
@@ -433,7 +427,7 @@ RSpec.describe "Organization home", type: :request do
     ana = Account.find_by!(email: "ana@exemplo.org")
     sign_in_as(ana, organization: organization)
 
-    get "/"
+    get "/?desk=people"
 
     expect(coordinator_emails_on_home).to eq([ "zoe@exemplo.org", "ana@exemplo.org" ])
     expect(revogar_on_coordinator_row("zoe@exemplo.org")).to be_nil
@@ -441,8 +435,7 @@ RSpec.describe "Organization home", type: :request do
     submitter_revoke = revogar_on_submitter_row("submitter@exemplo.org")
     expect(submitter_revoke).not_to be_nil
     expect(submitter_revoke.ancestors("form").first["data-turbo-confirm"]).to eq("Revogar o acesso deste submitter?")
-    expect(response.body).to include("Convidar coordenador")
-    expect(response.body).to include("Convidar submitter")
+    expect(page_doc(response.body).at_css('input[type="submit"][value="Convidar"]')).to be_present
   end
 
   it "submitter home omits Revogar and Convidar coordenador" do
@@ -454,7 +447,7 @@ RSpec.describe "Organization home", type: :request do
 
     expect(page_doc(response.body).at_css("h1").text.strip).to eq("Início")
     expect(response.body).not_to include("Revogar")
-    expect(response.body).not_to include("Convidar coordenador")
+    expect(response.body).not_to include("Convidar")
   end
 
   it "after invite accept the first home coordinator row stays the principal" do
@@ -466,7 +459,7 @@ RSpec.describe "Organization home", type: :request do
     invite.accept!(ana)
     sign_in_as(principal, organization: organization)
 
-    get "/"
+    get "/?desk=people"
 
     expect(coordinator_emails_on_home.first).to eq("coordenador@exemplo.org")
   end
@@ -480,7 +473,7 @@ RSpec.describe "Organization home", type: :request do
     expect(page_doc(response.body).at_css("main")["class"]).to include("md:grid-cols-[26rem_1fr]")
   end
 
-  it "one-organization home omits Organizacoes nav and names the org in the header" do
+  it "one-organization home omits org listbox and names the org in the header" do
     account, organization = plant_coordinator(organization_name: "ONG Norte")
     sign_in_as(account, organization: organization)
 
@@ -490,6 +483,7 @@ RSpec.describe "Organization home", type: :request do
     expect(response).to have_http_status(:ok)
     expect(doc.at_css('nav[aria-label="Organizações"]')).to be_nil
     expect(doc.at_css('[role="group"][aria-label="Organização"]')).to be_nil
+    expect(doc.at_css('[aria-haspopup="listbox"]')).to be_nil
     expect(doc.css("h1, h2, h3, p, legend, summary").map { |node| node.text.strip }).not_to include("Organizações")
     expect(doc.at_css("header").text).to include("ONG Norte")
   end
@@ -514,7 +508,7 @@ RSpec.describe "Organization home", type: :request do
     expect(index.inner_html.index(open_form.to_html)).to be < index.inner_html.index(meses.to_html)
   end
 
-  it "empty home lists Nenhum mes aberto and omits Continuar" do
+  it "empty home lists Nenhum mes aberto and Selecione um mes" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
 
@@ -523,7 +517,9 @@ RSpec.describe "Organization home", type: :request do
     index = page_doc(response.body).at_css('[data-desk="index"]')
     expect(index.text).to include("Nenhum mês aberto")
     in_work = page_doc(response.body).at_css('[data-desk="in-work"]')
+    expect(in_work.text).to include("Selecione um mês na lista.")
     expect(in_work.css("a").map { |link| link.text.strip }).not_to include("Continuar")
+    expect(in_work.text).not_to include("Excluir")
   end
 
   it "open month row says em trabalho and Aberto, closed row stamps Fechado, year_month desc" do
@@ -538,7 +534,7 @@ RSpec.describe "Organization home", type: :request do
 
     month_rows = rows(response.body, "month")
     expect(month_rows.map { |row| row.at_css("a")["href"] }).to eq(
-      [ "/months/2026-10", "/months/2026-09", "/months/2026-08" ]
+      [ "/?year_month=2026-10", "/?year_month=2026-09", "/?year_month=2026-08" ]
     )
     open_row = month_rows[0]
     expect(open_row.at_css("a").text).to include("outubro de 2026")
@@ -600,7 +596,7 @@ RSpec.describe "Organization home", type: :request do
     expect(sentence.text.strip).to eq("1 pagamento com documento faltante.")
   end
 
-  it "in-work summary says Nenhum documento faltante without margem" do
+  it "selected month says Nenhum documento faltante without margem" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
     plant_month(organization, year_month: "2026-10")
@@ -612,7 +608,7 @@ RSpec.describe "Organization home", type: :request do
     expect(sentence["class"].to_s).not_to include("margem")
   end
 
-  it "unconfirmed in-work month omits documento faltante" do
+  it "unconfirmed selected month omits documento faltante" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
     _month, statement = plant_month(organization, year_month: "2026-10", accounts_confirmed: false)
@@ -624,7 +620,7 @@ RSpec.describe "Organization home", type: :request do
     expect(in_work.text).not_to include("documento faltante")
   end
 
-  it "in-work Contas bancarias Extrato is Presente and Falta in margem" do
+  it "selected Contas bancarias Extrato is Presente and Falta in margem" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
     BankAccount.create_for(organization: organization, name: "Conta Principal", compe: "001")
@@ -656,6 +652,7 @@ RSpec.describe "Organization home", type: :request do
     in_work = page_doc(response.body).at_css('[data-desk="in-work"]')
     expect(in_work.css("a").map { |link| link.text.strip }).not_to include("Continuar")
     expect(in_work.text).not_to include("Contas bancárias")
+    expect(in_work.text).to include("Selecione um mês na lista.")
   end
 
   it "in-work skips a newer closed month" do
@@ -685,24 +682,18 @@ RSpec.describe "Organization home", type: :request do
     expect(in_work.at_css("h1").text.strip).to eq("outubro de 2026")
   end
 
-  it "Pessoas is a closed details below the desk" do
+  it "people book omits Pessoas details and Convites pendentes" do
     account, organization = plant_coordinator
     sign_in_as(account, organization: organization)
 
-    get "/"
+    get "/?desk=people"
 
     doc = page_doc(response.body)
-    pessoas = doc.at_css("details")
-    expect(pessoas.at_css("summary").text.strip).to eq("Pessoas")
-    expect(pessoas.has_attribute?("open")).to eq(false)
-    expect(pessoas.css("h2").map { |h2| h2.text.strip }).to include("Convites pendentes")
-    expect(pessoas.css("h3").map { |h3| h3.text.strip }).to include("Coordenadores")
-    main_html = doc.at_css("main").inner_html
-    expect(main_html.index('data-desk="index"')).to be < main_html.index("<details")
-    expect(main_html.index('data-desk="in-work"')).to be < main_html.index("<details")
+    expect(doc.css("details summary").map { |node| node.text.strip }).not_to include("Pessoas")
+    expect(doc.css("h1, h2, h3").map { |node| node.text.strip }).not_to include("Convites pendentes")
   end
 
-  it "submitter two-organization home shows Organizacao chips" do
+  it "submitter two-organization home uses the header org listbox" do
     account, first = plant_submitter(email: "sub@example.com", organization_name: "ONG Norte")
     second = create_organization!(name: "ONG Sul")
     Access.create!(account: account, organization: second, kind: :submitter)
@@ -710,9 +701,362 @@ RSpec.describe "Organization home", type: :request do
 
     get "/"
 
-    group = page_doc(response.body).at_css('[role="group"][aria-label="Organização"]')
-    expect(group.css("button").map { |button| button.text.strip }).to contain_exactly("ONG Norte", "ONG Sul")
+    button = page_doc(response.body).at_css('header [aria-haspopup="listbox"]')
+    expect(button["aria-label"]).to eq("Organização: ONG Norte. Abrir lista")
+    expect(page_doc(response.body).at_css('[role="group"][aria-label="Organização"]')).to be_nil
     expect(page_doc(response.body).at_css("h1").text.strip).to eq("Início")
+  end
+
+  it "Meses list omits Excluir and omits month-page links" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    Month.open(organization: organization, year_month: "2026-11")
+
+    get "/"
+
+    index = page_doc(response.body).at_css('[data-desk="index"]')
+    expect(index.text).not_to include("Excluir")
+    expect(index.css("a").map { |link| link["href"] }).not_to include("/months/2026-11")
+  end
+
+  it "people pin sits outside the Meses scroll" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    get "/"
+
+    index = page_doc(response.body).at_css('[data-desk="index"]')
+    scroll = index.at_css(".desk-index-scroll")
+    pin = index.at_css(".desk-index-pin")
+    expect(scroll.text).to include("Meses")
+    expect(pin.text).to include("Coordenadores e submitters")
+    expect(scroll.css(".desk-index-pin")).to be_empty
+    expect(index.inner_html.index("desk-index-scroll")).to be < index.inner_html.index("desk-index-pin")
+  end
+
+  it "people pin says 3 coordenadores 2 submitters and 1 falhou envio without convite" do
+    account, organization = plant_pin_people
+    sign_in_as(account, organization: organization)
+
+    get "/"
+
+    pin = page_doc(response.body).at_css(".desk-index-pin")
+    expect(pin.text).to include("3 coordenadores · 2 submitters")
+    fail_bit = pin.at_css(".text-margem")
+    expect(fail_bit.text.strip).to eq("1 falhou envio")
+    expect(pin.text.downcase).not_to include("convite")
+  end
+
+  it "people pin says 1 coordenador 1 submitter without falhou envio" do
+    account, organization = plant_coordinator
+    plant_submitter(organization: organization)
+    sign_in_as(account, organization: organization)
+
+    get "/"
+
+    pin = page_doc(response.body).at_css(".desk-index-pin")
+    expect(pin.text).to include("1 coordenador · 1 submitter")
+    expect(pin.text).not_to include("falhou envio")
+  end
+
+  it "Meses row for 2026-10 is GET year_month 2026-10" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    Month.open(organization: organization, year_month: "2026-10")
+
+    get "/"
+
+    row = rows(response.body, "month").first
+    expect(row.at_css("a")["href"]).to eq("/?year_month=2026-10")
+  end
+
+  it "selected never-sent 2026-11 right h1 Continuar and Excluir" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    plant_month(organization, year_month: "2026-11")
+
+    get "/?year_month=2026-11"
+
+    in_work = page_doc(response.body).at_css('[data-desk="in-work"]')
+    expect(in_work.at_css("h1").text.strip).to eq("novembro de 2026")
+    expect(in_work.text).to include("2026-11")
+    continuar = in_work.css("a").find { |link| link.text.strip == "Continuar" }
+    expect(continuar["href"]).to eq("/months/2026-11")
+    form = month_delete_form(in_work, "2026-11")
+    expect(form["data-turbo-confirm"]).to eq("Excluir este fechamento?")
+    button = form.at_css('button, input[type="submit"]')
+    expect(button.text).to include("Excluir")
+    expect(button["class"]).to include("ds-btn-secondary")
+    expect(button["class"]).to include("ds-btn-danger")
+  end
+
+  it "selected never-sent Excluir is DELETE with turbo confirm" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    Month.open(organization: organization, year_month: "2026-11")
+
+    get "/"
+
+    form = month_delete_form(page_doc(response.body).at_css('[data-desk="in-work"]'), "2026-11")
+    expect(form["action"]).to eq("/months/2026-11")
+    expect(form.at_css('input[name="_method"][value="delete"]')).to be_present
+    expect(form["data-turbo-confirm"]).to eq("Excluir este fechamento?")
+  end
+
+  it "closed selected month omits Excluir" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    month, _statement = plant_month(organization, year_month: "2026-10")
+    month.update!(closed: true)
+
+    get "/?year_month=2026-10"
+
+    in_work = page_doc(response.body).at_css('[data-desk="in-work"]')
+    expect(in_work.text).not_to include("Excluir")
+    expect(month_delete_form(in_work, "2026-10")).to be_nil
+  end
+
+  it "closed selected month stamps Mes fechado and Continuar still links" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    month, _statement = plant_month(organization, year_month: "2026-10")
+    month.update!(closed: true)
+
+    get "/?year_month=2026-10"
+
+    in_work = page_doc(response.body).at_css('[data-desk="in-work"]')
+    expect(in_work.at_css(".stamp-closed").text.strip).to eq("Mês fechado")
+    continuar = in_work.css("a").find { |link| link.text.strip == "Continuar" }
+    expect(continuar["href"]).to eq("/months/2026-10")
+  end
+
+  it "selected month says 2 pagamentos com documento faltante in margem" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    _month, statement = plant_month(organization, year_month: "2026-11")
+    2.times { |i| plant_payment(statement, 1000 + i) }
+
+    get "/?year_month=2026-11"
+
+    in_work = page_doc(response.body).at_css('[data-desk="in-work"]')
+    sentences = in_work.css('[data-desk="missing"]')
+    expect(sentences.size).to eq(1)
+    expect(sentences.first.text.strip).to eq("2 pagamentos com documento faltante.")
+    expect(sentences.first["class"]).to include("text-margem")
+  end
+
+  it "absent year_month selects the in-work open month" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    plant_month(organization, year_month: "2026-10")
+    closed = Month.open(organization: organization, year_month: "2026-11")
+    closed.update!(closed: true)
+
+    get "/"
+
+    in_work = page_doc(response.body).at_css('[data-desk="in-work"]')
+    expect(in_work.at_css("h1").text.strip).to eq("outubro de 2026")
+  end
+
+  it "empty year_month selects the in-work open month" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    plant_month(organization, year_month: "2026-10")
+
+    get "/", params: { year_month: "" }
+
+    in_work = page_doc(response.body).at_css('[data-desk="in-work"]')
+    expect(in_work.at_css("h1").text.strip).to eq("outubro de 2026")
+  end
+
+  it "unknown year_month selects the in-work open month" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    plant_month(organization, year_month: "2026-10")
+
+    get "/?year_month=2020-01"
+
+    in_work = page_doc(response.body).at_css('[data-desk="in-work"]')
+    expect(in_work.at_css("h1").text.strip).to eq("outubro de 2026")
+  end
+
+  it "Meses row from people desk fills the month desk" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    plant_month(organization, year_month: "2026-10")
+
+    get "/?desk=people"
+
+    row = rows(response.body, "month").first
+    expect(row.at_css("a")["href"]).to eq("/?year_month=2026-10")
+    expect(page_doc(response.body).at_css(".desk-index-pin a")["aria-current"]).to eq("true")
+
+    get "/?year_month=2026-10"
+
+    in_work = page_doc(response.body).at_css('[data-desk="in-work"]')
+    expect(in_work.at_css("h1").text.strip).to eq("outubro de 2026")
+    expect(page_doc(response.body).at_css(".desk-index-pin a")["aria-current"]).to be_nil
+  end
+
+  it "people pin is GET desk people" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    get "/"
+
+    pin = page_doc(response.body).at_css(".desk-index-pin a")
+    expect(pin.text).to include("Coordenadores e submitters")
+    expect(pin["href"]).to eq("/?desk=people")
+  end
+
+  it "people desk pin is aria-current and no Meses row is" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+    Month.open(organization: organization, year_month: "2026-11")
+
+    get "/?desk=people"
+
+    expect(page_doc(response.body).at_css(".desk-index-pin a")["aria-current"]).to eq("true")
+    expect(rows(response.body, "month").any? { |row| row.at_css("[aria-current]") }).to eq(false)
+  end
+
+  it "people book heading invite form Coordenadores then Submitters" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    get "/?desk=people"
+
+    in_work = page_doc(response.body).at_css('[data-desk="in-work"]')
+    expect(in_work.at_css("h1").text.strip).to eq("Coordenadores e submitters")
+    form = in_work.at_css("form")
+    expect(in_work.inner_html.index("<h1")).to be < in_work.inner_html.index(form.to_html)
+    expect(form.at_css("#invite-email")["placeholder"]).to eq("E-mail")
+    options = form.css("#invite-kind option").map { |option| [ option.text.strip, option["value"] ] }
+    expect(options).to eq([ [ "Coordenador", "Coordenador" ], [ "Submitter", "Submitter" ] ])
+    expect(form.at_css('#invite-kind option[selected]')["value"]).to eq("Coordenador")
+    expect(form.at_css('input[type="submit"][value="Convidar"]')).to be_present
+    headings = in_work.css("h2").map { |h2| h2.text.strip }
+    expect(headings.index("Coordenadores")).to be < headings.index("Submitters")
+    coord_heading = in_work.css("h2").find { |h2| h2.text.strip == "Coordenadores" }
+    expect(in_work.inner_html.index(form.to_html)).to be < in_work.inner_html.index(coord_heading.to_html)
+  end
+
+  it "people book meta is 5 pessoas 2 convites 1 falhou envio" do
+    account, organization = plant_pin_people
+    sign_in_as(account, organization: organization)
+
+    get "/?desk=people"
+
+    in_work = page_doc(response.body).at_css('[data-desk="in-work"]')
+    expect(in_work.at_css("h1").next_element.text.strip).to eq("5 pessoas · 2 convites · 1 falhou envio")
+  end
+
+  it "people book lists standing then pending in insertion order" do
+    account, organization = plant_coordinator(email: "first@exemplo.org")
+    second = Account.create!(email: "second@exemplo.org", google_uid: "uid-second")
+    Access.create!(account: second, organization: organization, kind: :coordinator)
+    Invite.create!(organization: organization, email: "later-coord@exemplo.org", kind: :coordinator)
+    Invite.create!(organization: organization, email: "early-coord@exemplo.org", kind: :coordinator)
+    plant_submitter(email: "first-sub@exemplo.org", organization: organization)
+    plant_submitter(email: "second-sub@exemplo.org", organization: organization)
+    Invite.create!(organization: organization, email: "later-sub@exemplo.org", kind: :submitter)
+    Invite.create!(organization: organization, email: "early-sub@exemplo.org", kind: :submitter)
+    sign_in_as(account, organization: organization)
+
+    get "/?desk=people"
+
+    coord = people_section(response.body, "Coordenadores").css("ul li").map { |li| li.text }
+    expect(coord[0]).to include("first@exemplo.org")
+    expect(coord[0]).to include("Principal")
+    expect(coord[0]).not_to include("Revogar")
+    expect(coord[1]).to include("second@exemplo.org")
+    expect(coord[2]).to include("later-coord@exemplo.org")
+    expect(coord[3]).to include("early-coord@exemplo.org")
+    subs = people_section(response.body, "Submitters").css("ul li").map { |li| li.text }
+    expect(subs[0]).to include("first-sub@exemplo.org")
+    expect(subs[1]).to include("second-sub@exemplo.org")
+    expect(subs[2]).to include("later-sub@exemplo.org")
+    expect(subs[3]).to include("early-sub@exemplo.org")
+  end
+
+  it "pending invite rows say Convite enviado or falhou envio do e-mail" do
+    account, organization = plant_coordinator
+    Invite.create!(organization: organization, email: "ok@exemplo.org", kind: :coordinator, last_delivery: :sent)
+    Invite.create!(organization: organization, email: "fail@exemplo.org", kind: :submitter, last_delivery: :failed)
+    sign_in_as(account, organization: organization)
+
+    get "/?desk=people"
+
+    sent = pending_invite_item(response.body, "ok@exemplo.org")
+    failed = pending_invite_item(response.body, "fail@exemplo.org")
+    expect(sent.text).to include("Convite · enviado")
+    expect(sent.css("button").map { |button| button.text.strip }).to include("Reenviar e-mail", "Cancelar")
+    expect(failed.text).to include("Convite · falhou envio do e-mail")
+    expect(failed.at_css(".text-margem").text).to include("Convite · falhou envio do e-mail")
+    expect(failed.css("button").map { |button| button.text.strip }).to include("Reenviar e-mail", "Cancelar")
+  end
+
+  it "empty people book says Nenhum coordenador and Nenhum submitter" do
+    account, organization = plant_coordinator
+    sign_in_as(account, organization: organization)
+
+    get "/?desk=people"
+
+    expect(people_section(response.body, "Submitters").text).to include("Nenhum submitter")
+    html = ApplicationController.render(
+      partial: "organizations/people_book",
+      assigns: {
+        organization: organization,
+        coordinator_accesses: [],
+        submitter_accesses: [],
+        coordinator_invites: [],
+        submitter_invites: [],
+        invites: [],
+        failed_invite_count: 0
+      }
+    )
+    expect(html).to include("Nenhum coordenador")
+    expect(html).to include("Nenhum submitter")
+  end
+
+  it "submitter home ignores year_month and desk" do
+    account, organization = plant_submitter
+    sign_in_as(account, organization: organization)
+    Month.open(organization: organization, year_month: "2026-11")
+
+    get "/?year_month=2026-11&desk=people"
+
+    doc = page_doc(response.body)
+    expect(doc.at_css("h1").text.strip).to eq("Início")
+    expect(response.body).not_to include("Coordenadores e submitters")
+    expect(response.body).not_to include("Continuar")
+    expect(response.body).not_to include("Abrir mês")
+  end
+
+  it "submitter one-organization home omits org listbox" do
+    account, organization = plant_submitter(organization_name: "ONG Norte")
+    sign_in_as(account, organization: organization)
+
+    get "/"
+
+    doc = page_doc(response.body)
+    expect(doc.at_css('[aria-haspopup="listbox"]')).to be_nil
+    expect(doc.at_css('[role="group"][aria-label="Organização"]')).to be_nil
+    expect(doc.at_css("header").text).to include("ONG Norte")
+  end
+
+  def plant_pin_people
+    account, organization = plant_coordinator(email: "one@exemplo.org")
+    2.times do |i|
+      person = Account.create!(email: "coord-#{i}@exemplo.org", google_uid: "uid-coord-#{i}")
+      Access.create!(account: person, organization: organization, kind: :coordinator)
+    end
+    2.times do |i|
+      plant_submitter(email: "sub-#{i}@exemplo.org", organization: organization)
+    end
+    Invite.create!(organization: organization, email: "pending@exemplo.org", kind: :coordinator, last_delivery: :sent)
+    Invite.create!(organization: organization, email: "failed@exemplo.org", kind: :submitter, last_delivery: :failed)
+    [ account, organization ]
   end
 
   def plant_home_people
@@ -723,20 +1067,22 @@ RSpec.describe "Organization home", type: :request do
     [ zoe, organization ]
   end
 
+  def people_section(body, heading)
+    node = page_doc(body).css("h2").find { |h2| h2.text.strip == heading }
+    node.parent
+  end
+
   def coordinator_emails_on_home
-    heading = page_doc(response.body).css("h3").find { |node| node.text.strip == "Coordenadores" }
-    heading.parent.css('ul li [data-cell="email"]').map { |span| span.text.strip }
+    people_section(response.body, "Coordenadores").css('ul li [data-cell="email"]').map { |span| span.text.strip }
   end
 
   def revogar_on_coordinator_row(email)
-    heading = page_doc(response.body).css("h3").find { |node| node.text.strip == "Coordenadores" }
-    row = heading.parent.css("ul li").find { |li| li.at_css('[data-cell="email"]').text.strip == email }
+    row = people_section(response.body, "Coordenadores").css("ul li").find { |li| li.at_css('[data-cell="email"]').text.strip == email }
     row.css("button").find { |button| button.text.strip == "Revogar" }
   end
 
   def revogar_on_submitter_row(email)
-    heading = page_doc(response.body).css("h3").find { |node| node.text.strip == "Submitters" }
-    row = heading.parent.css("ul li").find { |li| li.at_css('[data-cell="email"]').text.strip == email }
+    row = people_section(response.body, "Submitters").css("ul li").find { |li| li.at_css('[data-cell="email"]').text.strip == email }
     row.css("button").find { |button| button.text.strip == "Revogar" }
   end
 end

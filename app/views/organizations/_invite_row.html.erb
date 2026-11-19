@@ -1,0 +1,17 @@
+<li data-row="invite" class="person-entry<%= " is-block" unless invite.sent? %>">
+  <span>
+    <span class="font-medium"><%= invite.email %></span>
+    <br>
+    <% if invite.sent? %>
+      <span class="text-meta text-ink-soft">Convite · enviado</span>
+    <% else %>
+      <span class="font-medium text-margem">Convite · falhou envio do e-mail</span>
+    <% end %>
+  </span>
+  <span class="row-actions">
+    <%= button_to "Reenviar e-mail", "/#{invite.submitter? ? "submitter" : "coordinator"}_invites/#{invite.id}/mail",
+          method: :post, class: "text-caixa underline underline-offset-2" %>
+    <%= button_to "Cancelar", "/#{invite.submitter? ? "submitter" : "coordinator"}_invites/#{invite.id}",
+          method: :delete, class: "text-margem underline underline-offset-2" %>
+  </span>
+</li>

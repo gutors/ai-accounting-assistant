@@ -44,6 +44,17 @@ module ApplicationHelper
     BrlCents.field_value(cents)
   end
 
+  def people_role_count(count, singular, plural)
+    "#{count} #{count == 1 ? singular : plural}"
+  end
+
+  def people_book_meta(coordinator_count:, submitter_count:, invite_count:, failed_count:)
+    parts = [ "#{coordinator_count + submitter_count} pessoas" ]
+    parts << "#{invite_count} convites" if invite_count.positive?
+    parts << "#{failed_count} falhou envio" if failed_count.positive?
+    parts.join(" · ")
+  end
+
   def principal_nav_link(label, path)
     current = current_page?(path) || (path == "/" && content_for?(:main_class))
     link_to label, path, aria: { current: ("page" if current) },

@@ -1,0 +1,15 @@
+<div class="org-switch" data-controller="org-switch">
+  <button type="button" class="org-switch-btn" data-org-switch-target="button" data-action="click->org-switch#toggle"
+    aria-haspopup="listbox" aria-expanded="false" aria-controls="org-list"
+    aria-label="Organização: <%= focused_organization.name %>. Abrir lista"><%= focused_organization.name %></button>
+  <div id="org-list" class="org-list" role="listbox" hidden data-org-switch-target="list">
+    <% @focusable_organizations.sort_by { |organization| organization.id == focused_organization.id ? 0 : 1 }.each do |organization| %>
+      <% if organization.id == focused_organization.id %>
+        <button type="button" role="option" aria-current="true" data-action="org-switch#close"><%= organization.name %></button>
+      <% else %>
+        <%= button_to organization.name, "/focus", params: { organization_id: organization.id },
+              data: { turbo: false }, form_class: "contents", class: "org-switch-option", role: "option" %>
+      <% end %>
+    <% end %>
+  </div>
+</div>

@@ -19,7 +19,7 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="min-h-full bg-paper text-ink antialiased" data-controller="wait">
+  <body class="<%= content_for(:body_class).presence || "min-h-full" %> bg-paper text-ink antialiased" data-controller="wait">
     <%= render "layouts/header" %>
     <div id="toast-host">
       <% if flash[:toast].present? %>
