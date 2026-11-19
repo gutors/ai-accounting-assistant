@@ -1,0 +1,40 @@
+<% filters = local_assigns.fetch(:filters, {}) %>
+<% search_label = local_assigns.fetch(:search_label, "Favorecido") %>
+<% search_placeholder = local_assigns.fetch(:search_placeholder, "Buscar favorecido") %>
+<% kind_options = local_assigns.fetch(:kind_options, [ [ "Todos", "" ], [ "Nota fiscal", "nota_fiscal" ], [ "Recibo", "recibo" ] ]) %>
+<% active_filter = filters[:q].present? || filters[:kind].present? || filters[:date_from].present? || filters[:date_to].present? %>
+<% clear_query = {} %>
+<% if filters[:sort].present? && (filters[:sort] != "date" || filters[:dir] != "desc") %>
+  <% clear_query[:sort] = filters[:sort] %>
+  <% clear_query[:dir] = filters[:dir] %>
+<% end %>
+<% clear_href = clear_query.any? ? "#{url}?#{clear_query.to_query}" : url %>
+
+<%= form_with url: url, method: :get, class: "ledger-filters mb-4 grid items-end gap-3 md:grid-cols-[minmax(0,1.5fr)_11rem_10rem_10rem_auto]" do %>
+  <% if filters[:sort].present? && (filters[:sort] != "date" || filters[:dir] != "desc") %>
+    <%= hidden_field_tag :sort, filters[:sort] %>
+    <%= hidden_field_tag :dir, filters[:dir] %>
+  <% end %>
+  <div>
+    <label for="filter_q" class="mb-1 block text-meta font-medium"><%= search_label %></label>
+    <%= search_field_tag :q, filters[:q], id: "filter_q", placeholder: search_placeholder, autocomplete: "off", class: "w-full rounded border border-rule bg-sheet px-3 py-1.5" %>
+  </div>
+  <div>
+    <label for="filter_kind" class="mb-1 block text-meta font-medium">Tipo</label>
+    <%= select_tag :kind, options_for_select(kind_options, filters[:kind].to_s), id: "filter_kind", class: "w-full rounded border border-rule bg-sheet px-3 py-1.5" %>
+  </div>
+  <div>
+    <label for="filter_date_from" class="mb-1 block text-meta font-medium">De</label>
+    <%= date_field_tag :date_from, filters[:date_from], id: "filter_date_from", autocomplete: "off", class: "w-full rounded border border-rule bg-sheet px-3 py-1.5 tabular-nums" %>
+  </div>
+  <div>
+    <label for="filter_date_to" class="mb-1 block text-meta font-medium">Até</label>
+    <%= date_field_tag :date_to, filters[:date_to], id: "filter_date_to", autocomplete: "off", class: "w-full rounded border border-rule bg-sheet px-3 py-1.5 tabular-nums" %>
+  </div>
+  <div class="flex items-center gap-3 pb-0.5">
+    <%= submit_tag "Filtrar", name: nil, class: "ds-btn-secondary py-1.5 px-3.5" %>
+    <% if active_filter %>
+      <%= link_to "Limpar", clear_href, class: "text-caixa underline underline-offset-2" %>
+    <% end %>
+  </div>
+<% end %>

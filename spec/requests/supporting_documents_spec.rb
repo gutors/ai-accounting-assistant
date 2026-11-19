@@ -880,7 +880,7 @@ RSpec.describe "Supporting documents", type: :request do
     expect(response.body).not_to include("Casado em 2026-05")
   end
 
-  it "GET /supporting_documents after suggested 1:1 includes Casado em 2026-05" do
+  it "GET /supporting_documents after suggested 1:1 omits matched document from Sem mes" do
     account, organization = signed_in
     _month, statement = plant_month(organization)
     payment = plant_payment(statement, 22000, history: "Pix enviado — Padaria Central")
@@ -893,11 +893,12 @@ RSpec.describe "Supporting documents", type: :request do
 
     get "/supporting_documents"
 
-    expect(response.body).to include("Casado em 2026-05")
-    expect(response.body).to include("Padaria Central")
+    sem = page_doc(response.body).at_css("#sem-mes").text
+    expect(sem).not_to include("Padaria Central")
+    expect(sem).not_to include("Casado em 2026-05")
   end
 
-  it "GET /supporting_documents after match includes Casado em 2026-05" do
+  it "GET /supporting_documents after match omits matched documents from Sem mes" do
     account, organization = signed_in
     month, statement = plant_month(organization)
     payment = plant_payment(statement, 22000)
@@ -908,9 +909,10 @@ RSpec.describe "Supporting documents", type: :request do
 
     get "/supporting_documents"
 
-    expect(response.body).to include("Casado em 2026-05")
-    expect(response.body).to include("Padaria A")
-    expect(response.body).to include("Padaria B")
+    sem = page_doc(response.body).at_css("#sem-mes").text
+    expect(sem).not_to include("Casado em 2026-05")
+    expect(sem).not_to include("Padaria A")
+    expect(sem).not_to include("Padaria B")
   end
 
   it "PATCH payee on matched document keeps Casado" do
@@ -996,7 +998,7 @@ RSpec.describe "Supporting documents", type: :request do
     expect(response.body).to include("Nenhum documento")
   end
 
-  it "submitter GET /supporting_documents matched document omits Casado em" do
+  it "submitter GET /supporting_documents matched document omits it from Sem mes" do
     _coord, organization = plant_coordinator
     submitter, _ = plant_submitter(organization: organization)
     sign_in_as(submitter, organization: organization)
@@ -1008,8 +1010,9 @@ RSpec.describe "Supporting documents", type: :request do
 
     get "/supporting_documents"
 
-    expect(response.body).to include("Padaria Central")
-    expect(response.body).not_to include("Casado em")
+    sem = page_doc(response.body).at_css("#sem-mes").text
+    expect(sem).not_to include("Padaria Central")
+    expect(sem).not_to include("Casado em")
   end
 
   it "coordinator GET /supporting_documents includes submitter payee" do
@@ -1876,7 +1879,7 @@ RSpec.describe "Supporting documents", type: :request do
     end
   end
 
-  it "GET /supporting_documents after matching unmatched-in-package Padaria includes Casado em 2026-05" do
+  it "GET /supporting_documents after matching unmatched-in-package Padaria omits it from Sem mes" do
     account, organization = signed_in
     ready_to_close!(organization)
     month, statement = plant_month(organization)
@@ -1890,8 +1893,9 @@ RSpec.describe "Supporting documents", type: :request do
 
     get "/supporting_documents"
 
-    expect(response.body).to include("Casado em 2026-05")
-    expect(response.body).not_to include("Sem casamento em 2026-05")
+    sem = page_doc(response.body).at_css("#sem-mes").text
+    expect(sem).not_to include("Padaria Central")
+    expect(sem).not_to include("Sem casamento em 2026-05")
     expect(document.reload.month_id).to eq(month.id)
   end
 

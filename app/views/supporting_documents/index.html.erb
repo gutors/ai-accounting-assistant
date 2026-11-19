@@ -66,7 +66,7 @@
           <%= text_field_tag :amount, "0,00", id: "justification_amount", class: "w-full rounded border border-rule bg-sheet px-3 py-2", autocomplete: "off", inputmode: "numeric", data: { controller: "money-mask", action: "input->money-mask#typed" } %>
         </div>
         <div class="flex flex-wrap gap-x-4 gap-y-2">
-          <% @documents.select { |document| document.month_id.nil? && document.justification_id.nil? }.each do |document| %>
+          <% (@justifiable_documents || @documents.select { |document| document.month_id.nil? && document.justification_id.nil? }).each do |document| %>
             <label for="supporting_document_<%= document.id %>" class="inline-flex items-center gap-2">
               <%= check_box_tag "supporting_document_ids[]", document.id, false, id: "supporting_document_#{document.id}" %>
               <%= document.payee %>

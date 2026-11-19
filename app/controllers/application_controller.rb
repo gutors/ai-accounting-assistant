@@ -63,12 +63,26 @@ class ApplicationController < ActionController::Base
   end
 
   def load_documents
-    scope = focused_organization.supporting_documents.listed.includes(:month, :match, :justification)
-    scope = scope.where(account: current_account) unless coordinator_on_focus?
-    @documents = scope
+    base_scope = focused_organization.supporting_documents.unmatched.includes(:month, :justification)
+    base_scope = base_scope.where(account: current_account) unless coordinator_on_focus?
+    @list_filters = document_list_filters
+    @documents = base_scope.filter_list(**@list_filters)
+    @justifiable_documents = base_scope.listed.where(month_id: nil, justification_id: nil) unless coordinator_on_focus?
     justifications = focused_organization.justifications.includes(:supporting_documents).order(created_at: :desc, id: :desc)
     justifications = justifications.where(account: current_account) unless coordinator_on_focus?
     @justifications = justifications
+  end
+
+  def document_list_filters
+    query = request.query_parameters
+    {
+      q: query[:q].to_s.strip,
+      kind: SupportingDocument.kinds.key?(query[:kind].to_s) ? query[:kind].to_s : "",
+      date_from: SupportingDocument.parse_filter_date(query[:date_from])&.iso8601.to_s,
+      date_to: SupportingDocument.parse_filter_date(query[:date_to])&.iso8601.to_s,
+      sort: query[:sort].to_s == "amount" ? "amount" : "date",
+      dir: query[:dir].to_s == "asc" ? "asc" : "desc"
+    }
   end
 
   def load_home

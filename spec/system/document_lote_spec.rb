@@ -304,7 +304,7 @@ RSpec.describe "Document lote", type: :system do
     wait_one_xml
 
     expect(page.find("label[for=kind]").text).to eq("Tipo")
-    kind = find_field("kind")
+    kind = find("#kind")
     expect(kind.value).to eq("Nota fiscal")
     expect(kind[:readonly]).to be_present
     expect(kind.disabled?).to eq(false)
@@ -324,7 +324,7 @@ RSpec.describe "Document lote", type: :system do
     open_lote
     attach_file "file", write_upload("empty.jpg", "jpeg-bytes"), make_visible: true
 
-    kind = find_field("kind")
+    kind = find("#kind")
     expect(kind.value).to eq("Recibo")
     expect(kind[:readonly]).to be_present
     expect(find_field("amount").value).to eq("")
