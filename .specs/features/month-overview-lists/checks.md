@@ -152,7 +152,7 @@ Proof: `bin/rspec spec/docs/visual_identity_month_overview_spec.rb -e "visual-id
 ## Handoff
 
 - **Settled mid-build:** none
-- **Dispatched:**
-- **Boundary:**
+- **Dispatched:** Verifier at `f2a6f02` range `5311bc1..HEAD` returned
+- **Boundary:** C1-C32 closed at `f2a6f02`
 - **Abandoned:** none
 - **Walked:** Signed in on `/login` via Ambiente local (`gutors@gmail.com`). Opened `/months/2026-09` (unconfirmed, no spreadsheet). `Iniciar fechamento` was enabled; a click posted and showed the error toast `Inclua o extrato planilha de pelo menos uma conta bancária.` plus the GET notice. This local month has no confirmed lists, so Pagamentos sort, catalog omit, and pool columns were not walked in the browser (covered by request specs).

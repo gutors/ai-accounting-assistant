@@ -151,14 +151,24 @@ RSpec.describe "Month overview lists", type: :request do
   end
 
   it "invalid sort and dir params fall back to date ascending" do
-    _account, _organization, _month, statement = signed_confirmed
-    later = plant_payment(statement, 12000, history: "Depois", occurred_on: Date.new(2026, 5, 12))
-    earlier = plant_payment(statement, 10000, history: "Antes", occurred_on: Date.new(2026, 5, 11))
+    account, organization, _month, statement = signed_confirmed
+    later = plant_payment(statement, 10000, history: "Depois", occurred_on: Date.new(2026, 5, 12))
+    earlier = plant_payment(statement, 22000, history: "Antes", occurred_on: Date.new(2026, 5, 11))
+    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00", date: "2026-05-11")
+    mercado = plant_recibo(organization, account, payee: "Mercado Silva", amount: "180,00", date: "2026-05-12")
 
-    get "/months/2026-05", params: { payments_sort: "history", payments_dir: "sideways" }
+    [
+      { payments_sort: "history", payments_dir: "sideways" },
+      { payments_sort: "amount", payments_dir: "sideways" },
+      { payments_sort: "history", payments_dir: "desc" }
+    ].each do |params|
+      get "/months/2026-05", params: params
+      expect(rows(response.body, "payment").map { |row| row["data-payment-id"].to_i }).to eq([ earlier.id, later.id ])
+      expect(sort_link(response.body, "Pagamentos", "date").ancestors("span").first["aria-sort"]).to eq("ascending")
+    end
 
-    expect(rows(response.body, "payment").map { |row| row["data-payment-id"].to_i }).to eq([ earlier.id, later.id ])
-    expect(sort_link(response.body, "Pagamentos", "date").ancestors("span").first["aria-sort"]).to eq("ascending")
+    get "/months/2026-05", params: { pool_sort: "kind", pool_dir: "asc" }
+    expect(rows(response.body, "pool-document").map { |row| row["data-document-id"].to_i }).to eq([ padaria.id, mercado.id ])
   end
 
   it "Pagamentos status includes Documento faltante without document Sugestao" do
