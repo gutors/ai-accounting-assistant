@@ -1,6 +1,6 @@
 # setup-desk proofs
 
-**HEAD**: b03e73d
+**HEAD**: 6994003
 **Tree**: clean
 **Result**: 47 pass, 0 fail; mutations 3 killed, 0 not
 

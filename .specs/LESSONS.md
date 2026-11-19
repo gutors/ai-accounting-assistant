@@ -44,6 +44,18 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: C6 AC 6 unusable pdftotext (parser specs)
 - last seen: 2026-11-18T15:01:31Z
 
+### L-020 - When the default is the first incomplete key in list order, prove a later key as that default, not only the first key in the list.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `setup` · harmful: 0
+- features: setup-desk
+- evidence: C19 (setup)
+- last seen: 2026-11-19T15:08:52Z
+
+### L-021 - When a row has both a complete stamp and an incomplete stamp, prove the incomplete stamp, not only the complete one.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `setup` · harmful: 0
+- features: setup-desk
+- evidence: C33 (setup)
+- last seen: 2026-11-19T15:08:52Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.
