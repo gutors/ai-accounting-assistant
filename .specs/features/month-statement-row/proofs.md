@@ -1,6 +1,6 @@
 # month-statement-row proofs
 
-**HEAD**: 216c881
+**HEAD**: f49bbd7
 **Tree**: clean
 **Result**: 23 pass, 0 fail; mutations 3 killed, 0 not
 
