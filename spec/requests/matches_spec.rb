@@ -78,7 +78,7 @@ RSpec.describe "Matches", type: :request do
     expect(pool_html(response.body)).not_to include("Padaria B")
   end
 
-  it "POST lesser with observation persists and shows desconto nao documentado" do
+  it "POST lesser with observation persists and shows desconto nao documentado on Casar" do
     account, organization, _month, statement = signed_month
     payment = plant_payment(statement, 22000)
     document = plant_recibo(organization, account, payee: "Padaria Central", amount: "200,00")
@@ -91,7 +91,7 @@ RSpec.describe "Matches", type: :request do
 
     expect(response).to have_http_status(:found)
     expect(Match.count).to eq(1)
-    get "/months/2026-05"
+    get "/months/2026-05/matches"
     expect(response.body).to include("desconto não documentado")
   end
 

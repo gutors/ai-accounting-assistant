@@ -1,0 +1,70 @@
+<% statement = local_assigns[:statement] %>
+<% accept = ".pdf,.csv,.xlsx,application/pdf,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" %>
+<li data-row="bank-account"
+    data-bank-account-id="<%= bank_account.id %>"
+    class="ledger-row ledger-month-bank"
+    data-controller="statement-row"
+    data-statement-row-refusal-value="Só PDF, .csv ou .xlsx"
+    data-statement-row-hint-value="A planilha é obrigatória">
+  <p class="font-medium"><%= bank_account.bank.presentation_name %></p>
+  <p class="font-medium"><%= bank_account.name %></p>
+  <p class="truncate text-meta text-ink-soft" title="<%= bank_account.coordinates %>"><%= bank_account.coordinates %></p>
+  <div data-cell="situation">
+    <% if statement %>
+      <p>Presente</p>
+    <% else %>
+      <p class="text-margem">Falta</p>
+    <% end %>
+  </div>
+  <div data-cell="documents" class="statement-files" data-statement-row-target="files">
+    <% if statement&.pdf&.attached? %>
+      <% pdf_line = "Pdf #{statement.pdf.filename}" %>
+      <p class="statement-file" title="<%= pdf_line %>"><%= pdf_line %></p>
+    <% end %>
+    <% if statement&.spreadsheet&.attached? %>
+      <% spreadsheet_line = "Planilha #{statement.spreadsheet.filename}" %>
+      <p class="statement-file" title="<%= spreadsheet_line %>"><%= spreadsheet_line %></p>
+    <% else %>
+      <p class="statement-hint">A planilha é obrigatória</p>
+    <% end %>
+  </div>
+  <div class="ledger-row-actions" data-statement-row-target="actions">
+    <% unless month.closed? %>
+      <%= form_with url: "/months/#{month.year_month}/bank_statements", method: :post, multipart: true, html: { hidden: true, data: { statement_row_target: "form" } } do %>
+        <%= hidden_field_tag :bank_account_id, bank_account.id %>
+        <%= file_field_tag :pdf, accept: accept, data: { statement_row_target: "pdfInput" } %>
+        <%= file_field_tag :spreadsheet, accept: accept, data: { statement_row_target: "spreadsheetInput" } %>
+      <% end %>
+      <label class="ledger-action-icon text-caixa" data-statement-row-target="trigger"
+             aria-label="<%= statement ? "Substituir extrato" : "Incluir extrato" %>"
+             title="<%= statement ? "Substituir extrato" : "Incluir extrato" %>">
+        <% if statement %>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M11.5 2.5a1.414 1.414 0 0 1 2 2L5 13H2.5v-2.5L11.5 2.5z" />
+          </svg>
+        <% else %>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M8 3.5v9M3.5 8h9" />
+          </svg>
+        <% end %>
+        <input type="file" class="sr-only" accept="<%= accept %>" multiple
+               data-action="change->statement-row#picked"
+               data-statement-row-target="picker">
+      </label>
+      <button type="button" class="ledger-action-icon text-caixa" hidden
+              data-statement-row-target="send" data-action="statement-row#send"
+              aria-label="Enviar extrato" title="Enviar extrato">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M2.5 8.5l3.5 3.5 7-8" />
+        </svg>
+      </button>
+      <button type="button" class="ledger-action-icon text-margem" hidden
+              data-statement-row-target="discard" data-action="statement-row#discard"
+              aria-label="Descartar arquivos escolhidos" title="Descartar">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3.5 3.5l9 9M12.5 3.5l-9 9" />
+        </svg>
+      </button>
+    <% end %>
+  </div>
+</li>

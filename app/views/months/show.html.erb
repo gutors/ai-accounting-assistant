@@ -76,39 +76,7 @@
         </div>
         <ul>
           <% @active_bank_accounts.each do |bank_account| %>
-            <% statement = @statements_by_account_id[bank_account.id] %>
-            <li data-row="bank-account" data-bank-account-id="<%= bank_account.id %>" class="ledger-row ledger-month-bank">
-              <p class="font-medium"><%= bank_account.bank.presentation_name %></p>
-              <p class="font-medium"><%= bank_account.name %></p>
-              <p class="text-meta text-ink-soft"><%= bank_account.coordinates %></p>
-              <div data-cell="situation">
-                <% if statement %>
-                  <p>Presente</p>
-                <% else %>
-                  <p class="text-margem">Falta</p>
-                <% end %>
-              </div>
-              <div data-cell="documents">
-                <% if statement&.pdf&.attached? %>
-                  <% pdf_line = "Pdf #{statement.pdf.filename}" %>
-                  <p class="truncate text-meta text-ink-soft" title="<%= pdf_line %>"><%= pdf_line %></p>
-                <% end %>
-                <% if statement&.spreadsheet&.attached? %>
-                  <% spreadsheet_line = "Planilha #{statement.spreadsheet.filename}" %>
-                  <p class="truncate text-meta text-ink-soft" title="<%= spreadsheet_line %>"><%= spreadsheet_line %></p>
-                <% end %>
-              </div>
-              <div>
-                <% unless @month.closed? %>
-                  <%= tag.details open: @import_bank_account_id.to_s == bank_account.id.to_s do %>
-                    <summary class="cursor-pointer font-medium text-caixa"><%= statement ? "Substituir extrato" : "Incluir extrato" %></summary>
-                    <div class="mt-3 rounded border border-rule bg-sheet p-4">
-                      <%= render "months/statement_form", month: @month, bank_account: bank_account %>
-                    </div>
-                  <% end %>
-                <% end %>
-              </div>
-            </li>
+            <%= render "months/statement_row", month: @month, bank_account: bank_account, statement: @statements_by_account_id[bank_account.id] %>
           <% end %>
         </ul>
       </div>
@@ -186,31 +154,16 @@
             <li data-row="payment" data-payment-id="<%= payment.id %>" data-status="<%= status %>" class="ledger-row ledger-pay ledger-overview-pay<%= " is-block" if status == "missing" %>">
               <time datetime="<%= payment.occurred_on.iso8601 %>" class="tabular-nums"><%= l(payment.occurred_on) %></time>
               <div>
-                <p class="font-medium"><%= payment.history %></p>
-                <p class="text-meta text-ink-soft"><%= payment.bank_statement.bank_account.name %></p>
+                <p class="pay-history" title="<%= payment.history %>"><%= payment.history %></p>
+                <p class="pay-account" title="<%= payment.bank_statement.bank_account.name %>"><%= payment.bank_statement.bank_account.name %></p>
               </div>
               <p data-cell="amount" class="font-medium tabular-nums"><%= format_reais(payment.amount_cents) %></p>
               <div data-cell="status">
-                <% if status == "missing" %>
-                  <p class="font-medium text-margem">Documento faltante</p>
-                <% elsif status == "matched" %>
-                  <p class="font-medium">Casado</p>
-                  <% if payment.match.observation.present? %>
-                    <p class="text-meta text-ink-soft"><%= payment.match.observation %></p>
-                  <% end %>
-                <% elsif status == "bank_fee" %>
-                  <p class="font-medium">Tarifa bancária</p>
-                <% elsif status == "accountant_fee" %>
-                  <p class="font-medium">Honorário do contador</p>
-                <% elsif status == "extra" %>
-                  <p class="font-medium"><%= payment.extra_exception_kind.name %></p>
-                <% end %>
+                <% status_word = payment_status_word(payment, status) %>
+                <p class="pay-status<%= " text-margem" if status == "missing" %>" title="<%= status_word %>"><%= status_word %></p>
               </div>
-              <p data-cell="document" class="font-medium">
-                <% if status == "matched" %>
-                  <%= payment.match.supporting_documents.map(&:payee).join(", ") %>
-                <% end %>
-              </p>
+              <% document_names = status == "matched" ? payment.match.supporting_documents.map(&:payee).join(", ") : "" %>
+              <p data-cell="document" class="pay-document" title="<%= document_names %>"><%= document_names %></p>
             </li>
           <% end %>
         </ul>

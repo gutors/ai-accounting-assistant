@@ -591,6 +591,55 @@
     text-align: right;
   }
 
+  .statement-files {
+    display: grid;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  .statement-file,
+  .statement-hint,
+  .statement-refusal {
+    overflow: hidden;
+    font-size: 0.8125rem;
+    line-height: 1.125rem;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .statement-file {
+    color: var(--color-ink-soft);
+  }
+
+  .statement-hint {
+    color: var(--color-ink-soft);
+  }
+
+  .statement-refusal {
+    font-weight: 500;
+    color: var(--color-margem);
+  }
+
+  .pay-history,
+  .pay-status,
+  .pay-document {
+    overflow: hidden;
+    font-size: 0.875rem;
+    line-height: 1.125rem;
+    font-weight: 500;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .pay-account {
+    overflow: hidden;
+    font-size: 0.8125rem;
+    line-height: 1.125rem;
+    color: var(--color-ink-soft);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
   .ledger-row [data-cell="amount"] {
     font-weight: 500;
     font-variant-numeric: tabular-nums;
@@ -686,7 +735,7 @@
     }
 
     .ledger-overview-pay {
-      grid-template-columns: 9.5rem minmax(0, 1fr) 8rem 12rem minmax(8rem, 11rem);
+      grid-template-columns: 9.5rem minmax(0, 1fr) 8rem 10rem minmax(8rem, 11rem);
     }
 
     .ledger-overview-pay > * {
@@ -728,6 +777,48 @@
 
     .ledger-row.is-block > *:first-child {
       padding-left: 12px;
+    }
+
+    .ledger-overview-pay {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .ledger-overview-pay > time {
+      grid-column: 1;
+      grid-row: 1;
+      padding-top: 5px;
+      padding-bottom: 4px;
+      line-height: 1.125rem;
+    }
+
+    .ledger-overview-pay > [data-cell="amount"] {
+      grid-column: 2;
+      grid-row: 1;
+      padding-top: 5px;
+      padding-bottom: 4px;
+      line-height: 1.125rem;
+    }
+
+    .ledger-overview-pay > div:nth-child(2) {
+      grid-column: 1;
+      grid-row: 2;
+      padding-bottom: 4px;
+    }
+
+    .ledger-overview-pay > div:nth-child(2) .pay-account {
+      display: none;
+    }
+
+    .ledger-overview-pay > [data-cell="status"] {
+      grid-column: 2;
+      grid-row: 2;
+      padding-top: 0;
+      padding-bottom: 4px;
+      text-align: right;
+    }
+
+    .ledger-overview-pay > [data-cell="document"] {
+      display: none;
     }
   }
 }

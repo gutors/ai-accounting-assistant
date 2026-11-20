@@ -168,7 +168,7 @@ RSpec.describe "Bank statements", type: :request do
     expect(BankStatement.joins(:month).where(months: { organization_id: organization.id }).count).to eq(0)
   end
 
-  it "POST without files opens Incluir extrato on the failing account" do
+  it "POST without files leaves the failing account row offering Incluir extrato" do
     _account, organization, bank_account = open_with_account
     other = BankAccount.create_for(organization: organization, name: "Conta Alfa", compe: "033")
 
@@ -178,10 +178,11 @@ RSpec.describe "Bank statements", type: :request do
     expect(error_notice_text(response.body)).to eq("Envie a planilha")
     failing = row(response.body, "bank-account", bank_account_id: bank_account.id)
     other_row = row(response.body, "bank-account", bank_account_id: other.id)
-    failing_details = failing.css("details").find { |node| node.at_css("summary")&.text&.strip == "Incluir extrato" }
-    other_details = other_row.css("details").find { |node| node.at_css("summary")&.text&.strip == "Incluir extrato" }
-    expect(failing_details.has_attribute?("open")).to eq(true)
-    expect(other_details.has_attribute?("open")).to eq(false)
+    [ failing, other_row ].each do |account_row|
+      expect(account_row.css("details")).to be_empty
+      expect(account_row.at_css(".ledger-row-actions .ledger-action-icon")["aria-label"]).to eq("Incluir extrato")
+      expect(account_row.at_css('[data-cell="documents"]').text.strip).to eq("A planilha é obrigatória")
+    end
   end
 
   it "POST BB scrambled headers returns 422 Nao foi possivel ler a planilha" do

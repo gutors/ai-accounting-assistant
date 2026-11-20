@@ -1,8 +1,0 @@
-<%= form_with url: "/months/#{month.year_month}/bank_statements", method: :post, multipart: true, class: "grid gap-3" do %>
-  <%= hidden_field_tag :bank_account_id, bank_account.id %>
-  <%= render "shared/file_field", name: :pdf, id: "pdf_#{bank_account.id}", field_label: "PDF", action_label: "Incluir PDF" %>
-  <%= render "shared/file_field", name: :spreadsheet, id: "spreadsheet_#{bank_account.id}", field_label: "Planilha", action_label: "Incluir planilha" %>
-  <div>
-    <%= submit_tag "Enviar extrato", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
-  </div>
-<% end %>

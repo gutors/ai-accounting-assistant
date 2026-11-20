@@ -30,6 +30,51 @@
         ],
         "createdAt": "2026-11-19T14:23:56.519Z",
         "reason": "DESIGN.md ledger sheet: 1px vertical rules between cells with the product's 6px 10px inset; empty action tracks are intentional"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/month-statements.html"
+        ],
+        "createdAt": "2026-11-19T20:38:27.901Z",
+        "reason": "DESIGN.md Ledger sheet spec: 1px vertical rules between cells with 6px/10px cell inset and 3px vertical padding on payment rows; the row rule with flush cell text is the intended ledger look, matching the exception already recorded for setup-desk.html"
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/month-statements.html"
+        ],
+        "createdAt": "2026-11-19T20:38:29.126Z",
+        "reason": "DESIGN.md One Red Rule: a missing-document row carries a 3px margem left border with 12px inset; same sanctioned exception already recorded for app/assets/tailwind/application.css"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/statement-inline.html"
+        ],
+        "createdAt": "2026-11-19T21:39:58.546Z",
+        "reason": "DESIGN.md ledger sheet: 1px vertical rules between cells with 6px/10px cell inset and 3px vertical padding on payment rows; the flush row rule is the intended ledger look, same exception recorded for month-statements.html and setup-desk.html"
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/statement-inline.html"
+        ],
+        "createdAt": "2026-11-19T21:40:00.126Z",
+        "reason": "DESIGN.md One Red Rule: a blocked row carries a 3px margem left border with 12px inset; same sanctioned exception as app/assets/tailwind/application.css"
+      },
+      {
+        "rule": "tight-leading",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/statement-inline.html"
+        ],
+        "createdAt": "2026-11-19T21:40:01.771Z",
+        "reason": "Dense payment rows are 14px/18px by design and every such line is truncated to one line (overflow hidden, nowrap), so no multi-line text is affected"
       }
     ]
   }
