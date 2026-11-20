@@ -1,14 +1,14 @@
 # month-statement-row proofs
 
-**HEAD**: 730ae6e
+**HEAD**: 216c881
 **Tree**: clean
-**Result**: 21 pass, 2 fail; mutations 3 killed, 0 not
+**Result**: 23 pass, 0 fail; mutations 3 killed, 0 not
 
 | Check | Proof | Ran | Passed | Result |
 | --- | --- | --- | --- | --- |
 | C1 | `bin/rspec spec/requests/month_statement_row_spec.rb -e "open month account rows carry one statement icon and n` | count unknown | - | pass |
 | C2 | `bin/rspec spec/requests/month_statement_row_spec.rb -e "account without statement shows only the planilha hint` | count unknown | - | pass |
-| C3 | `browser - reach the state, save captures/statement-row.running.png` | - | - | **diverges** (screens.md) |
+| C3 | `browser - reach the state, save captures/statement-row.running.png` | - | - | pass |
 | C4 | `bin/rspec spec/system/month_statement_row_spec.rb -e "picking a spreadsheet alone stages Planilha and offers t` | count unknown | - | pass |
 | C5 | `bin/rspec spec/system/month_statement_row_spec.rb -e "picking a PDF alone withholds the send and keeps the hin` | count unknown | - | pass |
 | C6 | `bin/rspec spec/system/month_statement_row_spec.rb -e "picking both files stages Pdf above Planilha with the se` | count unknown | - | pass |
@@ -25,7 +25,7 @@
 | C12 | `bin/rspec spec/system/month_statement_row_spec.rb -e "every Pagamentos row measures at most 48px across five s` | count unknown | - | pass |
 | C13 | `bin/rspec spec/requests/month_statement_row_spec.rb -e "long history document and status cells truncate and ca` | count unknown | - | pass |
 | C14 | `bin/rspec spec/requests/month_statement_row_spec.rb -e "Pagamentos omits the match observation that matches st` | count unknown | - | pass |
-| C15 | `browser - reach the state at 390px, save captures/statement-row-390.running.png` | - | - | **diverges** (screens.md) |
+| C15 | `browser - reach the state at 390px, save captures/statement-row-390.running.png` | - | - | pass |
 | C15 | `bin/rspec spec/system/month_statement_row_spec.rb -e "390px pagamentos stacks two lines without horizontal scr` | count unknown | - | pass |
 | Build | `bin/rubocop` | - | - | pass |
 | Build | `bin/erb_lint --lint-all` | - | - | pass |
