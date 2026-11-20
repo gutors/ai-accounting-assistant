@@ -188,6 +188,7 @@ The coordinator scans the list instead of reading paragraphs.
 | Option 3 sketch: two controls on an empty row, the `+` in Extrato and `+ Escolher PDF ou planilha` in Documentos | one control, the `+` in the action cell; Documentos carries only the hint | y - AD-0015 |
 | Option 3 sketch: `✓` and `×` from the first staged file | `+` and `×` while a PDF is staged alone; `✓` and `×` once a spreadsheet is staged | y - AD-0015 |
 | Option 3 sketch: `Escolher PDF ou planilha` as the cell's quiet link | nothing; criterion 2's hint sentence | y - AD-0015 |
+| Option 3 sketch, phone: a three-line brand block with the nav in a right-hand column beside it | the shared header's own wrap: the brand takes one line and the nav wraps under it, same five labels in the same order | y - AD-0016 |
 
 ## Sources
 
