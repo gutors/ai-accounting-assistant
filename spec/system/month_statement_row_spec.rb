@@ -41,7 +41,16 @@ RSpec.describe "Month statement row", type: :system do
   end
 
   def document_lines(bank_account)
-    account_row(bank_account).all("[data-cell='documents'] p", visible: true).map { |node| node.text.strip }
+    deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + Capybara.default_max_wait_time
+    loop do
+      begin
+        return account_row(bank_account).all("[data-cell='documents'] p", visible: true).map { |node| node.text.strip }
+      rescue Capybara::Cuprite::ObsoleteNode
+        raise if Process.clock_gettime(Process::CLOCK_MONOTONIC) > deadline
+
+        sleep 0.05
+      end
+    end
   end
 
   def open_month(account_name: "Conta Principal")
@@ -123,10 +132,10 @@ RSpec.describe "Month statement row", type: :system do
 
     within(account_row(bank_account)) { find("[data-statement-row-target='send']").click }
 
-    expect(page).to have_current_path("/months/2026-05")
-    expect(document_lines(bank_account)).to eq([ "Pdf extrato-maio-2026.pdf", "Planilha extrato-maio-2026.csv" ])
-    expect(account_row(bank_account)).to have_text("Presente")
     expect(page).to have_css("[data-toast]")
+    expect(account_row(bank_account)).to have_text("Presente")
+    expect(document_lines(bank_account)).to eq([ "Pdf extrato-maio-2026.pdf", "Planilha extrato-maio-2026.csv" ])
+    expect(page).to have_current_path("/months/2026-05")
   end
 
   it "descartar clears the staged files without posting" do
