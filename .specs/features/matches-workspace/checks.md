@@ -124,7 +124,7 @@ Proof: `bin/rspec spec/system/matches_workspace_spec.rb -e "workspace criterion 
 ## Handoff
 
 - **Settled mid-build:** none
-- **Dispatched:** none
-- **Boundary:** implementation complete; final HEAD proofs and independent verification pending
+- **Dispatched:** Verifier at `389e2b3` - returned FAIL; six findings, including two surviving mutations
+- **Boundary:** C1-C28 implemented at `389e2b3`; Verifier findings addressed in tests, final proofs and mutation gate pending
 - **Abandoned:** GitHub issue creation rejected by automatic approval review
 - **Walked:** Browser-driven system examples sign in as coordinator, open `/months/2026-05/matches`, adjust documents and payments, confirm a match, open the exception picker and mark or unmark an exception, expand match details, and view the screen at 375px and 1440px. The app was visually inspected from the system-browser capture.

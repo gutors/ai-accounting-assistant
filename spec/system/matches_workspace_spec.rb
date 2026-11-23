@@ -114,7 +114,7 @@ RSpec.describe "Matches workspace", type: :system do
     @payment.update!(amount_cents: 23000)
     open_workspace
     click_button "Confirmar casamento"
-    expect(page).to have_text(Match::LESSER)
+    expect(page).to have_text("Informe a observação do casamento")
     expect(Match.count).to eq(0)
   end
 
@@ -154,6 +154,7 @@ RSpec.describe "Matches workspace", type: :system do
     expect(page).to have_button("Marcar exceção")
     expect(page).to have_text("Documentos removidos")
     expect(page).to have_text("Pagamentos R$ 220,00")
+    expect(find("[data-document-id='#{@document.id}'] input", visible: false)).not_to be_checked
     expect(page).to have_no_button("Adicionar outro pagamento")
     find('[data-current="true"] input[type="checkbox"]').click
     expect(find('[data-current="true"] input[type="checkbox"]')).to be_checked
@@ -167,6 +168,7 @@ RSpec.describe "Matches workspace", type: :system do
     click_button "Cancelar exceção"
     expect(page).to have_button("Confirmar casamento")
     expect(page).to have_text("Nenhum documento selecionado")
+    expect(find("[data-document-id='#{@document.id}'] input", visible: false)).not_to be_checked
     click_button "Adicionar documentos"
     check "supporting_document_ids[]"
     expect(page).to have_text("Documentos R$ 220,00")
@@ -191,18 +193,25 @@ RSpec.describe "Matches workspace", type: :system do
   end
 
   it "workspace criterion 19" do
-    Match.confirm(month: @month, payments: [ @payment ], supporting_documents: [ @document ])
+    @document.update!(payee: "Fornecedor distinto", amount_cents: 20000)
+    Match.confirm(month: @month, payments: [ @payment ], supporting_documents: [ @document ], observation: "Ajuste")
     open_workspace
-    expect(page).to have_css("[data-match-id]", count: 1, text: "Padaria Central")
-    expect(page).to have_css("[data-match-id]", text: "R$ 220,00")
+    expect(page).to have_css("[data-match-id]", count: 1)
+    within("[data-match-id]") do
+      cells = all("td", minimum: 6).map(&:text)
+      expect(cells[0..4]).to eq([ "11/05", "Padaria Central", "R$ 220,00", "Fornecedor distinto · 1 documento", "R$ 200,00" ])
+    end
   end
 
   it "workspace criterion 20" do
-    Match.confirm(month: @month, payments: [ @payment ], supporting_documents: [ @document ], observation: "Conferido")
+    @document.update!(payee: "Fornecedor A", amount_cents: 12000)
+    other = plant_recibo(@organization, @account, payee: "Fornecedor B", amount: "100,00", date: "2026-05-12")
+    Match.confirm(month: @month, payments: [ @payment ], supporting_documents: [ @document, other ], observation: "Conferido")
     open_workspace
     find("summary", text: "Ver detalhes").click
-    expect(page).to have_text("Pagamento · 11/05")
-    expect(page).to have_text("Recibo · 11/05")
+    expect(page).to have_text("Pagamento · 11/05 · Padaria Central · Conta Principal · R$ 220,00")
+    expect(page).to have_text("Recibo · 11/05 · Fornecedor A · R$ 120,00")
+    expect(page).to have_text("Recibo · 12/05 · Fornecedor B · R$ 100,00")
     expect(page).to have_text("Observação: Conferido")
   end
 
@@ -241,6 +250,10 @@ RSpec.describe "Matches workspace", type: :system do
     second = BankAccount.create_for(organization: @organization, name: "Conta Outra", compe: "033")
     statement = BankStatement.create!(month: @month, bank_account: second)
     other = plant_payment(statement, 1000, history: "Outro banco")
+    fee_other = plant_payment(statement, 500, history: "Tarifa Outra")
+    fee_principal = plant_payment(@statement, 600, history: "Tarifa Principal")
+    mark_fee(fee_other)
+    mark_fee(fee_principal)
     @document.update!(amount_cents: 23000)
     Match.confirm(month: @month, payments: [ @payment, other ], supporting_documents: [ @document ])
     open_workspace("?bank_account_id=#{second.id}")
@@ -248,13 +261,20 @@ RSpec.describe "Matches workspace", type: :system do
     expect(page).to have_text("Padaria Central")
     expect(page).to have_text("Outro banco")
     expect(page).to have_css("[data-match-id]", count: 1)
+    expect(page).to have_css("[data-exception-payment-id='#{fee_other.id}']", text: "Tarifa Outra")
+    expect(page).to have_no_css("[data-exception-payment-id='#{fee_principal.id}']")
   end
 
   it "workspace criterion 25" do
-    mark_fee
+    matched_payment = plant_payment(@statement, 22000, history: "Pagamento casado")
+    Match.confirm(month: @month, payments: [ matched_payment ], supporting_documents: [ @document ])
+    mark_fee(@payment)
     @month.update!(closed: true)
     open_workspace
     expect(page).to have_text("Exceções marcadas")
+    expect(page).to have_css("[data-match-id]", text: "Pagamento casado")
+    find("summary", text: "Ver detalhes").click
+    expect(page).to have_no_button("Desfazer casamento")
     expect(page).to have_no_button("Marcar exceção")
     expect(page).to have_no_button("Desmarcar exceção")
     expect(page).to have_no_button("Confirmar casamento")
@@ -270,11 +290,27 @@ RSpec.describe "Matches workspace", type: :system do
   end
 
   it "workspace criterion 27" do
+    matched_payment = plant_payment(@statement, 22000, history: "Pagamento casado")
+    Match.confirm(month: @month, payments: [ matched_payment ], supporting_documents: [ @document ])
+    fee = plant_payment(@statement, 500, history: "Tarifa bancária")
+    mark_fee(fee)
     open_workspace
     [ 375, 1440 ].each do |width|
       page.current_window.resize_to(width, 900)
       expect(page).to have_button("Confirmar casamento")
       expect(page.evaluate_script("document.documentElement.scrollWidth <= window.innerWidth")).to eq(true)
+      expect(page).to have_css(".match-table-scroll", count: 2)
+      scroll = page.evaluate_script(<<~JS)
+        Array.from(document.querySelectorAll('.match-table-scroll')).map((el) => {
+          el.scrollLeft = el.scrollWidth;
+          return { width: el.clientWidth, content: el.scrollWidth, left: el.scrollLeft };
+        })
+      JS
+      if width == 375
+        expect(scroll).to all(satisfy { |item| item["content"] > item["width"] && item["left"] > 0 })
+      else
+        expect(scroll).to all(satisfy { |item| item["content"] <= item["width"] || item["left"] > 0 })
+      end
     end
   end
 
