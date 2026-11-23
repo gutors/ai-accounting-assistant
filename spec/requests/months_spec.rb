@@ -382,8 +382,8 @@ RSpec.describe "Months", type: :request do
 
     expect(response.body).to include("Doação")
     expect(response.body).to include("name=\"extra_exception_kind_id\"")
-    expect(response.body).to include("value=\"#{organization.extra_exception_kinds.find_by!(name: "Doação").id}\"")
-    expect(response.body).to include("Documento faltante")
+    expect(response.body).to include("data-extra-id=\"#{organization.extra_exception_kinds.find_by!(name: "Doação").id}\"")
+    expect(response.body).to include("documento faltante")
     expect(payment).to be_missing_document
   end
 
@@ -1556,7 +1556,7 @@ RSpec.describe "Months", type: :request do
 
     get "/months/2026-05/matches"
 
-    expect(response.body).to include("Marcar tarifa")
+    expect(response.body).to include("Tarifa bancária")
     expect(org_a.reload.bank_fee_exception_active).to eq(false)
     expect(account_a).to be_present
     expect(payment_b).to be_missing_document

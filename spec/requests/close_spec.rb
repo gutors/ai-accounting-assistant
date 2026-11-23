@@ -28,7 +28,7 @@ RSpec.describe "Close for send", type: :request do
     plant_payment(statement, 22000, history: "Pix enviado chave-pix")
 
     get "/months/2026-05/matches"
-    expect(payment_status_html(response.body, history: "Pix enviado chave-pix")).to include("Sugestão de exceção")
+    expect(response.body).to include("Pix enviado chave-pix", "Sugestão de exceção")
 
     post_close
 

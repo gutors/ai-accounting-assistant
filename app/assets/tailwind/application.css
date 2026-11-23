@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./matches.css";
 
 /* Self-hosted IBM Plex (OFL, Latin subset). Propshaft rewrites the url() to the digested /assets/ path. */
 @font-face {

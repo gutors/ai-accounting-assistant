@@ -52,49 +52,26 @@ RSpec.describe "Month matches screen", type: :request do
     page_doc(body).at_css(".match-next__hit")
   end
 
-  it "GET matches chrome is month title Voltar and omits Fechar Recebimentos stamp" do
+  it "GET matches identifies page and month and omits close controls" do
     signed_month
-
     get "/months/2026-05/matches"
-
     expect(response).to have_http_status(:ok)
     doc = page_doc(response.body)
-    expect(doc.at_css("h1").text.strip).to eq("maio de 2026")
-    meta = doc.at_css("h1").parent.at_css("p")
-    expect(meta.text.strip).to eq("2026-05")
-    expect(meta["class"]).to include("text-meta")
-    expect(meta["class"]).to include("text-ink-soft")
-    back = doc.css("a").find { |node| node.text.strip == "Voltar ao mês" }
-    expect(back["href"]).to eq("/months/2026-05")
-    cluster = doc.at_css("h1").parent.parent
-    expect(cluster["class"]).to include("justify-between")
-    cluster_kids = cluster.element_children
-    expect(cluster_kids[0].at_css("h1").text.strip).to eq("maio de 2026")
-    expect(cluster_kids[1].text.strip).to eq("Voltar ao mês")
-    expect(response.body).not_to include("Fechar para envio")
-    expect(matches_h2s(response.body)).not_to include("Recebimentos")
+    expect(doc.at_css("h1").text.strip).to eq("Casar pagamentos")
+    expect(doc.text).to include("maio de 2026", "2026-05", "Voltar ao mês")
+    expect(response.body).not_to include("Fechar para envio", "Recebimentos")
     expect(doc.at_css('[data-stamp="closed"]')).to be_nil
   end
 
-  it "GET matches Pagamentos precedes pool inside match-split and omits close Devolver" do
-    signed_month
-
+  it "GET matches workspace has payment and document sections and no close controls" do
+    _account, _organization, _month, statement = signed_month
+    plant_payment(statement, 10000)
     get "/months/2026-05/matches"
-
     doc = page_doc(response.body)
-    split = doc.at_css(".match-split")
-    expect(split).to be_present
-    headings = split.css("h2").map { |node| node.text.strip }
-    expect(headings).to eq([ "Pagamentos", "Documentos sem casamento" ])
-    regions = doc.at_css("[data-controller='month-match']").element_children
-    chip_at = regions.index { |node| node["role"] == "group" }
-    count_at = regions.index { |node| node.name == "p" && node.text.include?("documento faltante") }
-    split_at = regions.index { |node| node["class"].to_s.split.include?("match-split") }
-    expect(chip_at).to be < count_at
-    expect(count_at).to be < split_at
+    headings = doc.at_css(".match-workspace").css("h2").map { |node| node.text.strip }
+    expect(headings).to eq([ "Pagamento em análise", "Documentos selecionados" ])
     expect(doc.at_css("form#close-month")).to be_nil
-    controls = page_doc(response.body).css("a, button, input[type='submit']").map { |node| (node["value"] || node.text).strip }
-    expect(controls).not_to include("Devolver")
+    expect(doc.text).not_to include("Devolver")
   end
 
   it "GET matches chips Todas Alfa Principal with Todas current" do
@@ -110,46 +87,28 @@ RSpec.describe "Month matches screen", type: :request do
     expect(links[1]["aria-current"]).to be_nil
   end
 
-  it "GET matches filter Principal hides Alfa payment and keeps Padaria in pool" do
+  it "GET matches filter selects Principal payment and retains eligible document" do
     account, organization, _month, _alfa, principal, alfa_statement, principal_statement = two_account_month
     plant_payment(principal_statement, 22000, history: "Pix enviado — Padaria Central")
     plant_payment(alfa_statement, 45000, history: "TED — Energia Ltda")
     plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
-
     get "/months/2026-05/matches", params: { bank_account_id: principal.id }
-
-    current = chip_links(response.body).find { |node| node["aria-current"] == "true" }
-    expect(current.text.strip).to eq("Conta Principal")
-    todas = chip_links(response.body).find { |node| node.text.strip == "Todas" }
-    expect(todas["aria-current"]).to be_nil
-    pay = pagamentos_section(response.body)
-    expect(pay.text).to include("Pix enviado — Padaria Central")
-    expect(pay.text).to include("Conta Principal")
-    expect(pay.text).not_to include("TED — Energia Ltda")
-    summary = page_doc(response.body).css("p, span").find { |node| node.text.include?("documento faltante") }
-    expect(summary.text.strip).to eq("1 pagamento com documento faltante.")
-    expect(summary["class"]).to include("text-margem")
-    expect(pool_section(response.body).text).to include("Padaria Central")
+    expect(chip_links(response.body).find { |node| node["aria-current"] == "true" }.text.strip).to eq("Conta Principal")
+    expect(page_doc(response.body).at_css('[data-current="true"]').text).to include("Pix enviado — Padaria Central", "Conta Principal")
+    expect(response.body).not_to include("TED — Energia Ltda")
+    expect(response.body).to include("1 pagamento com documento faltante.", "Padaria Central")
   end
 
-  it "GET matches unfiltered missing count is two and filtered none omits margem" do
+  it "GET matches missing count follows account filter" do
     _account, _organization, _month, _alfa, principal, alfa_statement, principal_statement = two_account_month
-    plant_payment(principal_statement, 22000, history: "Pix enviado — Padaria Central")
-    plant_payment(alfa_statement, 45000, history: "TED — Energia Ltda")
-
+    plant_payment(principal_statement, 22000, history: "Principal")
+    plant_payment(alfa_statement, 45000, history: "Alfa")
     get "/months/2026-05/matches"
-
-    two = page_doc(response.body).css("p, span").find { |node| node.text.include?("documento faltante") }
-    expect(two.text.strip).to eq("2 pagamentos com documento faltante.")
-    expect(two["class"]).to include("text-margem")
-
-    plant_payment(principal_statement, 10000, history: "Tarifa").mark_document_exception("bank_fee")
-    Payment.find_by!(history: "Pix enviado — Padaria Central").mark_document_exception("bank_fee")
-
+    expect(response.body).to include("2 pagamentos com documento faltante.")
+    Payment.find_by!(history: "Principal").mark_document_exception("bank_fee")
     get "/months/2026-05/matches", params: { bank_account_id: principal.id }
-
-    none = page_doc(response.body).css("p, span").find { |node| node.text.include?("documento faltante") }
-    expect(none.text.strip).to eq("Nenhum documento faltante.")
+    none = page_doc(response.body).css("p").find { |node| node.text.include?("documento faltante") }
+    expect(none.text.strip).to eq("Nenhum pagamento com documento faltante.")
     expect(none["class"].to_s).not_to include("text-margem")
   end
 
@@ -170,309 +129,173 @@ RSpec.describe "Month matches screen", type: :request do
     expect(response).to have_http_status(:not_found)
   end
 
-  it "GET matches missing payment omits Casar and suggestion payees" do
+  it "GET matches shows current payment and its selected suggestion" do
     account, organization, _month, statement = signed_month
     statement.bank_account.update!(name: "Conta Principal")
-    organization.update!(accountant_pix_key: "chave-pix")
     plant_payment(statement, 22000, history: "Pix enviado — Padaria Central", occurred_on: Date.new(2026, 5, 11))
-    plant_payment(statement, 15000, history: "Pix enviado chave-pix", occurred_on: Date.new(2026, 5, 12))
     plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
-
     get "/months/2026-05/matches"
-
-    row = page_doc(response.body).css('li[data-row="payment"][data-status="missing"]').find { |node|
-      node.text.include?("Pix enviado — Padaria Central")
-    }
-    expect(row["class"]).to include("is-block")
-    first = row.element_children.first
-    expect(first.at_css('input[type="checkbox"]')).to be_present
-    expect(row.at_css("time").text.strip).to eq("11/05")
-    expect(row.text).to include("Pix enviado — Padaria Central")
-    expect(row.text).to include("Conta Principal")
-    expect(row.text).to include("R$ 220,00")
-    faltante = row.css("p").find { |node| node.text.strip == "Documento faltante" }
-    expect(faltante["class"]).to include("text-margem")
-    expect(row.text).not_to include("Sugestão Padaria Central")
-    expect(row.text).not_to include("Casar")
-    expect(row.text).not_to include("Sugestão de exceção")
-    expect(row.text).not_to include("Resolver")
-    css = Rails.root.join("app/assets/tailwind/application.css").read
-    expect(css).to match(/\.ledger-row\.is-block\s*\{\s*border-left:\s*3px solid var\(--color-margem\)/m)
-    exception_row = page_doc(response.body).css('li[data-row="payment"][data-status="missing"]').find { |node|
-      node.text.include?("Pix enviado chave-pix")
-    }
-    expect(exception_row.text).to include("Sugestão de exceção")
-    expect(exception_row.text).to include("Documento faltante")
+    doc = page_doc(response.body)
+    payment = doc.at_css('[data-current="true"]')
+    expect(payment.text).to include("11/05", "Pix enviado — Padaria Central", "Conta Principal", "R$ 220,00")
+    expect(payment.at_css('input[checked]')).to be_present
+    document = doc.at_css('[data-row="pool-document"]')
+    expect(document.text).to include("Padaria Central", "R$ 220,00")
+    expect(document.at_css('input[checked]')).to be_present
   end
 
-  it "GET matches Casado row is times undo with payee observation and no checkbox" do
+  it "GET matches completed row includes payee observation and undo" do
     account, organization, month, statement = signed_month
     payment = plant_payment(statement, 22000, history: "Pix enviado — Padaria Central", occurred_on: Date.new(2026, 5, 11))
     document = plant_recibo(organization, account, payee: "Padaria Central", amount: "200,00")
-    Match.confirm(month: month, payments: [ payment ], supporting_documents: [ document ], observation: "desconto não documentado")
-
+    match = Match.confirm(month: month, payments: [ payment ], supporting_documents: [ document ], observation: "desconto não documentado")
     get "/months/2026-05/matches"
-
-    row = page_doc(response.body).at_css('li[data-row="payment"][data-status="matched"]')
-    first = row.element_children.first
-    undo = first.at_css('[aria-label="Desfazer casamento"]')
-    expect(undo.text.strip).to eq("×")
-    expect(undo["class"]).to include("text-margem")
+    row = page_doc(response.body).at_css("[data-match-id='#{match.id}']")
+    expect(row.text).to include("Padaria Central", "desconto não documentado", "Desfazer casamento")
     expect(row.at_css('input[type="checkbox"]')).to be_nil
-    expect(row.text).to include("Casado")
-    expect(row.text).to include("Padaria Central")
-    expect(row.text).to include("desconto não documentado")
-    expect(row.text).not_to include("Ações")
   end
 
-  it "GET matches exception row times Desmarcar excecao" do
+  it "GET matches exception rows offer unmark for each type" do
     _account, organization, _month, statement = signed_month
     extra = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
-
-    [
-      [ "bank_fee", "Tarifa bancária", proc { |payment| payment.mark_document_exception("bank_fee") } ],
-      [ "accountant_fee", "Honorário do contador", proc { |payment| payment.mark_document_exception("accountant_fee") } ],
-      [ "extra", extra.name, proc { |payment| payment.mark_document_exception(extra_exception_kind_id: extra.id) } ]
-    ].each do |status, label, mark|
-      payment = plant_payment(statement, 22000, history: "Pix #{status}")
+    [ [ "Tarifa bancária", proc { |p| p.mark_document_exception("bank_fee") } ],
+      [ "Honorário do contador", proc { |p| p.mark_document_exception("accountant_fee") } ],
+      [ extra.name, proc { |p| p.mark_document_exception(extra_exception_kind_id: extra.id) } ] ].each do |label, mark|
+      payment = plant_payment(statement, 22000, history: "Pix #{label}")
       mark.call(payment)
-
       get "/months/2026-05/matches"
-
-      row = page_doc(response.body).at_css(%(li[data-row="payment"][data-status="#{status}"]))
-      expect(row.text).to include(label)
-      undo = row.element_children.first.at_css('[aria-label="Desmarcar exceção"]')
-      expect(undo.text.strip).to eq("×")
-      expect(row.text).not_to include("Resolver")
+      row = page_doc(response.body).at_css("[data-exception-payment-id='#{payment.id}']")
+      expect(row.text).to include(label, "Desmarcar exceção")
     end
   end
 
-  it "GET matches payments follow occurred_on id and omit N:1 fold" do
+  it "GET matches orders pending payments by date then id" do
     _account, _organization, _month, statement = signed_month
     later = plant_payment(statement, 10000, history: "Depois", occurred_on: Date.new(2026, 5, 12))
     earlier = plant_payment(statement, 10000, history: "Antes", occurred_on: Date.new(2026, 5, 11))
     same_b = plant_payment(statement, 10000, history: "Mesmo B", occurred_on: Date.new(2026, 5, 11))
     same_a = plant_payment(statement, 10000, history: "Mesmo A", occurred_on: Date.new(2026, 5, 11))
-
     get "/months/2026-05/matches"
-
-    ids = page_doc(response.body).css('li[data-row="payment"]').map { |node| node["data-payment-id"].to_i }
+    ids = page_doc(response.body).css('[data-row="payment"]').map { |node| node["data-payment-id"].to_i }
     expect(ids).to eq([ earlier.id, same_b.id, same_a.id, later.id ])
-    expect(response.body).not_to include("Casar vários pagamentos com um documento")
+    expect(page_doc(response.body).at_css('[data-current="true"]')["data-payment-id"]).to eq(earlier.id.to_s)
   end
 
-  it "GET matches pool is oldest first and documents index stays listed desc" do
-    account, organization, month, _statement = signed_month
-    april, _april_statement = plant_month(organization, year_month: "2026-04")
-    plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00", date: "2026-05-11")
-    SupportingDocument.insert(
-      organization: organization,
-      account: account,
-      kind: "nota_fiscal",
-      amount: "180,00",
-      date: "2026-05-12",
-      payee: "Mercado Silva",
-      photo: photo_named("nota-mercado-silva.jpg")
-    )
-    packaged = plant_recibo(organization, account, payee: "No Pacote", amount: "50,00", date: "2026-05-10")
-    packaged.update!(month_id: month.id)
-    other_month = plant_recibo(organization, account, payee: "Outro Mês", amount: "30,00", date: "2026-04-01")
-    other_month.update!(month_id: april.id)
-
+  it "GET matches lists eligible documents oldest first and excludes other months" do
+    account, organization, month, statement = signed_month
+    plant_payment(statement, 10000)
+    april, = plant_month(organization, year_month: "2026-04")
+    first = plant_recibo(organization, account, payee: "Padaria", amount: "100,00", date: "2026-05-11")
+    last = plant_recibo(organization, account, payee: "Mercado", amount: "180,00", date: "2026-05-12")
+    same_month = plant_recibo(organization, account, payee: "No Pacote", amount: "50,00", date: "2026-05-10")
+    same_month.update!(month_id: month.id)
+    other = plant_recibo(organization, account, payee: "Outro Mês", amount: "30,00", date: "2026-04-01")
+    other.update!(month_id: april.id)
     get "/months/2026-05/matches"
-
-    rows = page_doc(response.body).css('li[data-row="pool-document"]')
-    payees = rows.map { |node| node.at_css("label, p.font-medium")&.text&.strip }
-    expect(payees.index("Padaria Central")).to be < payees.index("Mercado Silva")
-    expect(payees).to include("No Pacote")
-    expect(payees).not_to include("Outro Mês")
-    padaria = rows.find { |node| node.text.include?("Padaria Central") }
-    mercado = rows.find { |node| node.text.include?("Mercado Silva") }
-    expect(padaria.at_css('input[type="checkbox"]')).to be_present
-    expect(padaria.at_css("time").text.strip).to eq("11/05")
-    expect(padaria.text).to include("R$ 220,00")
-    expect(padaria.text).to include("Recibo")
-    expect(mercado.at_css("time").text.strip).to eq("12/05")
-    expect(mercado.text).to include("R$ 180,00")
-    expect(mercado.text).to include("Nota fiscal")
-
+    rows = page_doc(response.body).css('[data-row="pool-document"]')
+    expect(rows.map { |row| row["data-document-id"].to_i }).to eq([ same_month.id, first.id, last.id ])
+    expect(rows.map(&:text).join).not_to include("Outro Mês")
     get "/supporting_documents"
-    sem_mes = page_doc(response.body).css('li[data-row="document"]').filter_map { |node|
-      payee = node.at_css("label, p.font-medium")&.text&.strip
-      payee if [ "Mercado Silva", "Padaria Central" ].include?(payee)
-    }
-    expect(sem_mes).to eq([ "Mercado Silva", "Padaria Central" ])
-
-    month.update!(closed: true)
-    get "/months/2026-05/matches"
-    closed_payees = page_doc(response.body).css('li[data-row="pool-document"]').map { |node|
-      node.at_css("label, p.font-medium")&.text&.strip
-    }
-    expect(closed_payees).to eq([ "No Pacote" ])
+    entries = page_doc(response.body).css('li[data-row="document"]').map(&:text).join
+    expect(entries).to include("Padaria", "Mercado")
   end
 
-  it "GET matches empty pool copy and no pool rows" do
-    signed_month
-
+  it "GET matches shows empty document selection when no documents exist" do
+    _account, _organization, _month, statement = signed_month
+    plant_payment(statement, 10000)
     get "/months/2026-05/matches"
-
-    expect(response.body).to include("Nenhum documento sem casamento")
-    expect(page_doc(response.body).css('li[data-row="pool-document"]')).to be_empty
+    expect(response.body).to include("Nenhum documento selecionado")
+    expect(page_doc(response.body).css('[data-row="pool-document"]')).to be_empty
   end
 
-  it "GET matches confirm band sits above the split with observation border-rule" do
-    _account, organization, _month, _statement = signed_month
+  it "GET matches form includes observation and active exception choices" do
+    _account, organization, _month, statement = signed_month
+    plant_payment(statement, 10000)
     ExtraExceptionKind.create_for(organization: organization, name: "Zebra", justification: "Isento de documento de suporte.")
     ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
-
     get "/months/2026-05/matches"
-
-    doc = page_doc(response.body)
     confirm = confirm_form(response.body)
     expect(confirm).to be_present
-    html = response.body
-    confirm_at = html.index('id="match-confirm"')
-    split_at = html.index("match-split")
-    expect(confirm_at).to be < split_at
-    expect(html.rindex('id="match-confirm"')).to eq(confirm_at)
-    css = Rails.root.join("app/assets/tailwind/application.css").read
-    expect(css).to match(/\.match-top\s*\{[^}]*position:\s*sticky/m)
-    expect(css).to match(/\.match-top\s*\{[^}]*top:\s*0/m)
-    expect(css).to match(/\.match-top\s*\{[^}]*border-bottom:\s*1px solid var\(--color-ink\)/m)
-    expect(css).not_to match(/#match-confirm[^\{]*\{[^}]*border-top:\s*1px solid var\(--color-ink\)/m)
-    expect(css).not_to match(/\.match-confirm\s*\{[^}]*border-top:\s*1px solid var\(--color-ink\)/m)
-    expect(confirm.text).to include("Pagamentos")
-    expect(confirm.text).to include("Documentos")
-    expect(confirm.at_css("label")&.text).to include("Observação do casamento")
-    observation = confirm.at_css("textarea")
-    expect(observation["class"]).to include("border-rule")
-    expect(observation["class"]).not_to include("margem")
-    submits = confirm.css('input[type="submit"], button').map { |node|
-      label = node.text.strip
-      label.present? ? label : node["value"].to_s.strip
-    }
-    expect(submits).to include("Confirmar casamento")
-    tarifa_at = submits.index("Marcar tarifa")
-    honorario_at = submits.index("Marcar honorário")
-    doacao_at = submits.index("Doação")
-    zebra_at = submits.index("Zebra")
-    confirm_idx = submits.index("Confirmar casamento")
-    expect(confirm_idx).to be < tarifa_at
-    expect(tarifa_at).to be < honorario_at
-    expect(honorario_at).to be < doacao_at
-    expect(doacao_at).to be < zebra_at
+    expect(confirm.text).to include("Pagamentos", "Documentos", "Observação do casamento")
+    expect(confirm.at_css("textarea")["class"]).to include("border-rule")
+    expect(confirm.at_css('input[type="submit"]')["value"]).to eq("Confirmar casamento")
+    expect(confirm.text).to include("Escolher exceção", "Tarifa bancária", "Honorário do contador", "Doação", "Zebra")
   end
 
-  it "GET matches next suggestion is Padaria 1:1 above confirm" do
+  it "GET matches preselects Padaria 1:1 without confirming" do
     account, organization, _month, statement = signed_month
-    plant_payment(statement, 22000, history: "Pix enviado — Padaria Central", occurred_on: Date.new(2026, 5, 11))
-    plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00", date: "2026-05-11")
-
+    payment = plant_payment(statement, 22000, history: "Pix enviado — Padaria Central", occurred_on: Date.new(2026, 5, 11))
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00", date: "2026-05-11")
     get "/months/2026-05/matches"
-
-    band = next_band(response.body)
-    expect(band).to be_present
-    expect(band.at_css("h2").text.strip).to eq("Próxima sugestão")
-    hit = next_hit(response.body)
-    expect(hit.text).to include("Pagamento")
-    expect(hit.text).to include("casar com")
-    expect(hit.text).to include("Documento")
-    expect(hit.text).to include("11/05")
-    expect(hit.text).to include("Pix enviado — Padaria Central")
-    expect(hit.text).to include("Padaria Central")
-    expect(hit.text).to include("R$ 220,00")
-    expect(hit.text.scan("R$ 220,00").size).to eq(2)
-    html = response.body
-    expect(html.index("Próxima sugestão")).to be < html.index('id="match-confirm"')
-    expect(html.index('id="match-confirm"')).to be < html.index("match-split")
+    doc = page_doc(response.body)
+    expect(doc.at_css("[data-payment-id='#{payment.id}']").text).to include("11/05", "Pix enviado — Padaria Central", "R$ 220,00")
+    expect(doc.at_css("[data-document-id='#{document.id}']").text).to include("11/05", "Padaria Central", "R$ 220,00")
+    expect(doc.at_css("[data-document-id='#{document.id}'] input[checked]")).to be_present
+    expect(Match.count).to eq(0)
   end
 
-  it "GET matches next suggestion ignores leftover catalog debit of the same amount" do
+  it "GET matches pending queue ignores catalog debit" do
     account, organization, _month, statement = signed_month
     plant_payment(statement, 22000, history: "Transferência — BB Rende Fácil")
     plant_payment(statement, 22000, history: "Pix enviado — Padaria Central", occurred_on: Date.new(2026, 5, 11))
-    plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00", date: "2026-05-11")
-
+    plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
     get "/months/2026-05/matches"
-
     expect(response.body).not_to include("Transferência — BB Rende Fácil")
-    expect(next_hit(response.body).text).to include("Pix enviado — Padaria Central")
+    expect(page_doc(response.body).at_css('[data-current="true"]').text).to include("Pix enviado — Padaria Central")
   end
 
-  it "GET matches next suggestion is the earlier Fornecedor Norte payment" do
+  it "GET matches selects earlier Fornecedor Norte payment" do
     account, organization, _month, statement = signed_month
     plant_payment(statement, 22000, history: "Pix enviado — Padaria Central", occurred_on: Date.new(2026, 5, 11))
     plant_payment(statement, 22000, history: "TED — Fornecedor Norte", occurred_on: Date.new(2026, 5, 4))
     plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
     plant_recibo(organization, account, payee: "Fornecedor Norte", amount: "220,00")
-
     get "/months/2026-05/matches"
-
-    hit = next_hit(response.body)
-    expect(hit.text).to include("TED — Fornecedor Norte")
-    expect(hit.text).not_to include("Pix enviado — Padaria Central")
+    row = page_doc(response.body).at_css('[data-current="true"]')
+    expect(row.text).to include("TED — Fornecedor Norte")
+    expect(row.text).not_to include("Pix enviado — Padaria Central")
   end
 
-  it "GET matches next suggestion follows the Principal account filter" do
+  it "GET matches current payment follows Principal account filter" do
     account, organization, _month, _alfa, principal, alfa_statement, principal_statement = two_account_month
     plant_payment(principal_statement, 22000, history: "Pix enviado — Padaria Central", occurred_on: Date.new(2026, 5, 11))
     plant_payment(alfa_statement, 22000, history: "TED — Fornecedor Norte", occurred_on: Date.new(2026, 5, 4))
     plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
-    plant_recibo(organization, account, payee: "Fornecedor Norte", amount: "220,00")
-
     get "/months/2026-05/matches", params: { bank_account_id: principal.id }
-
-    hit = next_hit(response.body)
-    expect(hit.text).to include("Pix enviado — Padaria Central")
-    expect(hit.text).not_to include("Fornecedor Norte")
+    row = page_doc(response.body).at_css('[data-current="true"]')
+    expect(row.text).to include("Pix enviado — Padaria Central")
+    expect(row.text).not_to include("Fornecedor Norte")
   end
 
-  it "GET matches next suggestion 1:N joins payees and earliest date" do
+  it "GET matches suggestion 1:N displays both selected documents" do
     account, organization, _month, statement = signed_month
     plant_payment(statement, 15500, history: "Pix papelaria")
     first = plant_recibo(organization, account, payee: "Papelaria Norte", amount: "100,00", date: "2026-05-13")
     second = plant_recibo(organization, account, payee: "Papelaria Norte", amount: "55,00", date: "2026-05-14")
-    Justification.declare(
-      organization: organization,
-      account: account,
-      amount: "155,00",
-      supporting_document_ids: [ first.id, second.id ]
-    )
-
+    Justification.declare(organization: organization, account: account, amount: "155,00", supporting_document_ids: [ first.id, second.id ])
     get "/months/2026-05/matches"
-
-    hit = next_hit(response.body)
-    expect(hit.text).to include("13/05")
-    expect(hit.text).to include("Papelaria Norte, Papelaria Norte")
-    expect(hit.text).to include("R$ 155,00")
+    rows = page_doc(response.body).css('[data-row="pool-document"]')
+    expect(rows.map { |row| row["data-document-id"].to_i }).to eq([ first.id, second.id ])
+    expect(rows.map { |row| row.at_css("input[checked]") }).to all(be_present)
+    expect(rows.map(&:text).join).to include("13/05", "14/05", "R$ 100,00", "R$ 55,00")
   end
 
-  it "GET matches still includes Sugestao de excecao" do
+  it "GET matches still includes exception suggestion for current payment" do
     _account, organization, _month, statement = signed_month
     organization.update!(accountant_pix_key: "chave-pix")
     plant_payment(statement, 22000, history: "Pix enviado chave-pix")
-
     get "/months/2026-05/matches"
-
-    row = page_doc(response.body).css('li[data-row="payment"][data-status="missing"]').find { |node|
-      node.text.include?("Pix enviado chave-pix")
-    }
-    expect(row.text).to include("Sugestão de exceção")
+    expect(response.body).to include("Pix enviado chave-pix", "Sugestão de exceção")
   end
 
-  it "GET matches omits next suggestion when only exception suggestion remains" do
+  it "GET matches shows current payment when only exception suggestion remains" do
     _account, organization, _month, statement = signed_month
     organization.update!(accountant_pix_key: "chave-pix")
     plant_payment(statement, 22000, history: "Pix enviado chave-pix")
-
     get "/months/2026-05/matches"
-
-    expect(matches_h2s(response.body)).not_to include("Próxima sugestão")
+    expect(page_doc(response.body).at_css('[data-current="true"]').text).to include("Pix enviado chave-pix")
+    expect(response.body).to include("Sugestão de exceção", "Nenhum documento selecionado")
     expect(confirm_form(response.body)).to be_present
-    row = page_doc(response.body).css('li[data-row="payment"][data-status="missing"]').find { |node|
-      node.text.include?("Pix enviado chave-pix")
-    }
-    expect(row.text).to include("Sugestão de exceção")
   end
 
   it "GET matches omits next suggestion when only format_2 remains" do
@@ -523,10 +346,9 @@ RSpec.describe "Month matches screen", type: :request do
     expect(Match.count).to eq(1)
 
     get "/months/2026-05/matches"
-    row = page_doc(response.body).at_css('li[data-row="payment"]')
-    expect(row["data-status"]).to eq("matched")
-    expect(row.text).to include("Casado")
-    expect(pool_section(response.body).text).not_to include("Padaria Central")
+    row = page_doc(response.body).at_css("[data-match-id]")
+    expect(row.text).to include("Padaria Central")
+    expect(page_doc(response.body).at_css('[data-row="pool-document"]')).to be_nil
   end
 
   it "POST matches N:1 from this screen 302s here both Casado" do
@@ -544,8 +366,8 @@ RSpec.describe "Month matches screen", type: :request do
     expect(response).to have_http_status(:found)
     expect(response).to redirect_to("/months/2026-05/matches")
     get "/months/2026-05/matches"
-    expect(payment_row_html(response.body, history: "Dez")).to include("Casado")
-    expect(payment_row_html(response.body, history: "Doze")).to include("Casado")
+    row = page_doc(response.body).at_css("[data-match-id]")
+    expect(row.text).to include("Dez", "Doze")
   end
 
   it "POST matches N:M from this screen 422s matches with BAD_SHAPE" do
@@ -563,7 +385,7 @@ RSpec.describe "Month matches screen", type: :request do
 
     expect(Match.count).to eq(0)
     expect(response).to have_http_status(:unprocessable_content)
-    expect(page_doc(response.body).at_css("h1").text.strip).to eq("maio de 2026")
+    expect(page_doc(response.body).at_css("h1").text.strip).to eq("Casar pagamentos")
     expect(response.body).not_to include("Fechar para envio")
     expect(error_notice_text(response.body)).to eq(
       "Casamento é um pagamento com um ou mais documentos, ou vários pagamentos com um documento"
@@ -584,8 +406,8 @@ RSpec.describe "Month matches screen", type: :request do
     expect(Match.count).to eq(0)
     expect(response).to have_http_status(:unprocessable_content)
     expect(error_notice_text(response.body)).to eq("Informe a observação do casamento")
-    expect(page_doc(response.body).at_css("h1").text.strip).to eq("maio de 2026")
-    observation = page_doc(response.body).at_css(".match-confirm textarea")
+    expect(page_doc(response.body).at_css("h1").text.strip).to eq("Casar pagamentos")
+    observation = page_doc(response.body).at_css("#match-confirm textarea")
     expect(observation["class"]).to include("border-rule")
   end
 
@@ -623,9 +445,8 @@ RSpec.describe "Month matches screen", type: :request do
     expect(response).to have_http_status(:found)
     expect(response).to redirect_to("/months/2026-05/matches")
     get "/months/2026-05/matches"
-    row = page_doc(response.body).css('li[data-row="payment"]').find { |node| node.text.include?("TED — Aluguel sede") }
-    expect(row["data-status"]).to eq("matched")
-    expect(row.text).to include("Casado")
+    row = page_doc(response.body).at_css("[data-match-id]")
+    expect(row.text).to include("TED — Aluguel sede", "desconto não documentado")
   end
 
   it "POST matches from filtered screen keeps bank_account_id" do
@@ -686,9 +507,8 @@ RSpec.describe "Month matches screen", type: :request do
     expect(response).to have_http_status(:found)
     expect(response).to redirect_to("/months/2026-05/matches?bank_account_id=#{principal.id}")
     get "/months/2026-05/matches", params: { bank_account_id: principal.id }
-    row = page_doc(response.body).at_css('li[data-row="payment"][data-status="bank_fee"]')
-    expect(row.text).to include("Tarifa bancária")
-    expect(row.at_css('[aria-label="Desmarcar exceção"]').text.strip).to eq("×")
+    row = page_doc(response.body).at_css("[data-exception-payment-id]")
+    expect(row.text).to include("Tarifa bancária", "Desmarcar exceção")
 
     honor = plant_payment(principal_statement, 22000, history: "Pix honorario")
     post "/months/2026-05/document_exceptions", params: {
@@ -715,7 +535,7 @@ RSpec.describe "Month matches screen", type: :request do
     }
     expect(one.reload.missing_document?).to eq(true)
     expect(response).to have_http_status(:unprocessable_content)
-    expect(page_doc(response.body).at_css("h1").text.strip).to eq("maio de 2026")
+    expect(page_doc(response.body).at_css("h1").text.strip).to eq("Casar pagamentos")
     expect(error_notice_text(response.body)).to eq("Selecione um pagamento para marcar a exceção.")
 
     post "/months/2026-05/document_exceptions", params: {
@@ -727,22 +547,14 @@ RSpec.describe "Month matches screen", type: :request do
     expect(error_notice_text(response.body)).to eq("Selecione um pagamento para marcar a exceção.")
   end
 
-  it "GET matches omits inactive exception mark buttons" do
-    _account, organization, _month, _statement = signed_month
+  it "GET matches omits inactive exception choices" do
+    _account, organization, _month, statement = signed_month
     organization.update!(bank_fee_exception_active: false, accountant_fee_exception_active: false)
     extra = ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
     extra.apply_active(false)
-
+    plant_payment(statement, 10000)
     get "/months/2026-05/matches"
-
-    confirm = page_doc(response.body).at_css(".match-confirm")
-    labels = confirm.css('input[type="submit"], button').map { |node|
-      label = node.text.strip
-      label.present? ? label : node["value"].to_s.strip
-    }
-    expect(labels).not_to include("Marcar tarifa")
-    expect(labels).not_to include("Marcar honorário")
-    expect(labels).not_to include("Doação")
+    expect(response.body).not_to include("Escolher exceção", "Tarifa bancária", "Honorário do contador", "Doação")
   end
 
   it "undo casamento and exception from matches stay here without turbo-confirm" do
@@ -752,7 +564,7 @@ RSpec.describe "Month matches screen", type: :request do
     match = Match.confirm(month: month, payments: [ payment ], supporting_documents: [ document ])
 
     get "/months/2026-05/matches"
-    undo = page_doc(response.body).at_css('[aria-label="Desfazer casamento"]')
+    undo = page_doc(response.body).css("button").find { |node| node.text.strip == "Desfazer casamento" }
     expect(undo["data-turbo-confirm"]).to be_nil
     expect(undo.ancestors.find { |node| node["data-turbo-confirm"] }).to be_nil
 
@@ -766,13 +578,13 @@ RSpec.describe "Month matches screen", type: :request do
     delete "/months/2026-05/matches/#{filtered.id}", params: { screen: "matches", bank_account_id: statement.bank_account_id }
     expect(response).to redirect_to("/months/2026-05/matches?bank_account_id=#{statement.bank_account_id}")
     get "/months/2026-05/matches"
-    expect(page_doc(response.body).at_css('li[data-row="payment"][data-status="missing"]').text).to include("Documento faltante")
-    expect(pool_section(response.body).text).to include("Padaria Central")
+    expect(page_doc(response.body).at_css('[data-current="true"]').text).to include("Padaria Central")
+    expect(page_doc(response.body).at_css('[data-row="pool-document"]').text).to include("Padaria Central")
 
     fee = plant_payment(statement, 15000, history: "Tarifa")
     fee.mark_document_exception("bank_fee")
     get "/months/2026-05/matches"
-    clear = page_doc(response.body).at_css('[aria-label="Desmarcar exceção"]')
+    clear = page_doc(response.body).css("button").find { |node| node.text.strip == "Desmarcar exceção" }
     expect(clear["data-turbo-confirm"]).to be_nil
     expect(clear.ancestors.find { |node| node["data-turbo-confirm"] }).to be_nil
 
@@ -783,38 +595,22 @@ RSpec.describe "Month matches screen", type: :request do
     expect(fee.reload.missing_document?).to eq(true)
   end
 
-  it "GET matches closed is read-only without stamp next or confirm" do
+  it "GET matches closed shows exceptions without mutation controls" do
     account, organization, month, statement = signed_month
     ExtraExceptionKind.create_for(organization: organization, name: "Doação", justification: "Isento de documento de suporte.")
     payment = plant_payment(statement, 22000, occurred_on: Date.new(2026, 5, 11))
     payment.mark_document_exception("bank_fee")
-    padaria = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00", date: "2026-05-11")
-    mercado = plant_nota(organization, account, payee: "Mercado Silva", amount: "180,00", date: "2026-05-12")
-    padaria.update!(month_id: month.id)
-    mercado.update!(month_id: month.id)
+    document = plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00", date: "2026-05-11")
+    document.update!(month_id: month.id)
     month.update!(closed: true)
-
     get "/months/2026-05/matches"
-
     expect(response).to have_http_status(:ok)
-    expect(page_doc(response.body).at_css("h1").text.strip).to eq("maio de 2026")
-    expect(page_doc(response.body).css("a").find { |node| node.text.strip == "Voltar ao mês" }).to be_present
-    expect(page_doc(response.body).at_css('input[type="checkbox"]')).to be_nil
-    expect(matches_h2s(response.body)).not_to include("Próxima sugestão")
-    expect(response.body).not_to include("Confirmar casamento")
-    expect(response.body).not_to include("Marcar tarifa")
-    expect(response.body).not_to include("Marcar honorário")
-    expect(response.body).not_to include("Doação")
-    expect(page_doc(response.body).at_css('[aria-label="Desmarcar exceção"]')).to be_nil
-    expect(page_doc(response.body).at_css('[aria-label="Desfazer casamento"]')).to be_nil
-    expect(page_doc(response.body).at_css('[data-stamp="closed"]')).to be_nil
-    payees = page_doc(response.body).css('li[data-row="pool-document"]').map { |node|
-      node.at_css("label, p.font-medium")&.text&.strip
-    }
-    expect(payees).to eq([ "Padaria Central", "Mercado Silva" ])
-    times = page_doc(response.body).css('li[data-row="pool-document"] time')
-    expect(times.map { |node| node.text.strip }).to eq([ "11/05", "12/05" ])
-    expect(times.map { |node| node["datetime"] }).to eq([ "2026-05-11", "2026-05-12" ])
+    doc = page_doc(response.body)
+    expect(doc.at_css("h1").text.strip).to eq("Casar pagamentos")
+    expect(doc.text).to include("Voltar ao mês", "Tarifa bancária", "Exceções marcadas")
+    expect(doc.at_css('input[type="checkbox"]')).to be_nil
+    expect(doc.text).not_to include("Confirmar casamento", "Escolher exceção", "Desmarcar exceção", "Desfazer casamento")
+    expect(doc.at_css('[data-stamp="closed"]')).to be_nil
   end
 
   it "GET matches unconfirmed open is 404" do

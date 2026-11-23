@@ -1,77 +1,80 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = [ "sumPayments", "sumDocuments", "verdict" ]
+  static targets = [ "form", "sumPayments", "sumDocuments", "verdict", "paymentList", "documentList", "emptyDocuments", "documentToggle", "paymentToggle", "documentTotal", "exceptionNotice", "baseKind", "extraKind", "submit", "exceptionButton", "cancelException" ]
 
   connect() {
+    this.showPayments = false
+    this.showDocuments = false
     this.recompute()
   }
 
-  toggle() {
+  toggle(event) {
+    if (this.hasCancelExceptionTarget && !this.cancelExceptionTarget.hidden && event.target.closest('[data-current="true"]')) {
+      event.target.checked = true
+    }
+    this.recompute()
+  }
+  togglePayments() { this.showPayments = !this.showPayments; this.recompute() }
+  toggleDocuments() { this.showDocuments = !this.showDocuments; this.recompute() }
+
+  chooseException(event) {
+    const option = event.currentTarget
+    option.parentElement.querySelectorAll('[role="option"]').forEach((item) => item.removeAttribute("aria-current"))
+    option.setAttribute("aria-current", "true")
+    this.documentListTarget.querySelectorAll('input[type="checkbox"]').forEach((input) => { input.checked = false })
+    this.paymentListTarget.querySelectorAll('[data-row="payment"]').forEach((row) => {
+      row.querySelector('input[type="checkbox"]').checked = row.dataset.current === "true"
+    })
+    this.baseKindTarget.value = option.dataset.kind || ""
+    this.baseKindTarget.disabled = !option.dataset.kind
+    this.extraKindTarget.value = option.dataset.extraId || ""
+    this.extraKindTarget.disabled = !option.dataset.extraId
+    this.formTarget.action = this.formTarget.dataset.exceptionUrl
+    this.submitTarget.value = "Marcar exceção"
+    this.exceptionButtonTarget.textContent = option.textContent.trim()
+    this.cancelExceptionTarget.hidden = false
+    this.exceptionNoticeTarget.hidden = false
+    this.documentListTarget.hidden = true
+    this.documentToggleTarget.hidden = true
+    this.documentTotalTarget.hidden = true
+    if (this.hasPaymentToggleTarget) this.paymentToggleTarget.hidden = true
+    this.showPayments = false
     this.recompute()
   }
 
-  applySuggestion(event) {
-    event.preventDefault()
-    const button = event.currentTarget
-    this.clearChecks()
-    this.checkPayment(button.dataset.paymentId)
-    ;(button.dataset.documentIds || "").split(",").filter(Boolean).forEach((id) => this.checkDocument(id))
+  cancelException() {
+    this.exceptionButtonTarget.parentElement.querySelectorAll('[role="option"]').forEach((item) => item.removeAttribute("aria-current"))
+    this.baseKindTarget.disabled = true
+    this.extraKindTarget.disabled = true
+    this.formTarget.action = this.formTarget.dataset.matchUrl
+    this.submitTarget.value = "Confirmar casamento"
+    this.exceptionButtonTarget.textContent = "Escolher exceção"
+    this.cancelExceptionTarget.hidden = true
+    this.exceptionNoticeTarget.hidden = true
+    this.documentListTarget.hidden = false
+    this.documentToggleTarget.hidden = false
+    this.documentTotalTarget.hidden = false
+    if (this.hasPaymentToggleTarget) this.paymentToggleTarget.hidden = false
     this.recompute()
-    if (this.equalSums()) this.element.querySelector("#match-confirm")?.requestSubmit()
   }
 
   recompute() {
-    const pays = this.checkedRows('[data-row="payment"]')
-    const docs = this.checkedRows('[data-row="pool-document"]')
+    const pays = this.rows(this.paymentListTarget)
+    const docs = this.rows(this.documentListTarget)
     const payCents = this.cents(pays)
     const docCents = this.cents(docs)
     this.sumPaymentsTarget.textContent = this.format(payCents)
     this.sumDocumentsTarget.textContent = this.format(docCents)
-    if (pays.length === 0 || docs.length === 0) {
-      this.verdictTarget.textContent = ""
-    } else if (docCents < payCents) {
-      this.verdictTarget.textContent = "Documentos somam menos"
-    } else if (docCents === payCents) {
-      this.verdictTarget.textContent = "Soma igual"
-    } else {
-      this.verdictTarget.textContent = "Documentos somam mais"
-    }
+    this.verdictTarget.textContent = (this.hasCancelExceptionTarget && !this.cancelExceptionTarget.hidden) ? "" : !pays.length || !docs.length ? "" : docCents < payCents ? "Documentos somam menos" : docCents === payCents ? "Soma igual" : "Documentos somam mais"
+    this.paymentListTarget.querySelectorAll('[data-row="payment"]').forEach((row) => { row.hidden = !row.querySelector('input').checked && !this.showPayments })
+    this.documentListTarget.querySelectorAll('[data-row="pool-document"]').forEach((row) => { row.hidden = !row.querySelector('input').checked && !this.showDocuments })
+    this.emptyDocumentsTarget.hidden = docs.length > 0 || (this.hasCancelExceptionTarget && !this.cancelExceptionTarget.hidden)
+    if (this.hasPaymentToggleTarget) this.paymentToggleTarget.textContent = this.showPayments ? "Concluir seleção de pagamentos" : "Adicionar outro pagamento"
+    this.documentToggleTarget.textContent = this.showDocuments ? "Concluir seleção de documentos" : "Adicionar documentos"
   }
 
-  checkedRows(selector) {
-    return Array.from(this.element.querySelectorAll(selector)).filter((row) => {
-      const box = row.querySelector("input[type=checkbox]")
-      return box && box.checked && !box.disabled
-    })
-  }
-
-  cents(rows) {
-    return rows.reduce((sum, row) => sum + Number(row.dataset.cents), 0)
-  }
-
-  format(cents) {
-    const value = (cents / 100).toFixed(2).replace(".", ",")
-    return `R$ ${value.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`
-  }
-
-  equalSums() {
-    const pays = this.checkedRows('[data-row="payment"]')
-    const docs = this.checkedRows('[data-row="pool-document"]')
-    return pays.length > 0 && docs.length > 0 && this.cents(pays) === this.cents(docs)
-  }
-
-  clearChecks() {
-    this.element.querySelectorAll('input[type="checkbox"]').forEach((box) => { box.checked = false })
-  }
-
-  checkPayment(id) {
-    const box = this.element.querySelector(`[data-row="payment"][data-payment-id="${id}"] input[type="checkbox"]`)
-    if (box) box.checked = true
-  }
-
-  checkDocument(id) {
-    const box = this.element.querySelector(`[data-row="pool-document"][data-document-id="${id}"] input[type="checkbox"]`)
-    if (box) box.checked = true
-  }
+  rows(container) { return Array.from(container.querySelectorAll('[data-row]')).filter((row) => row.querySelector('input:checked')) }
+  cents(rows) { return rows.reduce((sum, row) => sum + Number(row.dataset.cents), 0) }
+  format(cents) { return `R$ ${(cents / 100).toFixed(2).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, ".")}` }
 }

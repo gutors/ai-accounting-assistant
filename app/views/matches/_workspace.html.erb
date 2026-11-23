@@ -1,0 +1,64 @@
+<% proposal = @next_match_proposal %>
+<% selected_payment_ids = proposal ? proposal.payments.map(&:id) : [ @next_suggestion_payment.id ] %>
+<% selected_document_ids = proposal ? proposal.supporting_documents.map(&:id) : [] %>
+<% selectable_payments = (@missing_document_payments + Array(proposal&.payments)).uniq(&:id).sort_by { |payment| [ payment.occurred_on, payment.id ] } %>
+<%= form_with url: "/months/#{@month.year_month}/matches", method: :post, html: { id: "match-confirm", class: "mt-8" }, data: { month_match_target: "form", exception_url: "/months/#{@month.year_month}/document_exceptions", match_url: "/months/#{@month.year_month}/matches" } do %>
+  <%= hidden_field_tag :screen, "matches" %>
+  <%= hidden_field_tag :bank_account_id, @bank_account_id if @bank_account_id %>
+  <%= hidden_field_tag :kind, nil, disabled: true, data: { month_match_target: "baseKind" } %>
+  <%= hidden_field_tag :extra_exception_kind_id, nil, disabled: true, data: { month_match_target: "extraKind" } %>
+  <div class="match-workspace">
+    <section>
+      <h2 class="match-heading">Pagamento em análise</h2>
+      <% if @exception_suggestions_by_payment_id[@next_suggestion_payment.id] %><p class="mb-3 text-meta text-ink-soft">Sugestão de exceção</p><% end %>
+      <div class="match-picker" data-month-match-target="paymentList">
+        <% selectable_payments.each do |payment| %>
+          <label class="match-picker-row" data-row="payment" data-payment-id="<%= payment.id %>" data-cents="<%= payment.amount_cents %>" data-current="<%= payment.id == @next_suggestion_payment.id %>">
+            <%= check_box_tag "payment_ids[]", payment.id, selected_payment_ids.include?(payment.id), data: { action: "month-match#toggle" } %>
+            <span><span class="match-meta"><%= l(payment.occurred_on, format: :day_month) %> · <%= payment.bank_statement.bank_account.name %></span><strong><%= payment.history %></strong></span>
+            <strong class="tabular-nums"><%= format_reais(payment.amount_cents) %></strong>
+          </label>
+        <% end %>
+      </div>
+      <% if selectable_payments.size > 1 %><button type="button" class="match-link mt-3" data-action="month-match#togglePayments" data-month-match-target="paymentToggle">Adicionar outro pagamento</button><% end %>
+      <div class="match-totals mt-5">
+        <span>Pagamentos <strong data-month-match-target="sumPayments">R$ 0,00</strong></span>
+        <span data-month-match-target="documentTotal">Documentos <strong data-month-match-target="sumDocuments">R$ 0,00</strong></span>
+        <span data-month-match-target="verdict"></span>
+      </div>
+      <details class="mt-4"><summary class="match-link">Observação do casamento</summary>
+        <%= label_tag :observation_match, "Observação do casamento", class: "sr-only" %>
+        <%= text_area_tag :observation, nil, id: "observation_match", rows: 2, class: "mt-2 w-full rounded border border-rule bg-sheet px-3 py-2" %>
+      </details>
+      <div class="mt-4 flex flex-wrap items-start gap-3">
+        <%= submit_tag "Confirmar casamento", class: "ds-btn-primary", data: { month_match_target: "submit" } %>
+        <% if @organization.bank_fee_exception_active? || @organization.accountant_fee_exception_active? || @active_extra_exception_kinds.any? %>
+          <div class="org-switch" data-controller="org-switch">
+            <button type="button" class="org-switch-btn" data-org-switch-target="button" data-month-match-target="exceptionButton" data-action="org-switch#toggle" aria-haspopup="listbox" aria-expanded="false" aria-controls="exception-list">Escolher exceção</button>
+            <div id="exception-list" class="org-list" role="listbox" aria-label="Tipo de exceção" hidden data-org-switch-target="list">
+              <% if @organization.bank_fee_exception_active? %><button type="button" role="option" data-action="month-match#chooseException org-switch#close" data-kind="bank_fee">Tarifa bancária</button><% end %>
+              <% if @organization.accountant_fee_exception_active? %><button type="button" role="option" data-action="month-match#chooseException org-switch#close" data-kind="accountant_fee">Honorário do contador</button><% end %>
+              <% @active_extra_exception_kinds.each do |kind| %><button type="button" role="option" data-action="month-match#chooseException org-switch#close" data-extra-id="<%= kind.id %>"><%= kind.name %></button><% end %>
+            </div>
+          </div>
+          <button type="button" class="match-link" hidden data-month-match-target="cancelException" data-action="month-match#cancelException">Cancelar exceção</button>
+        <% end %>
+      </div>
+    </section>
+    <section>
+      <h2 class="match-heading">Documentos selecionados</h2>
+      <p class="text-ink-soft" hidden data-month-match-target="exceptionNotice">Documentos removidos da seleção porque uma exceção foi escolhida.</p>
+      <div class="match-picker" data-month-match-target="documentList">
+        <% @unmatched_documents.each do |document| %>
+          <label class="match-picker-row" data-row="pool-document" data-document-id="<%= document.id %>" data-cents="<%= document.amount_cents %>">
+            <%= check_box_tag "supporting_document_ids[]", document.id, selected_document_ids.include?(document.id), data: { action: "month-match#toggle" } %>
+            <span><span class="match-meta"><%= document.recibo? ? "Recibo" : "Nota fiscal" %> · <%= l(document.document_on, format: :day_month) %></span><strong><%= document.payee %></strong></span>
+            <strong class="tabular-nums"><%= format_reais(document.amount_cents) %></strong>
+          </label>
+        <% end %>
+      </div>
+      <p class="mt-3 text-ink-soft" data-month-match-target="emptyDocuments">Nenhum documento selecionado.</p>
+      <button type="button" class="match-link mt-3" data-action="month-match#toggleDocuments" data-month-match-target="documentToggle">Adicionar documentos</button>
+    </section>
+  </div>
+<% end %>

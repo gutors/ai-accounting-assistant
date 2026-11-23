@@ -1182,9 +1182,10 @@ RSpec.describe "Supporting documents", type: :request do
     expect(padaria).not_to include("Sugestão")
 
     get "/months/2026-05/matches"
-    hit = page_doc(response.body).at_css(".match-next__hit")
-    expect(hit.text).to include("Pix enviado — Mercado Silva")
-    expect(hit.text).not_to include("Pix enviado — Padaria Central")
+    proposal = Suggestion.assign(organization).find { |candidate| candidate.supporting_documents.include?(document.reload) }
+    expect(proposal.payments.map(&:history)).to eq([ "Pix enviado — Mercado Silva" ])
+    current = page_doc(response.body).at_css('[data-current="true"]')
+    expect(current.text).to include("Pix enviado — Padaria Central")
   end
 
   it "POST authorized XML fills amount date payee chave and redirects" do
