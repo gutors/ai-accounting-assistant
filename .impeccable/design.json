@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-19T11:30:00-03:00",
+  "generatedAt": "2026-11-23T22:00:34+00:00",
   "title": "Design System: Fechamento mensal",
   "extensions": {
     "colorMeta": {
@@ -261,7 +261,7 @@
     "overview": "The interface is a well-kept Brazilian cash book. The page is cool ledger paper. Every list of money is a ruled row: date, history, amount, status, with figures in tabular numbers and the amount on the right. The only loud hue is the red of the cash-book margin. It marks a payment that still lacks a document, an error, a failed invite, and a destructive action. A month page with no red in the records is ready to close.\n\nDensity follows the coordinator's laptop ritual. Início is a two-pane close desk: a 26rem month index on the left, the selected month or the people book on the right. Every other signed-in page is one left-aligned column, 72rem at most, sections separated by a rule. Status stays on the row. The form that changes a row folds into a disclosure or a work panel the person opens. The submitter's phone uses the same tokens, stacked.\n\nThe closed month is an ink stamp, the only double-ruled mark in the system. The app mark repeats the same three strokes — a green field, two paper rules, one red margin — and carries no wordmark. The header always reads the product name. When more than one organization is in play, a caixa-filled switcher opens a sheet list under it.",
     "keyCharacteristics": [
       "**Ruled rows.** Money and document lists are a ledger sheet: vertical and horizontal rules, not cards.",
-      "**Two layouts.** Início is a two-pane desk. Close work, documents, setup, and administration stay a single ledger column.",
+      "**Two layouts.** Início and Configuração are two-pane desks. Close work, documents, and administration stay a single ledger column.",
       "**One red.** `margem` is the only red. It is a left rule on a blocked row, a sentence, a quiet destructive word, or a toast fill.",
       "**Flat paper.** Depth is a hairline rule, not a drop shadow. A work panel is a ruling-bordered sheet.",
       "**The stamp.** A closed month is inked and double-ruled. The index uses a compact “Fechado”; the month page uses “Mês fechado”.",
@@ -295,7 +295,7 @@
       },
       {
         "name": "The Desk Rule",
-        "body": "Início is two panes from 768px. Do not restack Organizações / Abrir o fechamento / Meses / Pessoas as chapters on that page.",
+        "body": "Início and Configuração are two panes from 768px. Do not restack those pages as chapters.",
         "section": "layout"
       },
       {

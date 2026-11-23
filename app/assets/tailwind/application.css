@@ -529,6 +529,16 @@
     font-weight: 600;
   }
 
+  .month-fold .ledger-row:not(.ledger-head) {
+    font-size: 0.9375rem;
+  }
+
+  #month-payments .pay-history,
+  #month-payments .pay-status,
+  #month-payments .pay-document {
+    font-size: inherit;
+  }
+
   .ledger-head .sort-key {
     color: var(--color-ink);
     font-weight: 600;
