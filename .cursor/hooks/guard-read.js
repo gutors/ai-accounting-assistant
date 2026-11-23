@@ -24,47 +24,41 @@ function respond(decision) {
   process.stdout.write(JSON.stringify(decision));
 }
 
+function checkRead(filePath) {
+  const base = path.basename(filePath).toLowerCase();
+
+  const isEnvTemplate = /\.env\.(example|sample|template)$/i.test(base);
+  const isEnvFile = !isEnvTemplate && (base === ".env" || /^\.env\..+/.test(base));
+  const isCert = /\.(pfx|p12)$/i.test(base);
+  const isMasterKey = base === "master.key" || /(^|[._-])master\.key$/i.test(base);
+  const isWrapKey = /wrap.*key/i.test(base) || /key.*wrap/i.test(base);
+  const isRefreshToken = /refresh.*token/i.test(base);
+
+  const reasons = [];
+  if (isEnvFile) reasons.push(".env file (real secrets, not a template)");
+  if (isCert) reasons.push("A1 certificate (.pfx/.p12)");
+  if (isMasterKey) reasons.push("Rails master key");
+  if (isWrapKey) reasons.push("wrap key material");
+  if (isRefreshToken) reasons.push("refresh token file");
+
+  if (reasons.length > 0) {
+    return {
+      permission: "deny",
+      user_message: `Blocked read of "${filePath}": looks like ${reasons.join(", ")}. AGENTS.md says these never enter the repo or chat context.`,
+    };
+  }
+  return { permission: "allow" };
+}
+
 async function main() {
   const raw = await readStdin();
-
-  let payload;
   try {
-    payload = JSON.parse(raw || "{}");
-  } catch {
-    respond({ permission: "allow" });
-    return;
-  }
-
-  try {
-    const filePath = String(payload.file_path || "");
-    const base = path.basename(filePath).toLowerCase();
-
-    const isEnvTemplate = /\.env\.(example|sample|template)$/i.test(base);
-    const isEnvFile = !isEnvTemplate && (base === ".env" || /^\.env\..+/.test(base));
-    const isCert = /\.(pfx|p12)$/i.test(base);
-    const isMasterKey = base === "master.key" || /(^|[._-])master\.key$/i.test(base);
-    const isWrapKey = /wrap.*key/i.test(base) || /key.*wrap/i.test(base);
-    const isRefreshToken = /refresh.*token/i.test(base);
-
-    const reasons = [];
-    if (isEnvFile) reasons.push(".env file (real secrets, not a template)");
-    if (isCert) reasons.push("A1 certificate (.pfx/.p12)");
-    if (isMasterKey) reasons.push("Rails master key");
-    if (isWrapKey) reasons.push("wrap key material");
-    if (isRefreshToken) reasons.push("refresh token file");
-
-    if (reasons.length > 0) {
-      respond({
-        permission: "deny",
-        user_message: `Blocked read of "${filePath}": looks like ${reasons.join(", ")}. AGENTS.md says these never enter the repo or chat context.`,
-      });
-      return;
-    }
-
-    respond({ permission: "allow" });
+    const payload = JSON.parse(raw || "{}");
+    respond(checkRead(String(payload.file_path || "")));
   } catch {
     respond({ permission: "allow" });
   }
 }
 
-main();
+if (require.main === module) main();
+module.exports = { checkRead };

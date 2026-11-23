@@ -1,13 +1,32 @@
 {
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^Bash$|^mcp__.*__read_?(file|text_file|media_file|multiple_files)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.cursor/hooks/codex.js\"",
+            "timeout": 25,
+            "statusMessage": "Checking project safeguards"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write|apply_patch",
         "hooks": [
           {
             "type": "command",
-            "command": "[ ! -f \".agents/skills/impeccable/scripts/impeccable\" ] || \".agents/skills/impeccable/scripts/impeccable\" hook",
-            "commandWindows": "cmd /c if exist \".agents\\skills\\impeccable\\scripts\\impeccable.cmd\" \".agents\\skills\\impeccable\\scripts\\impeccable.cmd\" hook",
+            "command": "node \"$(git rev-parse --show-toplevel)/.cursor/hooks/codex.js\"",
+            "timeout": 30,
+            "statusMessage": "Formatting edited Ruby files"
+          },
+          {
+            "type": "command",
+            "command": "if [ -f .agents/skills/impeccable/scripts/impeccable ]; then .agents/skills/impeccable/scripts/impeccable hook; else .cursor/skills/impeccable/scripts/impeccable hook; fi",
+            "commandWindows": "cmd /c if exist \".agents\\skills\\impeccable\\scripts\\impeccable.cmd\" (.agents\\skills\\impeccable\\scripts\\impeccable.cmd hook) else (.cursor\\skills\\impeccable\\scripts\\impeccable.cmd hook)",
             "timeout": 5,
             "statusMessage": "Checking UI changes"
           }
@@ -19,8 +38,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "[ ! -f \".agents/skills/impeccable/scripts/impeccable\" ] || \".agents/skills/impeccable/scripts/impeccable\" hook",
-            "commandWindows": "cmd /c if exist \".agents\\skills\\impeccable\\scripts\\impeccable.cmd\" \".agents\\skills\\impeccable\\scripts\\impeccable.cmd\" hook",
+            "command": "if [ -f .agents/skills/impeccable/scripts/impeccable ]; then .agents/skills/impeccable/scripts/impeccable hook; else .cursor/skills/impeccable/scripts/impeccable hook; fi",
+            "commandWindows": "cmd /c if exist \".agents\\skills\\impeccable\\scripts\\impeccable.cmd\" (.agents\\skills\\impeccable\\scripts\\impeccable.cmd hook) else (.cursor\\skills\\impeccable\\scripts\\impeccable.cmd hook)",
             "timeout": 30,
             "statusMessage": "Design deep pass"
           }

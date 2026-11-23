@@ -28,8 +28,9 @@ async function main() {
     return;
   }
 
-  const filePath = String(payload.file_path || "");
-  if (!filePath || path.extname(filePath) !== ".rb") return;
+  const paths = Array.isArray(payload.file_paths) ? payload.file_paths : [payload.file_path];
+  const rubyFiles = paths.filter((file) => typeof file === "string" && path.extname(file) === ".rb");
+  if (!rubyFiles.length) return;
 
   const cwd = Array.isArray(payload.workspace_roots) && payload.workspace_roots[0]
     ? payload.workspace_roots[0]
@@ -38,7 +39,7 @@ async function main() {
   const rubocop = path.join(cwd, "bin", "rubocop");
 
   try {
-    spawnSync(rubocop, ["-a", "--force-exclusion", filePath], {
+    spawnSync(rubocop, ["-a", "--force-exclusion", "--", ...rubyFiles], {
       cwd,
       stdio: "ignore",
       timeout: 25000,

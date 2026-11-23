@@ -11,6 +11,11 @@ Web app for a financial **Coordinator** to close a month for one or more **Organ
 5. Decisions that constrain later features live in `docs/adr/` (start from ADR-0001). Do not start a second log in `.specs/STATE.md`. Confirmed lessons load via `lessons.py` (`confirmed` only). `.tasks/` and `.checks/` are history of the tlc-plan era, not a build source. Shipped folders under `.specs/features/` stay as history; new work uses that tree in the 2.1.0 shape.
 6. Do not paste tlc-spec-lean `references/` into this file.
 
+## Agent clients
+
+- Rails: before working in `app/`, `config/`, `db/`, `lib/`, `spec/`, or on Ruby, ERB, or Gemfile files, read `.cursor/rules/rails.mdc`. Apply its conventions in both Cursor and Codex.
+- Operations: read `.cursor/rules/agent-ops.mdc` before GitHub operations or browser verification. In Codex, use the sandbox approval mechanism when GitHub access requires escalation. Use the in-app browser in place of Cursor's Browser tab and follow the same local login and fallback rules.
+
 ## tlc-spec-lean
 
 mutations: 3
@@ -64,7 +69,7 @@ When `Gemfile` exists, use `bin/rails`, `bin/rspec`, and other `bin/` wrappers. 
 
 - Every PR to `main` references a GitHub issue (`Closes #N` / `Fixes #N`) — see `docs/agents/issue-tracker.md`. No issue, no PR, unless a human explicitly waives it. Use `/open-pr`.
 - Run the `the-judge` skill against the open PR before merging to `main` — it reviews a PR that already exists (posts a GitHub review via `gh`), so it runs after creation, not before.
-- `.cursor/hooks.json` gates `gh pr create` (issue reference) and `gh pr merge` (the-judge checkpoint) mechanically. These bullets are why those gates exist, not a substitute for them — a hook failing open (e.g. `gh` unreachable) doesn’t waive the rule.
+- `.cursor/hooks.json` and `.codex/hooks.json` check `gh pr create` for an issue reference and `gh pr merge` for the the-judge checkpoint. If a check cannot verify the requirement, treat the policy above as binding. In Codex, use the human's terminal for an explicitly waived PR check because `PreToolUse` cannot prompt for a one-time override.
 
 ## Do not
 

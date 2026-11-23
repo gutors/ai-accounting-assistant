@@ -1,0 +1,8 @@
+# The shell hook supplies context for the Cursor checks marked "ask".
+# Use Codex's native approval prompt for their common command prefixes.
+prefix_rule(pattern = ["git", ["push", "rebase", "filter-branch", "filter-repo"]], decision = "prompt")
+prefix_rule(pattern = ["git", "reset", "--hard"], decision = "prompt")
+prefix_rule(pattern = [["fly", "flyctl", "kamal", "bin/kamal", "cap", "capistrano"], "deploy"], decision = "prompt")
+prefix_rule(pattern = ["gcloud", "run", "deploy"], decision = "prompt")
+prefix_rule(pattern = [["docker", "gem"], "push"], decision = "prompt")
+prefix_rule(pattern = ["npm", "publish"], decision = "prompt")
