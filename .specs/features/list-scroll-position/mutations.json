@@ -1,0 +1,23 @@
+[
+  {
+    "file": "app/javascript/controllers/list_refresh_controller.js",
+    "old": "window.scrollTo({ left: scrollX, top: scrollY, behavior: \"instant\" })",
+    "new": "window.scrollTo({ left: scrollX, top: 0, behavior: \"instant\" })",
+    "proof": "bin/rspec spec/system/list_scroll_position_spec.rb -e \"filters and clears Sem mês in place\"",
+    "label": "C2: reset the viewport to the top after replacing the list"
+  },
+  {
+    "file": "app/javascript/controllers/list_refresh_controller.js",
+    "old": "if (replacement) replacement.open = fold.open",
+    "new": "if (replacement && fold.id !== \"month-payments\") replacement.open = fold.open",
+    "proof": "bin/rspec spec/system/list_scroll_position_spec.rb -e \"sorts all three month lists in place\"",
+    "label": "C3: reopen Pagamentos after sorting another month list"
+  },
+  {
+    "file": "app/javascript/controllers/list_refresh_controller.js",
+    "old": "if (url !== window.location.href) event.preventDefault()",
+    "new": "if (url !== window.location.href) return",
+    "proof": "bin/rspec spec/system/list_scroll_position_spec.rb -e \"restores list results through history and reload\"",
+    "label": "C6: allow the promoted visit to override an intervening Back"
+  }
+]

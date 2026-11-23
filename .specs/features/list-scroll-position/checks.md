@@ -72,5 +72,6 @@ Proof: `bin/rspec spec/requests/months_spec.rb -e "unauthenticated GET /months/2
 ## Handoff
 
 - **Settled mid-build:** none
-- **Dispatched:** none
+- **Dispatched:** Verifier at `7a645ba` returned
 - **Walked:** Signed in through Ambiente local in the in-app browser. Sorted Sem mês by Data with scroll at 55 px and Pagamentos by Valor with scroll at 286 px. Both requests changed row order and URL and kept those offsets.
+- **Boundary:** C1-C12 at `7a645ba`, with proof fixes at `ec5f226`
