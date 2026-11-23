@@ -1,16 +1,16 @@
 <% filters = @list_filters || { q: "", kind: "", date_from: "", date_to: "", sort: "date", dir: "desc" } %>
-<div id="sem-mes">
+<%= list_refresh_frame("sem-mes") do %>
   <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Sem mês</h2>
-  <%= render "shared/ledger_filters", url: "/supporting_documents", filters: filters %>
+  <%= render "shared/ledger_filters", url: "/supporting_documents", filters: filters, frame: "sem-mes" %>
   <% if @documents.empty? %>
     <p>Nenhum documento</p>
   <% else %>
     <div class="ledger-sheet">
       <div class="ledger-row ledger-head ledger-doc">
-        <%= ledger_sort_cell("Data", column: "date", current_sort: filters[:sort], current_dir: filters[:dir], base_path: "/supporting_documents", filter_params: filters) %>
+        <%= ledger_sort_cell("Data", column: "date", current_sort: filters[:sort], current_dir: filters[:dir], base_path: "/supporting_documents", frame: "sem-mes", filter_params: filters) %>
         <span>Favorecido</span>
         <span>Tipo</span>
-        <%= ledger_sort_cell("Valor", column: "amount", current_sort: filters[:sort], current_dir: filters[:dir], base_path: "/supporting_documents", filter_params: filters, align: :right) %>
+        <%= ledger_sort_cell("Valor", column: "amount", current_sort: filters[:sort], current_dir: filters[:dir], base_path: "/supporting_documents", frame: "sem-mes", filter_params: filters, align: :right) %>
         <span>Ações</span>
       </div>
       <ul>
@@ -43,4 +43,4 @@
       </ul>
     </div>
   <% end %>
-</div>
+<% end %>

@@ -78,7 +78,19 @@ module ApplicationHelper
       class: [ "text-ink hover:underline underline-offset-2", ("font-semibold underline" if current) ]
   end
 
-  def ledger_sort_cell(label, column:, current_sort:, current_dir:, base_path:, filter_params: {}, align: :left, sort_param: :sort, dir_param: :dir)
+  def list_refresh_frame(id, &block)
+    turbo_frame_tag id, target: "_top", class: "block", data: {
+      turbo_action: "advance", controller: "list-refresh",
+      action: [
+        "turbo:before-fetch-request->list-refresh#rememberFormFocus",
+        "turbo:before-frame-render->list-refresh#preserve",
+        "turbo:before-visit@document->list-refresh#checkHistory",
+        "turbo:frame-missing->list-refresh#follow"
+      ].join(" ")
+    }, &block
+  end
+
+  def ledger_sort_cell(label, column:, current_sort:, current_dir:, base_path:, frame:, filter_params: {}, align: :left, sort_param: :sort, dir_param: :dir)
     active = current_sort.to_s == column.to_s
     dir = current_dir.to_s == "asc" ? "asc" : "desc"
     aria_sort = active ? (dir == "asc" ? "ascending" : "descending") : "none"
@@ -91,6 +103,7 @@ module ApplicationHelper
         current_sort: current_sort,
         current_dir: dir,
         base_path: base_path,
+        frame: frame,
         filter_params: filter_params,
         sort_param: sort_param,
         dir_param: dir_param
@@ -98,7 +111,7 @@ module ApplicationHelper
     end
   end
 
-  def ledger_sort_link(label, column:, current_sort:, current_dir:, base_path:, filter_params: {}, sort_param: :sort, dir_param: :dir)
+  def ledger_sort_link(label, column:, current_sort:, current_dir:, base_path:, frame:, filter_params: {}, sort_param: :sort, dir_param: :dir)
     active = current_sort.to_s == column.to_s
     dir = current_dir.to_s == "asc" ? "asc" : "desc"
     next_dir = active && dir == "desc" ? "asc" : "desc"
@@ -108,7 +121,9 @@ module ApplicationHelper
     query[dir_param] = next_dir
     href = "#{base_path}?#{query.to_query}"
 
-    link_to href, class: [ "ledger-sort-link", ("sort-key" if active) ].compact.join(" "), data: { sort_column: column } do
+    link_to href, id: "#{sort_param}-#{column}",
+      class: [ "ledger-sort-link", ("sort-key" if active) ].compact.join(" "),
+      data: { sort_column: column, turbo_frame: frame } do
       safe_join([ tag.span(label), ledger_sort_icon_svg(icon_state) ])
     end
   end

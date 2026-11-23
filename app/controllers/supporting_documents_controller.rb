@@ -4,6 +4,7 @@ class SupportingDocumentsController < ApplicationController
 
   def index
     load_documents
+    render :index, layout: "application"
   end
 
   def edit

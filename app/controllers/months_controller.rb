@@ -108,7 +108,7 @@ class MonthsController < ApplicationController
 
     load_month_page
     apply_bank_account_movement_filter
-    render :show, status: status
+    render :show, status: status, layout: "application"
   end
 
   def find_month

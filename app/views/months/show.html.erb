@@ -4,225 +4,227 @@
 <% accounts_without_statement = @active_bank_accounts.count { |bank_account| @statements_by_account_id[bank_account.id].nil? } %>
 <% casar_href = "/months/#{@month.year_month}/matches" %>
 <% casar_href += "?bank_account_id=#{@bank_account_id}" if @bank_account_id %>
+<% list_frame = "month-content" %>
+<%= list_refresh_frame(list_frame) do %>
+  <p>
+    <%= link_to "Voltar para Início", "/", class: "text-caixa underline underline-offset-2" %>
+  </p>
 
-<p>
-  <%= link_to "Voltar para Início", "/", class: "text-caixa underline underline-offset-2" %>
-</p>
-
-<div class="mt-6 flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
-  <div>
-    <h1 class="text-[1.75rem] leading-[1.1] font-semibold tracking-[-0.02em] md:text-display"><%= month_title(@month.year_month) %></h1>
-    <p class="mt-1 text-meta text-ink-soft"><%= @month.year_month %></p>
-    <% if @month.closed? %>
-      <span data-stamp="closed" class="stamp-closed">Mês fechado</span>
-    <% end %>
-  </div>
-  <div class="flex flex-wrap items-center gap-3">
-    <% if movements_visible && !@month.closed? %>
-      <%= link_to "Casar pagamentos", casar_href, class: "ds-btn-secondary" %>
-    <% end %>
-    <% month_post_params = @bank_account_id ? { bank_account_id: @bank_account_id } : {} %>
-    <% if @month.closed? %>
-      <%= button_to "Restaurar pasta", "/months/#{@month.year_month}/restore", method: :post, params: month_post_params, form: { data: { turbo_confirm: "Restaurar a pasta do mês no arquivo do pacote?", wait_copy: "Restaurando a pasta do mês…" } }, class: "ds-btn-secondary" %>
-      <%= button_to "Reabrir", "/months/#{@month.year_month}/reopen", method: :post, params: month_post_params, form: { data: { turbo_confirm: "Reabrir o mês?", wait_copy: "Reabrindo o mês…" } }, class: "ds-btn-secondary" %>
-    <% else %>
-      <%= form_with url: "/months/#{@month.year_month}/close", method: :post, html: { id: "close-month", data: { turbo_confirm: "Fechar o mês para envio?", wait_copy: "Escrevendo a pasta do mês…" } } do %>
-        <% if @bank_account_id %>
-          <%= hidden_field_tag :bank_account_id, @bank_account_id %>
-        <% end %>
-        <%= submit_tag "Fechar para envio", class: "ds-btn-primary" %>
+  <div class="mt-6 flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
+    <div>
+      <h1 class="text-[1.75rem] leading-[1.1] font-semibold tracking-[-0.02em] md:text-display"><%= month_title(@month.year_month) %></h1>
+      <p class="mt-1 text-meta text-ink-soft"><%= @month.year_month %></p>
+      <% if @month.closed? %>
+        <span data-stamp="closed" class="stamp-closed">Mês fechado</span>
       <% end %>
-    <% end %>
-  </div>
-</div>
-
-<p class="mt-6">
-  <% if movements_visible %>
-    <% if missing_count.zero? %>
-      <span>Nenhum documento faltante.</span>
-    <% else %>
-      <span class="text-margem"><%= missing_count %> <%= missing_count == 1 ? "pagamento" : "pagamentos" %> com documento faltante.</span>
-    <% end %>
-    <% if accounts_without_statement.positive? %>
-      <span>Falta o extrato de <%= accounts_without_statement %> <%= accounts_without_statement == 1 ? "conta ativa" : "contas ativas" %>.</span>
-    <% end %>
-  <% else %>
-    <span>Insira os extratos das contas bancárias com as quais deseja realizar o fechamento.</span>
-  <% end %>
-</p>
-
-<% if @import_error.present? %>
-  <%= render "shared/notice", message: @import_error %>
-<% end %>
-
-<% if @month_error.present? %>
-  <%= render "shared/notice", message: @month_error %>
-<% end %>
-
-<div class="mt-10 space-y-12">
-  <section>
-    <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Contas bancárias</h2>
-    <% if @active_bank_accounts.empty? %>
-      <p>Nenhuma conta bancária ativa</p>
-    <% else %>
-      <div class="ledger-sheet">
-        <div class="ledger-row ledger-head ledger-month-bank" aria-hidden="true">
-          <span>Banco</span>
-          <span>Nome</span>
-          <span>Agência/conta</span>
-          <span>Situação</span>
-          <span>Documentos</span>
-          <span></span>
-        </div>
-        <ul>
-          <% @active_bank_accounts.each do |bank_account| %>
-            <%= render "months/statement_row", month: @month, bank_account: bank_account, statement: @statements_by_account_id[bank_account.id] %>
-          <% end %>
-        </ul>
-      </div>
-    <% end %>
-  </section>
-
-  <% unless movements_visible %>
-    <section id="confirm-step">
-      <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Confirmar contas para fechamento</h2>
-      <% unless @active_bank_accounts.empty? %>
-        <div class="ledger-sheet">
-          <div class="ledger-row ledger-head ledger-confirm" aria-hidden="true">
-            <span>Nome</span>
-            <span>Situação</span>
-          </div>
-          <ul>
-            <% @active_bank_accounts.each do |bank_account| %>
-              <% statement = @statements_by_account_id[bank_account.id] %>
-              <li class="ledger-row ledger-confirm">
-                <p class="font-medium"><%= bank_account.name %></p>
-                <% if statement %>
-                  <p>Presente</p>
-                <% else %>
-                  <p class="text-margem">Falta</p>
-                <% end %>
-              </li>
-            <% end %>
-          </ul>
-        </div>
+    </div>
+    <div class="flex flex-wrap items-center gap-3">
+      <% if movements_visible && !@month.closed? %>
+        <%= link_to "Casar pagamentos", casar_href, class: "ds-btn-secondary" %>
       <% end %>
-      <%= form_with url: "/months/#{@month.year_month}/account_confirmation", method: :post, html: { class: "mt-4" } do %>
-        <%= submit_tag "Iniciar fechamento", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
-      <% end %>
-    </section>
-  <% end %>
-
-  <% if movements_visible %>
-    <div class="flex flex-wrap gap-2" role="group" aria-label="Conta bancária">
-      <% if @bank_account_id.nil? %>
-        <%= link_to "Todas", "/months/#{@month.year_month}", aria: { current: "true" }, class: "rounded bg-caixa px-3 py-1 font-semibold text-white" %>
+      <% month_post_params = @bank_account_id ? { bank_account_id: @bank_account_id } : {} %>
+      <% if @month.closed? %>
+        <%= button_to "Restaurar pasta", "/months/#{@month.year_month}/restore", method: :post, params: month_post_params, form: { data: { turbo_confirm: "Restaurar a pasta do mês no arquivo do pacote?", wait_copy: "Restaurando a pasta do mês…" } }, class: "ds-btn-secondary" %>
+        <%= button_to "Reabrir", "/months/#{@month.year_month}/reopen", method: :post, params: month_post_params, form: { data: { turbo_confirm: "Reabrir o mês?", wait_copy: "Reabrindo o mês…" } }, class: "ds-btn-secondary" %>
       <% else %>
-        <%= link_to "Todas", "/months/#{@month.year_month}", class: "rounded border border-ink px-3 py-1" %>
-      <% end %>
-      <% @active_bank_accounts.each do |bank_account| %>
-        <% if @bank_account_id == bank_account.id %>
-          <%= link_to bank_account.name, "/months/#{@month.year_month}?bank_account_id=#{bank_account.id}", aria: { current: "true" }, class: "rounded bg-caixa px-3 py-1 font-semibold text-white" %>
-        <% else %>
-          <%= link_to bank_account.name, "/months/#{@month.year_month}?bank_account_id=#{bank_account.id}", class: "rounded border border-ink px-3 py-1" %>
+        <%= form_with url: "/months/#{@month.year_month}/close", method: :post, html: { id: "close-month", data: { turbo_confirm: "Fechar o mês para envio?", wait_copy: "Escrevendo a pasta do mês…" } } do %>
+          <% if @bank_account_id %>
+            <%= hidden_field_tag :bank_account_id, @bank_account_id %>
+          <% end %>
+          <%= submit_tag "Fechar para envio", class: "ds-btn-primary" %>
         <% end %>
       <% end %>
     </div>
+  </div>
 
-    <% month_sort_query = {
-      bank_account_id: @bank_account_id,
-      payments_sort: params[:payments_sort],
-      payments_dir: params[:payments_dir],
-      inflows_sort: params[:inflows_sort],
-      inflows_dir: params[:inflows_dir],
-      pool_sort: params[:pool_sort],
-      pool_dir: params[:pool_dir]
-    } %>
-    <details class="month-fold" open>
-      <summary>Pagamentos</summary>
-      <div class="ledger-sheet">
-        <div class="ledger-row ledger-head ledger-pay ledger-overview-pay">
-          <%= ledger_sort_cell("Data", column: "date", current_sort: @payments_sort, current_dir: @payments_dir, base_path: "/months/#{@month.year_month}", filter_params: month_sort_query, sort_param: :payments_sort, dir_param: :payments_dir) %>
-          <span>Histórico</span>
-          <%= ledger_sort_cell("Valor", column: "amount", current_sort: @payments_sort, current_dir: @payments_dir, base_path: "/months/#{@month.year_month}", filter_params: month_sort_query, sort_param: :payments_sort, dir_param: :payments_dir, align: :right) %>
-          <span>Status</span>
-          <span>Documento</span>
-        </div>
-        <ul>
-          <% @payments.each do |payment| %>
-            <% status = payment_status(payment) %>
-            <li data-row="payment" data-payment-id="<%= payment.id %>" data-status="<%= status %>" class="ledger-row ledger-pay ledger-overview-pay<%= " is-block" if status == "missing" %>">
-              <time datetime="<%= payment.occurred_on.iso8601 %>" class="tabular-nums"><%= l(payment.occurred_on) %></time>
-              <div>
-                <p class="pay-history" title="<%= payment.history %>"><%= payment.history %></p>
-                <p class="pay-account" title="<%= payment.bank_statement.bank_account.name %>"><%= payment.bank_statement.bank_account.name %></p>
-              </div>
-              <p data-cell="amount" class="font-medium tabular-nums"><%= format_reais(payment.amount_cents) %></p>
-              <div data-cell="status">
-                <% status_word = payment_status_word(payment, status) %>
-                <p class="pay-status<%= " text-margem" if status == "missing" %>" title="<%= status_word %>"><%= status_word %></p>
-              </div>
-              <% document_names = status == "matched" ? payment.match.supporting_documents.map(&:payee).join(", ") : "" %>
-              <p data-cell="document" class="pay-document" title="<%= document_names %>"><%= document_names %></p>
-            </li>
-          <% end %>
-        </ul>
-      </div>
-    </details>
+  <p class="mt-6">
+    <% if movements_visible %>
+      <% if missing_count.zero? %>
+        <span>Nenhum documento faltante.</span>
+      <% else %>
+        <span class="text-margem"><%= missing_count %> <%= missing_count == 1 ? "pagamento" : "pagamentos" %> com documento faltante.</span>
+      <% end %>
+      <% if accounts_without_statement.positive? %>
+        <span>Falta o extrato de <%= accounts_without_statement %> <%= accounts_without_statement == 1 ? "conta ativa" : "contas ativas" %>.</span>
+      <% end %>
+    <% else %>
+      <span>Insira os extratos das contas bancárias com as quais deseja realizar o fechamento.</span>
+    <% end %>
+  </p>
 
-    <details class="month-fold" open>
-      <summary>Documentos sem casamento</summary>
-      <% if @unmatched_documents.empty? %>
-        <p>Nenhum documento sem casamento</p>
+  <% if @import_error.present? %>
+    <%= render "shared/notice", message: @import_error %>
+  <% end %>
+
+  <% if @month_error.present? %>
+    <%= render "shared/notice", message: @month_error %>
+  <% end %>
+
+  <div class="mt-10 space-y-12">
+    <section>
+      <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Contas bancárias</h2>
+      <% if @active_bank_accounts.empty? %>
+        <p>Nenhuma conta bancária ativa</p>
       <% else %>
         <div class="ledger-sheet">
-          <div class="ledger-row ledger-head ledger-overview-pool">
-            <%= ledger_sort_cell("Data", column: "date", current_sort: @pool_sort, current_dir: @pool_dir, base_path: "/months/#{@month.year_month}", filter_params: month_sort_query, sort_param: :pool_sort, dir_param: :pool_dir) %>
-            <%= ledger_sort_cell("Favorecido", column: "payee", current_sort: @pool_sort, current_dir: @pool_dir, base_path: "/months/#{@month.year_month}", filter_params: month_sort_query, sort_param: :pool_sort, dir_param: :pool_dir) %>
-            <span>Tipo</span>
-            <%= ledger_sort_cell("Valor", column: "amount", current_sort: @pool_sort, current_dir: @pool_dir, base_path: "/months/#{@month.year_month}", filter_params: month_sort_query, sort_param: :pool_sort, dir_param: :pool_dir, align: :right) %>
-            <span>Foto</span>
+          <div class="ledger-row ledger-head ledger-month-bank" aria-hidden="true">
+            <span>Banco</span>
+            <span>Nome</span>
+            <span>Agência/conta</span>
+            <span>Situação</span>
+            <span>Documentos</span>
+            <span></span>
           </div>
           <ul>
-            <% @unmatched_documents.each do |document| %>
-              <li data-row="pool-document" data-document-id="<%= document.id %>" class="ledger-row ledger-overview-pool">
-                <time datetime="<%= document.document_on.iso8601 %>" class="tabular-nums"><%= l(document.document_on) %></time>
-                <p class="font-medium"><%= document.payee %></p>
-                <p><%= document.recibo? ? "Recibo" : "Nota fiscal" %></p>
-                <p data-cell="amount" class="font-medium tabular-nums"><%= format_reais(document.amount_cents) %></p>
-                <div data-cell="photo" class="min-w-0 truncate text-meta">
-                  <% if document.photo.attached? %>
-                    <%= link_to document.photo.filename, url_for(document.photo), class: "text-caixa underline underline-offset-2" %>
-                  <% end %>
-                </div>
-              </li>
+            <% @active_bank_accounts.each do |bank_account| %>
+              <%= render "months/statement_row", month: @month, bank_account: bank_account, statement: @statements_by_account_id[bank_account.id] %>
             <% end %>
           </ul>
         </div>
       <% end %>
-    </details>
+    </section>
 
-    <details class="month-fold" open>
-      <summary>Recebimentos</summary>
-      <div class="ledger-sheet">
-        <div class="ledger-row ledger-head ledger-inflow">
-          <%= ledger_sort_cell("Data", column: "date", current_sort: @inflows_sort, current_dir: @inflows_dir, base_path: "/months/#{@month.year_month}", filter_params: month_sort_query, sort_param: :inflows_sort, dir_param: :inflows_dir) %>
-          <span>Histórico</span>
-          <%= ledger_sort_cell("Valor", column: "amount", current_sort: @inflows_sort, current_dir: @inflows_dir, base_path: "/months/#{@month.year_month}", filter_params: month_sort_query, sort_param: :inflows_sort, dir_param: :inflows_dir, align: :right) %>
-        </div>
-        <ul>
-          <% @inflows.each do |inflow| %>
-            <li data-row="inflow" class="ledger-row ledger-inflow">
-              <time datetime="<%= inflow.occurred_on.iso8601 %>" class="tabular-nums"><%= l(inflow.occurred_on) %></time>
-              <div>
-                <p class="font-medium"><%= inflow.history %></p>
-                <p class="text-meta text-ink-soft"><%= inflow.bank_statement.bank_account.name %></p>
-              </div>
-              <p data-cell="amount" class="font-medium tabular-nums"><%= format_reais(inflow.amount_cents) %></p>
-            </li>
+    <% unless movements_visible %>
+      <section id="confirm-step">
+        <h2 class="mb-4 border-b border-rule pb-2 text-lg leading-6 font-semibold">Confirmar contas para fechamento</h2>
+        <% unless @active_bank_accounts.empty? %>
+          <div class="ledger-sheet">
+            <div class="ledger-row ledger-head ledger-confirm" aria-hidden="true">
+              <span>Nome</span>
+              <span>Situação</span>
+            </div>
+            <ul>
+              <% @active_bank_accounts.each do |bank_account| %>
+                <% statement = @statements_by_account_id[bank_account.id] %>
+                <li class="ledger-row ledger-confirm">
+                  <p class="font-medium"><%= bank_account.name %></p>
+                  <% if statement %>
+                    <p>Presente</p>
+                  <% else %>
+                    <p class="text-margem">Falta</p>
+                  <% end %>
+                </li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+        <%= form_with url: "/months/#{@month.year_month}/account_confirmation", method: :post, html: { class: "mt-4" } do %>
+          <%= submit_tag "Iniciar fechamento", class: "rounded bg-caixa px-4 py-2 font-semibold text-white" %>
+        <% end %>
+      </section>
+    <% end %>
+
+    <% if movements_visible %>
+      <div class="flex flex-wrap gap-2" role="group" aria-label="Conta bancária">
+        <% if @bank_account_id.nil? %>
+          <%= link_to "Todas", "/months/#{@month.year_month}", aria: { current: "true" }, id: "month-account-all", data: { turbo_frame: list_frame }, class: "rounded bg-caixa px-3 py-1 font-semibold text-white" %>
+        <% else %>
+          <%= link_to "Todas", "/months/#{@month.year_month}", id: "month-account-all", data: { turbo_frame: list_frame }, class: "rounded border border-ink px-3 py-1" %>
+        <% end %>
+        <% @active_bank_accounts.each do |bank_account| %>
+          <% if @bank_account_id == bank_account.id %>
+            <%= link_to bank_account.name, "/months/#{@month.year_month}?bank_account_id=#{bank_account.id}", aria: { current: "true" }, id: "month-account-#{bank_account.id}", data: { turbo_frame: list_frame }, class: "rounded bg-caixa px-3 py-1 font-semibold text-white" %>
+          <% else %>
+            <%= link_to bank_account.name, "/months/#{@month.year_month}?bank_account_id=#{bank_account.id}", id: "month-account-#{bank_account.id}", data: { turbo_frame: list_frame }, class: "rounded border border-ink px-3 py-1" %>
           <% end %>
-        </ul>
+        <% end %>
       </div>
-    </details>
-  <% end %>
-</div>
+
+      <% month_sort_query = {
+        bank_account_id: @bank_account_id,
+        payments_sort: params[:payments_sort],
+        payments_dir: params[:payments_dir],
+        inflows_sort: params[:inflows_sort],
+        inflows_dir: params[:inflows_dir],
+        pool_sort: params[:pool_sort],
+        pool_dir: params[:pool_dir]
+      } %>
+      <details id="month-payments" class="month-fold" open>
+        <summary>Pagamentos</summary>
+        <div class="ledger-sheet">
+          <div class="ledger-row ledger-head ledger-pay ledger-overview-pay">
+            <%= ledger_sort_cell("Data", column: "date", current_sort: @payments_sort, current_dir: @payments_dir, base_path: "/months/#{@month.year_month}", frame: list_frame, filter_params: month_sort_query, sort_param: :payments_sort, dir_param: :payments_dir) %>
+            <span>Histórico</span>
+            <%= ledger_sort_cell("Valor", column: "amount", current_sort: @payments_sort, current_dir: @payments_dir, base_path: "/months/#{@month.year_month}", frame: list_frame, filter_params: month_sort_query, sort_param: :payments_sort, dir_param: :payments_dir, align: :right) %>
+            <span>Status</span>
+            <span>Documento</span>
+          </div>
+          <ul>
+            <% @payments.each do |payment| %>
+              <% status = payment_status(payment) %>
+              <li data-row="payment" data-payment-id="<%= payment.id %>" data-status="<%= status %>" class="ledger-row ledger-pay ledger-overview-pay<%= " is-block" if status == "missing" %>">
+                <time datetime="<%= payment.occurred_on.iso8601 %>" class="tabular-nums"><%= l(payment.occurred_on) %></time>
+                <div>
+                  <p class="pay-history" title="<%= payment.history %>"><%= payment.history %></p>
+                  <p class="pay-account" title="<%= payment.bank_statement.bank_account.name %>"><%= payment.bank_statement.bank_account.name %></p>
+                </div>
+                <p data-cell="amount" class="font-medium tabular-nums"><%= format_reais(payment.amount_cents) %></p>
+                <div data-cell="status">
+                  <% status_word = payment_status_word(payment, status) %>
+                  <p class="pay-status<%= " text-margem" if status == "missing" %>" title="<%= status_word %>"><%= status_word %></p>
+                </div>
+                <% document_names = status == "matched" ? payment.match.supporting_documents.map(&:payee).join(", ") : "" %>
+                <p data-cell="document" class="pay-document" title="<%= document_names %>"><%= document_names %></p>
+              </li>
+            <% end %>
+          </ul>
+        </div>
+      </details>
+
+      <details id="month-documents" class="month-fold" open>
+        <summary>Documentos sem casamento</summary>
+        <% if @unmatched_documents.empty? %>
+          <p>Nenhum documento sem casamento</p>
+        <% else %>
+          <div class="ledger-sheet">
+            <div class="ledger-row ledger-head ledger-overview-pool">
+              <%= ledger_sort_cell("Data", column: "date", current_sort: @pool_sort, current_dir: @pool_dir, base_path: "/months/#{@month.year_month}", frame: list_frame, filter_params: month_sort_query, sort_param: :pool_sort, dir_param: :pool_dir) %>
+              <%= ledger_sort_cell("Favorecido", column: "payee", current_sort: @pool_sort, current_dir: @pool_dir, base_path: "/months/#{@month.year_month}", frame: list_frame, filter_params: month_sort_query, sort_param: :pool_sort, dir_param: :pool_dir) %>
+              <span>Tipo</span>
+              <%= ledger_sort_cell("Valor", column: "amount", current_sort: @pool_sort, current_dir: @pool_dir, base_path: "/months/#{@month.year_month}", frame: list_frame, filter_params: month_sort_query, sort_param: :pool_sort, dir_param: :pool_dir, align: :right) %>
+              <span>Foto</span>
+            </div>
+            <ul>
+              <% @unmatched_documents.each do |document| %>
+                <li data-row="pool-document" data-document-id="<%= document.id %>" class="ledger-row ledger-overview-pool">
+                  <time datetime="<%= document.document_on.iso8601 %>" class="tabular-nums"><%= l(document.document_on) %></time>
+                  <p class="font-medium"><%= document.payee %></p>
+                  <p><%= document.recibo? ? "Recibo" : "Nota fiscal" %></p>
+                  <p data-cell="amount" class="font-medium tabular-nums"><%= format_reais(document.amount_cents) %></p>
+                  <div data-cell="photo" class="min-w-0 truncate text-meta">
+                    <% if document.photo.attached? %>
+                      <%= link_to document.photo.filename, url_for(document.photo), class: "text-caixa underline underline-offset-2" %>
+                    <% end %>
+                  </div>
+                </li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+      </details>
+
+      <details id="month-inflows" class="month-fold" open>
+        <summary>Recebimentos</summary>
+        <div class="ledger-sheet">
+          <div class="ledger-row ledger-head ledger-inflow">
+            <%= ledger_sort_cell("Data", column: "date", current_sort: @inflows_sort, current_dir: @inflows_dir, base_path: "/months/#{@month.year_month}", frame: list_frame, filter_params: month_sort_query, sort_param: :inflows_sort, dir_param: :inflows_dir) %>
+            <span>Histórico</span>
+            <%= ledger_sort_cell("Valor", column: "amount", current_sort: @inflows_sort, current_dir: @inflows_dir, base_path: "/months/#{@month.year_month}", frame: list_frame, filter_params: month_sort_query, sort_param: :inflows_sort, dir_param: :inflows_dir, align: :right) %>
+          </div>
+          <ul>
+            <% @inflows.each do |inflow| %>
+              <li data-row="inflow" class="ledger-row ledger-inflow">
+                <time datetime="<%= inflow.occurred_on.iso8601 %>" class="tabular-nums"><%= l(inflow.occurred_on) %></time>
+                <div>
+                  <p class="font-medium"><%= inflow.history %></p>
+                  <p class="text-meta text-ink-soft"><%= inflow.bank_statement.bank_account.name %></p>
+                </div>
+                <p data-cell="amount" class="font-medium tabular-nums"><%= format_reais(inflow.amount_cents) %></p>
+              </li>
+            <% end %>
+          </ul>
+        </div>
+      </details>
+    <% end %>
+  </div>
+<% end %>

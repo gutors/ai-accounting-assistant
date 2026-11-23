@@ -10,7 +10,7 @@
 <% end %>
 <% clear_href = clear_query.any? ? "#{url}?#{clear_query.to_query}" : url %>
 
-<%= form_with url: url, method: :get, class: "ledger-filters mb-4 grid items-end gap-3 md:grid-cols-[minmax(0,1.5fr)_11rem_10rem_10rem_auto]" do %>
+<%= form_with url: url, method: :get, data: { turbo_frame: frame }, class: "ledger-filters mb-4 grid items-end gap-3 md:grid-cols-[minmax(0,1.5fr)_11rem_10rem_10rem_auto]" do %>
   <% if filters[:sort].present? && (filters[:sort] != "date" || filters[:dir] != "desc") %>
     <%= hidden_field_tag :sort, filters[:sort] %>
     <%= hidden_field_tag :dir, filters[:dir] %>
@@ -32,9 +32,9 @@
     <%= date_field_tag :date_to, filters[:date_to], id: "filter_date_to", autocomplete: "off", class: "w-full rounded border border-rule bg-sheet px-3 py-1.5 tabular-nums" %>
   </div>
   <div class="flex items-center gap-3 pb-0.5">
-    <%= submit_tag "Filtrar", name: nil, class: "ds-btn-secondary py-1.5 px-3.5" %>
+    <%= submit_tag "Filtrar", name: nil, id: "filter-apply", class: "ds-btn-secondary py-1.5 px-3.5" %>
     <% if active_filter %>
-      <%= link_to "Limpar", clear_href, class: "text-caixa underline underline-offset-2" %>
+      <%= link_to "Limpar", clear_href, id: "filter-clear", data: { turbo_frame: frame, list_refresh_focus_fallback: "filter_q" }, class: "text-caixa underline underline-offset-2" %>
     <% end %>
   </div>
 <% end %>
