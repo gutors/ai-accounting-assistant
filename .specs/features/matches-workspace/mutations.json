@@ -1,0 +1,23 @@
+[
+  {
+    "file": "app/controllers/application_controller.rb",
+    "old": "@missing_document_payments.min_by { |payment| [ payment.occurred_on, payment.id ] }",
+    "new": "@missing_document_payments.max_by { |payment| [ payment.occurred_on, payment.id ] }",
+    "proof": "bin/rspec spec/requests/matches_workspace_spec.rb -e \"selects oldest pending payment even without a suggestion\"",
+    "label": "C2 oldest payment ordering"
+  },
+  {
+    "file": "app/javascript/controllers/month_match_controller.js",
+    "old": "input.checked = false",
+    "new": "input.checked = true",
+    "proof": "bin/rspec spec/system/matches_workspace_spec.rb -e \"workspace criterion 15\"",
+    "label": "C15 clear selected documents"
+  },
+  {
+    "file": "app/views/matches/_completed.html.erb",
+    "old": "<%= document.payee %> \u00b7 <%= format_reais(document.amount_cents) %>",
+    "new": "<%= format_reais(document.amount_cents) %>",
+    "proof": "bin/rspec spec/system/matches_workspace_spec.rb -e \"workspace criterion 20\"",
+    "label": "C20 document payee in details"
+  }
+]

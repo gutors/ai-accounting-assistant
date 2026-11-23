@@ -62,6 +62,42 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: C22
 - last seen: 2026-11-19T19:37:09Z
 
+### L-023 - Assert selected inputs are cleared in the DOM when changing a form mode, including after cancellation.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `system` · harmful: 0
+- features: matches-workspace
+- evidence: C15 clear selected documents (system)
+- last seen: 2026-11-23T23:31:46Z
+
+### L-024 - Assert every named field in expanded details using distinct members and values.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `system` · harmful: 0
+- features: matches-workspace
+- evidence: C20 document payee in details (system)
+- last seen: 2026-11-23T23:31:46Z
+
+### L-025 - Use distinct payment and document data when verifying every completed summary column.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `system` · harmful: 0
+- features: matches-workspace
+- evidence: C19 (system)
+- last seen: 2026-11-23T23:31:46Z
+
+### L-026 - Exercise every completed list when checking account filters and closed-month read-only behavior.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `system` · harmful: 0
+- features: matches-workspace
+- evidence: C24 C25 (system)
+- last seen: 2026-11-23T23:31:46Z
+
+### L-027 - Populate wide tables before asserting responsive horizontal scrolling.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `system` · harmful: 0
+- features: matches-workspace
+- evidence: C27 (system)
+- last seen: 2026-11-23T23:31:46Z
+
+### L-028 - Assert specified user-facing error copy literally rather than via the production constant.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `system` · harmful: 0
+- features: matches-workspace
+- evidence: C11 (system)
+- last seen: 2026-11-23T23:31:46Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

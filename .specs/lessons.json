@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 23,
+  "next_id": 29,
   "lessons": [
     {
       "id": "L-015",
@@ -148,6 +148,114 @@
       ],
       "created": "2026-11-19T19:37:09Z",
       "last_seen": "2026-11-19T19:37:09Z"
+    },
+    {
+      "id": "L-023",
+      "key": "surviving_mutant::assert selected inputs are cleared in the dom when changing a form mode including after cancellation",
+      "text": "Assert selected inputs are cleared in the DOM when changing a form mode, including after cancellation.",
+      "signal": "surviving_mutant",
+      "scope": "system",
+      "status": "candidate",
+      "features": [
+        "matches-workspace"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "C15 clear selected documents (system)"
+      ],
+      "created": "2026-11-23T23:31:46Z",
+      "last_seen": "2026-11-23T23:31:46Z"
+    },
+    {
+      "id": "L-024",
+      "key": "surviving_mutant::assert every named field in expanded details using distinct members and values",
+      "text": "Assert every named field in expanded details using distinct members and values.",
+      "signal": "surviving_mutant",
+      "scope": "system",
+      "status": "candidate",
+      "features": [
+        "matches-workspace"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "C20 document payee in details (system)"
+      ],
+      "created": "2026-11-23T23:31:46Z",
+      "last_seen": "2026-11-23T23:31:46Z"
+    },
+    {
+      "id": "L-025",
+      "key": "spec_precision_gap::use distinct payment and document data when verifying every completed summary column",
+      "text": "Use distinct payment and document data when verifying every completed summary column.",
+      "signal": "spec_precision_gap",
+      "scope": "system",
+      "status": "candidate",
+      "features": [
+        "matches-workspace"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "C19 (system)"
+      ],
+      "created": "2026-11-23T23:31:46Z",
+      "last_seen": "2026-11-23T23:31:46Z"
+    },
+    {
+      "id": "L-026",
+      "key": "spec_precision_gap::exercise every completed list when checking account filters and closed month read only behavior",
+      "text": "Exercise every completed list when checking account filters and closed-month read-only behavior.",
+      "signal": "spec_precision_gap",
+      "scope": "system",
+      "status": "candidate",
+      "features": [
+        "matches-workspace"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "C24 C25 (system)"
+      ],
+      "created": "2026-11-23T23:31:46Z",
+      "last_seen": "2026-11-23T23:31:46Z"
+    },
+    {
+      "id": "L-027",
+      "key": "spec_precision_gap::populate wide tables before asserting responsive horizontal scrolling",
+      "text": "Populate wide tables before asserting responsive horizontal scrolling.",
+      "signal": "spec_precision_gap",
+      "scope": "system",
+      "status": "candidate",
+      "features": [
+        "matches-workspace"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "C27 (system)"
+      ],
+      "created": "2026-11-23T23:31:46Z",
+      "last_seen": "2026-11-23T23:31:46Z"
+    },
+    {
+      "id": "L-028",
+      "key": "spec_precision_gap::assert specified user facing error copy literally rather than via the production constant",
+      "text": "Assert specified user-facing error copy literally rather than via the production constant.",
+      "signal": "spec_precision_gap",
+      "scope": "system",
+      "status": "candidate",
+      "features": [
+        "matches-workspace"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "C11 (system)"
+      ],
+      "created": "2026-11-23T23:31:46Z",
+      "last_seen": "2026-11-23T23:31:46Z"
     }
   ]
 }
