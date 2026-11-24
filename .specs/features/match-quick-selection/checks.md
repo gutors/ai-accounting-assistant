@@ -45,7 +45,7 @@ Proof: `bin/rspec spec/system/matches_workspace_spec.rb -e "quick selection work
 ## Handoff
 
 - **Settled mid-build:** user: "Não, seguir sem issue"
-- **Dispatched:** Verifier at `334afa1` - pending
-- **Boundary:** C1-C5 implemented at `334afa1`
+- **Dispatched:** Verifier at `334afa1` - returned; findings closed at `1653d81`
+- **Boundary:** C1-C5 implemented at `1653d81`
 - **Abandoned:** none
 - **Walked:** system browser exercised selection, exception, confirmation and phone width; manual walk unavailable because the browser blocked the local prototype URL.

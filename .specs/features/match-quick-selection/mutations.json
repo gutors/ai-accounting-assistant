@@ -1,0 +1,23 @@
+[
+  {
+    "file": "app/javascript/controllers/month_match_controller.js",
+    "old": "input.checked = false\n    this.errorTarget.hidden = true",
+    "new": "input.checked = true\n    this.errorTarget.hidden = true",
+    "proof": "bin/rspec spec/system/matches_workspace_spec.rb -e \"quick selection protects selected rows\"",
+    "label": "remove selected item"
+  },
+  {
+    "file": "app/javascript/controllers/month_match_controller.js",
+    "old": "this.renderSelected(this.selectedPaymentsTarget, pays)",
+    "new": "this.renderSelected(this.selectedPaymentsTarget, [])",
+    "proof": "bin/rspec spec/system/matches_workspace_spec.rb -e \"quick selection toggles payments and documents\"",
+    "label": "render selected payments"
+  },
+  {
+    "file": "app/javascript/controllers/month_match_controller.js",
+    "old": "this.selectedDocumentsTarget.hidden = this.hasCancelExceptionTarget && !this.cancelExceptionTarget.hidden",
+    "new": "this.selectedDocumentsTarget.hidden = true",
+    "proof": "bin/rspec spec/system/matches_workspace_spec.rb -e \"quick selection toggles payments and documents\"",
+    "label": "hide selected documents"
+  }
+]
