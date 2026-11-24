@@ -98,6 +98,30 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: C11 (system)
 - last seen: 2026-11-23T23:31:46Z
 
+### L-029 - Assert that a client-side form guard stops the request when a server rejection can produce the same visible error.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `matches` · harmful: 0
+- features: matches-resolution
+- evidence: C6 (matches)
+- last seen: 2026-11-24T20:57:58Z
+
+### L-030 - Seed every section affected by an account filter and assert its records after selecting and clearing the account.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `matches` · harmful: 0
+- features: matches-resolution
+- evidence: C2 (matches)
+- last seen: 2026-11-24T20:57:58Z
+
+### L-031 - Populate selected and unselected candidates in each picker and assert both visibility outcomes after collapsing the list.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `matches` · harmful: 0
+- features: matches-resolution
+- evidence: C4 (matches)
+- last seen: 2026-11-24T20:57:58Z
+
+### L-032 - When a verdict is defined by copy and color, assert the visible label and computed color for each state.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `matches` · harmful: 0
+- features: matches-resolution
+- evidence: C5 (matches)
+- last seen: 2026-11-24T20:57:58Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

@@ -1,0 +1,5 @@
+[
+  {"file":"app/javascript/controllers/month_match_controller.js","old":"const delta = docCents - payCents","new":"const delta = payCents - docCents","proof":"bin/rspec spec/system/month_matches_spec.rb -e \"shows signed and colored differences\"","label":"C5 reverses signed difference"},
+  {"file":"app/javascript/controllers/month_match_controller.js","old":"this.documentListTarget.querySelectorAll('input[type=\"checkbox\"]').forEach((input) => { input.checked = false })","new":"this.documentListTarget.querySelectorAll('input[type=\"checkbox\"]').forEach((input) => { input.checked = true })","proof":"bin/rspec spec/system/month_matches_spec.rb -e \"chooses and cancels an outlined exception\"","label":"C7 retains exception documents"},
+  {"file":"app/javascript/controllers/month_match_controller.js","old":"!this.observationDetailsTarget.querySelector(\"textarea\").value.trim()","new":"!this.observationDetailsTarget.querySelector(\"textarea\").value","proof":"bin/rspec spec/system/month_matches_spec.rb -e \"opens the required observation on shortfall\"","label":"C6 accepts whitespace observation"}
+]

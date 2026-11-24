@@ -67,7 +67,7 @@ Proof: browser - open the balanced workspace at 390 × 1080, save `captures/bala
 ## Handoff
 
 - **Settled mid-build:** user authorized issue creation. Issue #185 tracks the approved changes.
-- **Dispatched:** worker implementation from `a0eb0b1`
-- **Boundary:** C1–C8 frozen, pending implementation.
+- **Dispatched:** worker implementation from `a0eb0b1` - returned at `6c295a4`. Fresh verifier and screens round 1 at `6c295a4` - returned. Worker fix pass at `7e89208` - returned. Screens round 2 at `7e89208` - returned.
+- **Boundary:** C1–C8 implemented at `6c295a4`. The worker addressed the four verifier findings and two screen findings at `7e89208`. Round 2 matched both updated running pictures. The final proof run at `7e89208` passed all 19 rows and killed all three independent mutations.
 - **Abandoned:** none
 - **Walked:** Signed into the isolated development app as the fictional coordinator, opened October 2026 from the month, and entered Casar pagamentos. Observed the balanced total, unchecked the R$ 150,00 receipt and saw the red shortfall, then submitted without observation and saw the alert before the filter and the open field. Added the R$ 330,00 document and saw the blue surplus. Chose and canceled a bank-fee exception, selected Caixa and saw its single pending payment plus a balanced receipt, viewed the stacked workspace at 390 CSS pixels, then restored Todas as contas.
