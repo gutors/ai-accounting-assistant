@@ -52,7 +52,7 @@ Proof: `bin/rspec spec/system/month_account_filter_spec.rb -e "fits a phone view
 ## Handoff
 
 - **Settled mid-build:** none
-- **Dispatched:** none
-- **Boundary:** C1-C7 implemented; independent verification pending
+- **Dispatched:** Verifier and screens round 1 at `76dfc88` - returned
+- **Boundary:** C1-C7 implemented and independently verified at `76dfc88`
 - **Abandoned:** none
 - **Walked:** In local development, signed in and opened October 2026, collapsed Pagamentos, selected Conta Alfa, observed the empty receipts message and month-wide blockers, then selected Todas as contas and saw the payments return while the disclosure stayed closed. Captured option A at 1000 × 570 without resizing.
