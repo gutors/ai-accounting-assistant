@@ -13,6 +13,34 @@ Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all o
 
 Infer the repo from `git remote -v`; `gh` does this automatically when run inside a clone.
 
+## Issue format
+
+Write the title and body in Brazilian Portuguese. Use a concise, specific title and the following sections for a feature, improvement, or bug:
+
+```markdown
+## Problema
+
+Describe the current situation and its impact on the person using the product.
+
+## O que muda
+
+Summarize the intended outcome and scope.
+
+## Critérios de aceitação
+
+- [ ] Observable, independently verifiable behavior.
+
+## Fora de escopo
+
+State relevant boundaries, or write "Nenhum identificado".
+
+## Referências
+
+Link the approved plan, related issues, or other relevant evidence when available.
+```
+
+Keep the issue self-contained and brief: include the important behavior, edge cases, and boundaries without copying the plan or implementation details. For bugs, include reproduction steps and expected versus actual behavior when known. Mark unresolved details as open questions rather than inventing them. Omit Referências when there are none. Specialized workflows may use their own format when explicitly required.
+
 ## Pull requests as a triage surface
 
 **PRs as a request surface: no.** _(Set to `yes` if this repo treats external PRs as feature requests; `/triage` reads this flag.)_
