@@ -195,7 +195,7 @@ Tokens live as theme colors. Views use the token, never a raw palette step. Cont
 
 **Sheet white** (`sheet`) is the field inside a control, the open org list, a work panel, and the selected lote row. Inputs sit on a sheet; the page stays paper.
 
-**Forest ink** (`ink`) is text, the secondary button's border, the stamp, and the match-suggestion outline. **Soft ink** (`ink-soft`) is the second line: filenames, account coordinates, the month-folder name, an inactive account, and "Em andamento" on an open month row that already has its statements.
+**Forest ink** (`ink`) is text, the secondary button's border, the stamp, and table text. **Soft ink** (`ink-soft`) is the second line: filenames, account coordinates, the month-folder name, an inactive account, and "Em andamento" on an open month row that already has its statements.
 
 **Ruling green** (`rule`) is the 1px line under a section heading, between rows, around a field or an open panel, and the dashed drop zone.
 
@@ -234,7 +234,7 @@ Column templates from 768px:
 - Home Contas bancárias: Banco, Nome, Extrato (6.5rem).
 - Documents Sem mês: 9.5rem date, flexible payee, 7rem kind, 8rem amount, 5.5rem actions.
 - Administration: name, email, 7rem status, 5rem Editar.
-- Match payments: 2rem check, 7rem date, flexible history, 6.5rem amount, 9rem status.
+- Matching workspace: payment and document rows carry a checkbox, flexible description and amount; completed records use scrollable tables.
 - Lote queue: 9.5rem date, flexible payee, 8rem amount, 8rem kind, 7rem status.
 
 The people book is not a five-track sheet. It is grouped `person-entry` rows: email (and Principal) on the left, quiet actions on the right, a 1px rule under each row. Invites sit in the same list. The invite form is one row: email, kind (11rem), secondary Convidar.
@@ -253,7 +253,7 @@ Focus is a 2px solid ledger-green ring, offset 2px, on every control. It is the 
 
 The toast is a full-bleed bar pinned to the top of the viewport (z-40). The wait veil is paper at 72% over the main, starting under the header. Neither uses a shadow.
 
-Motion is limited to what the person triggered. Opening a native disclosure, the org list, wait, or toast is a state change, not a transition. No `transition` and no `@keyframes` ship in product CSS, so a reduced-motion setting has nothing to remove. Primary buttons do not recolor on hover; links and quiet actions gain an underline. A match suggestion tints to paper on hover. A success toast dismisses after five seconds; a progress toast stays until the work ends.
+Motion is limited to what the person triggered. Opening a native disclosure, the org list, wait, or toast is a state change, not a transition. No `transition` and no `@keyframes` ship in product CSS, so a reduced-motion setting has nothing to remove. Primary buttons do not recolor on hover; links and quiet actions gain an underline. A success toast dismisses after five seconds; a progress toast stays until the work ends.
 
 **The Flat Ledger Rule.** Surfaces stay flat. Depth is the ruling line and the red margin. Do not introduce a drop shadow to float a panel.
 
@@ -277,9 +277,9 @@ The documents drop zone is the only dashed rule: 4px corner, dashed `rule`, pape
 
 - **Shape:** 4px corner. Primary, secondary, and danger share 8px vertical and 16px horizontal padding. Class `.ds-btn-primary` / `.ds-btn-secondary`.
 - **Primary:** ledger-green fill, sheet-white label, weight 600. This is "Fechar para envio", "Entrar com Google", "Incluir documento", "Abrir mês", "Continuar", and every other commit action. No hover recolor. Focus uses the global ring.
-- **Secondary:** transparent fill, 1px ink border, ink label at body weight. "Casar pagamentos", "Reabrir", "Restaurar pasta", "Convidar", "Corrigir", "Filtrar", and the exception actions ("Marcar tarifa", "Marcar honorário").
+- **Secondary:** transparent fill, 1px ink border, ink label at body weight. "Casar pagamentos", "Reabrir", "Restaurar pasta", "Convidar", "Corrigir", and "Filtrar".
 - **Danger secondary:** the secondary shape with margem label and margem border. Class `.ds-btn-secondary.ds-btn-danger`. "Excluir" on a never-sent month, "Retirar" on a lote row.
-- **Quiet:** no border and no fill. An underline sits 2px under the words. Destructive words (revoke, delete, undo a match, deactivate) are margin red. Other quiet words, including "Sair" and inline links, are ledger green. Match undo on the matches screen is a margem “×” with an accessible name, not a month-row action.
+- **Quiet:** no border and no fill. An underline sits 2px under the words. Destructive words (revoke, delete, undo a match, deactivate) are margin red. Other quiet words, including "Sair" and inline links, are ledger green. Match undo and exception unmark are margem text actions on the matching screen, not month-row actions.
 
 ### Filter chips
 
@@ -295,7 +295,7 @@ Record lists are not cards. Three sheet panels exist, all flat:
 
 - **Disclosure:** sheet ground, 1px ruling border, 4px corner, 16px padding, sitting under a ledger-green summary.
 - **Proof pane:** the photo or XML beside an insert form — sheet, ruling border, 4px, with the image on paper inside.
-- **Match suggestion:** a full-width button, 1px ink border, sheet fill, 4px corner. Two sides (payment / document) with “casar com” in the middle. Hover tints the fill to paper.
+- **Matching workspace:** payment and document selections use flat ruled sheets in two columns. Confirmation and exception marking share the primary action; the exception picker follows the organization switcher. Confirmed matches and marked exceptions occupy separate ruled tables with details and undo actions.
 
 ### Inputs / Fields
 

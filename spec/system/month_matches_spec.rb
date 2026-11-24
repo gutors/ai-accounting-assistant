@@ -27,17 +27,17 @@ RSpec.describe "Month matches layout", type: :system do
     [ account, organization, month ]
   end
 
-  it "match-split is two columns at 1100px stacked below with ledger-pay 3px at 768px" do
+  it "workspace has two columns at 1100px and stacks on narrow screens" do
     account, _organization, _month = plant_open_matches
     sign_in_through_google(account)
 
     visit "/months/2026-05/matches"
-    expect(page).to have_css(".match-split")
+    expect(page).to have_css(".match-workspace")
 
-    page.driver.resize(1100, 900)
+    page.current_window.resize_to(1100, 900)
     columns = page.evaluate_script(<<~JS)
       (function() {
-        const split = document.querySelector(".match-split");
+        const split = document.querySelector(".match-workspace");
         const style = getComputedStyle(split);
         const tracks = style.gridTemplateColumns.split(" ").map((value) => parseFloat(value));
         const headings = Array.from(split.querySelectorAll("h2")).map((node) => node.textContent.trim());
@@ -45,14 +45,14 @@ RSpec.describe "Month matches layout", type: :system do
       })()
     JS
     expect(columns["display"]).to eq("grid")
-    expect(columns["headings"]).to eq([ "Pagamentos", "Documentos sem casamento" ])
+    expect(columns["headings"]).to eq([ "Pagamento em análise", "Documentos selecionados" ])
     expect(columns["trackCount"]).to eq(2)
     expect(columns["tracks"][0]).to be > columns["tracks"][1]
 
-    page.driver.resize(1099, 900)
+    page.current_window.resize_to(375, 900)
     stacked = page.evaluate_script(<<~JS)
       (function() {
-        const split = document.querySelector(".match-split");
+        const split = document.querySelector(".match-workspace");
         const style = getComputedStyle(split);
         const tracks = style.gridTemplateColumns.trim() === "none"
           ? []
@@ -62,17 +62,17 @@ RSpec.describe "Month matches layout", type: :system do
       })()
     JS
     expect(stacked["trackCount"]).to eq(1)
-    expect(stacked["headings"]).to eq([ "Pagamentos", "Documentos sem casamento" ])
+    expect(stacked["headings"]).to eq([ "Pagamento em análise", "Documentos selecionados" ])
 
     source = Rails.root.join("app/assets/tailwind/application.css").read
     expect(source).to include("@media (min-width: 1100px)")
     expect(source).to include("@media (min-width: 768px)")
 
-    page.driver.resize(768, 900)
+    page.current_window.resize_to(768, 900)
     density = page.evaluate_script(<<~JS)
       (function() {
-        const row = document.querySelector('li[data-row="payment"]');
-        const pool = document.querySelector('li[data-row="pool-document"]');
+        const row = document.querySelector('[data-row="payment"]');
+        const pool = document.querySelector('[data-row="pool-document"] input:checked').closest('[data-row="pool-document"]');
         const child = row.firstElementChild;
         const rowStyle = getComputedStyle(row);
         const childStyle = getComputedStyle(child);
@@ -86,12 +86,9 @@ RSpec.describe "Month matches layout", type: :system do
         };
       })()
     JS
-    expect(density["rowDisplay"]).to eq("grid")
-    expect(density["poolDisplay"]).to eq("grid")
-    expect(density["className"]).to include("ledger-pay")
-    expect(density["paddingTop"]).to eq("3px")
-    expect(density["paddingBottom"]).to eq("3px")
-    expect(density["borderLeft"]).to eq("3px")
+    expect(density["rowDisplay"]).to eq("flex")
+    expect(density["poolDisplay"]).to eq("flex")
+    expect(density["className"]).to include("match-picker-row")
   end
 
   it "totalling line sums and verdicts including empty side" do
@@ -99,13 +96,11 @@ RSpec.describe "Month matches layout", type: :system do
     sign_in_through_google(account)
     visit "/months/2026-05/matches"
 
-    payment = find('li[data-row="payment"][data-status="missing"] input[type="checkbox"]')
-    padaria = find('li[data-row="pool-document"]', text: "Padaria Central").find('input[type="checkbox"]')
-    menos = find('li[data-row="pool-document"]', text: "Mercado Menos").find('input[type="checkbox"]')
-    mais = find('li[data-row="pool-document"]', text: "Mercado Mais").find('input[type="checkbox"]')
-
-    payment.click
-    padaria.click
+    click_button "Adicionar documentos"
+    payment = find('[data-row="payment"] input[type="checkbox"]')
+    padaria = find('[data-row="pool-document"]', text: "Padaria Central").find('input[type="checkbox"]')
+    menos = find('[data-row="pool-document"]', text: "Mercado Menos").find('input[type="checkbox"]')
+    mais = find('[data-row="pool-document"]', text: "Mercado Mais").find('input[type="checkbox"]')
     within("#match-confirm") do
       expect(page).to have_text("Pagamentos R$ 220,00")
       expect(page).to have_text("Documentos R$ 220,00")
@@ -145,52 +140,48 @@ RSpec.describe "Month matches layout", type: :system do
     end
   end
 
-  it "match top band is sticky with ink bottom and confirm has no ink top" do
+  it "workspace groups confirmation and compact observation with the payment" do
     account, _organization, _month = plant_open_matches
     sign_in_through_google(account)
     visit "/months/2026-05/matches"
 
-    expect(page).to have_css("h2", text: "Próxima sugestão")
+    expect(page).to have_css("h2", text: "Pagamento em análise")
     expect(page).to have_css("#match-confirm")
     styles = page.evaluate_script(<<~JS)
       (function() {
-        const band = document.querySelector(".match-top");
+        const band = document.querySelector(".match-workspace");
         const confirm = document.querySelector("#match-confirm");
         const bandStyle = getComputedStyle(band);
         const confirmStyle = getComputedStyle(confirm);
         return {
-          containsHeading: band.querySelector("h2") && band.querySelector("h2").textContent.trim() === "Próxima sugestão",
-          containsConfirm: band.contains(confirm),
-          position: bandStyle.position,
-          top: bandStyle.top,
-          borderBottomWidth: bandStyle.borderBottomWidth,
+          containsHeading: band.querySelector("h2") && band.querySelector("h2").textContent.trim() === "Pagamento em análise",
+          insideConfirm: confirm.contains(band),
+          observationClosed: band.querySelector("details") && !band.querySelector("details").open,
           confirmBorderTopWidth: confirmStyle.borderTopWidth
         };
       })()
     JS
     expect(styles["containsHeading"]).to eq(true)
-    expect(styles["containsConfirm"]).to eq(true)
-    expect(styles["position"]).to eq("sticky")
-    expect(styles["top"]).to eq("0px")
-    expect(styles["borderBottomWidth"]).to eq("1px")
+    expect(styles["insideConfirm"]).to eq(true)
+    expect(styles["observationClosed"]).to eq(true)
     expect(styles["confirmBorderTopWidth"]).to eq("0px")
   end
 
-  it "next suggestion click with equal sums confirms and omits the heading" do
+  it "equal suggestion is selected but requires explicit confirmation" do
     account, _organization, _month = plant_open_matches
     sign_in_through_google(account)
     visit "/months/2026-05/matches"
 
-    find(".match-next__hit").click
+    expect(page).to have_text("Soma igual")
+    expect(Match.count).to eq(0)
+    click_button "Confirmar casamento"
     expect(page).to have_current_path("/months/2026-05/matches")
     expect(Match.count).to eq(1)
-    row = find('li[data-row="payment"][data-status="matched"]', text: "Pix enviado — Padaria Central")
-    expect(row).to have_text("Casado")
-    expect(page).to have_no_css('li[data-row="pool-document"]', text: "Padaria Central")
-    expect(page).to have_no_css("h2", text: "Próxima sugestão")
+    expect(page).to have_css("[data-match-id]", text: "Pix enviado — Padaria Central")
+    expect(page).to have_no_css('[data-row="pool-document"]', text: "Padaria Central")
   end
 
-  it "next suggestion click with lesser sums checks rows and does not persist" do
+  it "lesser suggestion checks rows and does not persist" do
     account, organization = plant_coordinator
     month, statement = plant_month(organization)
     plant_payment(statement, 150000, history: "TED — Aluguel sede", occurred_on: Date.new(2026, 5, 11))
@@ -198,15 +189,14 @@ RSpec.describe "Month matches layout", type: :system do
     sign_in_through_google(account)
     visit "/months/2026-05/matches"
 
-    find(".match-next__hit").click
     expect(Match.count).to eq(0)
-    pay = find('li[data-row="payment"][data-status="missing"]', text: "TED — Aluguel sede")
+    pay = find('[data-row="payment"]', text: "TED — Aluguel sede")
     expect(pay.find('input[type="checkbox"]')).to be_checked
-    doc = find('li[data-row="pool-document"]', text: "Imobiliária Serra")
+    doc = find('[data-row="pool-document"]', text: "Imobiliária Serra")
     expect(doc.find('input[type="checkbox"]')).to be_checked
     within("#match-confirm") do
       expect(page).to have_text("Documentos somam menos")
-      expect(find("#observation_match").value).to eq("")
+      expect(find("#observation_match", visible: false).value).to eq("")
     end
   end
 end

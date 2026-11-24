@@ -1,0 +1,23 @@
+[
+  {
+    "file": "app/controllers/application_controller.rb",
+    "old": "@month_missing_document_count = @missing_document_payments.size",
+    "new": "@month_missing_document_count = 0",
+    "proof": "bin/rspec spec/system/month_account_filter_spec.rb -e \"keeps month totals\"",
+    "label": "C6 omit monthly missing documents"
+  },
+  {
+    "file": "app/views/months/show.html.erb",
+    "old": "%i[payments_sort payments_dir inflows_sort inflows_dir pool_sort pool_dir]",
+    "new": "%i[inflows_sort inflows_dir pool_sort pool_dir]",
+    "proof": "bin/rspec spec/system/list_scroll_position_spec.rb -e \"changes and clears the month account in place\"",
+    "label": "C4 lose payment sort"
+  },
+  {
+    "file": "app/views/months/show.html.erb",
+    "old": "Nenhum recebimento nesta conta.",
+    "new": "Nenhum recebimento.",
+    "proof": "bin/rspec spec/system/month_account_filter_spec.rb -e \"shows empty account messages\"",
+    "label": "C5 wrong empty receipt message"
+  }
+]

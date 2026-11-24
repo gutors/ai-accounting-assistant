@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./matches.css";
 
 /* Self-hosted IBM Plex (OFL, Latin subset). Propshaft rewrites the url() to the digested /assets/ path. */
 @font-face {
@@ -951,3 +952,8 @@ body.is-waiting .wait-rule {
   transform: scaleX(0.42);
   opacity: 1;
 }
+
+.month-account-filter { margin-top: 36px; }
+.month-account-filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.month-account-filter select { max-width: 100%; min-width: min(17rem, 100%); padding: 8px 12px; border: 1px solid var(--color-ink); border-radius: 4px; background: white; }
+.month-account-filter + .month-fold { margin-top: 20px; }

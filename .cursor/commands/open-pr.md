@@ -4,6 +4,8 @@ description: Open a GitHub PR to main that references an issue. Use when the use
 
 # Open PR
 
+Before any GitHub operation, read `docs/agents/issue-tracker.md` and follow its conventions for resolving or creating the issue and preparing the PR.
+
 Do this ritual. Read `origin/main...HEAD`; do not invent a summary from the branch name alone.
 
 If the invocation includes an issue number, use it. Otherwise ask. The `gh pr create` hook *asks* when `#N` is missing — that is not a waiver (`AGENTS.md`, `docs/agents/issue-tracker.md`).

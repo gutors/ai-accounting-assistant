@@ -90,7 +90,7 @@ When `Gemfile` exists, use `bin/rails`, `bin/rspec`, and other `bin/` wrappers. 
 
 ### Issue tracker
 
-Issues live in this repo's GitHub Issues (`gh` CLI). See `docs/agents/issue-tracker.md`.
+Before creating an issue, read and follow `docs/agents/issue-tracker.md` for its format and GitHub operations.
 
 ### Triage labels
 

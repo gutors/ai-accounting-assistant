@@ -212,10 +212,10 @@ class ApplicationController < ActionController::Base
     load_month_page
     apply_bank_account_movement_filter
     @unmatched_documents = @unmatched_documents.sort_by { |document| [ document.document_on, document.id ] }
-    @next_suggestion_payment = Suggestion.next_one_payment(
-      @missing_document_payments,
-      @suggestions_by_payment_id
-    )
+    @next_suggestion_payment = @missing_document_payments.min_by { |payment| [ payment.occurred_on, payment.id ] }
+    @next_match_proposal = @suggestions_by_payment_id[@next_suggestion_payment&.id]
+    @confirmed_matches = @payments.filter_map(&:match).uniq(&:id)
+    @marked_exceptions = @payments.reject { |payment| payment.missing_document? || payment.match_id.present? }
   end
 
   def apply_bank_account_movement_filter
@@ -269,6 +269,7 @@ class ApplicationController < ActionController::Base
     @inflows = MonthListSort.apply(@inflows, @inflows_sort, @inflows_dir, date: :occurred_on)
     @unmatched_documents = MonthListSort.apply(@unmatched_documents, @pool_sort, @pool_dir, date: :document_on, payee: :payee)
     @missing_document_payments = @payments.select(&:missing_document?)
+    @month_missing_document_count = @missing_document_payments.size
     @suggestions_by_payment_id = suggestions_on_month
     @exception_suggestions_by_payment_id = exception_suggestions_on_month
     @format_2_suggestion = format_2_suggestion_on_month

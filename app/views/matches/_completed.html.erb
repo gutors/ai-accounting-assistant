@@ -1,0 +1,49 @@
+<section class="mt-10">
+  <h2 class="match-heading">Casamentos confirmados</h2>
+  <% if @confirmed_matches.empty? %>
+    <p>Nenhum casamento confirmado.</p>
+  <% else %>
+    <div class="match-table-scroll"><table class="match-table">
+      <thead><tr><th>Data</th><th>Pagamento</th><th>Valor</th><th>Documentos</th><th>Valor dos documentos</th><th>Detalhes</th></tr></thead>
+      <tbody>
+        <% @confirmed_matches.each do |match| %>
+          <% payments = match.payments.includes(bank_statement: :bank_account).sort_by { |payment| [ payment.occurred_on, payment.id ] } %>
+          <% documents = match.supporting_documents.to_a %>
+          <tr data-match-id="<%= match.id %>">
+            <td><%= payments.map { |payment| l(payment.occurred_on, format: :day_month) }.join(", ") %></td>
+            <td><%= payments.map(&:history).join(", ") %></td>
+            <td class="match-money"><%= format_reais(payments.sum(&:amount_cents)) %></td>
+            <td><%= documents.map(&:payee).join(", ") %> · <%= documents.size %> <%= documents.one? ? "documento" : "documentos" %></td>
+            <td class="match-money"><%= format_reais(documents.sum(&:amount_cents)) %></td>
+            <td><details><summary class="match-link">Ver detalhes</summary>
+              <div class="match-details">
+                <% payments.each do |payment| %><p>Pagamento · <%= l(payment.occurred_on, format: :day_month) %> · <%= payment.history %> · <%= payment.bank_statement.bank_account.name %> · <%= format_reais(payment.amount_cents) %></p><% end %>
+                <% documents.each do |document| %><p><%= document.recibo? ? "Recibo" : "Nota fiscal" %> · <%= l(document.document_on, format: :day_month) %> · <%= document.payee %> · <%= format_reais(document.amount_cents) %></p><% end %>
+                <% if match.observation.present? %><p>Observação: <%= match.observation %></p><% end %>
+                <% unless @month.closed? %><%= button_to "Desfazer casamento", "/months/#{@month.year_month}/matches/#{match.id}", method: :delete, params: matches_query, class: "match-link text-margem" %><% end %>
+              </div>
+            </details></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table></div>
+  <% end %>
+</section>
+<section class="mt-10">
+  <h2 class="match-heading">Exceções marcadas</h2>
+  <% if @marked_exceptions.empty? %>
+    <p>Nenhuma exceção marcada.</p>
+  <% else %>
+    <div class="match-table-scroll"><table class="match-table">
+      <thead><tr><th>Data</th><th>Pagamento</th><th>Conta</th><th>Valor</th><th>Exceção</th><th>Ação</th></tr></thead>
+      <tbody>
+        <% @marked_exceptions.each do |payment| %>
+          <tr data-exception-payment-id="<%= payment.id %>">
+            <td><%= l(payment.occurred_on, format: :day_month) %></td><td><%= payment.history %></td><td><%= payment.bank_statement.bank_account.name %></td><td class="match-money"><%= format_reais(payment.amount_cents) %></td><td><%= payment_status_word(payment, payment_status(payment)) %></td>
+            <td><% unless @month.closed? %><%= button_to "Desmarcar exceção", "/months/#{@month.year_month}/payments/#{payment.id}/document_exception", method: :delete, params: matches_query, class: "match-link text-margem" %><% end %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table></div>
+  <% end %>
+</section>
