@@ -23,6 +23,63 @@ RSpec.describe "Matches workspace", type: :system do
     expect(payment.errors).to be_empty
   end
 
+  it "quick selection toggles payments and documents" do
+    plant_payment(@statement, 1000, history: "Outro pagamento", occurred_on: Date.new(2026, 5, 12))
+    plant_recibo(@organization, @account, payee: "Outro documento", amount: "10,00")
+    open_workspace
+    click_button "Adicionar pagamento"
+    find("[data-row='payment']", text: "Outro pagamento").click
+    expect(page).to have_text(/Total dos pagamentos\s+R\$ 230,00/)
+    find("[data-row='payment']", text: "Outro pagamento").click
+    expect(page).to have_text(/Total dos pagamentos\s+R\$ 220,00/)
+    click_button "Adicionar documento"
+    find("[data-row='pool-document']", text: "Outro documento").click
+    expect(page).to have_text(/Total dos documentos\s+R\$ 230,00/)
+    within(".match-sheet", text: "Documentos selecionados") { click_button "Fechar lista" }
+    expect(page).to have_css(".match-selected-row", text: "Outro documento")
+  end
+
+  it "quick selection protects selected rows" do
+    open_workspace
+    within(".match-selected-row", text: "Padaria Central", match: :first) { find(".match-name").click }
+    expect(page).to have_text(/Total dos pagamentos\s+R\$ 220,00/)
+    within(".match-sheet", text: "Documentos selecionados") { find(".match-remove").click }
+    expect(page).to have_text("Nenhum documento selecionado")
+  end
+
+  it "quick selection preserves exception behavior" do
+    plant_payment(@statement, 1000, history: "Outro pagamento", occurred_on: Date.new(2026, 5, 12))
+    open_workspace
+    click_button "Adicionar pagamento"
+    find("[data-row='payment']", text: "Outro pagamento").click
+    click_button "Escolher exceção"
+    click_button "Tarifa bancária"
+    expect(page).to have_text(/Total dos pagamentos\s+R\$ 220,00/)
+    expect(page).to have_text("Documentos removidos")
+    expect(page).to have_no_css(".match-selected-row", text: "Outro pagamento")
+  end
+
+  it "quick selection confirms selected members" do
+    open_workspace
+    click_button "Confirmar casamento"
+    expect(page).to have_text("Casamentos confirmados")
+    expect(Match.last.payments).to include(@payment)
+    expect(Match.last.supporting_documents).to include(@document)
+  end
+
+  it "quick selection works at phone width" do
+    page.current_window.resize_to(390, 844)
+    open_workspace
+    click_button "Adicionar documento"
+    selected = find(".match-sheet", text: "Documentos selecionados").find(".match-selected")
+    choices = find(".match-sheet", text: "Documentos selecionados").find(".match-picker")
+    expect(page.evaluate_script("arguments[0].getBoundingClientRect().width", selected)).to eq(page.evaluate_script("arguments[0].getBoundingClientRect().width", choices))
+    input = find("[data-row='pool-document'] input")
+    page.execute_script("arguments[0].focus()", input)
+    input.send_keys(:space)
+    expect(page).to have_text(/Total dos documentos\s+R\$ 0,00/)
+  end
+
   it "workspace criterion 01" do
     open_workspace
     expect(page).to have_css("h1", text: "Casar pagamentos")
@@ -52,8 +109,8 @@ RSpec.describe "Matches workspace", type: :system do
 
   it "workspace criterion 04" do
     open_workspace
-    expect(page).to have_css("[data-row='payment']", text: "Padaria Central")
-    expect(page).to have_css("[data-row='pool-document']", text: "Padaria Central")
+    expect(page).to have_css(".match-selected-row", text: "Padaria Central")
+    expect(page).to have_css(".match-selected-row", text: "Padaria Central")
     expect(Match.count).to eq(0)
   end
 
@@ -67,7 +124,7 @@ RSpec.describe "Matches workspace", type: :system do
 
   it "workspace criterion 06" do
     open_workspace
-    uncheck "supporting_document_ids[]"
+    within(".match-sheet", text: "Documentos selecionados") { find(".match-remove").click }
     expect(page).to have_text(/Total dos documentos\s+R\$ 0,00/)
     click_button "Adicionar documento"
     check "supporting_document_ids[]"
@@ -156,8 +213,8 @@ RSpec.describe "Matches workspace", type: :system do
     expect(page).to have_text(/Total dos pagamentos\s+R\$ 220,00/)
     expect(find("[data-document-id='#{@document.id}'] input", visible: false)).not_to be_checked
     expect(page).to have_no_button("Adicionar pagamento")
-    find('[data-current="true"] input[type="checkbox"]').click
-    expect(find('[data-current="true"] input[type="checkbox"]')).to be_checked
+    expect(page).to have_no_css(".match-selected-row .match-remove")
+    expect(find('[data-row="payment"][data-current="true"] input', visible: false)).to be_checked
     expect(@payment.reload.document_exception_kind).to be_nil
   end
 

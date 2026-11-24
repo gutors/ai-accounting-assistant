@@ -64,3 +64,12 @@
 .match-table .match-money { white-space: nowrap; text-align: right; font-variant-numeric: tabular-nums; }
 .match-details { min-width: 15rem; padding-top: 8px; }
 .match-details p { margin-bottom: 8px; }
+
+.match-picker[hidden], .match-selected[hidden] { display: none; }
+.match-selected-row + .match-selected-row { border-top: 1px solid var(--color-rule); }
+.match-remove { border: 0; background: transparent; color: var(--color-ink-soft); padding: 4px; cursor: pointer; }
+.match-remove svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; }
+.match-remove:hover { color: var(--color-ink); }
+.match-picker:not([hidden]) { background: var(--color-sheet); border-top: 1px solid var(--color-rule); }
+.match-picker-row:has(input) { cursor: pointer; }
+.match-picker-row:has(input):hover { background: var(--color-canvas, #f5f7f3); }

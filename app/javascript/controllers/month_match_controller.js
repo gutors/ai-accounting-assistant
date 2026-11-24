@@ -1,12 +1,22 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = [ "form", "sumPayments", "sumDocuments", "verdict", "paymentList", "documentList", "emptyDocuments", "documentToggle", "paymentToggle", "documentTotal", "exceptionNotice", "baseKind", "extraKind", "submit", "exceptionButton", "cancelException", "paymentToggleLabel", "documentToggleLabel", "difference", "differenceAmount", "required", "observationDetails", "error", "exceptionLabel" ]
+  static targets = [ "selectedPayments", "selectedDocuments", "form", "sumPayments", "sumDocuments", "verdict", "paymentList", "documentList", "emptyDocuments", "documentToggle", "paymentToggle", "documentTotal", "exceptionNotice", "baseKind", "extraKind", "submit", "exceptionButton", "cancelException", "paymentToggleLabel", "documentToggleLabel", "difference", "differenceAmount", "required", "observationDetails", "error", "exceptionLabel" ]
 
   connect() {
     if (!this.hasFormTarget) return
     this.showPayments = false
     this.showDocuments = false
+    if (this.hasPaymentToggleTarget) this.paymentToggleTarget.after(this.paymentListTarget)
+    this.documentToggleTarget.after(this.documentListTarget)
+    this.recompute()
+  }
+
+  remove(event) {
+    const input = this.element.querySelector(`input[name="${event.currentTarget.dataset.name}"][value="${event.currentTarget.dataset.id}"]`)
+    if (!input || (this.hasCancelExceptionTarget && !this.cancelExceptionTarget.hidden)) return
+    input.checked = false
+    this.errorTarget.hidden = true
     this.recompute()
   }
 
@@ -79,14 +89,17 @@ export default class extends Controller {
     this.verdictTarget.textContent = !comparable ? "Aguardando seleção" : delta < 0n ? "Documentos somam menos" : delta > 0n ? "Documentos somam mais" : "Valores conferem"
     this.requiredTarget.hidden = !comparable || delta >= 0n
     this.observationDetailsTarget.querySelector("textarea").setAttribute("aria-required", String(comparable && delta < 0n))
-    this.paymentListTarget.querySelectorAll('[data-row="payment"]').forEach((row) => { row.hidden = !row.querySelector('input').checked && !this.showPayments })
-    this.documentListTarget.querySelectorAll('[data-row="pool-document"]').forEach((row) => { row.hidden = !row.querySelector('input').checked && !this.showDocuments })
-    this.emptyDocumentsTarget.hidden = docs.length > 0 || this.showDocuments || (this.hasCancelExceptionTarget && !this.cancelExceptionTarget.hidden)
+    this.renderSelected(this.selectedPaymentsTarget, pays)
+    this.renderSelected(this.selectedDocumentsTarget, docs)
+    this.paymentListTarget.hidden = !this.showPayments
+    this.documentListTarget.hidden = !this.showDocuments || (this.hasCancelExceptionTarget && !this.cancelExceptionTarget.hidden)
+    this.selectedDocumentsTarget.hidden = this.hasCancelExceptionTarget && !this.cancelExceptionTarget.hidden
+    this.emptyDocumentsTarget.hidden = docs.length > 0 || (this.hasCancelExceptionTarget && !this.cancelExceptionTarget.hidden)
     if (this.hasPaymentToggleTarget) {
-      this.paymentToggleLabelTarget.textContent = this.showPayments ? "Concluir seleção" : "Adicionar pagamento"
+      this.paymentToggleLabelTarget.textContent = this.showPayments ? "Fechar lista" : "Adicionar pagamento"
       this.paymentToggleTarget.setAttribute("aria-expanded", String(this.showPayments))
     }
-    this.documentToggleLabelTarget.textContent = this.showDocuments ? "Concluir seleção" : "Adicionar documento"
+    this.documentToggleLabelTarget.textContent = this.showDocuments ? "Fechar lista" : "Adicionar documento"
     this.documentToggleTarget.setAttribute("aria-expanded", String(this.showDocuments))
   }
 
@@ -101,6 +114,27 @@ export default class extends Controller {
       this.observationDetailsTarget.open = true
       this.errorTarget.focus()
     }
+  }
+
+  renderSelected(container, rows) {
+    container.replaceChildren(...rows.map((row) => {
+      const selected = document.createElement("div")
+      selected.className = "match-picker-row match-selected-row"
+      if (row.dataset.current) selected.dataset.current = row.dataset.current
+      if (row.dataset.paymentId) selected.dataset.paymentId = row.dataset.paymentId
+      selected.append(row.querySelector(".match-row-content").cloneNode(true))
+      const input = row.querySelector("input")
+      const remove = document.createElement("button")
+      remove.type = "button"
+      remove.className = "match-remove"
+      remove.dataset.action = "month-match#remove"
+      remove.dataset.name = input.name
+      remove.dataset.id = input.value
+      remove.setAttribute("aria-label", `Retirar ${row.querySelector(".match-name").textContent} da seleção`)
+      remove.innerHTML = '<svg aria-hidden="true" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8" /></svg>'
+      if (!(this.hasCancelExceptionTarget && !this.cancelExceptionTarget.hidden)) selected.append(remove)
+      return selected
+    }))
   }
 
   rows(container) { return Array.from(container.querySelectorAll('[data-row]')).filter((row) => row.querySelector('input:checked')) }

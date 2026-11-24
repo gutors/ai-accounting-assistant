@@ -97,7 +97,7 @@ RSpec.describe "Month matches layout", type: :system do
     visit "/months/2026-05/matches"
 
     click_button "Adicionar documento"
-    payment = find('[data-row="payment"] input[type="checkbox"]')
+    payment = find(".match-sheet", text: "Pagamentos em análise").find(".match-remove")
     padaria = find('[data-row="pool-document"]', text: "Padaria Central").find('input[type="checkbox"]')
     menos = find('[data-row="pool-document"]', text: "Mercado Menos").find('input[type="checkbox"]')
     mais = find('[data-row="pool-document"]', text: "Mercado Mais").find('input[type="checkbox"]')
@@ -190,10 +190,8 @@ RSpec.describe "Month matches layout", type: :system do
     visit "/months/2026-05/matches"
 
     expect(Match.count).to eq(0)
-    pay = find('[data-row="payment"]', text: "TED — Aluguel sede")
-    expect(pay.find('input[type="checkbox"]')).to be_checked
-    doc = find('[data-row="pool-document"]', text: "Imobiliária Serra")
-    expect(doc.find('input[type="checkbox"]')).to be_checked
+    expect(page).to have_css(".match-selected-row", text: "TED — Aluguel sede")
+    expect(page).to have_css(".match-selected-row", text: "Imobiliária Serra")
     within("#match-confirm") do
       expect(page).to have_text("Documentos somam menos")
       expect(find("#observation_match", visible: false).value).to eq("")
@@ -236,7 +234,7 @@ RSpec.describe "Month matches layout", type: :system do
     sign_in_through_google(account)
     visit "/months/2026-05/matches"
     click_button "Adicionar documento"
-    page.all(".match-picker-row", visible: true).each do |row|
+    page.all(".match-picker [data-row]", visible: true).each do |row|
       expect(row).to have_css(".match-row-top .match-meta")
       expect(row).to have_css(".match-row-top strong")
       expect(row).to have_css(".match-name", visible: true)
@@ -258,17 +256,17 @@ RSpec.describe "Month matches layout", type: :system do
     click_button "Adicionar pagamento"
     find('[data-row="payment"]', text: "Outro pagamento").find("input").check
     expect(page).to have_text(/Total dos pagamentos\s+R\$ 230,00/)
-    within(".match-sheet", text: "Pagamentos em análise") { click_button "Concluir seleção" }
+    within(".match-sheet", text: "Pagamentos em análise") { click_button "Fechar lista" }
     expect(page).to have_text("Outro pagamento")
     expect(page).to have_no_css('[data-row="payment"]', text: "Pagamento não selecionado")
-    expect(page).to have_css('[data-row="payment"][hidden]', text: "Pagamento não selecionado", visible: :hidden)
+    expect(page).to have_css('.match-picker[hidden] [data-row="payment"]', text: "Pagamento não selecionado", visible: :hidden)
     click_button "Adicionar documento"
     find('[data-row="pool-document"]', text: "Outro documento").find("input").check
     expect(page).to have_text(/Total dos documentos\s+R\$ 230,00/)
-    within(".match-sheet", text: "Documentos selecionados") { click_button "Concluir seleção" }
+    within(".match-sheet", text: "Documentos selecionados") { click_button "Fechar lista" }
     expect(page).to have_text("Outro documento")
     expect(page).to have_no_css('[data-row="pool-document"]', text: "Documento não selecionado")
-    expect(page).to have_css('[data-row="pool-document"][hidden]', text: "Documento não selecionado", visible: :hidden)
+    expect(page).to have_css('.match-picker[hidden] [data-row="pool-document"]', text: "Documento não selecionado", visible: :hidden)
   end
 
   it "shows signed and colored differences" do
@@ -300,7 +298,7 @@ RSpec.describe "Month matches layout", type: :system do
     expect(difference).to have_text("Documentos somam mais")
     expect(difference.evaluate_script("getComputedStyle(this).color")).to eq("rgb(35, 91, 133)")
     expect(difference.evaluate_script("getComputedStyle(this).backgroundColor")).to eq("rgb(231, 239, 246)")
-    find('[data-row="payment"] input').uncheck
+    find(".match-sheet", text: "Pagamentos em análise").find(".match-remove").click
     expect(difference["data-tone"]).to eq("pending")
     expect(difference).to have_text("Aguardando seleção")
     expect(difference.evaluate_script("getComputedStyle(this).color")).to eq("rgb(27, 50, 41)")

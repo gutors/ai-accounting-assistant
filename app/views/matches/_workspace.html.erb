@@ -11,6 +11,7 @@
     <section class="match-sheet">
       <h2 class="match-heading">Pagamentos em análise</h2>
       <% if @exception_suggestions_by_payment_id[@next_suggestion_payment.id] %><p class="mb-3 text-meta text-ink-soft">Sugestão de exceção</p><% end %>
+      <div class="match-selected" data-month-match-target="selectedPayments"></div>
       <div class="match-picker" data-month-match-target="paymentList">
         <% selectable_payments.each do |payment| %>
           <label class="match-picker-row" data-row="payment" data-payment-id="<%= payment.id %>" data-cents="<%= payment.amount_cents %>" data-current="<%= payment.id == @next_suggestion_payment.id %>">
@@ -24,6 +25,7 @@
     <section class="match-sheet">
       <h2 class="match-heading">Documentos selecionados</h2>
       <p class="text-ink-soft" hidden data-month-match-target="exceptionNotice">Documentos removidos da seleção porque uma exceção foi escolhida.</p>
+      <div class="match-selected" data-month-match-target="selectedDocuments"></div>
       <div class="match-picker" data-month-match-target="documentList">
         <% @unmatched_documents.each do |document| %>
           <label class="match-picker-row" data-row="pool-document" data-document-id="<%= document.id %>" data-cents="<%= document.amount_cents %>">
