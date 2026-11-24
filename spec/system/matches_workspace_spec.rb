@@ -30,8 +30,13 @@ RSpec.describe "Matches workspace", type: :system do
     click_button "Adicionar pagamento"
     find("[data-row='payment']", text: "Outro pagamento").click
     expect(page).to have_text(/Total dos pagamentos\s+R\$ 230,00/)
+    expect(find(".match-sheet", text: "Pagamentos em análise")).to have_css(".match-selected-row", text: "Outro pagamento")
     find("[data-row='payment']", text: "Outro pagamento").click
     expect(page).to have_text(/Total dos pagamentos\s+R\$ 220,00/)
+    expect(find(".match-sheet", text: "Pagamentos em análise")).to have_no_css(".match-selected-row", text: "Outro pagamento")
+    find("[data-row='payment']", text: "Outro pagamento").click
+    within(".match-sheet", text: "Pagamentos em análise") { click_button "Fechar lista" }
+    expect(find(".match-sheet", text: "Pagamentos em análise")).to have_css(".match-selected-row", text: "Outro pagamento")
     click_button "Adicionar documento"
     find("[data-row='pool-document']", text: "Outro documento").click
     expect(page).to have_text(/Total dos documentos\s+R\$ 230,00/)
@@ -60,24 +65,40 @@ RSpec.describe "Matches workspace", type: :system do
   end
 
   it "quick selection confirms selected members" do
+    payment = plant_payment(@statement, 1000, history: "Novo pagamento", occurred_on: Date.new(2026, 5, 12))
+    document = plant_recibo(@organization, @account, payee: "Novo documento", amount: "10,00")
     open_workspace
+    within(".match-sheet", text: "Pagamentos em análise") { find(".match-remove").click }
+    click_button "Adicionar pagamento"
+    find("[data-row='payment']", text: "Novo pagamento").click
+    within(".match-sheet", text: "Documentos selecionados") { find(".match-remove").click }
+    click_button "Adicionar documento"
+    find("[data-row='pool-document']", text: "Novo documento").click
     click_button "Confirmar casamento"
     expect(page).to have_text("Casamentos confirmados")
-    expect(Match.last.payments).to include(@payment)
-    expect(Match.last.supporting_documents).to include(@document)
+    expect(Match.last.payments.pluck(:id)).to eq([ payment.id ])
+    expect(Match.last.supporting_documents.pluck(:id)).to eq([ document.id ])
   end
 
   it "quick selection works at phone width" do
-    page.current_window.resize_to(390, 844)
-    open_workspace
-    click_button "Adicionar documento"
-    selected = find(".match-sheet", text: "Documentos selecionados").find(".match-selected")
-    choices = find(".match-sheet", text: "Documentos selecionados").find(".match-picker")
-    expect(page.evaluate_script("arguments[0].getBoundingClientRect().width", selected)).to eq(page.evaluate_script("arguments[0].getBoundingClientRect().width", choices))
-    input = find("[data-row='pool-document'] input")
-    page.execute_script("arguments[0].focus()", input)
-    input.send_keys(:space)
-    expect(page).to have_text(/Total dos documentos\s+R\$ 0,00/)
+    [ 390, 1100 ].each do |width|
+      page.current_window.resize_to(width, 844)
+      open_workspace
+      [ "Pagamentos em análise", "Documentos selecionados" ].each do |heading|
+        section = find(".match-sheet", text: heading)
+        within(section) do
+          find(".match-remove").send_keys(:enter)
+          find(".match-add").click
+          selected = find(".match-selected")
+          choices = find(".match-picker")
+          expect(page.evaluate_script("arguments[0].getBoundingClientRect().width", selected)).to eq(page.evaluate_script("arguments[0].getBoundingClientRect().width", choices))
+          input = find("[data-row] input")
+          page.execute_script("arguments[0].focus()", input)
+          input.send_keys(:space)
+          expect(page).to have_css(".match-selected-row")
+        end
+      end
+    end
   end
 
   it "workspace criterion 01" do
