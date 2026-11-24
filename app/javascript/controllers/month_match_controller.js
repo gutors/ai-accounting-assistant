@@ -1,9 +1,10 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = [ "form", "sumPayments", "sumDocuments", "verdict", "paymentList", "documentList", "emptyDocuments", "documentToggle", "paymentToggle", "documentTotal", "exceptionNotice", "baseKind", "extraKind", "submit", "exceptionButton", "cancelException" ]
+  static targets = [ "form", "sumPayments", "sumDocuments", "verdict", "paymentList", "documentList", "emptyDocuments", "documentToggle", "paymentToggle", "documentTotal", "exceptionNotice", "baseKind", "extraKind", "submit", "exceptionButton", "cancelException", "paymentToggleLabel", "documentToggleLabel", "difference", "differenceAmount", "required", "observationDetails", "error", "exceptionLabel" ]
 
   connect() {
+    if (!this.hasFormTarget) return
     this.showPayments = false
     this.showDocuments = false
     this.recompute()
@@ -13,6 +14,7 @@ export default class extends Controller {
     if (this.hasCancelExceptionTarget && !this.cancelExceptionTarget.hidden && event.target.closest('[data-current="true"]')) {
       event.target.checked = true
     }
+    this.errorTarget.hidden = true
     this.recompute()
   }
   togglePayments() { this.showPayments = !this.showPayments; this.recompute() }
@@ -32,12 +34,14 @@ export default class extends Controller {
     this.extraKindTarget.disabled = !option.dataset.extraId
     this.formTarget.action = this.formTarget.dataset.exceptionUrl
     this.submitTarget.value = "Marcar exceção"
-    this.exceptionButtonTarget.textContent = option.textContent.trim()
+    this.exceptionLabelTarget.textContent = option.textContent.trim()
     this.cancelExceptionTarget.hidden = false
     this.exceptionNoticeTarget.hidden = false
     this.documentListTarget.hidden = true
     this.documentToggleTarget.hidden = true
     this.documentTotalTarget.hidden = true
+    this.differenceTarget.hidden = true
+    this.observationDetailsTarget.hidden = true
     if (this.hasPaymentToggleTarget) this.paymentToggleTarget.hidden = true
     this.showPayments = false
     this.recompute()
@@ -49,12 +53,14 @@ export default class extends Controller {
     this.extraKindTarget.disabled = true
     this.formTarget.action = this.formTarget.dataset.matchUrl
     this.submitTarget.value = "Confirmar casamento"
-    this.exceptionButtonTarget.textContent = "Escolher exceção"
+    this.exceptionLabelTarget.textContent = "Escolher exceção"
     this.cancelExceptionTarget.hidden = true
     this.exceptionNoticeTarget.hidden = true
     this.documentListTarget.hidden = false
     this.documentToggleTarget.hidden = false
     this.documentTotalTarget.hidden = false
+    this.differenceTarget.hidden = false
+    this.observationDetailsTarget.hidden = false
     if (this.hasPaymentToggleTarget) this.paymentToggleTarget.hidden = false
     this.recompute()
   }
@@ -66,15 +72,42 @@ export default class extends Controller {
     const docCents = this.cents(docs)
     this.sumPaymentsTarget.textContent = this.format(payCents)
     this.sumDocumentsTarget.textContent = this.format(docCents)
-    this.verdictTarget.textContent = (this.hasCancelExceptionTarget && !this.cancelExceptionTarget.hidden) ? "" : !pays.length || !docs.length ? "" : docCents < payCents ? "Documentos somam menos" : docCents === payCents ? "Soma igual" : "Documentos somam mais"
+    const comparable = pays.length > 0 && docs.length > 0
+    const delta = docCents - payCents
+    this.differenceTarget.dataset.tone = !comparable ? "pending" : delta < 0n ? "less" : delta > 0n ? "more" : "equal"
+    this.differenceAmountTarget.textContent = !comparable ? "—" : (delta < 0n ? "− " : delta > 0n ? "+ " : "") + this.format((delta < 0n ? -delta : delta))
+    this.verdictTarget.textContent = !comparable ? "Aguardando seleção" : delta < 0n ? "Documentos somam menos" : delta > 0n ? "Documentos somam mais" : "Valores conferem"
+    this.requiredTarget.hidden = !comparable || delta >= 0n
+    this.observationDetailsTarget.querySelector("textarea").setAttribute("aria-required", String(comparable && delta < 0n))
     this.paymentListTarget.querySelectorAll('[data-row="payment"]').forEach((row) => { row.hidden = !row.querySelector('input').checked && !this.showPayments })
     this.documentListTarget.querySelectorAll('[data-row="pool-document"]').forEach((row) => { row.hidden = !row.querySelector('input').checked && !this.showDocuments })
-    this.emptyDocumentsTarget.hidden = docs.length > 0 || (this.hasCancelExceptionTarget && !this.cancelExceptionTarget.hidden)
-    if (this.hasPaymentToggleTarget) this.paymentToggleTarget.textContent = this.showPayments ? "Concluir seleção de pagamentos" : "Adicionar outro pagamento"
-    this.documentToggleTarget.textContent = this.showDocuments ? "Concluir seleção de documentos" : "Adicionar documentos"
+    this.emptyDocumentsTarget.hidden = docs.length > 0 || this.showDocuments || (this.hasCancelExceptionTarget && !this.cancelExceptionTarget.hidden)
+    if (this.hasPaymentToggleTarget) {
+      this.paymentToggleLabelTarget.textContent = this.showPayments ? "Concluir seleção" : "Adicionar pagamento"
+      this.paymentToggleTarget.setAttribute("aria-expanded", String(this.showPayments))
+    }
+    this.documentToggleLabelTarget.textContent = this.showDocuments ? "Concluir seleção" : "Adicionar documento"
+    this.documentToggleTarget.setAttribute("aria-expanded", String(this.showDocuments))
+  }
+
+  validate(event) {
+    if (!this.baseKindTarget.disabled || !this.extraKindTarget.disabled) return
+    const pays = this.rows(this.paymentListTarget)
+    const docs = this.rows(this.documentListTarget)
+    if (pays.length && docs.length && this.cents(docs) < this.cents(pays) && !this.observationDetailsTarget.querySelector("textarea").value.trim()) {
+      event.preventDefault()
+      this.errorTarget.textContent = "Informe a observação do casamento"
+      this.errorTarget.hidden = false
+      this.observationDetailsTarget.open = true
+      this.errorTarget.focus()
+    }
   }
 
   rows(container) { return Array.from(container.querySelectorAll('[data-row]')).filter((row) => row.querySelector('input:checked')) }
-  cents(rows) { return rows.reduce((sum, row) => sum + Number(row.dataset.cents), 0) }
-  format(cents) { return `R$ ${(cents / 100).toFixed(2).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, ".")}` }
+  cents(rows) { return rows.reduce((sum, row) => sum + BigInt(row.dataset.cents), 0n) }
+  format(cents) {
+    const reais = (cents / 100n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")
+    const fraction = (cents % 100n).toString().padStart(2, "0")
+    return `R$ ${reais},${fraction}`
+  }
 }

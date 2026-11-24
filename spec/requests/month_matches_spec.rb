@@ -22,14 +22,6 @@ RSpec.describe "Month matches screen", type: :request do
     page_doc(body).css("h2").map { |node| node.text.strip }
   end
 
-  def chip_group(body)
-    page_doc(body).at_css('[role="group"]')
-  end
-
-  def chip_links(body)
-    chip_group(body).css("a")
-  end
-
   def pagamentos_section(body)
     page_doc(body).css("section").find { |section| section.at_css("h2")&.text&.strip == "Pagamentos" }
   end
@@ -69,22 +61,17 @@ RSpec.describe "Month matches screen", type: :request do
     get "/months/2026-05/matches"
     doc = page_doc(response.body)
     headings = doc.at_css(".match-workspace").css("h2").map { |node| node.text.strip }
-    expect(headings).to eq([ "Pagamento em análise", "Documentos selecionados" ])
+    expect(headings).to eq([ "Pagamentos em análise", "Documentos selecionados" ])
     expect(doc.at_css("form#close-month")).to be_nil
     expect(doc.text).not_to include("Devolver")
   end
 
-  it "GET matches chips Todas Alfa Principal with Todas current" do
-    _account, _organization, _month, alfa, _principal, _alfa_statement, _principal_statement = two_account_month
-
+  it "GET matches account selector lists active accounts with all selected" do
+    _account, _organization, _month, _alfa, _principal, _alfa_statement, _principal_statement = two_account_month
     get "/months/2026-05/matches"
-
-    links = chip_links(response.body)
-    expect(links.map { |node| node.text.strip }).to eq([ "Todas", "Conta Alfa", "Conta Principal" ])
-    expect(links[0]["aria-current"]).to eq("true")
-    expect(links[0]["href"]).to eq("/months/2026-05/matches")
-    expect(links[1]["href"]).to eq("/months/2026-05/matches?bank_account_id=#{alfa.id}")
-    expect(links[1]["aria-current"]).to be_nil
+    select = page_doc(response.body).at_css("#match-account-select")
+    expect(select.css("option").map { |option| option.text.strip }).to eq([ "Todas as contas", "Conta Alfa", "Conta Principal" ])
+    expect(select.at_css("option[selected]")["value"]).to eq("")
   end
 
   it "GET matches filter selects Principal payment and retains eligible document" do
@@ -93,7 +80,7 @@ RSpec.describe "Month matches screen", type: :request do
     plant_payment(alfa_statement, 45000, history: "TED — Energia Ltda")
     plant_recibo(organization, account, payee: "Padaria Central", amount: "220,00")
     get "/months/2026-05/matches", params: { bank_account_id: principal.id }
-    expect(chip_links(response.body).find { |node| node["aria-current"] == "true" }.text.strip).to eq("Conta Principal")
+    expect(page_doc(response.body).at_css("#match-account-select option[selected]").text.strip).to eq("Conta Principal")
     expect(page_doc(response.body).at_css('[data-current="true"]').text).to include("Pix enviado — Padaria Central", "Conta Principal")
     expect(response.body).not_to include("TED — Energia Ltda")
     expect(response.body).to include("1 pagamento com documento faltante.", "Padaria Central")
@@ -673,5 +660,22 @@ RSpec.describe "Month matches screen", type: :request do
     expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include("Mês fechado")
     expect(payment.reload.missing_document?).to eq(true)
+  end
+  it "renders notices before the account selector" do
+    account, organization, _month, statement = signed_month
+    payment = plant_payment(statement, 150000)
+    document = plant_recibo(organization, account, payee: "Fornecedor", amount: "1400,00")
+    post "/months/2026-05/matches", params: { screen: "matches", payment_ids: [ payment.id ], supporting_document_ids: [ document.id ], observation: " " }
+    expect(response).to have_http_status(:unprocessable_content)
+    body = response.body
+    expect(body.index("pagamento com documento faltante")).to be < body.index("Informe a observação do casamento")
+    expect(body.index("Informe a observação do casamento")).to be < body.index('id="match-account-select"')
+  end
+
+  it "omits the workspace in an empty queue" do
+    signed_month
+    get "/months/2026-05/matches"
+    expect(response.body).to include("Nenhum pagamento com documento faltante")
+    expect(page_doc(response.body).at_css("#match-confirm")).to be_nil
   end
 end

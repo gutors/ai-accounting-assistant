@@ -62,34 +62,34 @@ RSpec.describe "Matches workspace", type: :system do
     open_workspace
     expect(page).to have_text("Padaria Central")
     expect(page).to have_text("Nenhum documento selecionado")
-    expect(page).to have_button("Adicionar documentos")
+    expect(page).to have_button("Adicionar documento")
   end
 
   it "workspace criterion 06" do
     open_workspace
     uncheck "supporting_document_ids[]"
-    expect(page).to have_text("Documentos R$ 0,00")
-    click_button "Adicionar documentos"
+    expect(page).to have_text(/Total dos documentos\s+R\$ 0,00/)
+    click_button "Adicionar documento"
     check "supporting_document_ids[]"
-    expect(page).to have_text("Documentos R$ 220,00")
+    expect(page).to have_text(/Total dos documentos\s+R\$ 220,00/)
     expect(Match.count).to eq(0)
   end
 
   it "workspace criterion 07" do
     plant_payment(@statement, 1000, history: "Outro pagamento", occurred_on: Date.new(2026, 5, 12))
     open_workspace
-    click_button "Adicionar outro pagamento"
+    click_button "Adicionar pagamento"
     find("[data-row='payment']", text: "Outro pagamento").find("input").check
-    expect(page).to have_text("Pagamentos R$ 230,00")
+    expect(page).to have_text(/Total dos pagamentos\s+R\$ 230,00/)
   end
 
   it "workspace criterion 08" do
     plant_payment(@statement, 1000, history: "Outro pagamento", occurred_on: Date.new(2026, 5, 12))
     plant_recibo(@organization, @account, payee: "Outro", amount: "10,00")
     open_workspace
-    click_button "Adicionar outro pagamento"
+    click_button "Adicionar pagamento"
     find("[data-row='payment']", text: "Outro pagamento").find("input").check
-    click_button "Adicionar documentos"
+    click_button "Adicionar documento"
     find("[data-row='pool-document']", text: "Outro").find("input").check
     click_button "Confirmar casamento"
     expect(page).to have_text(Match::BAD_SHAPE)
@@ -98,7 +98,7 @@ RSpec.describe "Matches workspace", type: :system do
 
   it "workspace criterion 09" do
     open_workspace
-    expect(page).to have_text("Soma igual")
+    expect(page).to have_text("Valores conferem")
     expect(Match.count).to eq(0)
     expect(page).to have_button("Confirmar casamento")
   end
@@ -147,15 +147,15 @@ RSpec.describe "Matches workspace", type: :system do
   it "workspace criterion 15" do
     plant_payment(@statement, 1000, history: "Outro pagamento", occurred_on: Date.new(2026, 5, 12))
     open_workspace
-    click_button "Adicionar outro pagamento"
+    click_button "Adicionar pagamento"
     find("[data-row='payment']", text: "Outro pagamento").find("input").check
     click_button "Escolher exceção"
     click_button "Tarifa bancária"
     expect(page).to have_button("Marcar exceção")
     expect(page).to have_text("Documentos removidos")
-    expect(page).to have_text("Pagamentos R$ 220,00")
+    expect(page).to have_text(/Total dos pagamentos\s+R\$ 220,00/)
     expect(find("[data-document-id='#{@document.id}'] input", visible: false)).not_to be_checked
-    expect(page).to have_no_button("Adicionar outro pagamento")
+    expect(page).to have_no_button("Adicionar pagamento")
     find('[data-current="true"] input[type="checkbox"]').click
     expect(find('[data-current="true"] input[type="checkbox"]')).to be_checked
     expect(@payment.reload.document_exception_kind).to be_nil
@@ -169,9 +169,9 @@ RSpec.describe "Matches workspace", type: :system do
     expect(page).to have_button("Confirmar casamento")
     expect(page).to have_text("Nenhum documento selecionado")
     expect(find("[data-document-id='#{@document.id}'] input", visible: false)).not_to be_checked
-    click_button "Adicionar documentos"
+    click_button "Adicionar documento"
     check "supporting_document_ids[]"
-    expect(page).to have_text("Documentos R$ 220,00")
+    expect(page).to have_text(/Total dos documentos\s+R\$ 220,00/)
   end
 
   it "workspace criterion 17" do
