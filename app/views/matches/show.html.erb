@@ -1,3 +1,4 @@
+<% content_for :main_class, "mx-auto mt-7 max-w-6xl px-5 pb-16 md:px-8" %>
 <% content_for :title, "Casar pagamentos — #{@month.year_month}" %>
 <% matches_query = { screen: "matches", bank_account_id: @bank_account_id }.compact %>
 <div data-controller="month-match">
@@ -8,16 +9,17 @@
     </div>
     <%= link_to "Voltar ao mês", "/months/#{@month.year_month}", class: "text-caixa underline underline-offset-2" %>
   </div>
-  <div class="mt-6 flex flex-wrap gap-2" role="group" aria-label="Conta bancária">
-    <%= link_to "Todas", "/months/#{@month.year_month}/matches", aria: { current: ("true" if @bank_account_id.nil?) }, class: @bank_account_id.nil? ? "rounded bg-caixa px-3 py-1 font-semibold text-white" : "rounded border border-ink px-3 py-1" %>
-    <% @active_bank_accounts.each do |bank_account| %>
-      <%= link_to bank_account.name, "/months/#{@month.year_month}/matches?bank_account_id=#{bank_account.id}", aria: { current: ("true" if @bank_account_id == bank_account.id) }, class: @bank_account_id == bank_account.id ? "rounded bg-caixa px-3 py-1 font-semibold text-white" : "rounded border border-ink px-3 py-1" %>
-    <% end %>
-  </div>
-  <p class="mt-6 <%= "text-margem" if @missing_document_payments.any? %>">
+  <p class="match-pending <%= "match-pending--missing" if @missing_document_payments.any? %>">
     <% if @missing_document_payments.empty? %>Nenhum pagamento com documento faltante.<% else %><%= @missing_document_payments.size %> <%= @missing_document_payments.one? ? "pagamento" : "pagamentos" %> com documento faltante.<% end %>
   </p>
-  <%= render "shared/notice", message: @month_error if @month_error.present? %>
+  <p role="alert" data-notice="error" tabindex="-1" data-month-match-target="error" class="match-error" <%= "hidden" if @month_error.blank? %>><%= @month_error %></p>
+  <%= form_with url: "/months/#{@month.year_month}/matches", method: :get, class: "month-account-filter", data: { controller: "list-refresh" } do %>
+    <div class="month-account-filter-row">
+      <%= label_tag "match-account-select", "Filtrar por conta bancária", class: "font-semibold" %>
+      <%= select_tag :bank_account_id, options_for_select([ [ "Todas as contas", "" ] ] + @active_bank_accounts.map { |account| [ account.name, account.id ] }, @bank_account_id || ""), id: "match-account-select", aria: { describedby: "match-account-filter-scope" }, data: { action: "change->list-refresh#submit" } %>
+    </div>
+    <p id="match-account-filter-scope" class="mt-1 text-meta text-ink-soft">Aplica-se aos pagamentos, casamentos e exceções.</p>
+  <% end %>
   <% if !@month.closed? && @next_suggestion_payment %>
     <%= render "matches/workspace" %>
   <% end %>

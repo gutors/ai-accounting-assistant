@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 29,
+  "next_id": 33,
   "lessons": [
     {
       "id": "L-015",
@@ -256,6 +256,78 @@
       ],
       "created": "2026-11-23T23:31:46Z",
       "last_seen": "2026-11-23T23:31:46Z"
+    },
+    {
+      "id": "L-029",
+      "key": "surviving_mutant::assert that a client side form guard stops the request when a server rejection can produce the same visible error",
+      "text": "Assert that a client-side form guard stops the request when a server rejection can produce the same visible error.",
+      "signal": "surviving_mutant",
+      "scope": "matches",
+      "status": "candidate",
+      "features": [
+        "matches-resolution"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "C6 (matches)"
+      ],
+      "created": "2026-11-24T20:57:58Z",
+      "last_seen": "2026-11-24T20:57:58Z"
+    },
+    {
+      "id": "L-030",
+      "key": "spec_precision_gap::seed every section affected by an account filter and assert its records after selecting and clearing the account",
+      "text": "Seed every section affected by an account filter and assert its records after selecting and clearing the account.",
+      "signal": "spec_precision_gap",
+      "scope": "matches",
+      "status": "candidate",
+      "features": [
+        "matches-resolution"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "C2 (matches)"
+      ],
+      "created": "2026-11-24T20:57:58Z",
+      "last_seen": "2026-11-24T20:57:58Z"
+    },
+    {
+      "id": "L-031",
+      "key": "spec_precision_gap::populate selected and unselected candidates in each picker and assert both visibility outcomes after collapsing the list",
+      "text": "Populate selected and unselected candidates in each picker and assert both visibility outcomes after collapsing the list.",
+      "signal": "spec_precision_gap",
+      "scope": "matches",
+      "status": "candidate",
+      "features": [
+        "matches-resolution"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "C4 (matches)"
+      ],
+      "created": "2026-11-24T20:57:58Z",
+      "last_seen": "2026-11-24T20:57:58Z"
+    },
+    {
+      "id": "L-032",
+      "key": "spec_precision_gap::when a verdict is defined by copy and color assert the visible label and computed color for each state",
+      "text": "When a verdict is defined by copy and color, assert the visible label and computed color for each state.",
+      "signal": "spec_precision_gap",
+      "scope": "matches",
+      "status": "candidate",
+      "features": [
+        "matches-resolution"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "C5 (matches)"
+      ],
+      "created": "2026-11-24T20:57:58Z",
+      "last_seen": "2026-11-24T20:57:58Z"
     }
   ]
 }

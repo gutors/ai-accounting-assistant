@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Casar pagamentos · Protótipo</title>
+  <style>
+    @font-face { font-family: Plex; src: url("../../../../app/assets/fonts/IBMPlexSans-Regular.woff2"); font-weight: 400; font-display: swap; }
+    @font-face { font-family: Plex; src: url("../../../../app/assets/fonts/IBMPlexSans-Medium.woff2"); font-weight: 500; font-display: swap; }
+    @font-face { font-family: Plex; src: url("../../../../app/assets/fonts/IBMPlexSans-SemiBold.woff2"); font-weight: 600; font-display: swap; }
+
+    :root {
+      --paper: #f3f5f1;
+      --sheet: #fff;
+      --ink: #1b3229;
+      --muted: #53675d;
+      --rule: #c7d5ca;
+      --green: #2e6b4e;
+      --red: #b4372a;
+      --blue: #235b85;
+      font: 16px/1.5 Plex, system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+    }
+
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body, h1, h2, p, dl, dd, ul { margin: 0; }
+    input, select, button, textarea { font: inherit; color: inherit; }
+    button, summary, select, label:has(input[type="checkbox"]) { cursor: pointer; }
+    :focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+    ::selection { background: #cce3d3; color: var(--ink); }
+    textarea { caret-color: var(--green); }
+    .icon { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+    .money { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .muted { color: var(--muted); font-size: .875rem; }
+
+    .site-header { border-bottom: 1px solid var(--rule); }
+    .header-content { max-width: 90rem; margin: auto; padding: 12px 32px; min-height: 56px; display: flex; align-items: center; justify-content: space-between; gap: 12px 24px; flex-wrap: wrap; }
+    .brand { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .prototype-label { color: var(--muted); font-size: .8125rem; }
+    main { max-width: 72rem; margin: 27px auto 0; padding: 0 32px 64px; }
+    h1 { font-size: 2.25rem; line-height: 1.12; letter-spacing: -.025em; font-weight: 600; }
+    h2 { font-size: 1.125rem; line-height: 1.4; font-weight: 600; }
+    .month { margin-top: 5px; }
+    .notices { display: grid; gap: 8px; margin-top: 16px; }
+    .notice { color: var(--red); border-left: 3px solid currentColor; padding-left: 12px; }
+    .notice:focus { outline-offset: 3px; }
+    .account-filter { margin-top: 20px; }
+    .account-filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+    .account-filter label { font-weight: 600; }
+    .account-filter select { min-width: min(17rem, 100%); max-width: 100%; padding: 8px 12px; border: 1px solid var(--ink); border-radius: 4px; background: var(--sheet); }
+    .account-filter p { margin-top: 4px; }
+
+    .workspace { margin-top: 22px; }
+    .sheets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid var(--rule); border-radius: 4px 4px 0 0; background: var(--sheet); }
+    .sheet + .sheet { border-left: 1px solid var(--rule); }
+    .sheet { display: flex; flex-direction: column; min-width: 0; }
+    .sheet h2 { padding: 9px 16px; border-bottom: 1px solid var(--rule); }
+    .records { padding: 0; list-style: none; }
+    .record:not([hidden]) ~ .record, .sheet-add { border-top: 1px solid var(--rule); }
+    .record label { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 11px; align-items: start; padding: 8px 16px 9px; }
+    .record label:hover { background: #f6f8f5; }
+    .record input { width: 16px; height: 16px; margin: 4px 0 0; accent-color: var(--green); }
+    .record-top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; column-gap: 12px; }
+    .record .money { font-weight: 600; }
+    .record-name { display: block; margin-top: 1px; font-size: .9375rem; font-weight: 500; overflow-wrap: anywhere; }
+    .sheet-add { margin-top: auto; padding: 0 16px; }
+    .quiet { display: inline-flex; align-items: center; gap: 7px; padding: 7px 0; min-height: 40px; border: 0; background: transparent; color: var(--green); text-align: left; }
+    .quiet:hover, summary:hover .summary-label { text-decoration: underline; text-underline-offset: 3px; }
+    .empty { padding: 12px 16px; }
+
+    .totals { display: grid; grid-template-columns: 1fr 1fr 1.28fr; border: 1px solid var(--rule); border-top: 0; border-radius: 0 0 4px 4px; background: var(--sheet); }
+    .total, .difference { padding: 9px 16px; }
+    .total + .total, .difference { border-left: 1px solid var(--rule); }
+    .totals dt { font-size: .875rem; color: var(--muted); }
+    .total dd { font-size: 1.125rem; font-weight: 600; margin-top: 2px; }
+    .difference { background: #eef1ed; }
+    .difference[data-tone="equal"] { color: #22543c; background: #e5f0e7; }
+    .difference[data-tone="less"] { color: var(--red); background: #f8ebe8; }
+    .difference[data-tone="more"] { color: var(--blue); background: #e7eff6; }
+    .difference dt { color: inherit; }
+    .difference .money { display: block; font-size: 1.375rem; font-weight: 600; line-height: 1.15; margin: 2px 0; }
+    .difference .verdict { font-size: .875rem; }
+    .totals.exception { grid-template-columns: 1fr; }
+
+    .observation { margin-top: 8px; }
+    summary { list-style: none; }
+    summary::-webkit-details-marker { display: none; }
+    .observation summary { display: flex; flex-wrap: wrap; width: fit-content; align-items: center; gap: 7px; min-height: 40px; color: var(--muted); font-size: .875rem; }
+    .observation[open] .chevron, .exception[open] .chevron { rotate: 180deg; }
+    .requirement { color: var(--red); }
+    textarea { display: block; width: min(100%, 40rem); min-height: 70px; resize: vertical; padding: 8px 12px; border: 1px solid var(--rule); border-radius: 4px; background: var(--sheet); }
+    .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: min(100%, 29rem); margin-top: 5px; }
+    .action { min-height: 44px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; text-align: center; border: 1px solid var(--ink); border-radius: 4px; padding: 8px 12px; line-height: 1.25; }
+    .primary { background: var(--green); border-color: var(--green); color: white; font-weight: 600; }
+    .secondary { background: transparent; }
+    .secondary:hover { background: #e7eee6; }
+    .exception { position: relative; }
+    .exception-menu { position: absolute; z-index: 1; top: calc(100% + 4px); width: 100%; min-width: 11rem; right: 0; background: var(--sheet); border: 1px solid var(--rule); border-radius: 4px; }
+    .exception-menu button { display: block; text-align: left; width: 100%; background: transparent; border: 0; padding: 8px 12px; }
+    .exception-menu button:hover { background: var(--paper); }
+    .feedback { margin-top: 10px; color: var(--green); }
+
+    .history { margin-top: 34px; }
+    .history h2 { padding-bottom: 8px; border-bottom: 1px solid var(--rule); }
+    .history-entry { border-bottom: 1px solid var(--rule); }
+    .history-entry summary { display: grid; grid-template-columns: minmax(0, 1fr) auto 16px; align-items: center; gap: 12px; padding: 10px 0; }
+    .history-entry[open] .chevron { rotate: 180deg; }
+    .history-entry .history-detail { padding: 0 0 12px; overflow-wrap: anywhere; }
+    .history-empty { padding-top: 9px; }
+    .history-entry .quiet { color: var(--red); }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+    @media (max-width: 700px) {
+      .header-content { padding: 10px 20px; }
+      main { margin-top: 26px; padding-inline: 20px; }
+      h1 { font-size: 1.75rem; }
+      .sheets { grid-template-columns: 1fr; }
+      .sheet + .sheet { border-left: 0; border-top: 1px solid var(--rule); }
+      .totals { grid-template-columns: 1fr 1fr; }
+      .difference { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--rule); }
+      .difference dd { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 12px; }
+      .account-filter select { width: 100%; }
+      .actions { gap: 8px; }
+      .action { font-size: .9375rem; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Single interactive proposal for the matching workspace, with fictional in-memory records. -->
+  <header class="site-header">
+    <div class="header-content">
+      <div class="brand">
+        <img src="../../../../public/icon.svg" alt="" width="20" height="20">
+        <strong>Fechamento Mensal</strong><span class="muted">· Associação Aurora</span>
+      </div>
+      <span class="prototype-label">Protótipo interativo · Dados fictícios</span>
+    </div>
+  </header>
+
+  <main>
+    <h1>Casar pagamentos</h1>
+    <p class="month muted">Outubro de 2026 · 2026-10</p>
+
+    <div class="notices">
+      <p id="pending" class="notice" role="status"></p>
+      <p id="error" class="notice" role="alert" tabindex="-1" hidden></p>
+    </div>
+
+    <div class="account-filter">
+      <div class="account-filter-row">
+        <label for="account">Filtrar por conta bancária</label>
+        <select id="account" aria-describedby="filter-scope">
+          <option value="">Todas as contas</option>
+          <option>Banco do Brasil</option>
+          <option>Caixa</option>
+        </select>
+      </div>
+      <p id="filter-scope" class="muted">Aplica-se aos pagamentos, casamentos e exceções.</p>
+    </div>
+
+    <form class="workspace" id="workspace">
+      <div class="sheets">
+        <section class="sheet" aria-labelledby="payments-heading">
+          <h2 id="payments-heading">Pagamentos em análise</h2>
+          <ul class="records" id="payment-rows"></ul>
+          <p id="payment-empty" class="empty muted" hidden>Nenhum pagamento selecionado.</p>
+          <div class="sheet-add" id="payment-add"></div>
+        </section>
+        <section class="sheet" aria-labelledby="documents-heading">
+          <h2 id="documents-heading">Documentos selecionados</h2>
+          <ul class="records" id="document-rows"></ul>
+          <p id="document-empty" class="empty muted" hidden></p>
+          <div class="sheet-add" id="document-add"></div>
+        </section>
+      </div>
+
+      <dl class="totals" id="totals" aria-live="polite" aria-atomic="true">
+        <div class="total"><dt>Total dos pagamentos</dt><dd class="money" id="payment-total"></dd></div>
+        <div class="total" id="document-metric"><dt>Total dos documentos</dt><dd class="money" id="document-total"></dd></div>
+        <div class="difference" id="difference">
+          <dt>Diferença <span aria-hidden="true">·</span> documentos − pagamentos</dt>
+          <dd><strong class="money" id="difference-total"></strong><span class="verdict" id="verdict"></span></dd>
+        </div>
+      </dl>
+
+      <details class="observation" id="observation">
+        <summary>
+          <svg class="icon" aria-hidden="true" viewBox="0 0 16 16"><path d="M3 2.5h10v8H8l-3 3v-3H3z M5.5 5.25h5 M5.5 7.75h3"/></svg>
+          <span class="summary-label">Observação do casamento</span>
+          <span id="requirement" class="requirement" hidden>· Obrigatória</span>
+          <svg class="icon chevron" aria-hidden="true" viewBox="0 0 16 16"><path d="m4.5 6 3.5 3.5L11.5 6"/></svg>
+        </summary>
+        <label class="sr-only" for="note">Observação do casamento</label>
+        <textarea id="note" rows="2"></textarea>
+      </details>
+
+      <div class="actions">
+        <button class="action primary" id="confirm" type="submit">Confirmar casamento</button>
+        <details class="exception" id="exception-picker">
+          <summary class="action secondary">
+            <span id="exception-label">Escolher exceção</span>
+            <svg class="icon chevron" aria-hidden="true" viewBox="0 0 16 16"><path d="m4.5 6 3.5 3.5L11.5 6"/></svg>
+          </summary>
+          <div class="exception-menu">
+            <button type="button">Tarifa bancária</button>
+            <button type="button">Honorário do contador</button>
+          </div>
+        </details>
+      </div>
+      <button class="quiet" type="button" id="cancel-exception" hidden>Cancelar exceção</button>
+    </form>
+
+    <p class="feedback" id="feedback" role="status" hidden></p>
+
+    <section class="history">
+      <h2>Casamentos confirmados</h2>
+      <div id="confirmed-list"></div>
+    </section>
+    <section class="history">
+      <h2>Exceções marcadas</h2>
+      <div id="exception-list"></div>
+    </section>
+  </main>
+
+  <script>
+    const payments = [
+      { id: "p1", date: "02/10", account: "Banco do Brasil", name: "PIX enviado · Papelaria Central Comércio de Materiais Educativos Ltda.", cents: 125000 },
+      { id: "p2", date: "05/10", account: "Banco do Brasil", name: "PIX enviado · Complemento do pedido de materiais educativos", cents: 18000 },
+      { id: "p3", date: "06/10", account: "Caixa", name: "Transferência · Cooperativa de Serviços de Limpeza do Bairro", cents: 42000 }
+    ];
+    const documents = [
+      { id: "d1", date: "02/10", kind: "Nota fiscal", name: "Papelaria Central Comércio de Materiais Educativos Ltda.", cents: 110000 },
+      { id: "d2", date: "02/10", kind: "Recibo", name: "Papelaria Central · Frete e entrega dos materiais", cents: 15000 },
+      { id: "d3", date: "04/10", kind: "Nota fiscal", name: "Papelaria Central · Materiais complementares para as oficinas", cents: 33000 },
+      { id: "d4", date: "06/10", kind: "Recibo", name: "Cooperativa de Serviços de Limpeza do Bairro", cents: 42000 }
+    ];
+    const suggestions = { p1: ["d1", "d2"], p2: [], p3: ["d4"] };
+    const byId = id => document.getElementById(id);
+    const amount = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+    const money = cents => amount.format(cents / 100);
+    const sum = records => records.reduce((total, record) => total + record.cents, 0);
+    const plus = '<svg class="icon" aria-hidden="true" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>';
+    const check = '<svg class="icon" aria-hidden="true" viewBox="0 0 16 16"><path d="m3 8 3 3 7-7"/></svg>';
+    const chevron = '<svg class="icon chevron" aria-hidden="true" viewBox="0 0 16 16"><path d="m4.5 6 3.5 3.5L11.5 6"/></svg>';
+    const history = [{
+      payments: [{ date: "01/10", account: "Banco do Brasil", name: "PIX enviado · Mercado do Bairro", cents: 24500 }],
+      documents: [{ date: "01/10", kind: "Nota fiscal", name: "Mercado do Bairro", cents: 24500 }]
+    }];
+
+    let pending = [];
+    let current;
+    let selectedPayments;
+    let selectedDocuments;
+    let selectedException = "";
+    const expanded = { payment: false, document: false };
+
+    function inAccount(record) {
+      return !byId("account").value || record.account === byId("account").value;
+    }
+
+    function availableDocuments() {
+      return documents.filter(record => !history.some(entry => entry.documents.includes(record)));
+    }
+
+    function resetSelection() {
+      pending = payments.filter(record => inAccount(record) && !history.some(entry => entry.payments.includes(record)));
+      current = pending[0];
+      selectedPayments = new Set(current ? [current.id] : []);
+      selectedDocuments = new Set(current ? availableDocuments().filter(record => suggestions[current.id].includes(record.id)).map(record => record.id) : []);
+      selectedException = "";
+      expanded.payment = false;
+      expanded.document = false;
+      byId("note").value = "";
+      byId("observation").open = false;
+      byId("exception-picker").open = false;
+      setError("");
+      byId("payment-rows").replaceChildren();
+      byId("document-rows").replaceChildren();
+      render();
+      renderHistory();
+    }
+
+    function setError(message) {
+      const error = byId("error");
+      error.textContent = message;
+      error.hidden = !message;
+      if (message) error.focus();
+    }
+
+    function renderRows(side, records, selection) {
+      const list = byId(side + "-rows");
+      if (!list.children.length) {
+        for (const record of records) {
+          const item = document.createElement("li");
+          item.className = "record";
+          item.dataset.id = record.id;
+          item.innerHTML = `<label><input type="checkbox"><span>
+            <span class="record-top"><span class="muted"></span><strong class="money"></strong></span>
+            <span class="record-name"></span>
+          </span></label>`;
+          item.querySelector(".muted").textContent = side === "payment" ? record.date + " · " + record.account : record.kind + " · " + record.date;
+          item.querySelector(".money").textContent = money(record.cents);
+          item.querySelector(".record-name").textContent = record.name;
+          item.querySelector("input").addEventListener("change", event => {
+            if (event.target.checked) selection.add(record.id);
+            else selection.delete(record.id);
+            setError("");
+            render();
+            if (item.hidden) list.parentElement.querySelector(".sheet-add button")?.focus();
+          });
+          list.append(item);
+        }
+      }
+
+      for (const item of list.children) {
+        const checked = selection.has(item.dataset.id);
+        item.hidden = !checked && !expanded[side];
+        item.querySelector("input").checked = checked;
+        item.querySelector("input").disabled = Boolean(selectedException);
+      }
+
+      const add = byId(side + "-add");
+      add.hidden = Boolean(selectedException) || records.length === 0 || (!expanded[side] && selection.size === records.length);
+      if (!add.firstElementChild) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "quiet";
+        button.setAttribute("aria-controls", list.id);
+        button.addEventListener("click", () => {
+          expanded[side] = !expanded[side];
+          render();
+          if (expanded[side]) list.querySelector("li:not([hidden]) input:not(:checked)")?.focus();
+          else if (add.hidden) list.querySelector("li:not([hidden]) input")?.focus();
+        });
+        add.append(button);
+      }
+      const button = add.firstElementChild;
+      const addLabel = side === "payment" ? "Adicionar pagamento" : "Adicionar documento";
+      button.innerHTML = expanded[side] ? check + "Concluir seleção" : plus + addLabel;
+      button.setAttribute("aria-expanded", expanded[side]);
+    }
+
+    function render() {
+      byId("pending").textContent = pending.length === 0 ? "Nenhum pagamento com documento faltante."
+        : pending.length === 1 ? "1 pagamento com documento faltante."
+        : pending.length + " pagamentos com documento faltante.";
+      byId("pending").classList.toggle("notice", pending.length > 0);
+      byId("pending").classList.toggle("muted", pending.length === 0);
+      byId("workspace").hidden = !current;
+      if (!current) return;
+
+      const docs = availableDocuments();
+      const pays = pending.filter(record => selectedPayments.has(record.id));
+      const chosenDocs = docs.filter(record => selectedDocuments.has(record.id));
+      const paymentTotal = sum(pays);
+      const documentTotal = sum(chosenDocs);
+      const difference = documentTotal - paymentTotal;
+      const comparable = !selectedException && pays.length > 0 && chosenDocs.length > 0;
+
+      renderRows("payment", pending, selectedPayments);
+      renderRows("document", docs, selectedDocuments);
+      byId("payment-empty").hidden = pays.length > 0 || expanded.payment;
+      byId("document-empty").hidden = chosenDocs.length > 0 || expanded.document;
+      byId("document-empty").textContent = selectedException ? "A exceção dispensa a seleção de documentos." : "Nenhum documento selecionado.";
+
+      byId("payment-total").textContent = money(paymentTotal);
+      byId("document-total").textContent = money(documentTotal);
+      byId("document-metric").hidden = Boolean(selectedException);
+      byId("difference").hidden = Boolean(selectedException);
+      byId("totals").classList.toggle("exception", Boolean(selectedException));
+      byId("difference").dataset.tone = comparable ? (difference === 0 ? "equal" : difference < 0 ? "less" : "more") : "pending";
+      byId("difference-total").textContent = comparable ? (difference === 0 ? "" : difference > 0 ? "+ " : "− ") + money(Math.abs(difference)) : "—";
+      byId("verdict").textContent = !comparable ? "Aguardando seleção" : difference === 0 ? "Valores conferem" : difference < 0 ? "Documentos somam menos" : "Documentos somam mais";
+      byId("observation").hidden = Boolean(selectedException);
+      byId("requirement").hidden = !comparable || difference >= 0;
+      byId("note").setAttribute("aria-required", String(comparable && difference < 0));
+      byId("confirm").textContent = selectedException ? "Marcar exceção" : "Confirmar casamento";
+      byId("exception-label").textContent = selectedException || "Escolher exceção";
+      byId("cancel-exception").hidden = !selectedException;
+    }
+
+    function renderHistory() {
+      for (const kind of ["confirmed", "exception"]) {
+        const list = byId(kind + "-list");
+        list.replaceChildren();
+        const entries = history.filter(entry => Boolean(entry.exception) === (kind === "exception") && entry.payments.some(inAccount));
+        if (!entries.length) {
+          const empty = document.createElement("p");
+          empty.className = "history-empty muted";
+          empty.textContent = kind === "confirmed" ? "Nenhum casamento confirmado." : "Nenhuma exceção marcada.";
+          list.append(empty);
+        }
+
+        for (const entry of entries) {
+          const details = document.createElement("details");
+          details.className = "history-entry";
+          details.innerHTML = '<summary><span class="summary-label"></span><strong class="money"></strong>' + chevron + '</summary><div class="history-detail"><p></p><button type="button" class="quiet"></button></div>';
+          details.querySelector(".summary-label").textContent = entry.payments[0].date + " · " + entry.payments[0].name + (entry.payments.length > 1 ? " e mais " + (entry.payments.length - 1) : "");
+          details.querySelector(".money").textContent = money(sum(entry.payments));
+          details.querySelector("p").textContent = entry.exception || entry.documents.map(record => record.kind + " · " + record.name + " · " + money(record.cents)).join(" / ");
+          if (entry.note) {
+            const note = document.createElement("p");
+            note.textContent = "Observação · " + entry.note;
+            details.querySelector(".history-detail").append(note);
+          }
+          const undo = details.querySelector("button");
+          undo.hidden = !entry.payments.some(record => record.id);
+          undo.textContent = entry.exception ? "Desmarcar exceção" : "Desfazer casamento";
+          undo.addEventListener("click", () => {
+            history.splice(history.indexOf(entry), 1);
+            resetSelection();
+            showFeedback("Pagamento voltou à análise.");
+          });
+          list.append(details);
+        }
+      }
+    }
+
+    function showFeedback(message) {
+      byId("feedback").textContent = message;
+      byId("feedback").hidden = !message;
+    }
+
+    byId("account").addEventListener("change", () => {
+      showFeedback("");
+      resetSelection();
+    });
+
+    document.querySelectorAll(".exception-menu button").forEach(button => {
+      button.addEventListener("click", () => {
+        selectedException = button.textContent;
+        selectedPayments.clear();
+        selectedPayments.add(current.id);
+        selectedDocuments.clear();
+        expanded.payment = false;
+        expanded.document = false;
+        byId("exception-picker").open = false;
+        setError("");
+        render();
+        byId("exception-picker").querySelector("summary").focus();
+      });
+    });
+
+    byId("cancel-exception").addEventListener("click", () => {
+      selectedException = "";
+      render();
+      byId("exception-picker").querySelector("summary").focus();
+    });
+
+    byId("workspace").addEventListener("submit", event => {
+      event.preventDefault();
+      const pays = pending.filter(record => selectedPayments.has(record.id));
+      const docs = availableDocuments().filter(record => selectedDocuments.has(record.id));
+      const note = byId("note").value.trim();
+
+      if (!selectedException) {
+        if (!pays.length || !docs.length) return setError("Selecione pelo menos um pagamento e um documento.");
+        if (pays.length > 1 && docs.length > 1) return setError("Selecione apenas um pagamento ou apenas um documento para este casamento.");
+        if (sum(docs) < sum(pays) && !note) {
+          byId("observation").open = true;
+          return setError("Informe uma observação para confirmar um casamento com documentos de valor menor.");
+        }
+      }
+
+      const message = selectedException ? "Exceção marcada." : "Casamento confirmado.";
+      history.unshift({ payments: pays, documents: docs, exception: selectedException, note: selectedException ? "" : note });
+      resetSelection();
+      showFeedback(message);
+    });
+
+    resetSelection();
+  </script>
+</body>
+</html>
