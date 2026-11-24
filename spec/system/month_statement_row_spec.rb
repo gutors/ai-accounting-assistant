@@ -271,7 +271,7 @@ RSpec.describe "Month statement row", type: :system do
 
     steps = heights["steps"]
     %w[history status document].each do |cell|
-      expect(steps[cell]["size"]).to eq("14px")
+      expect(steps[cell]["size"]).to eq("15px")
       expect(steps[cell]["line"]).to eq("18px")
     end
     expect(steps["account"]["size"]).to eq("13px")

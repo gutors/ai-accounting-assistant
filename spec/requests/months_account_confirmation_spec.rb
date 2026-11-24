@@ -143,7 +143,7 @@ RSpec.describe "Months account confirmation", type: :request do
     expect(headings).not_to include("Pagamentos")
     expect(headings).not_to include("Documentos sem casamento")
     expect(headings).not_to include("Confirmar contas para fechamento")
-    summary = page_doc(response.body).at_css("p.mt-6 .text-margem")
+    summary = page_doc(response.body).at_css("#month-content p .text-margem")
     expect(summary.text).to include("1 pagamento com documento faltante")
     payment_row = rows(response.body, "payment").find { |row| row.text.include?("R$ 155,00") }
     expect(payment_row).to be_present

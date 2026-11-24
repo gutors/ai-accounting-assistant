@@ -1359,14 +1359,15 @@ RSpec.describe "Months", type: :request do
 
   # Ledger arrangement (visual-identity C17–C25, C29–C33, C35, C36)
 
-  it "month title is maio de 2026 with 2026-05 under it" do
+  it "shows the month title and period in the header" do
     signed_open_month
 
     get "/months/2026-05"
 
     expect(response).to have_http_status(:ok)
-    expect(page_doc(response.body).at_css("h1").text).to include("maio de 2026")
-    expect(response.body).to include("2026-05")
+    heading = page_doc(response.body).at_css("h1")
+    expect(heading.text).to eq("Fechamento do mês")
+    expect(heading.at_xpath("following-sibling::p[1]").text).to include("maio de 2026", "2026-05")
   end
 
   it "summary says 2 pagamentos com documento faltante" do
