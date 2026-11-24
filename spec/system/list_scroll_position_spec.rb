@@ -186,30 +186,40 @@ RSpec.describe "List scroll position", type: :system do
     plant_inflow(other_statement, 1_000, history: "Recebimento secundário")
     plant_inflow(statement, 1_000, history: "Recebimento principal")
     28.times { |i| plant_payment(statement, 2_000 + i, history: "Pagamento principal") }
+    plant_recibo(organization, account, payee: "Documento avulso", amount: "20,00")
     sign_in(account)
     visit "/months/2026-05"
 
-    bank = find_link("Conta secundária")
+    within "#month-payments" do
+      click_link "Valor"
+    end
+    find("#month-inflows summary").click
+    bank = find_field("Filtrar por conta bancária")
     scroll = scroll_to_control(bank, block: "start")
-    keyboard_activate(bank)
-    expect(page).to have_css('[aria-current=true]', text: "Conta secundária")
+    page.execute_script("arguments[0].focus({ preventScroll: true })", bank)
+    page.execute_script("arguments[0].value = arguments[1]; arguments[0].dispatchEvent(new Event('change', { bubbles: true }))", bank, other_account.id.to_s)
+    expect(page).to have_select("Filtrar por conta bancária", selected: "Conta secundária")
     expect(page).to have_css("li[data-row=payment]", count: 1)
     expect(first("li[data-row=payment]")).to have_text("Pagamento secundário")
-    expect(page).to have_css("li[data-row=inflow]", count: 1)
-    expect(first("li[data-row=inflow]")).to have_text("Recebimento secundário")
+    expect(page).to have_css("li[data-row=inflow]", count: 1, visible: :all)
+    expect(first("li[data-row=inflow]", visible: :all).text(:all)).to include("Recebimento secundário")
     expect(page).to have_link("Casar pagamentos", href: "/months/2026-05/matches?bank_account_id=#{other_account.id}")
-    expect_query(bank_account_id: other_account.id.to_s)
+    expect_query(bank_account_id: other_account.id.to_s, payments_sort: "amount", payments_dir: "desc")
+    expect(page).to have_css("#month-inflows:not([open])")
+    expect(page).to have_css("#month-account-select:focus")
+    expect(page).to have_css("li[data-row=bank-account]", count: 2)
+    expect(page).to have_text("Documento avulso")
     expect_scroll_at(scroll, shortened: true)
 
     scroll = scroll_position
-    keyboard_activate(find_link("Todas"))
-    expect(page).to have_css('[aria-current=true]', text: "Todas")
+    select "Todas as contas", from: "Filtrar por conta bancária"
+    expect(page).to have_select("Filtrar por conta bancária", selected: "Todas as contas")
     expect(page).to have_css("li[data-row=payment]", count: 29)
-    expect(all("li[data-row=inflow]").map(&:text)).to contain_exactly(
+    expect(all("li[data-row=inflow]", visible: :all).map { |row| row.text(:all) }).to contain_exactly(
       a_string_including("Recebimento principal"), a_string_including("Recebimento secundário")
     )
     expect(page).to have_link("Casar pagamentos", href: "/months/2026-05/matches")
-    expect(page).to have_current_path("/months/2026-05")
+    expect_query(bank_account_id: "", payments_sort: "amount", payments_dir: "desc")
     expect_scroll_at(scroll)
   end
 

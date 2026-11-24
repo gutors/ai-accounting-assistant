@@ -269,6 +269,7 @@ class ApplicationController < ActionController::Base
     @inflows = MonthListSort.apply(@inflows, @inflows_sort, @inflows_dir, date: :occurred_on)
     @unmatched_documents = MonthListSort.apply(@unmatched_documents, @pool_sort, @pool_dir, date: :document_on, payee: :payee)
     @missing_document_payments = @payments.select(&:missing_document?)
+    @month_missing_document_count = @missing_document_payments.size
     @suggestions_by_payment_id = suggestions_on_month
     @exception_suggestions_by_payment_id = exception_suggestions_on_month
     @format_2_suggestion = format_2_suggestion_on_month

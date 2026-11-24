@@ -10,14 +10,14 @@ RSpec.describe "Month overview", type: :request do
 
     expect(response).to have_http_status(:ok)
     doc = page_doc(response.body)
-    expect(doc.at_css("h1").text.strip).to eq("maio de 2026")
+    expect(doc.at_css("h1").text.strip).to eq("Fechamento do mês")
     meta = doc.at_css("h1").parent.at_css("p")
-    expect(meta.text.strip).to eq("2026-05")
+    expect(meta.text.strip).to eq("maio de 2026 · 2026-05")
     expect(meta["class"]).to include("text-meta")
     expect(meta["class"]).to include("text-ink-soft")
     main = doc.at_css("main")
     first_link = main.css("a").first
-    expect(first_link.text.strip).to eq("Voltar para Início")
+    expect(first_link.text.strip).to eq("Voltar ao início")
     expect(first_link["href"]).to eq("/")
     expect(first_link["class"]).to include("text-caixa")
     expect(first_link["class"]).to include("underline")
@@ -46,14 +46,14 @@ RSpec.describe "Month overview", type: :request do
 
     doc = page_doc(response.body)
     first_link = doc.at_css("main").css("a").first
-    expect(first_link.text.strip).to eq("Voltar para Início")
+    expect(first_link.text.strip).to eq("Voltar ao início")
     stamp = doc.at_css('[data-stamp="closed"]')
     expect(stamp.text.strip).to eq("Mês fechado")
     expect(stamp["class"]).to include("stamp-closed")
     title_block = stamp.parent
     expect(title_block.at_css("h1")).to be_present
     expect(title_block.text).not_to include("Restaurar pasta")
-    expect(title_block.at_css("p").text.strip).to eq("2026-05")
+    expect(title_block.at_css("p").text.strip).to eq("maio de 2026 · 2026-05")
     restore = doc.css("button").find { |node| node.text.strip == "Restaurar pasta" }
     reopen = doc.css("button").find { |node| node.text.strip == "Reabrir" }
     expect(restore["class"]).to include("ds-btn-secondary")
@@ -73,10 +73,10 @@ RSpec.describe "Month overview", type: :request do
 
     get "/months/2026-05"
 
-    expect(response.body).to include("Voltar para Início")
+    expect(response.body).to include("Voltar ao início")
     expect(response.body).to include("Fechar para envio")
     expect(response.body).not_to include("Casar pagamentos")
-    expect(page_doc(response.body).at_css('[role="group"][aria-label="Conta bancária"]')).to be_nil
+    expect(page_doc(response.body).at_css('select[name="bank_account_id"]')).to be_nil
     expect(response.body).not_to include(">Todas<")
     expect(page_doc(response.body).css("details.month-fold")).to be_empty
   end
@@ -109,7 +109,7 @@ RSpec.describe "Month overview", type: :request do
     expect(contas.ancestors("details")).to be_empty
     html = doc.at_css("main").inner_html
     expect(html.index("pagamento com documento faltante") || html.index("Nenhum documento faltante")).to be < html.index("Contas bancárias")
-    chips = doc.at_css('[role="group"][aria-label="Conta bancária"]')
+    chips = doc.at_css('select[name="bank_account_id"]')
     folds = doc.css("details.month-fold")
     expect(folds.map { |node| node.at_css("summary").text.strip }).to eq(
       [ "Pagamentos", "Documentos sem casamento", "Recebimentos" ]
@@ -162,11 +162,10 @@ RSpec.describe "Month overview", type: :request do
 
     get "/months/2026-05"
 
-    links = month_chip_links(response.body)
-    expect(links.map { |node| node.text.strip }).to eq([ "Todas", "Conta Alfa", "Conta Principal" ])
-    expect(links[0]["aria-current"]).to eq("true")
-    expect(links[0]["href"]).to eq("/months/2026-05")
-    expect(links[1]["href"]).to eq("/months/2026-05?bank_account_id=#{alfa.id}")
+    options = page_doc(response.body).css('select[name="bank_account_id"] option')
+    expect(options.map { |node| node.text.strip }).to eq([ "Todas as contas", "Conta Alfa", "Conta Principal" ])
+    expect(options[0]["value"]).to eq("")
+    expect(options[1]["value"]).to eq(alfa.id.to_s)
     names = rows(response.body, "bank-account").map { |row| row.element_children[1].text.strip }
     expect(names).to include("Conta Alfa", "Conta Principal")
     expect(principal).to be_present
@@ -188,10 +187,8 @@ RSpec.describe "Month overview", type: :request do
 
     get "/months/2026-05", params: { bank_account_id: principal.id }
 
-    current = month_chip_links(response.body).find { |node| node["aria-current"] == "true" }
+    current = page_doc(response.body).at_css('select[name="bank_account_id"] option[selected]')
     expect(current.text.strip).to eq("Conta Principal")
-    todas = month_chip_links(response.body).find { |node| node.text.strip == "Todas" }
-    expect(todas["aria-current"]).to be_nil
     pagamentos = month_fold(response.body, "Pagamentos")
     expect(pagamentos.text).to include("Pix enviado — Padaria Central")
     expect(pagamentos.text).to include("Conta Principal")
@@ -200,10 +197,10 @@ RSpec.describe "Month overview", type: :request do
     expect(recebimentos.text).to include("R$ 63,00")
     expect(recebimentos.text).not_to include("Pix Alfa")
     summary = page_doc(response.body).css("span").find { |node| node.text.include?("documento faltante") }
-    expect(summary.text.strip).to eq("1 pagamento com documento faltante.")
+    expect(summary.text.strip).to eq("2 pagamentos com documento faltante.")
     expect(summary["class"]).to include("text-margem")
     expect(month_fold(response.body, "Documentos sem casamento").text).to include("Padaria Central")
-    chips = page_doc(response.body).at_css('[role="group"][aria-label="Conta bancária"]')
+    chips = page_doc(response.body).at_css('select[name="bank_account_id"]')
     expect(chips.text).not_to include("Falta o extrato")
     expect(response.body).to include("Falta o extrato")
     casar = page_doc(response.body).css("a").find { |node| node.text.strip == "Casar pagamentos" }
@@ -224,7 +221,7 @@ RSpec.describe "Month overview", type: :request do
     post "/months/2026-05/close", params: { bank_account_id: principal.id }
 
     expect(response).to have_http_status(:unprocessable_content)
-    current = month_chip_links(response.body).find { |node| node["aria-current"] == "true" }
+    current = page_doc(response.body).at_css('select[name="bank_account_id"] option[selected]')
     expect(current.text.strip).to eq("Conta Principal")
     pagamentos = month_fold(response.body, "Pagamentos")
     expect(pagamentos.text).to include("Pix enviado — Padaria Central")
@@ -254,8 +251,8 @@ RSpec.describe "Month overview", type: :request do
     get "/months/2026-05", params: { bank_account_id: principal.id }
 
     none = page_doc(response.body).css("span").find { |node| node.text.include?("documento faltante") }
-    expect(none.text.strip).to eq("Nenhum documento faltante.")
-    expect(none["class"].to_s).not_to include("text-margem")
+    expect(none.text.strip).to eq("1 pagamento com documento faltante.")
+    expect(none["class"].to_s).to include("text-margem")
   end
 
   it "GET month unknown inactive or foreign bank_account_id is 404" do
@@ -581,6 +578,6 @@ RSpec.describe "Month overview", type: :request do
 
     expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).not_to include("Resolver")
-    expect(page_doc(response.body).at_css("h1").text.strip).to eq("maio de 2026")
+    expect(page_doc(response.body).at_css("h1").text.strip).to eq("Fechamento do mês")
   end
 end

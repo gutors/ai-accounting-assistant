@@ -1,6 +1,10 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
+  submit(event) {
+    event.target.form.requestSubmit()
+  }
+
   rememberFormFocus({ target }) {
     if (target === this.element) this.formFocus = null
     if (target.tagName === "FORM" && target.dataset.turboFrame === this.element.id) {
