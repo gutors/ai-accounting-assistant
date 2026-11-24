@@ -1,0 +1,65 @@
+{
+  "version": 2,
+  "skills": {
+    "tlc-discover": {
+      "name": "tlc-discover",
+      "source": "local",
+      "contentHash": "e76c2dc3b32297bb54aaf511266f96273fecd94dbdc9f18d2fcc93be5c250748",
+      "installedAt": "2026-11-23T16:06:52.401Z",
+      "updatedAt": "2026-11-23T16:06:52.473Z",
+      "agents": [
+        "cursor",
+        "github-copilot",
+        "cline",
+        "gemini"
+      ],
+      "method": "copy",
+      "global": false
+    },
+    "tlc-implement": {
+      "name": "tlc-implement",
+      "source": "local",
+      "contentHash": "28efe469462e37cbf1ff3c64a08068e507f16ab07251529fc2dc134a53b7d5f0",
+      "installedAt": "2026-11-23T16:06:52.410Z",
+      "updatedAt": "2026-11-23T16:06:52.478Z",
+      "agents": [
+        "cursor",
+        "github-copilot",
+        "cline",
+        "gemini"
+      ],
+      "method": "copy",
+      "global": false
+    },
+    "tlc-plan": {
+      "name": "tlc-plan",
+      "source": "local",
+      "contentHash": "7b3deced549d6cd3b812ed675760c69027166b6ce5e9b293b073f1570b747152",
+      "installedAt": "2026-11-23T16:06:52.414Z",
+      "updatedAt": "2026-11-23T16:06:52.483Z",
+      "agents": [
+        "cursor",
+        "github-copilot",
+        "cline",
+        "gemini"
+      ],
+      "method": "copy",
+      "global": false
+    },
+    "tlc-spec-driven": {
+      "name": "tlc-spec-driven",
+      "source": "local",
+      "contentHash": "e8c2380a57817ef2406da1977668a39ba7721bdcb5c430fb87f2f82d6b34ae18",
+      "installedAt": "2026-11-23T16:06:52.429Z",
+      "updatedAt": "2026-11-23T16:06:52.490Z",
+      "agents": [
+        "cursor",
+        "github-copilot",
+        "cline",
+        "gemini"
+      ],
+      "method": "copy",
+      "global": false
+    }
+  }
+}

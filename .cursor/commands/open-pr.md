@@ -15,4 +15,4 @@ If the invocation includes an issue number, use it. Otherwise ask. The `gh pr cr
 3. `git fetch origin main`. Read `git log --oneline origin/main..HEAD` and `git diff origin/main...HEAD`. Confirm the branch tracks a remote and is up to date enough to push.
 4. Push if needed: `git push -u origin HEAD`. Do not force-push `main`.
 5. Write the PR body with the `pr` skill. Title explains **why**. Append `Closes #N` or `Fixes #N` after that body (the hook looks for `#<number>` in title, body, or `--fill` commits). Create with `gh pr create --title` and a heredoc `--body`.
-6. Return the PR URL. Do not merge. Do not run the-judge — it reviews a PR that already exists; the merge hook checks that it ran.
+6. After the PR is created, dispatch a fresh independent agent to run the `the-judge` skill against that PR and post its consolidated review. Wait for the agent to finish, then return the PR URL and review outcome. Do not merge.

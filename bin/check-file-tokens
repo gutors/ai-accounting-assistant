@@ -4,7 +4,7 @@
 # Pre-commit gate: staged blobs over the path's token cap (bytes/4) fail the commit.
 # Product files: 5,000. spec/: 20,000 — a request spec's HTTP matrix is larger than
 # one class. Checks the index, not the working tree, so unstaged edits are ignored.
-# Skips lockfiles, generated schema, vendored/minified assets, binaries,
+# Skips lockfiles, generated schema, vendored/minified assets, binaries, the Impeccable skill,
 # .specs/.tasks/.checks (one document per feature; splitting them breaks the Verifier),
 # and DESIGN.md plus .impeccable/ (one design-system document; splitting it breaks Impeccable).
 
@@ -55,7 +55,7 @@ def ignore?(path)
   parts = path.split("/")
   return true if parts.include?("vendor") || parts.include?("node_modules")
   return true if path.start_with?("app/assets/builds/")
-  return true if path.start_with?(".cursor/skills/", ".cursor/agents/", ".codex/")
+  return true if path.start_with?(".cursor/skills/", ".cursor/agents/", ".codex/", ".agents/skills/impeccable/")
   return true if PLANNING_PREFIXES.any? { |prefix| path.start_with?(prefix) }
 
   false
@@ -113,8 +113,8 @@ def split_instructions(violations)
       "  5. git add the old path and every new path.",
       "",
       "Lockfiles, db/schema.rb, minified/vendored assets, binaries, .specs/.tasks/.checks,",
-      "DESIGN.md, and .impeccable/ are skipped. Do not use git commit --no-verify, and do not",
-      "shrink the file by deleting tests or comments."
+      "DESIGN.md, .impeccable/, and .agents/skills/impeccable/ are skipped. Do not use",
+      "git commit --no-verify, and do not shrink the file by deleting tests or comments."
     ]
   )
   lines.join("\n")
