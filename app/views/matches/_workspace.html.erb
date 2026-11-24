@@ -46,7 +46,7 @@
         <%= text_area_tag :observation, params[:observation], id: "observation_match", rows: 2, class: "mt-2 w-full rounded border border-rule bg-sheet px-3 py-2" %>
       <% end %>
       <div class="match-actions">
-        <%= submit_tag "Confirmar casamento", class: "ds-btn-primary match-action", data: { month_match_target: "submit" } %>
+        <%= button_tag "Confirmar casamento", type: "submit", class: "ds-btn-primary match-action", data: { month_match_target: "submit" } %>
         <% if @organization.bank_fee_exception_active? || @organization.accountant_fee_exception_active? || @active_extra_exception_kinds.any? %>
           <div class="org-switch" data-controller="org-switch">
             <button type="button" class="match-exception-button" data-org-switch-target="button" data-month-match-target="exceptionButton" data-action="org-switch#toggle" aria-haspopup="listbox" aria-expanded="false" aria-controls="exception-list"><span data-month-match-target="exceptionLabel">Escolher exceção</span><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4.5 6 3.5 3.5L11.5 6" /></svg></button>

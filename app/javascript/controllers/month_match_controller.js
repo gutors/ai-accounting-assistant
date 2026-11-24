@@ -33,7 +33,7 @@ export default class extends Controller {
     this.extraKindTarget.value = option.dataset.extraId || ""
     this.extraKindTarget.disabled = !option.dataset.extraId
     this.formTarget.action = this.formTarget.dataset.exceptionUrl
-    this.submitTarget.value = "Marcar exceção"
+    this.submitTarget.textContent = "Marcar exceção"
     this.exceptionLabelTarget.textContent = option.textContent.trim()
     this.cancelExceptionTarget.hidden = false
     this.exceptionNoticeTarget.hidden = false
@@ -52,7 +52,7 @@ export default class extends Controller {
     this.baseKindTarget.disabled = true
     this.extraKindTarget.disabled = true
     this.formTarget.action = this.formTarget.dataset.matchUrl
-    this.submitTarget.value = "Confirmar casamento"
+    this.submitTarget.textContent = "Confirmar casamento"
     this.exceptionLabelTarget.textContent = "Escolher exceção"
     this.cancelExceptionTarget.hidden = true
     this.exceptionNoticeTarget.hidden = true

@@ -205,7 +205,7 @@ RSpec.describe "Month matches screen", type: :request do
     expect(confirm).to be_present
     expect(confirm.text).to include("Pagamentos", "Documentos", "Observação do casamento")
     expect(confirm.at_css("textarea")["class"]).to include("border-rule")
-    expect(confirm.at_css('input[type="submit"]')["value"]).to eq("Confirmar casamento")
+    expect(confirm.at_css('button[type="submit"]').text.strip).to eq("Confirmar casamento")
     expect(confirm.text).to include("Escolher exceção", "Tarifa bancária", "Honorário do contador", "Doação", "Zebra")
   end
 

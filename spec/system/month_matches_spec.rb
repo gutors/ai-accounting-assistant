@@ -347,6 +347,32 @@ RSpec.describe "Month matches layout", type: :system do
       JS
       expect(result["first"] == result["second"]).to eq(width == 1100)
       expect(result["overflow"]).to eq(false)
+      next unless width == 390
+
+      actions = page.evaluate_script(<<~JS)
+        (() => {
+          const buttons = Array.from(document.querySelectorAll(".match-action, .match-exception-button"));
+          return buttons.map((button) => {
+            const bounds = button.getBoundingClientRect();
+            const range = document.createRange();
+            range.selectNodeContents(button.querySelector("span") || button);
+            const labelRects = Array.from(range.getClientRects());
+            return {
+              width: bounds.width,
+              height: bounds.height,
+              contained: labelRects.every((label) =>
+                label.left >= bounds.left && label.right <= bounds.right &&
+                label.top >= bounds.top && label.bottom <= bounds.bottom
+              ),
+              overflow: button.scrollWidth > button.clientWidth || button.scrollHeight > button.clientHeight
+            };
+          });
+        })()
+      JS
+      expect(actions.size).to eq(2)
+      expect(actions[0]["width"]).to be_within(1).of(actions[1]["width"])
+      expect(actions[0]["height"]).to be_within(1).of(actions[1]["height"])
+      expect(actions).to all(include("contained" => true, "overflow" => false))
     end
   end
 end
